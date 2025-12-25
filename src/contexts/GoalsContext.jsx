@@ -1,0 +1,216 @@
+import { createContext, useContext, useState, useEffect } from 'react';
+import { db, auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp
+} from 'firebase/firestore';
+
+const GoalsContext = createContext();
+
+// Predefined goal icons
+export const GOAL_ICONS = {
+  dream: '✨',
+  education: '🎓',
+  car: '🚗',
+  home: '🏠',
+  travel: '✈️',
+  emergency: '🛡️',
+  retirement: '🏖️',
+  health: '💊',
+  gift: '🎁',
+  other: '🎯'
+};
+
+// Predefined goal colors
+export const GOAL_COLORS = [
+  { name: 'rose', bg: 'bg-rose-500', light: 'bg-rose-100', text: 'text-rose-600' },
+  { name: 'orange', bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-600' },
+  { name: 'amber', bg: 'bg-amber-500', light: 'bg-amber-100', text: 'text-amber-600' },
+  { name: 'emerald', bg: 'bg-emerald-500', light: 'bg-emerald-100', text: 'text-emerald-600' },
+  { name: 'teal', bg: 'bg-teal-500', light: 'bg-teal-100', text: 'text-teal-600' },
+  { name: 'blue', bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-600' },
+  { name: 'indigo', bg: 'bg-indigo-500', light: 'bg-indigo-100', text: 'text-indigo-600' },
+  { name: 'purple', bg: 'bg-purple-500', light: 'bg-purple-100', text: 'text-purple-600' },
+  { name: 'pink', bg: 'bg-pink-500', light: 'bg-pink-100', text: 'text-pink-600' },
+];
+
+export function GoalsProvider({ children }) {
+  const [goals, setGoals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState(null);
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid || null);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Listen for goals when userId is available
+  useEffect(() => {
+    console.log('Goals useEffect - userId:', userId);
+
+    if (!userId) {
+      console.log('No userId, clearing goals');
+      setGoals([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    console.log('Setting up goals listener for user:', userId);
+
+    const q = query(
+      collection(db, 'goals'),
+      where('userId', '==', userId)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        console.log('Goals snapshot received:', snapshot.docs.length, 'documents');
+        const goalsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        console.log('Goals data:', goalsData);
+        // Sort by createdAt
+        goalsData.sort((a, b) => {
+          const dateA = a.createdAt?.toDate?.() || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || new Date(0);
+          return dateB - dateA;
+        });
+        setGoals(goalsData);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Goals query error:', err);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  const addGoal = async (goalData) => {
+    console.log('addGoal called with:', goalData);
+    console.log('Current user:', auth.currentUser?.uid);
+
+    if (!auth.currentUser) {
+      console.error('No authenticated user');
+      return null;
+    }
+
+    try {
+      const newGoal = {
+        userId: auth.currentUser.uid,
+        name: goalData.name,
+        targetAmount: goalData.targetAmount,
+        currentAmount: 0,
+        icon: goalData.icon || 'other',
+        color: goalData.color || 'blue',
+        deadline: goalData.deadline || null,
+        description: goalData.description || '',
+        createdAt: serverTimestamp(),
+        completed: false
+      };
+      console.log('Saving goal to Firestore:', newGoal);
+
+      const docRef = await addDoc(collection(db, 'goals'), newGoal);
+      console.log('Goal saved with ID:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error adding goal:', error);
+      return null;
+    }
+  };
+
+  const updateGoal = async (goalId, updates) => {
+    try {
+      const goalRef = doc(db, 'goals', goalId);
+      await updateDoc(goalRef, updates);
+      return true;
+    } catch (error) {
+      console.error('Error updating goal:', error);
+      return false;
+    }
+  };
+
+  const deleteGoal = async (goalId) => {
+    try {
+      await deleteDoc(doc(db, 'goals', goalId));
+      return true;
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+      return false;
+    }
+  };
+
+  const addAmountToGoal = async (goalId, amount) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return false;
+
+    const newAmount = (goal.currentAmount || 0) + amount;
+    const completed = newAmount >= goal.targetAmount;
+
+    return updateGoal(goalId, {
+      currentAmount: newAmount,
+      completed
+    });
+  };
+
+  const getGoalProgress = (goal) => {
+    if (!goal || !goal.targetAmount) return 0;
+    return Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+  };
+
+  const getGoalColor = (colorName) => {
+    return GOAL_COLORS.find(c => c.name === colorName) || GOAL_COLORS[5]; // default blue
+  };
+
+  return (
+    <GoalsContext.Provider value={{
+      goals,
+      loading,
+      addGoal,
+      updateGoal,
+      deleteGoal,
+      addAmountToGoal,
+      getGoalProgress,
+      getGoalColor,
+      goalIcons: GOAL_ICONS,
+      goalColors: GOAL_COLORS
+    }}>
+      {children}
+    </GoalsContext.Provider>
+  );
+}
+
+export const useGoals = () => {
+  const context = useContext(GoalsContext);
+  if (!context) {
+    console.error('useGoals must be used within a GoalsProvider');
+    return {
+      goals: [],
+      loading: false,
+      addGoal: async () => null,
+      updateGoal: async () => false,
+      deleteGoal: async () => false,
+      addAmountToGoal: async () => false,
+      getGoalProgress: () => 0,
+      getGoalColor: () => GOAL_COLORS[5],
+      goalIcons: GOAL_ICONS,
+      goalColors: GOAL_COLORS
+    };
+  }
+  return context;
+};

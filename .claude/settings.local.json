@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(open http://localhost:5173/)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(open http://localhost:5174/)",
+      "Bash(pkill:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(npm run build:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(firebase projects:list:*)"
+    ]
+  }
+}

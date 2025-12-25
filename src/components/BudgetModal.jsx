@@ -1,0 +1,315 @@
+import { useState, useEffect, Fragment } from 'react';
+import { Dialog, Transition, Tab } from '@headlessui/react';
+import { XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { useBudget, RULE_COLORS, DEFAULT_RULE_MAPPING } from '../contexts/BudgetContext';
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome, expenseCategories }) {
+  const {
+    getBudgetForMonth,
+    setAllCategoryBudgets,
+    categoryRuleMapping,
+    setCategoryRule,
+    autoDistributeBudget,
+  } = useBudget();
+  const { formatCurrency, t } = useSettings();
+
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [categoryBudgets, setCategoryBudgetsLocal] = useState({});
+  const [totalBudget, setTotalBudgetLocal] = useState(totalIncome || 0);
+  const [localRuleMapping, setLocalRuleMapping] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  // Initialize state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const existingBudget = getBudgetForMonth(currentMonth);
+      setCategoryBudgetsLocal(existingBudget?.categoryBudgets || {});
+      setTotalBudgetLocal(existingBudget?.totalBudget || totalIncome || 0);
+      setLocalRuleMapping({ ...categoryRuleMapping });
+    }
+  }, [isOpen, currentMonth, categoryRuleMapping, totalIncome]);
+
+  const handleAutoDistribute = () => {
+    const distributed = autoDistributeBudget(totalBudget, expenseCategories, localRuleMapping);
+    setCategoryBudgetsLocal(distributed);
+  };
+
+  const handleCategoryBudgetChange = (category, value) => {
+    const numValue = parseFloat(value) || 0;
+    setCategoryBudgetsLocal(prev => ({
+      ...prev,
+      [category]: numValue
+    }));
+  };
+
+  const handleRuleChange = (category, rule) => {
+    setLocalRuleMapping(prev => ({
+      ...prev,
+      [category]: rule
+    }));
+  };
+
+  const handleResetDefaults = () => {
+    setLocalRuleMapping({ ...DEFAULT_RULE_MAPPING });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Save category budgets
+      await setAllCategoryBudgets(currentMonth, categoryBudgets, totalBudget);
+
+      // Save rule mappings for any changes
+      for (const [category, rule] of Object.entries(localRuleMapping)) {
+        if (categoryRuleMapping[category] !== rule) {
+          await setCategoryRule(category, rule);
+        }
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error saving budget:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const rules = [
+    { key: 'needs', label: t('budget.needs'), percent: 50 },
+    { key: 'wants', label: t('budget.wants'), percent: 30 },
+    { key: 'savings', label: t('budget.savings'), percent: 20 },
+  ];
+
+  const getCategoriesByRule = (rule) => {
+    return expenseCategories.filter(cat => (localRuleMapping[cat] || 'wants') === rule);
+  };
+
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/25 dark:bg-black/50" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {t('budget.budgetSettings')}
+                  </Dialog.Title>
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <XMarkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  </button>
+                </div>
+
+                <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
+                  <Tab.List className="flex space-x-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-4">
+                    <Tab
+                      className={({ selected }) =>
+                        `w-full rounded-lg py-2 text-sm font-medium transition-colors
+                        ${selected
+                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      {t('budget.perCategory')}
+                    </Tab>
+                    <Tab
+                      className={({ selected }) =>
+                        `w-full rounded-lg py-2 text-sm font-medium transition-colors
+                        ${selected
+                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      {t('budget.categoryAssignment')}
+                    </Tab>
+                  </Tab.List>
+
+                  <Tab.Panels>
+                    {/* Per Category Budget Tab */}
+                    <Tab.Panel className="space-y-4">
+                      {/* Total Budget Input */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          {t('budget.totalBudget')}
+                        </label>
+                        <input
+                          type="number"
+                          value={totalBudget}
+                          onChange={(e) => setTotalBudgetLocal(parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* Auto-distribute button */}
+                      <button
+                        onClick={handleAutoDistribute}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                      >
+                        <ArrowPathIcon className="w-4 h-4" />
+                        {t('budget.autoDistribute')}
+                      </button>
+
+                      {/* Category budgets list */}
+                      <div className="max-h-64 overflow-y-auto space-y-2">
+                        {expenseCategories.map(category => {
+                          const rule = localRuleMapping[category] || 'wants';
+                          const colors = RULE_COLORS[rule];
+                          return (
+                            <div
+                              key={category}
+                              className={`flex items-center justify-between p-3 rounded-lg border ${colors.border} ${colors.light}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {category}
+                                </span>
+                              </div>
+                              <input
+                                type="number"
+                                value={categoryBudgets[category] || ''}
+                                onChange={(e) => handleCategoryBudgetChange(category, e.target.value)}
+                                placeholder="0"
+                                className="w-28 px-2 py-1 text-right text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Total summary */}
+                      <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Total Allocated:</span>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {formatCurrency(Object.values(categoryBudgets).reduce((a, b) => a + (b || 0), 0))}
+                          </span>
+                        </div>
+                      </div>
+                    </Tab.Panel>
+
+                    {/* Category Assignment Tab */}
+                    <Tab.Panel className="space-y-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t('budget.configureRule')}
+                      </p>
+
+                      {/* Three columns for rules */}
+                      <div className="grid grid-cols-3 gap-3">
+                        {rules.map(({ key, label, percent }) => {
+                          const colors = RULE_COLORS[key];
+                          const categories = getCategoriesByRule(key);
+                          return (
+                            <div key={key} className={`p-3 rounded-lg ${colors.light} border ${colors.border}`}>
+                              <div className="flex items-center gap-1 mb-2">
+                                <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
+                                <span className={`text-xs font-semibold ${colors.text}`}>
+                                  {label} ({percent}%)
+                                </span>
+                              </div>
+                              <div className="space-y-1 max-h-40 overflow-y-auto">
+                                {categories.length === 0 ? (
+                                  <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                                    No categories
+                                  </p>
+                                ) : (
+                                  categories.map(cat => (
+                                    <div
+                                      key={cat}
+                                      className="text-xs text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-700/50 rounded px-2 py-1"
+                                    >
+                                      {cat}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Category assignment list */}
+                      <div className="max-h-48 overflow-y-auto space-y-2">
+                        {expenseCategories.map(category => {
+                          const currentRule = localRuleMapping[category] || 'wants';
+                          return (
+                            <div
+                              key={category}
+                              className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                            >
+                              <span className="text-sm text-gray-900 dark:text-white">{category}</span>
+                              <select
+                                value={currentRule}
+                                onChange={(e) => handleRuleChange(category, e.target.value)}
+                                className="text-sm px-2 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              >
+                                {rules.map(({ key, label }) => (
+                                  <option key={key} value={key}>{label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Reset to defaults */}
+                      <button
+                        onClick={handleResetDefaults}
+                        className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                      >
+                        {t('budget.resetDefaults')}
+                      </button>
+                    </Tab.Panel>
+                  </Tab.Panels>
+                </Tab.Group>
+
+                {/* Save button */}
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={onClose}
+                    className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {saving ? t('common.loading') : t('common.save')}
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+}

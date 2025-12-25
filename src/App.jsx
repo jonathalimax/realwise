@@ -3,6 +3,10 @@ import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { GoalsProvider } from './contexts/GoalsContext';
+import { CardsProvider } from './contexts/CardsContext';
+import { BudgetProvider } from './contexts/BudgetContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -28,7 +32,19 @@ function App() {
     );
   }
 
-  return user ? <Dashboard /> : <Auth />;
+  return user ? (
+    <SettingsProvider>
+      <GoalsProvider>
+        <CardsProvider>
+          <BudgetProvider>
+            <Dashboard />
+          </BudgetProvider>
+        </CardsProvider>
+      </GoalsProvider>
+    </SettingsProvider>
+  ) : (
+    <Auth />
+  );
 }
 
 export default App;
