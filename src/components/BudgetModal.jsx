@@ -274,7 +274,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Total Allocated:</span>
                           <span className="font-medium text-gray-900 dark:text-white">
-                            {formatCurrency(Object.values(categoryBudgets).reduce((a, b) => a + (b || 0), 0))}
+                            {formatCurrency(expenseCategories.reduce((sum, cat) => sum + (categoryBudgets[cat] || 0), 0))}
                           </span>
                         </div>
                       </div>
