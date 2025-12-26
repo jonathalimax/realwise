@@ -38,10 +38,15 @@ export const INVESTMENT_COLORS = [
 
 // Return type options
 export const RETURN_TYPES = {
+  cdi: 'cdi',
   annual: 'annual',
   monthly: 'monthly',
   total: 'total',
 };
+
+// Current CDI annual rate (Selic rate - update periodically)
+// As of Dec 2024, Selic is approximately 12.25% per year
+export const CDI_ANNUAL_RATE = 0.1225;
 
 export function InvestmentProvider({ children }) {
   const [investments, setInvestments] = useState([]);
@@ -98,7 +103,7 @@ export function InvestmentProvider({ children }) {
 
   // Calculate projected value based on return rate and time
   const calculateProjectedValue = (investment) => {
-    const { initialAmount, currentAmount, expectedReturn, returnType, maturityDate, createdAt } = investment;
+    const { initialAmount, currentAmount, expectedReturn, returnType, maturityDate, purchaseDate, createdAt } = investment;
 
     // If user has manually set currentAmount, use it
     if (currentAmount && currentAmount !== initialAmount) {
@@ -115,23 +120,31 @@ export function InvestmentProvider({ children }) {
       return initialAmount * (1 + expectedReturn);
     }
 
-    // Calculate time-based projection
-    const startDate = createdAt?.toDate?.() || new Date();
-    const endDate = maturityDate ? new Date(maturityDate) : new Date();
+    // Get start date - prefer purchaseDate, fallback to createdAt
+    const startDate = purchaseDate
+      ? new Date(purchaseDate + 'T12:00:00')
+      : (createdAt?.toDate?.() || new Date());
 
-    // If maturity is in the past, calculate to today
-    const calcEndDate = endDate > new Date() ? endDate : new Date();
+    // Calculate to today
+    const today = new Date();
+    const diffMs = today - startDate;
+    const years = Math.max(0, diffMs / (365.25 * 24 * 60 * 60 * 1000));
 
-    const diffMs = calcEndDate - startDate;
-    const years = diffMs / (365.25 * 24 * 60 * 60 * 1000);
+    // Handle CDI-based calculation
+    if (returnType === 'cdi') {
+      // expectedReturn is the percentage of CDI (e.g., 1.0 = 100% CDI, 1.1 = 110% CDI)
+      const effectiveAnnualRate = CDI_ANNUAL_RATE * expectedReturn;
+      // Use compound interest formula: P * (1 + r)^t
+      return initialAmount * Math.pow(1 + effectiveAnnualRate, years);
+    }
 
     if (returnType === 'annual') {
-      return initialAmount * Math.pow(1 + expectedReturn, Math.max(0, years));
+      return initialAmount * Math.pow(1 + expectedReturn, years);
     }
 
     if (returnType === 'monthly') {
       const months = years * 12;
-      return initialAmount * Math.pow(1 + expectedReturn, Math.max(0, months));
+      return initialAmount * Math.pow(1 + expectedReturn, months);
     }
 
     return initialAmount;
@@ -196,6 +209,7 @@ export function InvestmentProvider({ children }) {
         currentAmount: investmentData.currentAmount || investmentData.initialAmount || 0,
         expectedReturn: investmentData.expectedReturn || 0,
         returnType: investmentData.returnType || 'annual',
+        purchaseDate: investmentData.purchaseDate || new Date().toISOString().split('T')[0],
         maturityDate: investmentData.maturityDate || null,
         goalId: investmentData.goalId || null,
         notes: investmentData.notes || '',
@@ -206,13 +220,16 @@ export function InvestmentProvider({ children }) {
 
       // Create expense transaction if requested
       if (createTransaction && investmentData.initialAmount > 0) {
+        const txDate = investmentData.purchaseDate
+          ? new Date(investmentData.purchaseDate + 'T12:00:00')
+          : new Date();
         const transactionData = {
           userId: auth.currentUser.uid,
           type: 'expense',
           description: `Investment: ${investmentData.name}`,
           amount: investmentData.initialAmount,
           category: 'Investments',
-          date: new Date().toISOString(),
+          date: txDate.toISOString(),
           createdAt: serverTimestamp(),
           investmentId: docRef.id,
           bankId: investmentData.bank || null,

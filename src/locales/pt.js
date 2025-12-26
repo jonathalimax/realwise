@@ -350,6 +350,8 @@ export default {
     linkedToGoal: 'Vinculado a: {goal}',
     cdiPercentage: 'Percentual do CDI',
     cdiHint: 'ex: 100% CDI, 110% CDI, etc.',
+    currentCdi: 'CDI atual',
+    estimated: 'estimado',
     types: {
       fixed_income: 'Renda Fixa',
       stocks: 'Ações',

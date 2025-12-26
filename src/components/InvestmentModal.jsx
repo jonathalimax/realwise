@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useInvestments, INVESTMENT_TYPES, INVESTMENT_COLORS } from '../contexts/InvestmentContext';
+import { useInvestments, INVESTMENT_TYPES, INVESTMENT_COLORS, CDI_ANNUAL_RATE } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from './ui/CurrencyInput';
@@ -188,8 +188,18 @@ export default function InvestmentModal({ isOpen, onClose }) {
                 <p className="font-medium text-gray-900 dark:text-white">{formatCurrency(investment.initialAmount)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('investments.currentAmount')}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('investments.currentAmount')}
+                  {investment.returnType === 'cdi' && !investment.currentAmount && (
+                    <span className="ml-1 text-blue-500 dark:text-blue-400">({t('investments.estimated')})</span>
+                  )}
+                </p>
                 <p className={`font-medium ${color.text}`}>{formatCurrency(currentValue)}</p>
+                {investment.returnType === 'cdi' && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {investment.expectedReturn * 100}% CDI
+                  </p>
+                )}
               </div>
             </div>
 
@@ -514,7 +524,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
                   </div>
                   {formData.returnType === 'cdi' && (
                     <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      {t('investments.cdiHint')}
+                      {t('investments.cdiHint')} ({t('investments.currentCdi')}: {(CDI_ANNUAL_RATE * 100).toFixed(2)}% {t('investments.returnTypes.annual').toLowerCase()})
                     </p>
                   )}
                 </div>
