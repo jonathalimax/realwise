@@ -19,6 +19,8 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [addAnother, setAddAnother] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  // Date state - default to today
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
   // Installment state
   const [isInstallment, setIsInstallment] = useState(false);
   const [currentInstallment, setCurrentInstallment] = useState(1);
@@ -45,6 +47,7 @@ export default function TransactionModal({ isOpen, onClose }) {
     setCategory('');
     setSelectedGoalId('');
     setSelectedBankId(null);
+    setTransactionDate(new Date().toISOString().split('T')[0]);
     setIsInstallment(false);
     setCurrentInstallment(1);
     setTotalInstallments(2);
@@ -61,7 +64,7 @@ export default function TransactionModal({ isOpen, onClose }) {
 
     try {
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
-      const baseDate = new Date();
+      const baseDate = new Date(transactionDate + 'T12:00:00'); // Use noon to avoid timezone issues
       const baseCategory = category || categories[type][0];
 
       if (isInstallment && totalInstallments >= 2) {
@@ -236,6 +239,22 @@ export default function TransactionModal({ isOpen, onClose }) {
                         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                         transition-all duration-200"
                       placeholder={t('transactionForm.descriptionPlaceholder')}
+                    />
+                  </div>
+
+                  {/* Date */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('transactionForm.date')}
+                    </label>
+                    <input
+                      type="date"
+                      value={transactionDate}
+                      onChange={(e) => setTransactionDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                        text-gray-900 dark:text-white
+                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                        transition-all duration-200"
                     />
                   </div>
 

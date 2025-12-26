@@ -38,6 +38,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
     initialAmount: 0,
     expectedReturn: 0,
     returnType: 'annual',
+    purchaseDate: new Date().toISOString().split('T')[0],
     maturityDate: '',
     goalId: '',
     notes: '',
@@ -56,6 +57,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
       initialAmount: 0,
       expectedReturn: 0,
       returnType: 'annual',
+      purchaseDate: new Date().toISOString().split('T')[0],
       maturityDate: '',
       goalId: '',
       notes: '',
@@ -73,6 +75,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
         initialAmount: investment.initialAmount,
         expectedReturn: (investment.expectedReturn || 0) * 100, // Convert to percentage
         returnType: investment.returnType || 'annual',
+        purchaseDate: investment.purchaseDate || new Date().toISOString().split('T')[0],
         maturityDate: investment.maturityDate || '',
         goalId: investment.goalId || '',
         notes: investment.notes || '',
@@ -94,6 +97,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
       initialAmount: formData.initialAmount,
       expectedReturn: formData.expectedReturn / 100, // Convert from percentage
       returnType: formData.returnType,
+      purchaseDate: formData.purchaseDate || null,
       maturityDate: formData.maturityDate || null,
       goalId: formData.goalId || null,
       notes: formData.notes.trim(),
@@ -450,6 +454,21 @@ export default function InvestmentModal({ isOpen, onClose }) {
                   />
                 </div>
               )}
+
+              {/* Purchase Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('investments.purchaseDate')}
+                </label>
+                <input
+                  type="date"
+                  value={formData.purchaseDate}
+                  onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                    text-gray-900 dark:text-white
+                    focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+                />
+              </div>
 
               {/* Expected Return */}
               <div className="space-y-3">
