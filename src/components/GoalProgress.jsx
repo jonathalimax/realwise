@@ -1,9 +1,11 @@
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useInvestments } from '../contexts/InvestmentContext';
 
 export default function GoalProgress({ onManageGoals }) {
-  const { goals, loading, getGoalProgress, getGoalColor } = useGoals();
+  const { goals, loading, getGoalProgress, getMonthlyNeeded, getGoalColor } = useGoals();
   const { formatCurrency, t } = useSettings();
+  const { getInvestmentsByGoal, getGoalInvestmentValue } = useInvestments();
 
   // Show only active (non-completed) goals, sorted by progress
   const activeGoals = goals
@@ -61,6 +63,9 @@ export default function GoalProgress({ onManageGoals }) {
               const progress = getGoalProgress(goal);
               const icon = GOAL_ICONS[goal.icon] || GOAL_ICONS.other;
               const remaining = goal.targetAmount - (goal.currentAmount || 0);
+              const monthlyNeeded = getMonthlyNeeded(goal);
+              const linkedInvestments = getInvestmentsByGoal(goal.id);
+              const investmentValue = getGoalInvestmentValue(goal.id);
 
               return (
                 <div
@@ -73,7 +78,15 @@ export default function GoalProgress({ onManageGoals }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-900 dark:text-white truncate text-sm">{goal.name}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium text-gray-900 dark:text-white truncate text-sm">{goal.name}</span>
+                        {linkedInvestments.length > 0 && (
+                          <span className="flex-shrink-0 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-full flex items-center gap-0.5">
+                            <span>📈</span>
+                            <span>{linkedInvestments.length}</span>
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                         {progress.toFixed(0)}%
                       </span>
@@ -87,10 +100,21 @@ export default function GoalProgress({ onManageGoals }) {
                     <div className="flex justify-between mt-1">
                       <span className={`text-xs ${color.text}`}>
                         {formatCurrency(goal.currentAmount || 0)}
+                        {investmentValue > 0 && (
+                          <span className="text-blue-500 ml-1">
+                            (+{formatCurrency(investmentValue)})
+                          </span>
+                        )}
                       </span>
-                      <span className="text-xs text-gray-400">
-                        {t('goals.remaining')}: {formatCurrency(remaining > 0 ? remaining : 0)}
-                      </span>
+                      {monthlyNeeded ? (
+                        <span className={`text-xs ${color.text} font-medium`}>
+                          {t('goals.monthlyNeededShort', { amount: formatCurrency(monthlyNeeded.amount) })}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">
+                          {t('goals.remaining')}: {formatCurrency(remaining > 0 ? remaining : 0)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

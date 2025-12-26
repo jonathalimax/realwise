@@ -1,14 +1,19 @@
 import { useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useInvestments } from '../contexts/InvestmentContext';
 
 export default function BalanceSummary({ transactions = [] }) {
   const { formatCurrency, t } = useSettings();
+  const { investments, getTotalCurrentValue, getTotalGrowth } = useInvestments();
 
   const summary = useMemo(() => {
     let income = 0;
     let expenses = 0;
 
     transactions.forEach((trans) => {
+      // Skip ignored transactions
+      if (trans.ignored) return;
+
       if (trans.type === 'income') {
         income += trans.amount;
       } else {
@@ -22,6 +27,10 @@ export default function BalanceSummary({ transactions = [] }) {
       balance: income - expenses
     };
   }, [transactions]);
+
+  const portfolioValue = getTotalCurrentValue();
+  const portfolioGrowth = getTotalGrowth();
+  const hasInvestments = investments.length > 0;
 
   const cards = [
     {
@@ -59,11 +68,28 @@ export default function BalanceSummary({ transactions = [] }) {
       color: 'text-rose-600',
       bgColor: 'bg-rose-50 dark:bg-rose-900/30',
       borderColor: 'border-rose-100 dark:border-rose-900/50'
-    }
+    },
+    // Portfolio value card (only if there are investments)
+    ...(hasInvestments ? [{
+      title: t('investments.portfolioValue'),
+      value: portfolioValue,
+      subtitle: portfolioGrowth >= 0
+        ? `+${formatCurrency(portfolioGrowth)}`
+        : formatCurrency(portfolioGrowth),
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/30',
+      borderColor: 'border-blue-100 dark:border-blue-900/50',
+      subtitleColor: portfolioGrowth >= 0 ? 'text-emerald-500' : 'text-rose-500'
+    }] : [])
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className={`grid grid-cols-1 gap-4 ${hasInvestments ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
       {cards.map((card, index) => (
         <div
           key={index}
@@ -71,7 +97,6 @@ export default function BalanceSummary({ transactions = [] }) {
             relative overflow-hidden rounded-2xl p-6
             bg-white dark:bg-gray-800 border ${card.borderColor}
             hover:shadow-md transition-shadow duration-300
-            ${index === 0 ? 'md:col-span-1' : ''}
           `}
         >
           <div className="flex items-start justify-between">
@@ -80,6 +105,11 @@ export default function BalanceSummary({ transactions = [] }) {
               <p className={`text-2xl sm:text-3xl font-semibold ${card.color}`}>
                 {formatCurrency(card.value)}
               </p>
+              {card.subtitle && (
+                <p className={`text-sm font-medium mt-1 ${card.subtitleColor}`}>
+                  {card.subtitle}
+                </p>
+              )}
             </div>
             <div className={`p-2.5 rounded-xl ${card.bgColor} ${card.color}`}>
               {card.icon}

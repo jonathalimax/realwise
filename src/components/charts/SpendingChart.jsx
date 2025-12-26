@@ -28,6 +28,7 @@ const CATEGORY_ICONS = {
   'Travel': '✈️', 'Viagens': '✈️',
   'Subscriptions': '📺', 'Assinaturas': '📺',
   'Taxes': '🏛️', 'Impostos': '🏛️',
+  'Church': '⛪', 'Igreja': '⛪',
   'Other': '📦', 'Diversos': '📦',
 };
 
@@ -108,9 +109,9 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
         </div>
       </div>
 
-      {/* Category Breakdown */}
-      <div className="space-y-3">
-        {data.slice(0, 5).map((item, index) => {
+      {/* Category Breakdown - Scrollable */}
+      <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
+        {data.map((item, index) => {
           const percentage = ((item.value / total) * 100);
           const color = COLORS[index % COLORS.length];
 
@@ -120,10 +121,10 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
               onClick={() => onCategoryClick?.(item.name)}
               className="w-full group"
             >
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
                 {/* Icon */}
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-sm"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
                   style={{
                     background: `linear-gradient(135deg, ${color.light}20, ${color.main}30)`,
                     border: `1px solid ${color.main}30`
@@ -134,7 +135,7 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
 
                 {/* Category Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
                       {item.name}
                     </span>
@@ -163,15 +164,6 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
             </button>
           );
         })}
-
-        {/* Show more indicator */}
-        {data.length > 5 && (
-          <div className="text-center pt-2">
-            <span className="text-sm text-gray-400 dark:text-gray-500">
-              +{data.length - 5} {t('common.more') || 'more categories'}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

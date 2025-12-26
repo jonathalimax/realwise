@@ -3,13 +3,13 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { parseFile, BANK_OPTIONS } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
-import { useCards, CARD_ICONS } from '../contexts/CardsContext';
+import { useCards } from '../contexts/CardsContext';
 import { generateTransactionHash } from '../services/installments';
 
 export default function ImportModal({ isOpen, onClose }) {
   const [file, setFile] = useState(null);
   const [bankType, setBankType] = useState('auto');
-  const [selectedCardId, setSelectedCardId] = useState(null); // null = Cash/No Card
+  const [selectedBankId, setSelectedBankId] = useState(null); // null = Cash/No Bank
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -20,7 +20,7 @@ export default function ImportModal({ isOpen, onClose }) {
   const [installmentCount, setInstallmentCount] = useState(0);
 
   const { formatCurrency, categories, t, language } = useSettings();
-  const { cards, getCardColor } = useCards();
+  const { userBanks, getBankInfo, getBankColor } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -133,7 +133,7 @@ export default function ImportModal({ isOpen, onClose }) {
           date: t.date,
           imported: true,
           hash: t.hash,
-          cardId: selectedCardId || null,
+          bankId: selectedBankId || null,
           // Installment fields
           isInstallment: t.isInstallment || false,
           installmentCurrent: t.installmentCurrent || null,
@@ -179,7 +179,7 @@ export default function ImportModal({ isOpen, onClose }) {
     setError('');
     setDuplicateCount(0);
     setInstallmentCount(0);
-    setSelectedCardId(null);
+    setSelectedBankId(null);
     onClose();
   };
 
@@ -215,7 +215,7 @@ export default function ImportModal({ isOpen, onClose }) {
         <div className="flex-1 overflow-y-auto p-6">
           {step === 'upload' && (
             <div className="space-y-6">
-              {/* Bank Selection */}
+              {/* Bank Format Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('import.bankFormat')}
@@ -223,7 +223,7 @@ export default function ImportModal({ isOpen, onClose }) {
                 <select
                   value={bankType}
                   onChange={(e) => setBankType(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                  className="w-full pl-4 pr-10 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                     text-gray-900 dark:text-white
                     focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all"
                 >
@@ -235,59 +235,56 @@ export default function ImportModal({ isOpen, onClose }) {
                 </select>
               </div>
 
-              {/* Card Selection */}
+              {/* Bank Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('cards.filterByCard')}
+                  {language === 'pt' ? 'Vincular ao Banco' : 'Link to Bank'}
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {/* Cash / No Card option */}
+                  {/* Cash / No Bank option */}
                   <button
                     type="button"
-                    onClick={() => setSelectedCardId(null)}
+                    onClick={() => setSelectedBankId(null)}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                      selectedCardId === null
+                      selectedBankId === null
                         ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
                     <div className="w-8 h-8 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-base">
-                      {CARD_ICONS.other}
+                      💵
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">{t('cards.cashNoCard')}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                      {language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'}
+                    </span>
                   </button>
 
-                  {/* Card options */}
-                  {cards.map((card) => {
-                    const color = getCardColor(card.color);
-                    const icon = CARD_ICONS[card.icon] || (card.type === 'debit' ? CARD_ICONS.debit : CARD_ICONS.credit);
+                  {/* Bank options */}
+                  {userBanks.map((userBank) => {
+                    const bankInfo = getBankInfo(userBank.bankId);
+                    const color = getBankColor(userBank.bankId);
                     return (
                       <button
-                        key={card.id}
+                        key={userBank.bankId}
                         type="button"
-                        onClick={() => setSelectedCardId(card.id)}
+                        onClick={() => setSelectedBankId(userBank.bankId)}
                         className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                          selectedCardId === card.id
+                          selectedBankId === userBank.bankId
                             ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
                             : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
                       >
                         <div className={`w-8 h-8 ${color.light} rounded-lg flex items-center justify-center text-base`}>
-                          {icon}
+                          {bankInfo.icon}
                         </div>
                         <div className="flex-1 text-left">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{card.name}</span>
-                          {card.lastDigits && (
-                            <span className="text-xs text-gray-400 ml-1">****{card.lastDigits}</span>
-                          )}
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{bankInfo.name}</span>
                         </div>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          card.type === 'credit'
-                            ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
-                            : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
-                        }`}>
-                          {card.type === 'credit' ? t('cards.creditCard') : t('cards.bankAccount')}
-                        </span>
+                        {userBank.hasCredit && (
+                          <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                            {language === 'pt' ? 'Crédito' : 'Credit'}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -368,7 +365,7 @@ export default function ImportModal({ isOpen, onClose }) {
                   className="px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full text-sm hover:bg-purple-200 dark:hover:bg-purple-900/60 transition-colors"
                   title={language === 'pt' ? 'Inverter todos os tipos' : 'Swap all types'}
                 >
-                  ↕️ {language === 'pt' ? 'Inverter tipos' : 'Swap types'}
+                  {language === 'pt' ? 'Inverter tipos' : 'Swap types'}
                 </button>
                 <button
                   onClick={() => setStep('upload')}
@@ -446,7 +443,7 @@ export default function ImportModal({ isOpen, onClose }) {
                     <select
                       value={trans.category}
                       onChange={(e) => updateTransactionCategory(i, e.target.value)}
-                      className={`text-xs px-2 py-1 rounded-lg border-0 focus:ring-0
+                      className={`text-xs pl-2 pr-6 py-1 rounded-lg border-0 focus:ring-0
                         ${trans.autoCategory ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200'}`}
                     >
                       {categories[trans.type].map(cat => (

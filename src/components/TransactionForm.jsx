@@ -183,7 +183,7 @@ export default function TransactionForm() {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+            className="w-full pl-4 pr-10 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
               text-gray-900 dark:text-white
               focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
               transition-all duration-200 appearance-none cursor-pointer"
@@ -285,11 +285,11 @@ export default function TransactionForm() {
                   {t('transactionForm.isInstallment')}
                 </span>
               </div>
-              <div className={`w-10 h-6 rounded-full transition-colors ${
+              <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
                 isInstallment ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-600'
               }`}>
-                <div className={`w-4 h-4 bg-white rounded-full mt-1 transition-transform ${
-                  isInstallment ? 'translate-x-5' : 'translate-x-1'
+                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  isInstallment ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </div>
             </button>

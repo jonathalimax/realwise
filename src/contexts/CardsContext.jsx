@@ -10,41 +10,47 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDocs,
   serverTimestamp
 } from 'firebase/firestore';
 
 const CardsContext = createContext();
 
-// Predefined card icons
-export const CARD_ICONS = {
-  credit: '💳',
-  debit: '🏦',
-  nubank: '💜',
-  itau: '🧡',
-  bradesco: '❤️',
-  santander: '❤️',
-  caixa: '💙',
-  bb: '💛',
-  inter: '🧡',
-  c6: '⬛',
-  other: '💰'
-};
-
-// Predefined card colors
-export const CARD_COLORS = [
-  { name: 'slate', bg: 'bg-slate-700', light: 'bg-slate-100', text: 'text-slate-700' },
-  { name: 'purple', bg: 'bg-purple-600', light: 'bg-purple-100', text: 'text-purple-600' },
-  { name: 'orange', bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-600' },
-  { name: 'blue', bg: 'bg-blue-600', light: 'bg-blue-100', text: 'text-blue-600' },
-  { name: 'emerald', bg: 'bg-emerald-600', light: 'bg-emerald-100', text: 'text-emerald-600' },
-  { name: 'rose', bg: 'bg-rose-500', light: 'bg-rose-100', text: 'text-rose-600' },
-  { name: 'amber', bg: 'bg-amber-500', light: 'bg-amber-100', text: 'text-amber-600' },
-  { name: 'cyan', bg: 'bg-cyan-500', light: 'bg-cyan-100', text: 'text-cyan-600' },
-  { name: 'indigo', bg: 'bg-indigo-600', light: 'bg-indigo-100', text: 'text-indigo-600' },
+// Brazilian banks list
+export const BANKS = [
+  { id: 'nubank', name: 'Nubank', icon: '💜', color: 'purple' },
+  { id: 'itau', name: 'Itaú', icon: '🧡', color: 'orange' },
+  { id: 'bradesco', name: 'Bradesco', icon: '❤️', color: 'rose' },
+  { id: 'santander', name: 'Santander', icon: '❤️', color: 'rose' },
+  { id: 'bb', name: 'Banco do Brasil', icon: '💛', color: 'amber' },
+  { id: 'caixa', name: 'Caixa', icon: '💙', color: 'blue' },
+  { id: 'inter', name: 'Inter', icon: '🧡', color: 'orange' },
+  { id: 'c6', name: 'C6 Bank', icon: '⬛', color: 'slate' },
+  { id: 'btg', name: 'BTG Pactual', icon: '💙', color: 'blue' },
+  { id: 'xp', name: 'XP', icon: '🖤', color: 'slate' },
+  { id: 'picpay', name: 'PicPay', icon: '💚', color: 'emerald' },
+  { id: 'mercadopago', name: 'Mercado Pago', icon: '💙', color: 'cyan' },
+  { id: 'neon', name: 'Neon', icon: '💙', color: 'cyan' },
+  { id: 'next', name: 'Next', icon: '💚', color: 'emerald' },
+  { id: 'original', name: 'Banco Original', icon: '💚', color: 'emerald' },
+  { id: 'pan', name: 'Banco Pan', icon: '💙', color: 'blue' },
+  { id: 'other', name: 'Outro', icon: '🏦', color: 'slate' },
 ];
 
+// Color classes for banks
+export const BANK_COLORS = {
+  purple: { bg: 'bg-purple-600', light: 'bg-purple-100', text: 'text-purple-600' },
+  orange: { bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-600' },
+  rose: { bg: 'bg-rose-500', light: 'bg-rose-100', text: 'text-rose-600' },
+  amber: { bg: 'bg-amber-500', light: 'bg-amber-100', text: 'text-amber-600' },
+  blue: { bg: 'bg-blue-600', light: 'bg-blue-100', text: 'text-blue-600' },
+  slate: { bg: 'bg-slate-700', light: 'bg-slate-100', text: 'text-slate-700' },
+  emerald: { bg: 'bg-emerald-600', light: 'bg-emerald-100', text: 'text-emerald-600' },
+  cyan: { bg: 'bg-cyan-500', light: 'bg-cyan-100', text: 'text-cyan-600' },
+};
+
 export function CardsProvider({ children }) {
-  const [cards, setCards] = useState([]);
+  const [userBanks, setUserBanks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
 
@@ -56,10 +62,10 @@ export function CardsProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  // Listen for cards when userId is available
+  // Listen for user banks when userId is available
   useEffect(() => {
     if (!userId) {
-      setCards([]);
+      setUserBanks([]);
       setLoading(false);
       return;
     }
@@ -67,28 +73,28 @@ export function CardsProvider({ children }) {
     setLoading(true);
 
     const q = query(
-      collection(db, 'cards'),
+      collection(db, 'userBanks'),
       where('userId', '==', userId)
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const cardsData = snapshot.docs.map((doc) => ({
+        const banksData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data()
         }));
         // Sort by createdAt
-        cardsData.sort((a, b) => {
+        banksData.sort((a, b) => {
           const dateA = a.createdAt?.toDate?.() || new Date(0);
           const dateB = b.createdAt?.toDate?.() || new Date(0);
           return dateA - dateB; // Oldest first
         });
-        setCards(cardsData);
+        setUserBanks(banksData);
         setLoading(false);
       },
       (err) => {
-        console.error('Cards query error:', err);
+        console.error('UserBanks query error:', err);
         setLoading(false);
       }
     );
@@ -96,64 +102,77 @@ export function CardsProvider({ children }) {
     return () => unsubscribe();
   }, [userId]);
 
-  const addCard = async (cardData) => {
+  const addBank = async (bankData) => {
     if (!auth.currentUser) {
       console.error('No authenticated user');
       return null;
     }
 
+    // Check if bank already exists
+    const exists = userBanks.some(b => b.bankId === bankData.bankId);
+    if (exists) {
+      console.error('Bank already added');
+      return null;
+    }
+
     try {
-      const newCard = {
+      const newBank = {
         userId: auth.currentUser.uid,
-        name: cardData.name,
-        type: cardData.type || 'credit', // 'credit' or 'debit'
-        lastDigits: cardData.lastDigits || '',
-        icon: cardData.icon || (cardData.type === 'debit' ? 'debit' : 'credit'),
-        color: cardData.color || 'slate',
-        closingDay: cardData.type === 'credit' ? (cardData.closingDay || null) : null,
-        paymentDay: cardData.type === 'credit' ? (cardData.paymentDay || null) : null,
+        bankId: bankData.bankId,
+        hasCredit: bankData.hasCredit || false,
+        closingDay: bankData.hasCredit ? (bankData.closingDay || 10) : null,
+        paymentDay: bankData.hasCredit ? (bankData.paymentDay || 15) : null,
         createdAt: serverTimestamp()
       };
 
-      const docRef = await addDoc(collection(db, 'cards'), newCard);
+      const docRef = await addDoc(collection(db, 'userBanks'), newBank);
       return docRef.id;
     } catch (error) {
-      console.error('Error adding card:', error);
+      console.error('Error adding bank:', error);
       return null;
     }
   };
 
-  const updateCard = async (cardId, updates) => {
+  const updateBank = async (docId, updates) => {
     try {
-      const cardRef = doc(db, 'cards', cardId);
-      await updateDoc(cardRef, updates);
+      const bankRef = doc(db, 'userBanks', docId);
+      await updateDoc(bankRef, updates);
       return true;
     } catch (error) {
-      console.error('Error updating card:', error);
+      console.error('Error updating bank:', error);
       return false;
     }
   };
 
-  const deleteCard = async (cardId) => {
+  const deleteBank = async (docId) => {
     try {
-      await deleteDoc(doc(db, 'cards', cardId));
+      await deleteDoc(doc(db, 'userBanks', docId));
       return true;
     } catch (error) {
-      console.error('Error deleting card:', error);
+      console.error('Error deleting bank:', error);
       return false;
     }
   };
 
-  const getCardColor = (colorName) => {
-    return CARD_COLORS.find(c => c.name === colorName) || CARD_COLORS[0]; // default slate
+  const getBankInfo = (bankId) => {
+    return BANKS.find(b => b.id === bankId) || BANKS.find(b => b.id === 'other');
   };
 
-  const getCardById = (cardId) => {
-    return cards.find(c => c.id === cardId) || null;
+  const getBankColor = (bankId) => {
+    const bank = getBankInfo(bankId);
+    return BANK_COLORS[bank?.color] || BANK_COLORS.slate;
+  };
+
+  const getUserBankById = (docId) => {
+    return userBanks.find(b => b.id === docId) || null;
+  };
+
+  const getUserBankByBankId = (bankId) => {
+    return userBanks.find(b => b.bankId === bankId) || null;
   };
 
   /**
-   * Calculate the payment month for a transaction based on card closing/payment dates
+   * Calculate the payment month for a transaction based on bank's credit card dates
    * @param {string} transactionDate - ISO date string of the transaction
    * @param {number} closingDay - Day of month when invoice closes (1-31)
    * @param {number} paymentDay - Day of month when invoice is paid (1-31)
@@ -161,7 +180,7 @@ export function CardsProvider({ children }) {
    */
   const getPaymentMonth = (transactionDate, closingDay, paymentDay) => {
     if (!closingDay || !paymentDay) {
-      // For debit cards or cards without closing dates, use transaction date
+      // For transactions without credit card settings, use transaction date
       return new Date(transactionDate);
     }
 
@@ -207,30 +226,120 @@ export function CardsProvider({ children }) {
   /**
    * Get payment month key for grouping (YYYY-MM format)
    */
-  const getPaymentMonthKey = (transactionDate, card) => {
-    if (!card || card.type !== 'credit' || !card.closingDay || !card.paymentDay) {
-      // For cash/debit, use transaction date
+  const getPaymentMonthKey = (transactionDate, bankId) => {
+    const userBank = getUserBankByBankId(bankId);
+
+    if (!userBank || !userBank.hasCredit || !userBank.closingDay || !userBank.paymentDay) {
+      // For cash/debit or banks without credit settings, use transaction date
       const date = new Date(transactionDate);
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     }
 
-    const paymentDate = getPaymentMonth(transactionDate, card.closingDay, card.paymentDay);
+    const paymentDate = getPaymentMonth(transactionDate, userBank.closingDay, userBank.paymentDay);
     return `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  /**
+   * Migrate transactions from old cardId system to new bankId system
+   * Reads old cards collection to find bank mapping
+   */
+  const migrateCardIdToBankId = async () => {
+    if (!auth.currentUser) {
+      console.error('No authenticated user');
+      return { success: false, error: 'No authenticated user' };
+    }
+
+    try {
+      // 1. Read old cards collection to build cardId -> bankId mapping
+      const cardsQuery = query(
+        collection(db, 'cards'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const cardsSnapshot = await getDocs(cardsQuery);
+      const cardToBankMap = {};
+
+      cardsSnapshot.docs.forEach(cardDoc => {
+        const cardData = cardDoc.data();
+        // Use the bank field from the card, or try to detect from name
+        let bankId = cardData.bank;
+        if (!bankId) {
+          // Try to detect bank from card name
+          const cardName = (cardData.name || '').toLowerCase();
+          if (cardName.includes('nubank') || cardName.includes('nu ')) {
+            bankId = 'nubank';
+          } else if (cardName.includes('itau') || cardName.includes('itaú')) {
+            bankId = 'itau';
+          } else if (cardName.includes('bradesco')) {
+            bankId = 'bradesco';
+          } else if (cardName.includes('santander')) {
+            bankId = 'santander';
+          } else if (cardName.includes('inter')) {
+            bankId = 'inter';
+          } else if (cardName.includes('c6')) {
+            bankId = 'c6';
+          } else {
+            bankId = 'other';
+          }
+        }
+        cardToBankMap[cardDoc.id] = bankId;
+      });
+
+      console.log('Card to Bank mapping:', cardToBankMap);
+
+      // 2. Find all transactions with cardId but no bankId
+      const transactionsQuery = query(
+        collection(db, 'transactions'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const transactionsSnapshot = await getDocs(transactionsQuery);
+
+      let migratedCount = 0;
+      const batch = [];
+
+      for (const transDoc of transactionsSnapshot.docs) {
+        const data = transDoc.data();
+        // Only migrate if has cardId and no bankId
+        if (data.cardId && !data.bankId) {
+          const bankId = cardToBankMap[data.cardId];
+          if (bankId) {
+            batch.push({
+              ref: doc(db, 'transactions', transDoc.id),
+              bankId: bankId
+            });
+            migratedCount++;
+          }
+        }
+      }
+
+      // 3. Update transactions in batches
+      for (const item of batch) {
+        await updateDoc(item.ref, { bankId: item.bankId });
+      }
+
+      console.log(`Migration complete. Migrated ${migratedCount} transactions.`);
+      return { success: true, migratedCount };
+    } catch (error) {
+      console.error('Migration error:', error);
+      return { success: false, error: error.message };
+    }
   };
 
   return (
     <CardsContext.Provider value={{
-      cards,
+      userBanks,
       loading,
-      addCard,
-      updateCard,
-      deleteCard,
-      getCardColor,
-      getCardById,
+      addBank,
+      updateBank,
+      deleteBank,
+      getBankInfo,
+      getBankColor,
+      getUserBankById,
+      getUserBankByBankId,
       getPaymentMonth,
       getPaymentMonthKey,
-      cardIcons: CARD_ICONS,
-      cardColors: CARD_COLORS
+      migrateCardIdToBankId,
+      banks: BANKS,
+      bankColors: BANK_COLORS
     }}>
       {children}
     </CardsContext.Provider>
@@ -242,17 +351,20 @@ export const useCards = () => {
   if (!context) {
     console.error('useCards must be used within a CardsProvider');
     return {
-      cards: [],
+      userBanks: [],
       loading: false,
-      addCard: async () => null,
-      updateCard: async () => false,
-      deleteCard: async () => false,
-      getCardColor: () => CARD_COLORS[0],
-      getCardById: () => null,
+      addBank: async () => null,
+      updateBank: async () => false,
+      deleteBank: async () => false,
+      getBankInfo: () => BANKS[BANKS.length - 1],
+      getBankColor: () => BANK_COLORS.slate,
+      getUserBankById: () => null,
+      getUserBankByBankId: () => null,
       getPaymentMonth: () => new Date(),
       getPaymentMonthKey: () => '',
-      cardIcons: CARD_ICONS,
-      cardColors: CARD_COLORS
+      migrateCardIdToBankId: async () => ({ success: false, error: 'No context' }),
+      banks: BANKS,
+      bankColors: BANK_COLORS
     };
   }
   return context;

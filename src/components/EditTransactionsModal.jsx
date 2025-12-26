@@ -2,20 +2,21 @@ import { useState } from 'react';
 import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
-import { useCards, CARD_ICONS } from '../contexts/CardsContext';
+import { useCards } from '../contexts/CardsContext';
 
 export default function EditTransactionsModal({ isOpen, onClose, transactions, onSuccess }) {
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedCardId, setSelectedCardId] = useState('no-change');
+  const [selectedBankId, setSelectedBankId] = useState('no-change');
+  const [ignoredStatus, setIgnoredStatus] = useState('no-change'); // 'no-change', 'true', 'false'
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
 
   const { categories, t, language } = useSettings();
-  const { cards, getCardColor } = useCards();
+  const { userBanks, getBankInfo } = useCards();
 
   const handleUpdate = async () => {
-    if (!selectedCategory && selectedCardId === 'no-change') {
-      setError(language === 'pt' ? 'Selecione uma categoria ou cartão para alterar' : 'Select a category or card to change');
+    if (!selectedCategory && selectedBankId === 'no-change' && ignoredStatus === 'no-change') {
+      setError(language === 'pt' ? 'Selecione uma opção para alterar' : 'Select an option to change');
       return;
     }
 
@@ -27,8 +28,11 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
       if (selectedCategory) {
         updates.category = selectedCategory;
       }
-      if (selectedCardId !== 'no-change') {
-        updates.cardId = selectedCardId === 'cash' ? null : selectedCardId;
+      if (selectedBankId !== 'no-change') {
+        updates.bankId = selectedBankId === 'cash' ? null : selectedBankId;
+      }
+      if (ignoredStatus !== 'no-change') {
+        updates.ignored = ignoredStatus === 'true';
       }
 
       for (const transaction of transactions) {
@@ -48,14 +52,13 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
 
   const handleClose = () => {
     setSelectedCategory('');
-    setSelectedCardId('no-change');
+    setSelectedBankId('no-change');
+    setIgnoredStatus('no-change');
     setError('');
     onClose();
   };
 
   if (!isOpen) return null;
-
-  const allCategories = [...categories.expense, ...categories.income];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -95,7 +98,7 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+              className="w-full pl-4 pr-10 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                 text-gray-900 dark:text-white
                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all"
             >
@@ -113,25 +116,46 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
             </select>
           </div>
 
-          {/* Card selector */}
+          {/* Bank selector */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {language === 'pt' ? 'Novo Cartão' : 'New Card'}
+              {language === 'pt' ? 'Novo Banco' : 'New Bank'}
             </label>
             <select
-              value={selectedCardId}
-              onChange={(e) => setSelectedCardId(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+              value={selectedBankId}
+              onChange={(e) => setSelectedBankId(e.target.value)}
+              className="w-full pl-4 pr-10 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                 text-gray-900 dark:text-white
                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all"
             >
-              <option value="no-change">{language === 'pt' ? 'Manter cartão atual' : 'Keep current card'}</option>
-              <option value="cash">{t('cards.cashNoCard')}</option>
-              {cards.map(card => (
-                <option key={card.id} value={card.id}>
-                  {card.name} {card.lastDigits ? `****${card.lastDigits}` : ''}
-                </option>
-              ))}
+              <option value="no-change">{language === 'pt' ? 'Manter banco atual' : 'Keep current bank'}</option>
+              <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
+              {userBanks.map(userBank => {
+                const bankInfo = getBankInfo(userBank.bankId);
+                return (
+                  <option key={userBank.bankId} value={userBank.bankId}>
+                    {bankInfo.icon} {bankInfo.name}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Ignored Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t('transactionForm.ignoreTransaction')}
+            </label>
+            <select
+              value={ignoredStatus}
+              onChange={(e) => setIgnoredStatus(e.target.value)}
+              className="w-full pl-4 pr-10 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                text-gray-900 dark:text-white
+                focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all"
+            >
+              <option value="no-change">{language === 'pt' ? 'Manter status atual' : 'Keep current status'}</option>
+              <option value="true">{language === 'pt' ? '🚫 Ignorar nos totais' : '🚫 Ignore in totals'}</option>
+              <option value="false">{language === 'pt' ? 'Incluir nos totais' : 'Include in totals'}</option>
             </select>
           </div>
 
@@ -154,7 +178,7 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
           </button>
           <button
             onClick={handleUpdate}
-            disabled={updating || (!selectedCategory && selectedCardId === 'no-change')}
+            disabled={updating || (!selectedCategory && selectedBankId === 'no-change' && ignoredStatus === 'no-change')}
             className="flex-1 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl font-medium
               hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >

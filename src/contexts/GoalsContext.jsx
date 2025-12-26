@@ -31,15 +31,15 @@ export const GOAL_ICONS = {
 
 // Predefined goal colors
 export const GOAL_COLORS = [
-  { name: 'rose', bg: 'bg-rose-500', light: 'bg-rose-100', text: 'text-rose-600' },
-  { name: 'orange', bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-600' },
-  { name: 'amber', bg: 'bg-amber-500', light: 'bg-amber-100', text: 'text-amber-600' },
-  { name: 'emerald', bg: 'bg-emerald-500', light: 'bg-emerald-100', text: 'text-emerald-600' },
-  { name: 'teal', bg: 'bg-teal-500', light: 'bg-teal-100', text: 'text-teal-600' },
-  { name: 'blue', bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-600' },
-  { name: 'indigo', bg: 'bg-indigo-500', light: 'bg-indigo-100', text: 'text-indigo-600' },
-  { name: 'purple', bg: 'bg-purple-500', light: 'bg-purple-100', text: 'text-purple-600' },
-  { name: 'pink', bg: 'bg-pink-500', light: 'bg-pink-100', text: 'text-pink-600' },
+  { name: 'rose', bg: 'bg-rose-500', light: 'bg-rose-100 dark:bg-rose-900/40', text: 'text-rose-600 dark:text-rose-400' },
+  { name: 'orange', bg: 'bg-orange-500', light: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-600 dark:text-orange-400' },
+  { name: 'amber', bg: 'bg-amber-500', light: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-600 dark:text-amber-400' },
+  { name: 'emerald', bg: 'bg-emerald-500', light: 'bg-emerald-100 dark:bg-emerald-900/40', text: 'text-emerald-600 dark:text-emerald-400' },
+  { name: 'teal', bg: 'bg-teal-500', light: 'bg-teal-100 dark:bg-teal-900/40', text: 'text-teal-600 dark:text-teal-400' },
+  { name: 'blue', bg: 'bg-blue-500', light: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-600 dark:text-blue-400' },
+  { name: 'indigo', bg: 'bg-indigo-500', light: 'bg-indigo-100 dark:bg-indigo-900/40', text: 'text-indigo-600 dark:text-indigo-400' },
+  { name: 'purple', bg: 'bg-purple-500', light: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-600 dark:text-purple-400' },
+  { name: 'pink', bg: 'bg-pink-500', light: 'bg-pink-100 dark:bg-pink-900/40', text: 'text-pink-600 dark:text-pink-400' },
 ];
 
 export function GoalsProvider({ children }) {
@@ -173,6 +173,28 @@ export function GoalsProvider({ children }) {
     return Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
   };
 
+  const getMonthlyNeeded = (goal) => {
+    if (!goal || !goal.deadline || goal.completed) return null;
+
+    const remaining = goal.targetAmount - (goal.currentAmount || 0);
+    if (remaining <= 0) return null;
+
+    const today = new Date();
+    const deadlineDate = new Date(goal.deadline);
+
+    // Calculate months remaining
+    const monthsDiff = (deadlineDate.getFullYear() - today.getFullYear()) * 12
+      + (deadlineDate.getMonth() - today.getMonth());
+
+    // If deadline is in the past or this month, return null
+    if (monthsDiff <= 0) return null;
+
+    return {
+      amount: remaining / monthsDiff,
+      months: monthsDiff
+    };
+  };
+
   const getGoalColor = (colorName) => {
     return GOAL_COLORS.find(c => c.name === colorName) || GOAL_COLORS[5]; // default blue
   };
@@ -186,6 +208,7 @@ export function GoalsProvider({ children }) {
       deleteGoal,
       addAmountToGoal,
       getGoalProgress,
+      getMonthlyNeeded,
       getGoalColor,
       goalIcons: GOAL_ICONS,
       goalColors: GOAL_COLORS
@@ -207,6 +230,7 @@ export const useGoals = () => {
       deleteGoal: async () => false,
       addAmountToGoal: async () => false,
       getGoalProgress: () => 0,
+      getMonthlyNeeded: () => null,
       getGoalColor: () => GOAL_COLORS[5],
       goalIcons: GOAL_ICONS,
       goalColors: GOAL_COLORS

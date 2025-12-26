@@ -21,6 +21,9 @@ export const DEFAULT_RULE_MAPPING = {
   'Travel': 'wants', 'Viagens': 'wants',
   'Education': 'wants', 'Educação': 'wants',
   'Other': 'wants', 'Diversos': 'wants',
+
+  // Savings (20%) - Investments
+  'Investments': 'savings', 'Investimentos': 'savings',
 };
 
 export const RULE_COLORS = {
@@ -44,9 +47,17 @@ export const RULE_COLORS = {
   },
 };
 
+// Default rule percentages (50/30/20)
+export const DEFAULT_RULE_PERCENTAGES = {
+  needs: 50,
+  wants: 30,
+  savings: 20,
+};
+
 export function BudgetProvider({ children }) {
   const [budgets, setBudgets] = useState([]);
   const [categoryRuleMapping, setCategoryRuleMappingState] = useState(DEFAULT_RULE_MAPPING);
+  const [rulePercentages, setRulePercentagesState] = useState(DEFAULT_RULE_PERCENTAGES);
   const [loading, setLoading] = useState(true);
 
   // Listen for budget documents
@@ -187,14 +198,15 @@ export function BudgetProvider({ children }) {
     }
   };
 
-  // Calculate 50/30/20 rule comparison
+  // Calculate rule comparison with custom percentages
   const calculate50_30_20 = (transactions, totalIncome, customMapping = null) => {
     const mapping = customMapping || categoryRuleMapping;
+    const percentages = rulePercentages;
     const totals = { needs: 0, wants: 0, savings: 0 };
 
     // Calculate expense totals by rule category
     transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === 'expense' && !t.ignored)
       .forEach(t => {
         const rule = mapping[t.category] || 'wants';
         totals[rule] += t.amount;
@@ -202,15 +214,15 @@ export function BudgetProvider({ children }) {
 
     // Add goal contributions to savings (income allocated to goals)
     transactions
-      .filter(t => t.type === 'income' && t.goalId)
+      .filter(t => t.type === 'income' && t.goalId && !t.ignored)
       .forEach(t => {
         totals.savings += t.amount;
       });
 
     const targets = {
-      needs: totalIncome * 0.50,
-      wants: totalIncome * 0.30,
-      savings: totalIncome * 0.20,
+      needs: totalIncome * (percentages.needs / 100),
+      wants: totalIncome * (percentages.wants / 100),
+      savings: totalIncome * (percentages.savings / 100),
     };
 
     return {
@@ -218,7 +230,7 @@ export function BudgetProvider({ children }) {
         spent: totals.needs,
         target: targets.needs,
         percentage: totalIncome > 0 ? (totals.needs / totalIncome) * 100 : 0,
-        targetPercentage: 50,
+        targetPercentage: percentages.needs,
         difference: targets.needs - totals.needs,
         status: totals.needs <= targets.needs ? 'good' : 'exceeded',
       },
@@ -226,7 +238,7 @@ export function BudgetProvider({ children }) {
         spent: totals.wants,
         target: targets.wants,
         percentage: totalIncome > 0 ? (totals.wants / totalIncome) * 100 : 0,
-        targetPercentage: 30,
+        targetPercentage: percentages.wants,
         difference: targets.wants - totals.wants,
         status: totals.wants <= targets.wants ? 'good' : 'exceeded',
       },
@@ -234,7 +246,7 @@ export function BudgetProvider({ children }) {
         spent: totals.savings,
         target: targets.savings,
         percentage: totalIncome > 0 ? (totals.savings / totalIncome) * 100 : 0,
-        targetPercentage: 20,
+        targetPercentage: percentages.savings,
         difference: targets.savings - totals.savings,
         status: totals.savings >= targets.savings ? 'good' : 'warning',
       },
@@ -261,7 +273,36 @@ export function BudgetProvider({ children }) {
     }
   };
 
-  // Load category rule mapping from settings
+  // Set custom rule percentages
+  const setRulePercentages = async (newPercentages) => {
+    // Ensure percentages sum to 100
+    const total = newPercentages.needs + newPercentages.wants + newPercentages.savings;
+    if (total !== 100) {
+      console.warn('Rule percentages must sum to 100');
+      return false;
+    }
+
+    setRulePercentagesState(newPercentages);
+
+    // Persist to Firestore in settings
+    if (auth.currentUser) {
+      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
+      await setDoc(settingsRef, { rulePercentages: newPercentages }, { merge: true });
+    }
+    return true;
+  };
+
+  // Reset to default 50/30/20
+  const resetRulePercentages = async () => {
+    setRulePercentagesState(DEFAULT_RULE_PERCENTAGES);
+
+    if (auth.currentUser) {
+      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
+      await setDoc(settingsRef, { rulePercentages: DEFAULT_RULE_PERCENTAGES }, { merge: true });
+    }
+  };
+
+  // Load category rule mapping and percentages from settings
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -275,15 +316,22 @@ export function BudgetProvider({ children }) {
             ...data.categoryRuleMapping
           });
         }
+        if (data.rulePercentages) {
+          setRulePercentagesState({
+            ...DEFAULT_RULE_PERCENTAGES,
+            ...data.rulePercentages
+          });
+        }
       }
     });
 
     return () => unsubscribe();
   }, [auth.currentUser?.uid]);
 
-  // Auto-distribute budget based on 50/30/20 rule
+  // Auto-distribute budget based on custom percentages
   const autoDistributeBudget = (totalBudget, expenseCategories, mapping = null) => {
     const ruleMapping = mapping || categoryRuleMapping;
+    const percentages = rulePercentages;
     const distribution = { needs: [], wants: [], savings: [] };
 
     // Group categories by rule
@@ -294,9 +342,9 @@ export function BudgetProvider({ children }) {
 
     const categoryBudgets = {};
     const amounts = {
-      needs: totalBudget * 0.50,
-      wants: totalBudget * 0.30,
-      savings: totalBudget * 0.20,
+      needs: totalBudget * (percentages.needs / 100),
+      wants: totalBudget * (percentages.wants / 100),
+      savings: totalBudget * (percentages.savings / 100),
     };
 
     // Distribute evenly within each rule group
@@ -327,6 +375,9 @@ export function BudgetProvider({ children }) {
       categoryRuleMapping,
       getCategoryRule,
       setCategoryRule,
+      rulePercentages,
+      setRulePercentages,
+      resetRulePercentages,
       autoDistributeBudget,
       RULE_COLORS,
     }}>
@@ -352,6 +403,9 @@ export const useBudget = () => {
       categoryRuleMapping: DEFAULT_RULE_MAPPING,
       getCategoryRule: () => 'wants',
       setCategoryRule: () => {},
+      rulePercentages: DEFAULT_RULE_PERCENTAGES,
+      setRulePercentages: () => false,
+      resetRulePercentages: () => {},
       autoDistributeBudget: () => ({}),
       RULE_COLORS,
     };

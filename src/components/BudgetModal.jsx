@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition, Tab } from '@headlessui/react';
-import { XMarkIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { useBudget, RULE_COLORS, DEFAULT_RULE_MAPPING } from '../contexts/BudgetContext';
+import { XMarkIcon, ArrowPathIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { useBudget, RULE_COLORS, DEFAULT_RULE_MAPPING, DEFAULT_RULE_PERCENTAGES } from '../contexts/BudgetContext';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome, expenseCategories }) {
@@ -10,14 +10,18 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
     setAllCategoryBudgets,
     categoryRuleMapping,
     setCategoryRule,
+    rulePercentages,
+    setRulePercentages,
+    resetRulePercentages,
     autoDistributeBudget,
   } = useBudget();
-  const { formatCurrency, t } = useSettings();
+  const { formatCurrency, t, language } = useSettings();
 
   const [selectedTab, setSelectedTab] = useState(0);
   const [categoryBudgets, setCategoryBudgetsLocal] = useState({});
   const [totalBudget, setTotalBudgetLocal] = useState(totalIncome || 0);
   const [localRuleMapping, setLocalRuleMapping] = useState({});
+  const [localPercentages, setLocalPercentages] = useState({ needs: 50, wants: 30, savings: 20 });
   const [saving, setSaving] = useState(false);
 
   // Initialize state when modal opens
@@ -27,8 +31,9 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
       setCategoryBudgetsLocal(existingBudget?.categoryBudgets || {});
       setTotalBudgetLocal(existingBudget?.totalBudget || totalIncome || 0);
       setLocalRuleMapping({ ...categoryRuleMapping });
+      setLocalPercentages({ ...rulePercentages });
     }
-  }, [isOpen, currentMonth, categoryRuleMapping, totalIncome]);
+  }, [isOpen, currentMonth, categoryRuleMapping, rulePercentages, totalIncome]);
 
   const handleAutoDistribute = () => {
     const distributed = autoDistributeBudget(totalBudget, expenseCategories, localRuleMapping);
@@ -54,6 +59,21 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
     setLocalRuleMapping({ ...DEFAULT_RULE_MAPPING });
   };
 
+  const handlePercentageChange = (key, value) => {
+    const numValue = parseInt(value) || 0;
+    setLocalPercentages(prev => ({
+      ...prev,
+      [key]: Math.max(0, Math.min(100, numValue))
+    }));
+  };
+
+  const handleResetPercentages = () => {
+    setLocalPercentages({ ...DEFAULT_RULE_PERCENTAGES });
+  };
+
+  const percentageSum = localPercentages.needs + localPercentages.wants + localPercentages.savings;
+  const isPercentageValid = percentageSum === 100;
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -67,6 +87,18 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
         }
       }
 
+      // Save custom percentages if valid and changed
+      if (isPercentageValid) {
+        const hasPercentageChanges =
+          localPercentages.needs !== rulePercentages.needs ||
+          localPercentages.wants !== rulePercentages.wants ||
+          localPercentages.savings !== rulePercentages.savings;
+
+        if (hasPercentageChanges) {
+          await setRulePercentages(localPercentages);
+        }
+      }
+
       onClose();
     } catch (error) {
       console.error('Error saving budget:', error);
@@ -76,9 +108,9 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
   };
 
   const rules = [
-    { key: 'needs', label: t('budget.needs'), percent: 50 },
-    { key: 'wants', label: t('budget.wants'), percent: 30 },
-    { key: 'savings', label: t('budget.savings'), percent: 20 },
+    { key: 'needs', label: t('budget.needs'), percent: localPercentages.needs },
+    { key: 'wants', label: t('budget.wants'), percent: localPercentages.wants },
+    { key: 'savings', label: t('budget.savings'), percent: localPercentages.savings },
   ];
 
   const getCategoriesByRule = (rule) => {
@@ -148,6 +180,18 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                     >
                       {t('budget.categoryAssignment')}
                     </Tab>
+                    <Tab
+                      className={({ selected }) =>
+                        `w-full rounded-lg py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1
+                        ${selected
+                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      <AdjustmentsHorizontalIcon className="w-4 h-4" />
+                      {t('budget.targetPercentages')}
+                    </Tab>
                   </Tab.List>
 
                   <Tab.Panels>
@@ -175,29 +219,51 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                         {t('budget.autoDistribute')}
                       </button>
 
-                      {/* Category budgets list */}
-                      <div className="max-h-64 overflow-y-auto space-y-2">
-                        {expenseCategories.map(category => {
-                          const rule = localRuleMapping[category] || 'wants';
-                          const colors = RULE_COLORS[rule];
+                      {/* Category budgets grouped by assignment */}
+                      <div className="max-h-64 overflow-y-auto space-y-4">
+                        {rules.map(({ key, label, percent }) => {
+                          const colors = RULE_COLORS[key];
+                          const categories = getCategoriesByRule(key);
+                          if (categories.length === 0) return null;
+
+                          const groupTotal = categories.reduce((sum, cat) => sum + (categoryBudgets[cat] || 0), 0);
+                          const targetAmount = totalBudget * (percent / 100);
+
                           return (
-                            <div
-                              key={category}
-                              className={`flex items-center justify-between p-3 rounded-lg border ${colors.border} ${colors.light}`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {category}
+                            <div key={key} className="space-y-2">
+                              {/* Group header */}
+                              <div className={`flex items-center justify-between px-2 py-1 rounded ${colors.light}`}>
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
+                                  <span className={`text-sm font-semibold ${colors.text}`}>
+                                    {label} ({percent}%)
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatCurrency(groupTotal)} / {formatCurrency(targetAmount)}
                                 </span>
                               </div>
-                              <input
-                                type="number"
-                                value={categoryBudgets[category] || ''}
-                                onChange={(e) => handleCategoryBudgetChange(category, e.target.value)}
-                                placeholder="0"
-                                className="w-28 px-2 py-1 text-right text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
+
+                              {/* Categories in this group */}
+                              <div className="space-y-1 pl-2">
+                                {categories.map(category => (
+                                  <div
+                                    key={category}
+                                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                                  >
+                                    <span className="text-sm text-gray-900 dark:text-white">
+                                      {category}
+                                    </span>
+                                    <input
+                                      type="number"
+                                      value={categoryBudgets[category] || ''}
+                                      onChange={(e) => handleCategoryBudgetChange(category, e.target.value)}
+                                      placeholder="0"
+                                      className="w-28 px-2 py-1 text-right text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           );
                         })}
@@ -267,7 +333,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                               <select
                                 value={currentRule}
                                 onChange={(e) => handleRuleChange(category, e.target.value)}
-                                className="text-sm px-2 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="text-sm pl-2 pr-8 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
                                 {rules.map(({ key, label }) => (
                                   <option key={key} value={key}>{label}</option>
@@ -284,6 +350,75 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                         className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
                       >
                         {t('budget.resetDefaults')}
+                      </button>
+                    </Tab.Panel>
+
+                    {/* Target Percentages Tab */}
+                    <Tab.Panel className="space-y-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t('budget.customizePercentages')}
+                      </p>
+
+                      <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                        {t('budget.guideline')}
+                      </p>
+
+                      {/* Percentage inputs */}
+                      <div className="space-y-3">
+                        {[
+                          { key: 'needs', label: t('budget.needs'), emoji: '🏠', default: 50 },
+                          { key: 'wants', label: t('budget.wants'), emoji: '🎮', default: 30 },
+                          { key: 'savings', label: t('budget.savings'), emoji: '💰', default: 20 },
+                        ].map(({ key, label, emoji, default: defaultVal }) => {
+                          const colors = RULE_COLORS[key];
+                          return (
+                            <div
+                              key={key}
+                              className={`flex items-center justify-between p-3 rounded-lg ${colors.light} border ${colors.border}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">{emoji}</span>
+                                <span className={`font-medium ${colors.text}`}>{label}</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                  (default: {defaultVal}%)
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={localPercentages[key]}
+                                  onChange={(e) => handlePercentageChange(key, e.target.value)}
+                                  className="w-20 px-2 py-1 text-right text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Sum validation */}
+                      <div className={`p-3 rounded-lg ${isPercentageValid ? 'bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800' : 'bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm font-medium ${isPercentageValid ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                            {t('budget.currentSum')}: {percentageSum}%
+                          </span>
+                          {!isPercentageValid && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400">
+                              {t('budget.mustSumTo100')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Reset to 50/30/20 */}
+                      <button
+                        onClick={handleResetPercentages}
+                        className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                      >
+                        {t('budget.resetToDefault')}
                       </button>
                     </Tab.Panel>
                   </Tab.Panels>

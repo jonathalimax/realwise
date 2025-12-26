@@ -7,6 +7,7 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import { GoalsProvider } from './contexts/GoalsContext';
 import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
+import { InvestmentProvider } from './contexts/InvestmentContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -37,7 +38,9 @@ function App() {
       <GoalsProvider>
         <CardsProvider>
           <BudgetProvider>
-            <Dashboard />
+            <InvestmentProvider>
+              <Dashboard />
+            </InvestmentProvider>
           </BudgetProvider>
         </CardsProvider>
       </GoalsProvider>

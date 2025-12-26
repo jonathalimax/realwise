@@ -3,15 +3,17 @@ import { useGoals, GOAL_ICONS, GOAL_COLORS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import CurrencyInput from './ui/CurrencyInput';
 
-export default function GoalsModal({ isOpen, onClose }) {
-  const { goals, loading, addGoal, updateGoal, deleteGoal, addAmountToGoal, getGoalProgress, getGoalColor } = useGoals();
-  const { formatCurrency, t } = useSettings();
+export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
+  const { goals, loading, addGoal, updateGoal, deleteGoal, addAmountToGoal, getGoalProgress, getMonthlyNeeded, getGoalColor } = useGoals();
+  const { formatCurrency, t, language } = useSettings();
 
-  const [view, setView] = useState('list'); // 'list', 'form', 'addFunds'
+  const [view, setView] = useState('list'); // 'list', 'form', 'addFunds', 'transactions'
   const [editingGoal, setEditingGoal] = useState(null);
   const [selectedGoalForFunds, setSelectedGoalForFunds] = useState(null);
+  const [selectedGoalForTransactions, setSelectedGoalForTransactions] = useState(null);
   const [fundAmount, setFundAmount] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [sortBy, setSortBy] = useState('deadline'); // 'deadline', 'name', 'value', 'created'
 
   // Form state
   const [formData, setFormData] = useState({
@@ -87,6 +89,10 @@ export default function GoalsModal({ isOpen, onClose }) {
     setConfirmDelete(null);
   };
 
+  const handleToggleCompleted = async (goal) => {
+    await updateGoal(goal.id, { completed: !goal.completed });
+  };
+
   const handleAddFunds = async () => {
     if (!selectedGoalForFunds || !fundAmount || fundAmount <= 0) return;
     await addAmountToGoal(selectedGoalForFunds.id, fundAmount);
@@ -99,6 +105,45 @@ export default function GoalsModal({ isOpen, onClose }) {
     setSelectedGoalForFunds(goal);
     setFundAmount(0);
     setView('addFunds');
+  };
+
+  const openTransactions = (goal) => {
+    setSelectedGoalForTransactions(goal);
+    setView('transactions');
+  };
+
+  // Get transactions linked to a specific goal
+  const getGoalTransactions = (goalId) => {
+    return transactions
+      .filter(t => t.goalId === goalId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  };
+
+  // Sort goals based on selected criteria
+  const getSortedGoals = () => {
+    const sorted = [...goals];
+
+    switch (sortBy) {
+      case 'name':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case 'value':
+        return sorted.sort((a, b) => b.targetAmount - a.targetAmount);
+      case 'created':
+        return sorted.sort((a, b) => {
+          const dateA = a.createdAt?.toDate?.() || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || new Date(0);
+          return dateB - dateA;
+        });
+      case 'deadline':
+      default:
+        return sorted.sort((a, b) => {
+          // Goals without deadline go to the end
+          if (!a.deadline && !b.deadline) return 0;
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline) - new Date(b.deadline);
+        });
+    }
   };
 
   const getDaysRemaining = (deadline) => {
@@ -114,6 +159,7 @@ export default function GoalsModal({ isOpen, onClose }) {
     const color = getGoalColor(goal.color);
     const progress = getGoalProgress(goal);
     const daysLeft = getDaysRemaining(goal.deadline);
+    const monthlyNeeded = getMonthlyNeeded(goal);
     const icon = GOAL_ICONS[goal.icon] || GOAL_ICONS.other;
 
     return (
@@ -161,6 +207,23 @@ export default function GoalsModal({ isOpen, onClose }) {
                   </span>
                 )}
               </div>
+
+              {/* Monthly needed */}
+              {monthlyNeeded && !goal.completed && (
+                <div className={`mt-2 px-3 py-2 rounded-lg ${color.light}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📊</span>
+                    <div>
+                      <p className={`text-sm font-medium ${color.text}`}>
+                        {t('goals.monthlyNeeded', { amount: formatCurrency(monthlyNeeded.amount) })}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {t('goals.monthsLeft', { months: monthlyNeeded.months })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
@@ -173,6 +236,28 @@ export default function GoalsModal({ isOpen, onClose }) {
                   {t('goals.addFunds')}
                 </button>
               )}
+              <button
+                onClick={() => openTransactions(goal)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                title={t('goals.viewTransactions')}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </button>
+              <button
+                onClick={() => handleToggleCompleted(goal)}
+                className={`p-2 rounded-lg transition ${
+                  goal.completed
+                    ? 'text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'
+                    : 'text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'
+                }`}
+                title={goal.completed ? t('goals.markAsActive') : t('goals.markAsAchieved')}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
               <button
                 onClick={() => handleOpenForm(goal)}
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
@@ -230,6 +315,7 @@ export default function GoalsModal({ isOpen, onClose }) {
                   setView('list');
                   resetForm();
                   setSelectedGoalForFunds(null);
+                  setSelectedGoalForTransactions(null);
                 }}
                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
               >
@@ -242,6 +328,7 @@ export default function GoalsModal({ isOpen, onClose }) {
               {view === 'list' && t('goals.myGoals')}
               {view === 'form' && (editingGoal ? t('goals.editGoal') : t('goals.newGoal'))}
               {view === 'addFunds' && t('goals.addFundsTo', { goal: selectedGoalForFunds?.name })}
+              {view === 'transactions' && t('goals.goalTransactions', { goal: selectedGoalForTransactions?.name })}
             </h2>
           </div>
           <button
@@ -273,7 +360,25 @@ export default function GoalsModal({ isOpen, onClose }) {
                   <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('goals.noGoalsSubtitle')}</p>
                 </div>
               ) : (
-                goals.map((goal) => <GoalCard key={goal.id} goal={goal} />)
+                <>
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center justify-end gap-2 mb-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{t('goals.sortBy')}:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="text-xs pl-2 pr-8 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 focus:border-transparent cursor-pointer"
+                    >
+                      <option value="deadline">{t('goals.sortByDeadline')}</option>
+                      <option value="name">{t('goals.sortByName')}</option>
+                      <option value="value">{t('goals.sortByValue')}</option>
+                      <option value="created">{t('goals.sortByCreated')}</option>
+                    </select>
+                  </div>
+
+                  {/* Goals List */}
+                  {getSortedGoals().map((goal) => <GoalCard key={goal.id} goal={goal} />)}
+                </>
               )}
             </div>
           )}
@@ -455,6 +560,81 @@ export default function GoalsModal({ isOpen, onClose }) {
               >
                 {t('goals.addFunds')}
               </button>
+            </div>
+          )}
+
+          {/* Transactions View */}
+          {view === 'transactions' && selectedGoalForTransactions && (
+            <div className="space-y-4">
+              {/* Goal Summary */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 ${getGoalColor(selectedGoalForTransactions.color).light} rounded-xl flex items-center justify-center text-2xl`}>
+                    {GOAL_ICONS[selectedGoalForTransactions.icon]}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{selectedGoalForTransactions.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatCurrency(selectedGoalForTransactions.currentAmount || 0)} / {formatCurrency(selectedGoalForTransactions.targetAmount)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction List */}
+              {(() => {
+                const goalTransactions = getGoalTransactions(selectedGoalForTransactions.id);
+                const totalContributed = goalTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+                if (goalTransactions.length === 0) {
+                  return (
+                    <div className="text-center py-8">
+                      <div className="w-14 h-14 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-2xl">📋</span>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-300 font-medium">{t('goals.noTransactions')}</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    {/* Total */}
+                    <div className={`p-4 rounded-xl ${getGoalColor(selectedGoalForTransactions.color).light}`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('goals.totalContributed')}</p>
+                      <p className={`text-xl font-bold ${getGoalColor(selectedGoalForTransactions.color).text}`}>
+                        {formatCurrency(totalContributed)}
+                      </p>
+                    </div>
+
+                    {/* Transactions */}
+                    <div className="space-y-2">
+                      {goalTransactions.map((trans) => (
+                        <div
+                          key={trans.id}
+                          className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-white truncate text-sm">
+                              {trans.description}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {new Date(trans.date).toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                          <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 ml-3">
+                            +{formatCurrency(trans.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>

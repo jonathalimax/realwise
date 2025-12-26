@@ -5,7 +5,7 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
-import { useCards, CARD_ICONS } from '../contexts/CardsContext';
+import { useCards } from '../contexts/CardsContext';
 import CurrencyInput from './ui/CurrencyInput';
 import { generateTransactionHash, generateInstallmentGroupId } from '../services/installments';
 
@@ -15,7 +15,7 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState('');
   const [selectedGoalId, setSelectedGoalId] = useState('');
-  const [selectedCardId, setSelectedCardId] = useState(null);
+  const [selectedBankId, setSelectedBankId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [addAnother, setAddAnother] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -23,10 +23,12 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [isInstallment, setIsInstallment] = useState(false);
   const [currentInstallment, setCurrentInstallment] = useState(1);
   const [totalInstallments, setTotalInstallments] = useState(2);
+  // Ignore state
+  const [isIgnored, setIsIgnored] = useState(false);
 
   const { categories, t, language } = useSettings();
   const { goals, addAmountToGoal, getGoalColor } = useGoals();
-  const { cards, getCardColor } = useCards();
+  const { userBanks, getBankInfo, getBankColor } = useCards();
 
   const availableGoals = goals.filter(g => !g.completed);
 
@@ -42,10 +44,11 @@ export default function TransactionModal({ isOpen, onClose }) {
     setAmount(0);
     setCategory('');
     setSelectedGoalId('');
-    setSelectedCardId(null);
+    setSelectedBankId(null);
     setIsInstallment(false);
     setCurrentInstallment(1);
     setTotalInstallments(2);
+    setIsIgnored(false);
     setSuccessMessage('');
   };
 
@@ -83,7 +86,8 @@ export default function TransactionModal({ isOpen, onClose }) {
             date: installmentDate.toISOString(),
             goalId: selectedGoalId || null,
             goalName: selectedGoal?.name || null,
-            cardId: selectedCardId || null,
+            bankId: selectedBankId || null,
+            ignored: isIgnored,
             isInstallment: true,
             installmentCurrent: i,
             installmentTotal: totalInstallments,
@@ -105,7 +109,8 @@ export default function TransactionModal({ isOpen, onClose }) {
           date: baseDate.toISOString(),
           goalId: selectedGoalId || null,
           goalName: selectedGoal?.name || null,
-          cardId: selectedCardId || null
+          bankId: selectedBankId || null,
+          ignored: isIgnored
         };
 
         transactionData.hash = generateTransactionHash(transactionData);
@@ -123,7 +128,7 @@ export default function TransactionModal({ isOpen, onClose }) {
         setIsInstallment(false);
         setCurrentInstallment(1);
         setTotalInstallments(2);
-        // Keep category, card, and goal selection for convenience
+        // Keep category, bank, and goal selection for convenience
       } else {
         onClose();
         resetForm();
@@ -177,7 +182,7 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                 {successMessage && (
                   <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm">
-                    ✓ {successMessage}
+                    {successMessage}
                   </div>
                 )}
 
@@ -259,14 +264,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                     </select>
                   </div>
 
-                  {/* Card Selector (compact) */}
+                  {/* Bank Selector */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('cards.filterByCard')}
+                      {language === 'pt' ? 'Banco' : 'Bank'}
                     </label>
                     <select
-                      value={selectedCardId || 'cash'}
-                      onChange={(e) => setSelectedCardId(e.target.value === 'cash' ? null : e.target.value)}
+                      value={selectedBankId || 'cash'}
+                      onChange={(e) => setSelectedBankId(e.target.value === 'cash' ? null : e.target.value)}
                       className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                         text-gray-900 dark:text-white
                         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
@@ -278,12 +283,15 @@ export default function TransactionModal({ isOpen, onClose }) {
                         backgroundSize: '20px'
                       }}
                     >
-                      <option value="cash">{t('cards.cashNoCard')}</option>
-                      {cards.map((card) => (
-                        <option key={card.id} value={card.id}>
-                          {card.name} {card.lastDigits ? `****${card.lastDigits}` : ''}
-                        </option>
-                      ))}
+                      <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
+                      {userBanks.map((userBank) => {
+                        const bankInfo = getBankInfo(userBank.bankId);
+                        return (
+                          <option key={userBank.bankId} value={userBank.bankId}>
+                            {bankInfo.icon} {bankInfo.name}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -302,11 +310,11 @@ export default function TransactionModal({ isOpen, onClose }) {
                         <span className={`text-sm font-medium ${isInstallment ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
                           {t('transactionForm.isInstallment')}
                         </span>
-                        <div className={`w-10 h-6 rounded-full transition-colors ${
+                        <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
                           isInstallment ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-600'
                         }`}>
-                          <div className={`w-4 h-4 bg-white rounded-full mt-1 transition-transform ${
-                            isInstallment ? 'translate-x-5' : 'translate-x-1'
+                          <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            isInstallment ? 'translate-x-5' : 'translate-x-0'
                           }`} />
                         </div>
                       </button>
@@ -380,6 +388,36 @@ export default function TransactionModal({ isOpen, onClose }) {
                       </select>
                     </div>
                   )}
+
+                  {/* Ignore Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setIsIgnored(!isIgnored)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                      isIgnored
+                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">🚫</span>
+                      <div className="text-left">
+                        <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {t('transactionForm.ignoreTransaction')}
+                        </span>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {t('transactionForm.ignoreTransactionHint')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
+                      isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
+                    }`}>
+                      <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                        isIgnored ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </div>
+                  </button>
 
                   {/* Add Another Checkbox */}
                   <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
