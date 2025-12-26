@@ -116,7 +116,11 @@ export default function Dashboard() {
         if (t.type === 'income') {
           return transactionMonthKey === selectedMonth;
         }
-        // For expenses, use payment month calculation (considers credit card closing/payment dates)
+        // Investment transactions should always use their actual date
+        if (t.investmentId) {
+          return transactionMonthKey === selectedMonth;
+        }
+        // For other expenses, use payment month calculation (considers credit card closing/payment dates)
         const paymentKey = getPaymentMonthKey(t.date, t.bankId);
         return paymentKey === selectedMonth;
       }
@@ -422,7 +426,7 @@ export default function Dashboard() {
             <div className="flex-1 overflow-y-auto -mx-4 sm:-mx-6 px-4 sm:px-6" style={{ maxHeight: '380px' }}>
               <TransactionList transactions={filteredTransactions.slice(0, 10)} selectedMonth={selectedMonth} compact />
             </div>
-            {filteredTransactions.length > 10 && (
+            {filteredTransactions.length > 0 && (
               <button
                 onClick={() => setShowFullTransactions(true)}
                 className="mt-3 w-full py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
