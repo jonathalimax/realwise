@@ -13,6 +13,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
     deleteInvestment,
     getCurrentValue,
     getGrowthPercentage,
+    calculateTaxes,
     getInvestmentColor,
     getInvestmentType,
     getDaysUntilMaturity,
@@ -163,6 +164,8 @@ export default function InvestmentModal({ isOpen, onClose }) {
     const growthPercent = getGrowthPercentage(investment);
     const daysLeft = getDaysUntilMaturity(investment);
     const linkedGoal = investment.goalId ? goals.find(g => g.id === investment.goalId) : null;
+    const taxes = calculateTaxes(investment);
+    const isFixedIncome = investment.type === 'fixed_income' || investment.returnType === 'cdi';
 
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow">
@@ -221,6 +224,48 @@ export default function InvestmentModal({ isOpen, onClose }) {
                 </span>
               )}
             </div>
+
+            {/* Tax Breakdown (only for fixed income with profit) */}
+            {isFixedIncome && taxes.grossProfit > 0 && (
+              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">{t('investments.grossProfit')}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                    +{formatCurrency(taxes.grossProfit)}
+                  </span>
+                </div>
+
+                {taxes.iofAmount > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500 dark:text-gray-400">
+                      IOF ({(taxes.iofRate * 100).toFixed(0)}%)
+                      <span className="ml-1 text-gray-400">• {taxes.daysHeld} {t('investments.days')}</span>
+                    </span>
+                    <span className="text-rose-500 dark:text-rose-400">
+                      -{formatCurrency(taxes.iofAmount)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    IR ({(taxes.irpfRate * 100).toFixed(1)}%)
+                  </span>
+                  <span className="text-rose-500 dark:text-rose-400">
+                    -{formatCurrency(taxes.irpfAmount)}
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {t('investments.netValue')}
+                  </span>
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(taxes.netValue)}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Linked Goal */}
             {linkedGoal && (

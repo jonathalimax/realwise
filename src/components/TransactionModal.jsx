@@ -170,7 +170,7 @@ export default function TransactionModal({ isOpen, onClose }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
                     {t('transactionForm.addTransaction')}

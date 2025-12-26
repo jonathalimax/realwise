@@ -3,11 +3,13 @@ import { db } from '../firebase';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import EditTransactionsModal from './EditTransactionsModal';
+import EditSingleTransactionModal from './EditSingleTransactionModal';
 
 export default function TransactionList({ transactions = [], selectedMonth, compact = false }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
   const { formatCurrency, t, language } = useSettings();
 
@@ -225,17 +227,30 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                 {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
               </p>
 
-              {/* Delete Button - Hidden in compact mode */}
+              {/* Edit & Delete Buttons - Hidden in compact mode */}
               {!compact && (
-                <button
-                  onClick={() => handleDelete(transaction.id)}
-                  className="opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-rose-500
-                    hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <button
+                    onClick={() => setEditingTransaction(transaction)}
+                    className="p-2 text-gray-400 hover:text-blue-500
+                      hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                    title={language === 'pt' ? 'Editar' : 'Edit'}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(transaction.id)}
+                    className="p-2 text-gray-400 hover:text-rose-500
+                      hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
+                    title={language === 'pt' ? 'Excluir' : 'Delete'}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               )}
             </div>
           ))
@@ -262,12 +277,20 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
         </div>
       )}
 
-      {/* Edit Transactions Modal */}
+      {/* Edit Transactions Modal (bulk) */}
       <EditTransactionsModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         transactions={selectedTransactions}
         onSuccess={clearSelection}
+      />
+
+      {/* Edit Single Transaction Modal */}
+      <EditSingleTransactionModal
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+        transaction={editingTransaction}
+        onSuccess={() => setEditingTransaction(null)}
       />
     </div>
   );

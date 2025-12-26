@@ -352,6 +352,9 @@ export default {
     cdiHint: 'ex: 100% CDI, 110% CDI, etc.',
     currentCdi: 'CDI atual',
     estimated: 'estimado',
+    grossProfit: 'Lucro bruto',
+    netValue: 'Valor líquido',
+    days: 'dias',
     types: {
       fixed_income: 'Renda Fixa',
       stocks: 'Ações',

@@ -45,8 +45,59 @@ export const RETURN_TYPES = {
 };
 
 // Current CDI annual rate (Selic rate - update periodically)
-// As of Dec 2024, Selic is approximately 12.25% per year
-export const CDI_ANNUAL_RATE = 0.1225;
+// As of Dec 2024, Selic is approximately 13.25% per year
+// Banks use 252 business days for CDI calculation
+export const CDI_ANNUAL_RATE = 0.1325;
+export const BUSINESS_DAYS_PER_YEAR = 252;
+
+// IOF rates table (decreasing daily over 30 days)
+// Day 1: 96%, Day 2: 93%, ..., Day 29: 3%, Day 30+: 0%
+export const IOF_RATES = [
+  96, 93, 90, 86, 83, 80, 76, 73, 70, 66,  // Days 1-10
+  63, 60, 56, 53, 50, 46, 43, 40, 36, 33,  // Days 11-20
+  30, 26, 23, 20, 16, 13, 10, 6, 3, 0      // Days 21-30
+];
+
+// IRPF rates for fixed income (regressive based on holding period)
+export const IRPF_RATES = {
+  upTo180: 0.225,    // 22.5% - up to 180 days
+  upTo360: 0.20,     // 20% - 181 to 360 days
+  upTo720: 0.175,    // 17.5% - 361 to 720 days
+  above720: 0.15,    // 15% - above 720 days
+};
+
+// Get IOF rate based on days held
+export const getIOFRate = (daysHeld) => {
+  if (daysHeld >= 30) return 0;
+  if (daysHeld < 1) return IOF_RATES[0] / 100;
+  return IOF_RATES[Math.floor(daysHeld) - 1] / 100;
+};
+
+// Get IRPF rate based on days held
+export const getIRPFRate = (daysHeld) => {
+  if (daysHeld <= 180) return IRPF_RATES.upTo180;
+  if (daysHeld <= 360) return IRPF_RATES.upTo360;
+  if (daysHeld <= 720) return IRPF_RATES.upTo720;
+  return IRPF_RATES.above720;
+};
+
+// Count business days between two dates (excluding weekends)
+// Note: Does not account for Brazilian holidays
+export const getBusinessDays = (startDate, endDate) => {
+  let count = 0;
+  const current = new Date(startDate);
+
+  while (current < endDate) {
+    const dayOfWeek = current.getDay();
+    // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  return count;
+};
 
 export function InvestmentProvider({ children }) {
   const [investments, setInvestments] = useState([]);
@@ -133,9 +184,15 @@ export function InvestmentProvider({ children }) {
     // Handle CDI-based calculation
     if (returnType === 'cdi') {
       // expectedReturn is the percentage of CDI (e.g., 1.0 = 100% CDI, 1.1 = 110% CDI)
-      const effectiveAnnualRate = CDI_ANNUAL_RATE * expectedReturn;
-      // Use compound interest formula: P * (1 + r)^t
-      return initialAmount * Math.pow(1 + effectiveAnnualRate, years);
+      // Banks use daily compounding with business days (252 days/year)
+      const dailyCDIRate = Math.pow(1 + CDI_ANNUAL_RATE, 1 / BUSINESS_DAYS_PER_YEAR) - 1;
+      const effectiveDailyRate = dailyCDIRate * expectedReturn;
+
+      // Count business days held
+      const businessDays = getBusinessDays(startDate, today);
+
+      // Compound daily: P * (1 + daily_rate)^business_days
+      return initialAmount * Math.pow(1 + effectiveDailyRate, businessDays);
     }
 
     if (returnType === 'annual') {
@@ -163,6 +220,68 @@ export function InvestmentProvider({ children }) {
     const currentValue = getCurrentValue(investment);
     if (!investment.initialAmount || investment.initialAmount === 0) return 0;
     return ((currentValue - investment.initialAmount) / investment.initialAmount) * 100;
+  };
+
+  // Calculate days held since purchase
+  const getDaysHeld = (investment) => {
+    const startDate = investment.purchaseDate
+      ? new Date(investment.purchaseDate + 'T12:00:00')
+      : (investment.createdAt?.toDate?.() || new Date());
+    const today = new Date();
+    const diffMs = today - startDate;
+    return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  };
+
+  // Calculate taxes for fixed income investments
+  const calculateTaxes = (investment) => {
+    const currentValue = getCurrentValue(investment);
+    const initialAmount = investment.initialAmount || 0;
+    const grossProfit = currentValue - initialAmount;
+
+    // Only calculate taxes for fixed income and CDI investments with profit
+    const isFixedIncome = investment.type === 'fixed_income' || investment.returnType === 'cdi';
+    if (!isFixedIncome || grossProfit <= 0) {
+      return {
+        grossProfit,
+        iofRate: 0,
+        iofAmount: 0,
+        irpfRate: 0,
+        irpfAmount: 0,
+        totalTaxes: 0,
+        netProfit: grossProfit,
+        netValue: currentValue,
+        daysHeld: getDaysHeld(investment),
+      };
+    }
+
+    const daysHeld = getDaysHeld(investment);
+
+    // Calculate IOF (only on profit, only within 30 days)
+    const iofRate = getIOFRate(daysHeld);
+    const iofAmount = grossProfit * iofRate;
+
+    // Profit after IOF for IRPF calculation
+    const profitAfterIOF = grossProfit - iofAmount;
+
+    // Calculate IRPF (on profit after IOF)
+    const irpfRate = getIRPFRate(daysHeld);
+    const irpfAmount = profitAfterIOF * irpfRate;
+
+    const totalTaxes = iofAmount + irpfAmount;
+    const netProfit = grossProfit - totalTaxes;
+    const netValue = initialAmount + netProfit;
+
+    return {
+      grossProfit,
+      iofRate,
+      iofAmount,
+      irpfRate,
+      irpfAmount,
+      totalTaxes,
+      netProfit,
+      netValue,
+      daysHeld,
+    };
   };
 
   // Get total invested amount
@@ -306,6 +425,8 @@ export function InvestmentProvider({ children }) {
       calculateProjectedValue,
       getCurrentValue,
       getGrowthPercentage,
+      getDaysHeld,
+      calculateTaxes,
       getTotalInvested,
       getTotalCurrentValue,
       getTotalGrowth,
@@ -336,6 +457,8 @@ export const useInvestments = () => {
       calculateProjectedValue: () => 0,
       getCurrentValue: () => 0,
       getGrowthPercentage: () => 0,
+      getDaysHeld: () => 0,
+      calculateTaxes: () => ({ grossProfit: 0, iofRate: 0, iofAmount: 0, irpfRate: 0, irpfAmount: 0, totalTaxes: 0, netProfit: 0, netValue: 0, daysHeld: 0 }),
       getTotalInvested: () => 0,
       getTotalCurrentValue: () => 0,
       getTotalGrowth: () => 0,
