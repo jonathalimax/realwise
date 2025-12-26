@@ -346,6 +346,8 @@ export default {
     autoCalculated: 'Calculado automaticamente',
     manualValue: 'Valor manual',
     linkedToGoal: 'Vinculado a: {goal}',
+    cdiPercentage: 'Percentual do CDI',
+    cdiHint: 'ex: 100% CDI, 110% CDI, etc.',
     types: {
       fixed_income: 'Renda Fixa',
       stocks: 'Ações',
@@ -354,6 +356,7 @@ export default {
       real_estate: 'Imóveis/FIIs',
     },
     returnTypes: {
+      cdi: '% CDI',
       annual: 'Anual',
       monthly: 'Mensal',
       total: 'Total',

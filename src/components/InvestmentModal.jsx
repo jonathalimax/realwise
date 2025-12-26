@@ -452,10 +452,31 @@ export default function InvestmentModal({ isOpen, onClose }) {
               )}
 
               {/* Expected Return */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('investments.expectedReturn')}
+                    {t('investments.returnType')}
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['cdi', 'annual', 'monthly', 'total'].map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, returnType: type })}
+                        className={`px-3 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
+                          formData.returnType === type
+                            ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                            : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
+                        }`}
+                      >
+                        {t(`investments.returnTypes.${type}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {formData.returnType === 'cdi' ? t('investments.cdiPercentage') : t('investments.expectedReturn')}
                   </label>
                   <div className="relative">
                     <input
@@ -465,27 +486,18 @@ export default function InvestmentModal({ isOpen, onClose }) {
                       onChange={(e) => setFormData({ ...formData, expectedReturn: parseFloat(e.target.value) || 0 })}
                       className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
                         text-gray-900 dark:text-white placeholder-gray-400
-                        focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition pr-8"
-                      placeholder="0.00"
+                        focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition pr-24"
+                      placeholder={formData.returnType === 'cdi' ? '100' : '0.00'}
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">%</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      {formData.returnType === 'cdi' ? '% CDI' : '%'}
+                    </span>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('investments.returnType')}
-                  </label>
-                  <select
-                    value={formData.returnType}
-                    onChange={(e) => setFormData({ ...formData, returnType: e.target.value })}
-                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                      text-gray-900 dark:text-white
-                      focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition cursor-pointer"
-                  >
-                    <option value="annual">{t('investments.returnTypes.annual')}</option>
-                    <option value="monthly">{t('investments.returnTypes.monthly')}</option>
-                    <option value="total">{t('investments.returnTypes.total')}</option>
-                  </select>
+                  {formData.returnType === 'cdi' && (
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {t('investments.cdiHint')}
+                    </p>
+                  )}
                 </div>
               </div>
 
