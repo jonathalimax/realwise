@@ -105,7 +105,11 @@ export default function InvestmentModal({ isOpen, onClose }) {
     };
 
     if (editingInvestment) {
-      await updateInvestment(editingInvestment.id, investmentData);
+      const success = await updateInvestment(editingInvestment.id, investmentData);
+      if (!success) {
+        alert(language === 'pt' ? 'Erro ao atualizar investimento. Tente novamente.' : 'Error updating investment. Please try again.');
+        return;
+      }
     } else {
       await addInvestment(investmentData, true); // true = create transaction
     }

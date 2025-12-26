@@ -35,9 +35,9 @@ const CATEGORY_ICONS = {
 export default function SpendingChart({ transactions, onCategoryClick }) {
   const { formatCurrency, t } = useSettings();
 
-  // Group expenses by category
+  // Group expenses by category (excluding ignored transactions)
   const categoryTotals = transactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'expense' && !t.ignored)
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
       return acc;

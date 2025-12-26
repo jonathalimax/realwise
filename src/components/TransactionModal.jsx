@@ -380,8 +380,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                     </div>
                   )}
 
-                  {/* Link to Goal (only for income) */}
-                  {type === 'income' && availableGoals.length > 0 && (
+                  {/* Link to Goal */}
+                  {availableGoals.length > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('goals.linkToGoal')}
