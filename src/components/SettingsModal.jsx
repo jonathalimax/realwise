@@ -191,10 +191,10 @@ export default function SettingsModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        <div className="flex border-b border-gray-100 dark:border-gray-700">
+        <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
           <button
             onClick={() => setActiveTab('language')}
-            className={`flex-1 py-3 text-sm font-medium transition ${
+            className={`flex-1 min-w-[70px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
               activeTab === 'language'
                 ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -204,7 +204,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('currency')}
-            className={`flex-1 py-3 text-sm font-medium transition ${
+            className={`flex-1 min-w-[70px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
               activeTab === 'currency'
                 ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -214,7 +214,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('categories')}
-            className={`flex-1 py-3 text-sm font-medium transition ${
+            className={`flex-1 min-w-[70px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
               activeTab === 'categories'
                 ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -224,7 +224,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('access')}
-            className={`flex-1 py-3 text-sm font-medium transition ${
+            className={`flex-1 min-w-[70px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
               activeTab === 'access'
                 ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -305,7 +305,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 </h3>
 
                 {/* Predefined categories */}
-                <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                   {allCategories.expense.map((cat) => (
                     <CategoryToggle key={cat} type="expense" category={cat} color="rose" />
                   ))}
@@ -378,7 +378,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 </h3>
 
                 {/* Predefined categories */}
-                <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                   {allCategories.income.map((cat) => (
                     <CategoryToggle key={cat} type="income" category={cat} color="emerald" />
                   ))}

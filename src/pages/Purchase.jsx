@@ -230,21 +230,21 @@ function PurchaseContent() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           {/* Title */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
-              <Heart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="text-center mb-6 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 mb-4 sm:mb-6 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
+              <Heart className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300">
                 {language === 'pt' ? '50% vão para a igreja' : '50% goes to the church'}
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+            <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-3">
               {language === 'pt' ? 'Finalizar Compra' : 'Complete Purchase'}
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
@@ -252,19 +252,19 @@ function PurchaseContent() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-8">
             {/* Left: Product Summary */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Product Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-                <h2 className="text-xl font-bold mb-4">
+              <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
                   {language === 'pt' ? 'Acesso Completo' : 'Complete Access'}
                 </h2>
 
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                   {features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                      <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                    <li key={i} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-slate-600 dark:text-slate-300">
+                      <Check className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-500 flex-shrink-0" />
                       {feature}
                     </li>
                   ))}
@@ -318,10 +318,10 @@ function PurchaseContent() {
             </div>
 
             {/* Right: Payment */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
               {/* Price Summary */}
-              <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between mb-2">
+              <div className="mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between mb-2 text-sm sm:text-base">
                   <span className="text-slate-600 dark:text-slate-400">
                     {language === 'pt' ? 'Subtotal' : 'Subtotal'}
                   </span>
@@ -331,13 +331,13 @@ function PurchaseContent() {
                 </div>
 
                 {totalDiscount > 0 && (
-                  <div className="flex items-center justify-between mb-2 text-emerald-600 dark:text-emerald-400">
+                  <div className="flex items-center justify-between mb-2 text-sm sm:text-base text-emerald-600 dark:text-emerald-400">
                     <span>{language === 'pt' ? 'Desconto' : 'Discount'} ({totalDiscount}%)</span>
                     <span>- R$ {(basePrice - finalPrice).toFixed(2)}</span>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-2xl font-bold">
+                <div className="flex items-center justify-between text-xl sm:text-2xl font-bold">
                   <span>Total</span>
                   <span className="text-emerald-600 dark:text-emerald-400">R$ {finalPrice.toFixed(2)}</span>
                 </div>
@@ -348,8 +348,8 @@ function PurchaseContent() {
               </div>
 
               {/* Coupon */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
+              <div className="mb-4 sm:mb-6">
+                <label className="block text-xs sm:text-sm font-medium mb-2">
                   {language === 'pt' ? 'Cupom de desconto' : 'Discount coupon'}
                 </label>
 
@@ -393,31 +393,31 @@ function PurchaseContent() {
               </div>
 
               {/* Payment Method */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-3">
+              <div className="mb-4 sm:mb-6">
+                <label className="block text-xs sm:text-sm font-medium mb-2 sm:mb-3">
                   {language === 'pt' ? 'Método de pagamento' : 'Payment method'}
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <button
                     onClick={() => setPaymentMethod('pix')}
-                    className={`py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                    className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                       paymentMethod === 'pix'
                         ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
                         : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-300'
                     }`}
                   >
-                    <QrCode className="w-5 h-5" />
+                    <QrCode className="w-4 sm:w-5 h-4 sm:h-5" />
                     PIX
                   </button>
                   <button
                     onClick={() => setPaymentMethod('card')}
-                    className={`py-3 px-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                    className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                       paymentMethod === 'card'
                         ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
                         : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-300'
                     }`}
                   >
-                    <CreditCard className="w-5 h-5" />
+                    <CreditCard className="w-4 sm:w-5 h-4 sm:h-5" />
                     {language === 'pt' ? 'Cartão' : 'Card'}
                   </button>
                 </div>
@@ -475,7 +475,7 @@ function PurchaseContent() {
                   <Button
                     onClick={handleMercadoPagoPayment}
                     disabled={paymentLoading || !email}
-                    className="w-full h-14 text-lg rounded-xl bg-[#009ee3] hover:bg-[#008dd0] text-white"
+                    className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-[#009ee3] hover:bg-[#008dd0] text-white"
                   >
                     {paymentLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />

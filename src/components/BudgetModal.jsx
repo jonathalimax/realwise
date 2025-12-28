@@ -157,10 +157,10 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                 </div>
 
                 <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-                  <Tab.List className="flex space-x-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-4">
+                  <Tab.List className="flex space-x-1 sm:space-x-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-4 overflow-x-auto">
                     <Tab
                       className={({ selected }) =>
-                        `w-full rounded-lg py-2 text-sm font-medium transition-colors
+                        `w-full rounded-lg py-2 px-1 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap
                         ${selected
                           ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -171,7 +171,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                     </Tab>
                     <Tab
                       className={({ selected }) =>
-                        `w-full rounded-lg py-2 text-sm font-medium transition-colors
+                        `w-full rounded-lg py-2 px-1 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap
                         ${selected
                           ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -182,15 +182,16 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                     </Tab>
                     <Tab
                       className={({ selected }) =>
-                        `w-full rounded-lg py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1
+                        `w-full rounded-lg py-2 px-1 text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 whitespace-nowrap
                         ${selected
                           ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         }`
                       }
                     >
-                      <AdjustmentsHorizontalIcon className="w-4 h-4" />
-                      {t('budget.targetPercentages')}
+                      <AdjustmentsHorizontalIcon className="w-3 sm:w-4 h-3 sm:h-4" />
+                      <span className="hidden sm:inline">{t('budget.targetPercentages')}</span>
+                      <span className="sm:hidden">%</span>
                     </Tab>
                   </Tab.List>
 

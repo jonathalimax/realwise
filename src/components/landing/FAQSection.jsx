@@ -36,9 +36,9 @@ function FAQItem({ faq, isOpen, onToggle }) {
     <div className="border-b border-slate-200 dark:border-slate-800 last:border-0">
       <button
         onClick={onToggle}
-        className="w-full py-6 flex items-center justify-between text-left group"
+        className="w-full py-4 sm:py-6 flex items-center justify-between text-left group"
       >
-        <span className="font-medium text-lg pr-8 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+        <span className="font-medium text-sm sm:text-lg pr-4 sm:pr-8 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
           {faq.question}
         </span>
         <ChevronDown className={cn(
@@ -55,7 +55,7 @@ function FAQItem({ faq, isOpen, onToggle }) {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <p className="pb-6 text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="pb-4 sm:pb-6 text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
               {faq.answer}
             </p>
           </motion.div>
@@ -119,7 +119,7 @@ export default function FAQSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 px-8"
+          className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 sm:px-8"
         >
           {faqsData.map((faq, index) => (
             <FAQItem

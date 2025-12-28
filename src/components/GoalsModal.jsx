@@ -419,7 +419,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('goals.icon')}
                 </label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                   {Object.entries(GOAL_ICONS).map(([key, emoji]) => (
                     <button
                       key={key}

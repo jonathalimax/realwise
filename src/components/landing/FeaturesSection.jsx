@@ -77,7 +77,7 @@ export default function FeaturesSection() {
     }
   ];
   return (
-    <section className="py-32 px-6">
+    <section className="py-16 sm:py-32 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -98,7 +98,7 @@ export default function FeaturesSection() {
         </motion.div>
 
         {/* Main features - Grid layout without screenshots */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={feature.id}
@@ -106,19 +106,19 @@ export default function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="p-8 rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
+              className="p-4 sm:p-8 rounded-2xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
             >
-              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 mb-6`}>
-                <feature.icon className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+              <div className={`inline-flex items-center justify-center w-10 sm:w-14 h-10 sm:h-14 rounded-xl sm:rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 mb-4 sm:mb-6`}>
+                <feature.icon className="w-5 sm:w-7 h-5 sm:h-7 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+              <h3 className="text-base sm:text-xl font-bold mb-2 sm:mb-3">{feature.title}</h3>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-3 sm:mb-4 leading-relaxed">
                 {feature.description}
               </p>
-              <ul className="space-y-2">
+              <ul className="space-y-1.5 sm:space-y-2">
                 {feature.highlights.map((highlight, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                  <li key={i} className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                    <div className="w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
                     {highlight}
                   </li>
                 ))}
@@ -133,16 +133,16 @@ export default function FeaturesSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mt-32 grid md:grid-cols-3 gap-6"
+          className="mt-12 sm:mt-32 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6"
         >
           {additionalFeatures.map((feature, index) => (
             <div
               key={feature.titleKey}
-              className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800"
+              className="p-4 sm:p-8 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800"
             >
-              <feature.icon className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{t(feature.titleKey)}</h3>
-              <p className="text-slate-600 dark:text-slate-400">{t(feature.descKey)}</p>
+              <feature.icon className="w-6 sm:w-8 h-6 sm:h-8 text-emerald-600 dark:text-emerald-400 mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold mb-1 sm:mb-2">{t(feature.titleKey)}</h3>
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">{t(feature.descKey)}</p>
             </div>
           ))}
         </motion.div>

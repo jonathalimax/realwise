@@ -9,7 +9,7 @@ import { useLanguage } from '@/components/LanguageToggle';
 export default function BetaSection() {
   const { t } = useLanguage();
   return (
-    <section className="py-32 px-6">
+    <section className="py-16 sm:py-32 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left content */}
@@ -26,41 +26,41 @@ export default function BetaSection() {
               </span>
             </div>
             
-            <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">
               {t('beta.title')}
             </h2>
             
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+            <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 leading-relaxed">
               {t('beta.desc')}
             </p>
 
-            <ul className="space-y-4 mb-10">
+            <ul className="space-y-3 sm:space-y-4 mb-6 sm:mb-10">
               {[
                 { icon: MessageSquare, text: t('beta.feature1') },
                 { icon: Zap, text: t('beta.feature2') },
                 { icon: Eye, text: t('beta.feature3') }
               ].map((item, i) => (
-                <li key={i} className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <item.icon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <li key={i} className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-4 sm:w-5 h-4 sm:h-5 text-slate-600 dark:text-slate-400" />
                   </div>
-                  <span className="text-slate-700 dark:text-slate-300">{item.text}</span>
+                  <span className="text-sm sm:text-base text-slate-700 dark:text-slate-300">{item.text}</span>
                 </li>
               ))}
             </ul>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button
                 size="lg"
-                className="h-14 px-10 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:scale-105"
+                className="h-11 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:scale-105"
               >
                 {t('beta.cta')}
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-4 sm:h-5 w-4 sm:w-5" />
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="h-14 px-10 text-lg font-medium rounded-full border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
+                className="h-11 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-medium rounded-full border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
                 asChild
               >
                 <Link to={createPageUrl('FeatureRequest')}>

@@ -26,7 +26,7 @@ export default function PricingSection() {
   const priceBRL = 99;
   const priceUSD = (priceBRL / usdRate).toFixed(2);
   return (
-    <section id="pricing" className="py-32 px-6 bg-slate-50/50 dark:bg-slate-900/50">
+    <section id="pricing" className="py-16 sm:py-32 px-4 sm:px-6 bg-slate-50/50 dark:bg-slate-900/50">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -58,7 +58,7 @@ export default function PricingSection() {
             {/* Gradient accent */}
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
             
-            <div className="p-10 sm:p-14">
+            <div className="p-5 sm:p-10 lg:p-14">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
                 <div className="space-y-4">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
@@ -67,8 +67,8 @@ export default function PricingSection() {
                       {t('pricing.badge')}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-bold">{t('pricing.complete')}</h3>
-                  <ul className="space-y-3">
+                  <h3 className="text-xl sm:text-2xl font-bold">{t('pricing.complete')}</h3>
+                  <ul className="space-y-2 sm:space-y-3">
                     {[
                       t('pricing.feature1'),
                       t('pricing.feature2'),
@@ -76,17 +76,17 @@ export default function PricingSection() {
                       t('pricing.feature4'),
                       t('pricing.feature5')
                     ].map((item, i) => (
-                      <li key={i} className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                        <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                      <li key={i} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-slate-600 dark:text-slate-300">
+                        <Check className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-500 flex-shrink-0" />
                         {item}
                       </li>
                     ))}
                   </ul>
                 </div>
                 
-                <div className="text-center lg:text-right space-y-4">
+                <div className="text-center lg:text-right space-y-3 sm:space-y-4">
                   <div>
-                    <div className="text-5xl font-bold">R$ {priceBRL}</div>
+                    <div className="text-3xl sm:text-5xl font-bold">R$ {priceBRL}</div>
                     {language === 'en' && (
                       <div className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                         {t('pricing.converted')} ${priceUSD} USD
@@ -97,7 +97,7 @@ export default function PricingSection() {
                   <Link to="/purchase">
                     <Button
                       size="lg"
-                      className="w-full lg:w-auto h-16 px-12 text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
+                      className="w-full lg:w-auto h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
                     >
                       {t('pricing.cta')}
                       <ArrowRight className="ml-3 h-6 w-6" />

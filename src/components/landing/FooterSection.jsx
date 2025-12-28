@@ -11,7 +11,7 @@ export default function FooterSection() {
   return (
     <footer className="relative overflow-hidden">
       {/* Final CTA Section */}
-      <section className="py-32 px-6">
+      <section className="py-16 sm:py-32 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -19,20 +19,20 @@ export default function FooterSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-4 sm:mb-6 leading-tight">
               {t('footer.title')}
               <br />
               <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
                 {t('footer.title2')}
               </span>
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-10 max-w-xl mx-auto">
+            <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-400 mb-6 sm:mb-10 max-w-xl mx-auto">
               {t('footer.desc')}
             </p>
             <Link to="/purchase">
               <Button
                 size="lg"
-                className="h-16 px-12 text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
+                className="h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
               >
                 {t('footer.cta')}
                 <ArrowRight className="ml-3 h-6 w-6" />
@@ -43,9 +43,9 @@ export default function FooterSection() {
       </section>
 
       {/* Footer links */}
-      <div className="border-t border-slate-200 dark:border-slate-800 py-12 px-6">
+      <div className="border-t border-slate-200 dark:border-slate-800 py-8 sm:py-12 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
             {/* Logo/Brand */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
@@ -55,7 +55,7 @@ export default function FooterSection() {
             </div>
 
             {/* Links */}
-            <nav className="flex flex-wrap items-center justify-center gap-8">
+            <nav className="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
               <Link
                 to={createPageUrl('Support')}
                 className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
