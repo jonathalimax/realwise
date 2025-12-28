@@ -162,30 +162,30 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
           filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className={`group flex items-center gap-2 sm:gap-4 ${compact ? 'py-2.5' : 'px-6 py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg
+              className={`group flex items-center gap-2 sm:gap-4 ${compact ? 'py-2.5' : 'px-4 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg
                 ${selectedIds.has(transaction.id) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`}
             >
               {/* Selection Checkbox - Hidden in compact mode */}
               {!compact && (
                 <button
                   onClick={() => toggleSelection(transaction.id)}
-                  className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
+                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
                     ${selectedIds.has(transaction.id)
                       ? 'bg-gray-900 dark:bg-gray-100 border-gray-900 dark:border-gray-100'
                       : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400'
                     }`}
                 >
                   {selectedIds.has(transaction.id) && (
-                    <svg className="w-3 h-3 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </button>
               )}
 
-              {/* Icon - Smaller in compact mode */}
+              {/* Icon - Hidden on mobile, show colored dot instead */}
               <div
-                className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0
+                className={`hidden sm:flex ${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-full items-center justify-center flex-shrink-0
                   ${transaction.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}
               >
                 <svg
@@ -202,18 +202,29 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                 </svg>
               </div>
 
+              {/* Mobile: Type indicator dot */}
+              <div
+                className={`sm:hidden w-2 h-2 rounded-full flex-shrink-0
+                  ${transaction.type === 'income' ? 'bg-emerald-500' : 'bg-rose-500'}`}
+              />
+
               {/* Info */}
-              <div className={`flex-1 min-w-0 overflow-hidden ${transaction.ignored ? 'opacity-50' : ''}`}>
+              <div className={`flex-1 min-w-0 ${transaction.ignored ? 'opacity-50' : ''}`}>
                 <div className="flex items-center gap-2">
-                  <p className={`font-medium text-gray-900 dark:text-white truncate ${compact ? 'text-sm' : ''}`}>{transaction.description}</p>
+                  <p
+                    className={`font-medium text-gray-900 dark:text-white truncate ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}
+                    title={transaction.description}
+                  >
+                    {transaction.description}
+                  </p>
                   {transaction.ignored && (
                     <span className="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
                       {t('transactionForm.ignored')}
                     </span>
                   )}
                 </div>
-                <div className={`flex items-center gap-1.5 text-gray-500 dark:text-gray-400 ${compact ? 'text-xs' : 'text-sm'}`}>
-                  <span className="truncate max-w-[80px]">{transaction.category}</span>
+                <div className={`flex items-center gap-1.5 text-gray-500 dark:text-gray-400 ${compact ? 'text-xs' : 'text-xs sm:text-sm'}`}>
+                  <span className="truncate" title={transaction.category}>{transaction.category}</span>
                   <span className="text-gray-300 dark:text-gray-600">•</span>
                   <span className="flex-shrink-0">{new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
                 </div>
@@ -221,15 +232,15 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
 
               {/* Amount */}
               <p
-                className={`font-semibold whitespace-nowrap flex-shrink-0 ${compact ? 'text-sm' : ''}
+                className={`font-semibold whitespace-nowrap flex-shrink-0 ${compact ? 'text-sm' : 'text-sm sm:text-base'}
                   ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}
               >
                 {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
               </p>
 
-              {/* Edit & Delete Buttons - Hidden in compact mode */}
+              {/* Edit & Delete Buttons - Hidden in compact mode and on mobile */}
               {!compact && (
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button
                     onClick={() => setEditingTransaction(transaction)}
                     className="p-2 text-gray-400 hover:text-blue-500
@@ -259,8 +270,36 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
 
       {/* Month Summary Footer - Hidden in compact mode */}
       {!compact && filteredTransactions.length > 0 && (
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-          <div className="flex items-center justify-between text-sm">
+        <div className="px-4 sm:px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
+          {/* Mobile layout: stacked */}
+          <div className="sm:hidden space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg py-2 px-1">
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">{t('balance.income')}</p>
+                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(monthTotals.income)}</p>
+              </div>
+              <div className="bg-rose-50 dark:bg-rose-900/20 rounded-lg py-2 px-1">
+                <p className="text-[10px] text-rose-600 dark:text-rose-400 uppercase tracking-wide">{t('balance.expenses')}</p>
+                <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">-{formatCurrency(monthTotals.expense)}</p>
+              </div>
+              <div className={`rounded-lg py-2 px-1 ${monthTotals.income - monthTotals.expense >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-rose-50 dark:bg-rose-900/20'}`}>
+                <p className={`text-[10px] uppercase tracking-wide ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {language === 'pt' ? 'Saldo' : 'Balance'}
+                </p>
+                <p className={`text-sm font-semibold ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {formatCurrency(monthTotals.income - monthTotals.expense)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop layout: horizontal */}
+          <div className="hidden sm:flex items-center justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</span>
             <div className="flex items-center gap-4">
               <span className="text-emerald-600 font-medium">

@@ -42,5 +42,35 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
+
+    // CMS collection - public read, admin-only write
+    match /cms/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'jonathalimax@gmail.com';
+    }
+
+    // Coupons collection - public read (for validation), admin-only write
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'jonathalimax@gmail.com';
+    }
+
+    // Access control collection - read for login check, write for authenticated users
+    match /access/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Pending payments - created by cloud functions
+    match /pending_payments/{paymentId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only cloud functions can write
+    }
+
+    // Purchases - created by cloud functions
+    match /purchases/{purchaseId} {
+      allow read: if request.auth != null && request.auth.token.email == resource.data.email;
+      allow write: if false; // Only cloud functions can write
+    }
   }
 }

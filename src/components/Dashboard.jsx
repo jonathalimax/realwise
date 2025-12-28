@@ -6,6 +6,8 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useBudget } from '../contexts/BudgetContext';
 import BalanceSummary from './BalanceSummary';
+import WalletCards from './WalletCards';
+import BudgetCategorySection from './BudgetCategorySection';
 import TransactionList from './TransactionList';
 import SettingsModal from './SettingsModal';
 import ImportModal from './ImportModal';
@@ -397,53 +399,27 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Balance Cards */}
+        {/* 1. Balance Cards */}
         <BalanceSummary transactions={filteredTransactions} />
 
-        {/* Row 1: Categories | Transactions */}
+        {/* 2. Wallet Cards | Expenses by Category */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-          {/* Spending by Category */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{t('charts.spendingByCategory')}</h3>
-              {selectedCategoryFilter !== 'all' && (
-                <span className="text-xs px-2 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-full">
-                  {selectedCategoryFilter}
-                </span>
-              )}
-            </div>
-            <SpendingChart transactions={filteredTransactions} onCategoryClick={handleCategoryClick} />
-          </div>
-
-          {/* Transactions List */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{t('transactionList.title')}</h3>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
-              </span>
-            </div>
-            <div className="flex-1 overflow-y-auto -mx-4 sm:-mx-6 px-4 sm:px-6" style={{ maxHeight: '380px' }}>
-              <TransactionList transactions={filteredTransactions.slice(0, 10)} selectedMonth={selectedMonth} compact />
-            </div>
-            {filteredTransactions.length > 0 && (
-              <button
-                onClick={() => setShowFullTransactions(true)}
-                className="mt-3 w-full py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
-              >
-                {language === 'pt' ? `Ver todos (${filteredTransactions.length})` : `See all (${filteredTransactions.length})`}
-              </button>
-            )}
-          </div>
+          <WalletCards onManageCards={() => setShowCards(true)} />
+          <BudgetCategorySection
+            transactions={filteredTransactions}
+            selectedMonth={selectedMonth}
+            onConfigure={() => setShowBudget(true)}
+            onCategoryClick={handleCategoryClick}
+          />
         </div>
 
-        {/* Row 2: Income vs Expenses Trend */}
+        {/* 4. Income vs Expenses Trend (current + 5 next months) */}
         <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
-          <TrendChart transactions={transactions} />
+          <TrendChart transactions={transactions} selectedMonth={selectedMonth} />
         </div>
 
-        {/* Row 3: 50/30/20 Rules | Goals */}
+        {/* 5. 50/30/20 Rules | Goals */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
           <RuleComparison
             transactions={filteredTransactions}
@@ -451,6 +427,27 @@ export default function Dashboard() {
             onConfigure={() => setShowBudget(true)}
           />
           <GoalProgress onManageGoals={() => setShowGoals(true)} />
+        </div>
+
+        {/* 6. Transactions List */}
+        <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{t('transactionList.title')}</h3>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
+            </span>
+          </div>
+          <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
+            <TransactionList transactions={filteredTransactions.slice(0, 15)} selectedMonth={selectedMonth} compact />
+          </div>
+          {filteredTransactions.length > 15 && (
+            <button
+              onClick={() => setShowFullTransactions(true)}
+              className="mt-3 w-full py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+            >
+              {language === 'pt' ? `Ver todos (${filteredTransactions.length})` : `See all (${filteredTransactions.length})`}
+            </button>
+          )}
         </div>
       </main>
 

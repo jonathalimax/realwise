@@ -2,6 +2,10 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -10,6 +14,18 @@
       "**/node_modules/**"
     ],
     "rewrites": [
+      {
+        "source": "/api/payment/create",
+        "function": "createPayment"
+      },
+      {
+        "source": "/api/webhook/mercadopago",
+        "function": "mercadoPagoWebhook"
+      },
+      {
+        "source": "/api/payment/status",
+        "function": "checkPaymentStatus"
+      },
       {
         "source": "**",
         "destination": "/index.html"

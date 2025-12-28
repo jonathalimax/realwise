@@ -1,0 +1,20 @@
+{
+  "name": "functions",
+  "version": "1.0.0",
+  "description": "Firebase Cloud Functions for Limas Finance",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.5.0",
+    "mercadopago": "^2.0.8",
+    "cors": "^2.8.5",
+    "nodemailer": "^6.9.8"
+  }
+}

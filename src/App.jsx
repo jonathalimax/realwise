@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import Auth from './components/Auth';
@@ -9,7 +10,17 @@ import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
 import { InvestmentProvider } from './contexts/InvestmentContext';
 
-function App() {
+// Landing pages
+import Home from './pages/Home';
+import Donations from './pages/Donations';
+import FeatureRequest from './pages/FeatureRequest';
+import Support from './pages/Support';
+import Admin from './pages/Admin';
+import Purchase from './pages/Purchase';
+import PurchaseSuccess from './pages/PurchaseSuccess';
+import PurchaseFailure from './pages/PurchaseFailure';
+
+function AppContent() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +58,27 @@ function App() {
     </SettingsProvider>
   ) : (
     <Auth />
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/app" element={<AppContent />} />
+        <Route path="/donations" element={<Donations />} />
+        <Route path="/feedback" element={<FeatureRequest />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/purchase" element={<Purchase />} />
+        <Route path="/purchase/success" element={<PurchaseSuccess />} />
+        <Route path="/purchase/failure" element={<PurchaseFailure />} />
+        <Route path="/purchase/pending" element={<PurchaseSuccess />} />
+        {/* Redirect old paths */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

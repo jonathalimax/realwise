@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const {
@@ -20,6 +22,76 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('language');
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
+
+  // Access control state
+  const [allowedEmails, setAllowedEmails] = useState([]);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [loadingEmails, setLoadingEmails] = useState(false);
+  const [savingEmails, setSavingEmails] = useState(false);
+
+  // Load allowed emails when Access tab is opened
+  useEffect(() => {
+    if (activeTab === 'access' && isOpen) {
+      loadAllowedEmails();
+    }
+  }, [activeTab, isOpen]);
+
+  const loadAllowedEmails = async () => {
+    setLoadingEmails(true);
+    try {
+      const accessDoc = await getDoc(doc(db, 'access', 'allowed_emails'));
+      if (accessDoc.exists()) {
+        setAllowedEmails(accessDoc.data().emails || []);
+      } else {
+        setAllowedEmails([]);
+      }
+    } catch (err) {
+      console.error('Error loading allowed emails:', err);
+    } finally {
+      setLoadingEmails(false);
+    }
+  };
+
+  const saveAllowedEmails = async (emails) => {
+    setSavingEmails(true);
+    try {
+      await setDoc(doc(db, 'access', 'allowed_emails'), { emails });
+      setAllowedEmails(emails);
+    } catch (err) {
+      console.error('Error saving allowed emails:', err);
+      setEmailError(language === 'pt' ? 'Erro ao salvar' : 'Error saving');
+    } finally {
+      setSavingEmails(false);
+    }
+  };
+
+  const handleAddEmail = async () => {
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError(language === 'pt' ? 'Email inválido' : 'Invalid email');
+      return;
+    }
+
+    if (allowedEmails.includes(email)) {
+      setEmailError(language === 'pt' ? 'Email já existe' : 'Email already exists');
+      return;
+    }
+
+    const newEmails = [...allowedEmails, email];
+    await saveAllowedEmails(newEmails);
+    setNewEmail('');
+    setEmailError('');
+  };
+
+  const handleRemoveEmail = async (email) => {
+    const newEmails = allowedEmails.filter(e => e !== email);
+    await saveAllowedEmails(newEmails);
+  };
 
   if (!isOpen) return null;
 
@@ -149,6 +221,16 @@ export default function SettingsModal({ isOpen, onClose }) {
             }`}
           >
             {t('settings.categories')}
+          </button>
+          <button
+            onClick={() => setActiveTab('access')}
+            className={`flex-1 py-3 text-sm font-medium transition ${
+              activeTab === 'access'
+                ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            {language === 'pt' ? 'Acesso' : 'Access'}
           </button>
         </div>
 
@@ -359,6 +441,121 @@ export default function SettingsModal({ isOpen, onClose }) {
                     </button>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'access' && (
+            <div className="space-y-6">
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      {language === 'pt' ? 'Controle de Acesso' : 'Access Control'}
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                      {language === 'pt'
+                        ? 'Apenas emails nesta lista poderão fazer login. Se a lista estiver vazia, qualquer pessoa pode entrar.'
+                        : 'Only emails in this list can log in. If the list is empty, anyone can sign in.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add new email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'pt' ? 'Adicionar email autorizado' : 'Add authorized email'}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => {
+                      setNewEmail(e.target.value);
+                      setEmailError('');
+                    }}
+                    placeholder="email@example.com"
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl text-sm focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500 focus:outline-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddEmail();
+                    }}
+                  />
+                  <button
+                    onClick={handleAddEmail}
+                    disabled={savingEmails || !newEmail.trim()}
+                    className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50"
+                  >
+                    {savingEmails ? (
+                      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      language === 'pt' ? 'Adicionar' : 'Add'
+                    )}
+                  </button>
+                </div>
+                {emailError && (
+                  <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{emailError}</p>
+                )}
+              </div>
+
+              {/* Email list */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'pt' ? 'Emails autorizados' : 'Authorized emails'}
+                  <span className="text-gray-400 font-normal ml-1">({allowedEmails.length})</span>
+                </label>
+
+                {loadingEmails ? (
+                  <div className="flex items-center justify-center py-8">
+                    <svg className="animate-spin w-6 h-6 text-gray-400" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  </div>
+                ) : allowedEmails.length === 0 ? (
+                  <div className="py-8 text-center text-gray-400">
+                    <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm">
+                      {language === 'pt' ? 'Nenhum email cadastrado' : 'No emails registered'}
+                    </p>
+                    <p className="text-xs mt-1">
+                      {language === 'pt' ? 'Qualquer pessoa pode fazer login' : 'Anyone can sign in'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {allowedEmails.map((email) => (
+                      <div
+                        key={email}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                          </svg>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{email}</span>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveEmail(email)}
+                          disabled={savingEmails}
+                          className="p-1 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
