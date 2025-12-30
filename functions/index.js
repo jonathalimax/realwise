@@ -240,8 +240,8 @@ exports.mercadoPagoWebhook = functions.https.onRequest(async (req, res) => {
       external_reference: paymentData.external_reference,
     });
 
-    // Only process approved payments
-    if (paymentData.status === 'approved') {
+    // Only process approved or in_process payments
+    if (paymentData.status === 'approved' || paymentData.status === 'in_process') {
       let externalRef;
       try {
         externalRef = JSON.parse(paymentData.external_reference);
@@ -263,50 +263,91 @@ exports.mercadoPagoWebhook = functions.https.onRequest(async (req, res) => {
       // Update pending payment status
       const pendingQuery = await db.collection('pending_payments')
         .where('email', '==', email)
-        .where('status', '==', 'pending')
+        .where('status', 'in', ['pending', 'in_process']) // Also check for 'in_process'
+        .limit(1)
+        .get();
+
+      if (!pendingQuery.empty) {
+        if (paymentData.status === 'approved') {
+          await pendingQuery.docs[0].ref.update({
+            status: 'approved',
+            paymentId: paymentId,
+            approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } else if (paymentData.status === 'in_process') {
+          await pendingQuery.docs[0].ref.update({
+            status: 'in_process',
+            paymentId: paymentId,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      // If status is approved, create a record of the purchase and send notifications
+      if (paymentData.status === 'approved') {
+        await db.collection('purchases').add({
+          email: email,
+          name: name,
+          paymentId: paymentId,
+          amount: paymentData.transaction_amount,
+          couponCode: externalRef.couponCode || null,
+          status: 'approved',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Send email notification to admin
+        await sendPurchaseNotification({
+          email: email,
+          name: name,
+          amount: paymentData.transaction_amount,
+          couponCode: externalRef.couponCode,
+          paymentId: paymentId,
+        });
+
+        // If coupon was used, increment its usage count
+        if (externalRef.couponCode) {
+          const couponQuery = await db.collection('coupons')
+            .where('code', '==', externalRef.couponCode.toUpperCase())
+            .limit(1)
+            .get();
+
+          if (!couponQuery.empty) {
+            await couponQuery.docs[0].ref.update({
+              usedCount: admin.firestore.FieldValue.increment(1),
+            });
+          }
+        }
+      }
+    } else if (paymentData.status === 'rejected') {
+      let externalRef;
+      try {
+        externalRef = JSON.parse(paymentData.external_reference);
+      } catch (e) {
+        console.error('Error parsing external reference for rejected payment:', e);
+        res.status(200).send('OK');
+        return;
+      }
+
+      const email = externalRef.email?.toLowerCase();
+      if (!email) {
+        console.error('No email in external reference for rejected payment');
+        res.status(200).send('OK');
+        return;
+      }
+
+      // Update pending payment status to rejected
+      const pendingQuery = await db.collection('pending_payments')
+        .where('email', '==', email)
+        .where('status', 'in', ['pending', 'in_process'])
         .limit(1)
         .get();
 
       if (!pendingQuery.empty) {
         await pendingQuery.docs[0].ref.update({
-          status: 'approved',
+          status: 'rejected',
           paymentId: paymentId,
-          approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+          rejectedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-      }
-
-      // Create a record of the purchase
-      await db.collection('purchases').add({
-        email: email,
-        name: name,
-        paymentId: paymentId,
-        amount: paymentData.transaction_amount,
-        couponCode: externalRef.couponCode || null,
-        status: 'approved',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Send email notification to admin
-      await sendPurchaseNotification({
-        email: email,
-        name: name,
-        amount: paymentData.transaction_amount,
-        couponCode: externalRef.couponCode,
-        paymentId: paymentId,
-      });
-
-      // If coupon was used, increment its usage count
-      if (externalRef.couponCode) {
-        const couponQuery = await db.collection('coupons')
-          .where('code', '==', externalRef.couponCode.toUpperCase())
-          .limit(1)
-          .get();
-
-        if (!couponQuery.empty) {
-          await couponQuery.docs[0].ref.update({
-            usedCount: admin.firestore.FieldValue.increment(1),
-          });
-        }
       }
     }
 
@@ -330,24 +371,46 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
         return;
       }
 
-      // Get latest purchase record
-      const purchaseQuery = await db.collection('purchases')
+      let currentStatus = 'pending'; // Default status
+      let approved = false;
+      let rejected = false;
+
+      // First, check if there's a pending payment record
+      const pendingQuery = await db.collection('pending_payments')
         .where('email', '==', email.toLowerCase())
         .orderBy('createdAt', 'desc')
         .limit(1)
         .get();
 
-      let purchase = null;
-      let approved = false;
+      if (!pendingQuery.empty) {
+        const pendingPayment = pendingQuery.docs[0].data();
+        currentStatus = pendingPayment.status;
+        if (currentStatus === 'approved') {
+          approved = true;
+        } else if (currentStatus === 'rejected') {
+          rejected = true;
+        }
+      } else {
+        // If no pending payment, check if a purchase has already been completed
+        const purchaseQuery = await db.collection('purchases')
+          .where('email', '==', email.toLowerCase())
+          .orderBy('createdAt', 'desc')
+          .limit(1)
+          .get();
 
-      if (!purchaseQuery.empty) {
-        purchase = purchaseQuery.docs[0].data();
-        approved = purchase.status === 'approved';
+        if (!purchaseQuery.empty) {
+          const purchase = purchaseQuery.docs[0].data();
+          if (purchase.status === 'approved') {
+            currentStatus = 'approved';
+            approved = true;
+          }
+        }
       }
 
       res.json({
+        status: currentStatus,
         approved: approved,
-        purchase: purchase,
+        rejected: rejected,
       });
     } catch (error) {
       console.error('Error checking payment status:', error);

@@ -1,54 +1,131 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Check,
   Shield,
   Heart,
-  CreditCard,
-  QrCode,
-  Copy,
   Loader2,
   Tag,
   X,
-  ChevronDown
+  ChevronDown,
+  ArrowRight,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LanguageProvider, useLanguage } from '@/components/LanguageToggle';
 import ThemeToggle from '@/components/ThemeToggle';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import { db } from '../firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { analytics } from '@/utils/analytics';
+
+// Helper function to translate Mercado Pago error codes to user-friendly messages
+function getPaymentErrorMessage(statusDetail, language) {
+  const errorMessages = {
+    cc_rejected_bad_filled_card_number: {
+      pt: 'Número do cartão incorreto. Verifique e tente novamente.',
+      en: 'Incorrect card number. Please check and try again.',
+    },
+    cc_rejected_bad_filled_date: {
+      pt: 'Data de validade incorreta. Verifique e tente novamente.',
+      en: 'Incorrect expiration date. Please check and try again.',
+    },
+    cc_rejected_bad_filled_other: {
+      pt: 'Dados do cartão incorretos. Verifique e tente novamente.',
+      en: 'Incorrect card details. Please check and try again.',
+    },
+    cc_rejected_bad_filled_security_code: {
+      pt: 'Código de segurança incorreto. Verifique e tente novamente.',
+      en: 'Incorrect security code. Please check and try again.',
+    },
+    cc_rejected_blacklist: {
+      pt: 'Pagamento não autorizado. Use outro cartão.',
+      en: 'Payment not authorized. Please use another card.',
+    },
+    cc_rejected_call_for_authorize: {
+      pt: 'Você precisa autorizar o pagamento com o banco.',
+      en: 'You need to authorize the payment with your bank.',
+    },
+    cc_rejected_card_disabled: {
+      pt: 'Cartão desabilitado. Contate sua operadora.',
+      en: 'Card disabled. Please contact your card issuer.',
+    },
+    cc_rejected_card_error: {
+      pt: 'Erro no cartão. Tente com outro cartão.',
+      en: 'Card error. Please try with another card.',
+    },
+    cc_rejected_duplicated_payment: {
+      pt: 'Pagamento duplicado. Já existe um pagamento com este valor.',
+      en: 'Duplicate payment. A payment with this amount already exists.',
+    },
+    cc_rejected_high_risk: {
+      pt: 'Pagamento recusado por segurança. Tente outro método.',
+      en: 'Payment declined for security reasons. Try another method.',
+    },
+    cc_rejected_insufficient_amount: {
+      pt: 'Saldo insuficiente. Tente outro cartão ou método.',
+      en: 'Insufficient funds. Try another card or method.',
+    },
+    cc_rejected_invalid_installments: {
+      pt: 'Número de parcelas inválido para este cartão.',
+      en: 'Invalid number of installments for this card.',
+    },
+    cc_rejected_max_attempts: {
+      pt: 'Limite de tentativas excedido. Tente outro cartão.',
+      en: 'Maximum attempts exceeded. Try another card.',
+    },
+    cc_rejected_other_reason: {
+      pt: 'Pagamento recusado. Tente outro método de pagamento.',
+      en: 'Payment declined. Try another payment method.',
+    },
+  };
+
+  const errorData = errorMessages[statusDetail];
+  if (errorData) {
+    return language === 'pt' ? errorData.pt : errorData.en;
+  }
+
+  // Default message for unknown error codes
+  return language === 'pt'
+    ? 'Pagamento recusado. Verifique os dados ou tente outro método.'
+    : 'Payment declined. Check your details or try another method.';
+}
 
 function PurchaseContent() {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
+  const brickControllerRef = useRef(null);
+
+  useEffect(() => {
+    analytics.pageView('purchase');
+  }, []);
+
   const [pricing, setPricing] = useState({ price: 99, discountPercent: 0, discountActive: false });
-  const [pix, setPix] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('pix');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [step, setStep] = useState('info'); // 'info' or 'payment'
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState('');
+  const [brickReady, setBrickReady] = useState(false);
+  const [publicKey, setPublicKey] = useState(null);
+  const [pixGenerated, setPixGenerated] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const [paymentId, setPaymentId] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [pricingDoc, pixDoc] = await Promise.all([
-          getDoc(doc(db, 'cms', 'pricing')),
-          getDoc(doc(db, 'cms', 'pix'))
-        ]);
-
+        const pricingDoc = await getDoc(doc(db, 'cms', 'pricing'));
         if (pricingDoc.exists()) setPricing(pricingDoc.data());
-        if (pixDoc.exists()) setPix(pixDoc.data());
       } catch (error) {
         console.error('Error loading data:', error);
       }
@@ -102,16 +179,230 @@ function PurchaseContent() {
     setCouponError('');
   };
 
-  const copyPixKey = () => {
-    if (pix?.key) {
-      navigator.clipboard.writeText(pix.key);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  // Calculate final price
+  let basePrice = pricing.price || 99;
+  let totalDiscount = 0;
 
-  // Create Mercado Pago payment
-  const handleMercadoPagoPayment = async () => {
+  if (pricing.discountActive && pricing.discountPercent > 0) {
+    const validUntil = pricing.discountEndDate ? new Date(pricing.discountEndDate) : null;
+    if (!validUntil || validUntil >= new Date()) {
+      totalDiscount += pricing.discountPercent;
+    }
+  }
+
+  if (appliedCoupon) {
+    totalDiscount += appliedCoupon.discountPercent;
+  }
+
+  totalDiscount = Math.min(totalDiscount, 100);
+  const finalPrice = basePrice * (1 - totalDiscount / 100);
+
+  // Store email and name in refs for use in callbacks
+  const emailRef = useRef(email);
+  const nameRef = useRef(name);
+  const couponRef = useRef(appliedCoupon?.code);
+  const priceRef = useRef(finalPrice);
+
+  useEffect(() => {
+    emailRef.current = email;
+    nameRef.current = name;
+    couponRef.current = appliedCoupon?.code;
+    priceRef.current = finalPrice;
+  }, [email, name, appliedCoupon, finalPrice]);
+
+  // Initialize Payment Brick (transparent checkout - no preferenceId)
+  const initPaymentBrick = useCallback(async () => {
+    if (!window.MercadoPago || !publicKey) return;
+
+    try {
+      const mp = new window.MercadoPago(publicKey, {
+        locale: language === 'pt' ? 'pt-BR' : 'en-US',
+      });
+
+      const bricksBuilder = mp.bricks();
+
+      // Unmount existing brick if any
+      if (brickControllerRef.current) {
+        brickControllerRef.current.unmount();
+      }
+
+      const settings = {
+        initialization: {
+          amount: finalPrice,
+          payer: {
+            email: email,
+            firstName: name.split(' ')[0] || '',
+            lastName: name.split(' ').slice(1).join(' ') || '',
+          },
+        },
+        customization: {
+          visual: {
+            style: {
+              theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+              customVariables: {
+                formBackgroundColor: 'transparent',
+                baseColor: '#10b981',
+              },
+            },
+            hideFormTitle: true,
+            hidePaymentButton: false,
+          },
+          paymentMethods: {
+            creditCard: 'all',
+            debitCard: 'all',
+            ticket: 'all',
+            bankTransfer: 'all',
+            atm: 'all',
+            mercadoPago: 'all',
+            maxInstallments: 12,
+          },
+        },
+        callbacks: {
+          onReady: () => {
+            setBrickReady(true);
+            setPaymentLoading(false);
+          },
+          onSubmit: async ({ selectedPaymentMethod, formData }) => {
+            // Return a promise - brick will wait for it to resolve/reject
+            return new Promise(async (resolve, reject) => {
+              try {
+                setPaymentError('');
+
+                const response = await fetch('/api/payment/process', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    ...formData,
+                    email: emailRef.current,
+                    name: nameRef.current,
+                    couponCode: couponRef.current || null,
+                    transaction_amount: priceRef.current,
+                  }),
+                });
+
+                const result = await response.json();
+                console.log('Payment result:', result);
+
+                if (!response.ok) {
+                  const errorMsg = result.error || 'Payment failed';
+                  setPaymentError(errorMsg);
+                  reject(new Error(errorMsg));
+                  return;
+                }
+
+                // Check actual payment status from Mercado Pago
+                if (result.status === 'approved') {
+                  analytics.purchaseComplete(priceRef.current, couponRef.current);
+                  resolve();
+                  setTimeout(() => navigate('/purchase/success'), 100);
+                } else if (result.status === 'pending' || result.status === 'in_process') {
+                  // For PIX: pending_waiting_transfer - don't navigate, let user see QR code
+                  // For card: pending_contingency/in_process - payment under review
+                  setPaymentId(result.id);
+
+                  if (result.status_detail === 'pending_waiting_transfer') {
+                    // PIX generated - show message but don't navigate
+                    setPixGenerated(true);
+                    resolve(); // Let brick show the QR code
+                  } else if (result.status_detail === 'pending_contingency' || result.status === 'in_process') {
+                    // Card payment under review - show pending message and poll
+                    setPaymentPending(true);
+                    resolve();
+                  } else {
+                    // Other pending payments (like boleto) - go to success with pending message
+                    resolve();
+                    setTimeout(() => navigate('/purchase/success'), 100);
+                  }
+                } else if (result.status === 'rejected') {
+                  // Payment was rejected - show error and don't navigate
+                  const errorMsg = getPaymentErrorMessage(result.status_detail, language);
+                  setPaymentError(errorMsg);
+                  reject(new Error(errorMsg));
+                } else {
+                  // Any other status - treat as failure
+                  const errorMsg = result.status_detail || 'Payment not approved';
+                  setPaymentError(errorMsg);
+                  reject(new Error(errorMsg));
+                }
+              } catch (error) {
+                console.error('Payment error:', error);
+                setPaymentError(
+                  language === 'pt'
+                    ? 'Erro ao processar pagamento. Tente novamente.'
+                    : 'Error processing payment. Try again.'
+                );
+                reject(error);
+              }
+            });
+          },
+          onError: (error) => {
+            console.error('Brick error:', error);
+            setPaymentError(
+              language === 'pt'
+                ? 'Erro no pagamento. Verifique os dados e tente novamente.'
+                : 'Payment error. Check your details and try again.'
+            );
+          },
+        },
+      };
+
+      brickControllerRef.current = await bricksBuilder.create('payment', 'payment-brick-container', settings);
+    } catch (error) {
+      console.error('Error initializing brick:', error);
+      setPaymentError(
+        language === 'pt'
+          ? 'Erro ao inicializar pagamento. Recarregue a página.'
+          : 'Error initializing payment. Reload the page.'
+      );
+      setPaymentLoading(false);
+    }
+  }, [publicKey, email, name, finalPrice, language, navigate]);
+
+  useEffect(() => {
+    if (step === 'payment' && publicKey) {
+      initPaymentBrick();
+    }
+
+    return () => {
+      if (brickControllerRef.current) {
+        brickControllerRef.current.unmount();
+      }
+    };
+  }, [step, publicKey, initPaymentBrick]);
+
+  // Poll for payment completion (PIX or pending card payments)
+  useEffect(() => {
+    if ((!pixGenerated && !paymentPending) || !paymentId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/payment/status?email=${encodeURIComponent(email)}`);
+        const data = await response.json();
+
+        if (data.approved) {
+          clearInterval(pollInterval);
+          analytics.purchaseComplete(finalPrice, appliedCoupon?.code);
+          navigate('/purchase/success');
+        } else if (data.rejected) {
+          clearInterval(pollInterval);
+          setPaymentPending(false);
+          setPixGenerated(false);
+          setPaymentError(
+            language === 'pt'
+              ? 'Pagamento recusado. Tente outro método de pagamento.'
+              : 'Payment declined. Try another payment method.'
+          );
+        }
+      } catch (error) {
+        console.error('Error polling payment status:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [pixGenerated, paymentPending, paymentId, email, finalPrice, appliedCoupon, language, navigate]);
+
+  // Handle continue to payment
+  const handleContinueToPayment = async () => {
     if (!email) {
       setPaymentError(language === 'pt' ? 'Informe seu email' : 'Enter your email');
       return;
@@ -126,7 +417,10 @@ function PurchaseContent() {
     setPaymentLoading(true);
     setPaymentError('');
 
+    analytics.purchaseStart(finalPrice, appliedCoupon?.code || null);
+
     try {
+      // Get public key from backend
       const response = await fetch('/api/payment/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,59 +432,28 @@ function PurchaseContent() {
         }),
       });
 
-      if (response.status === 404) {
-        // API not deployed - show error
-        setPaymentError(
-          language === 'pt'
-            ? 'Serviço indisponível. Use o PIX manual abaixo.'
-            : 'Service unavailable. Use manual PIX below.'
-        );
-        setShowDetails(true);
-        return;
-      }
-
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Error creating payment');
       }
 
-      // Redirect to Mercado Pago checkout
-      window.location.href = data.init_point;
+      if (!data.publicKey) {
+        throw new Error('Public key not configured');
+      }
+
+      setPublicKey(data.publicKey);
+      setStep('payment');
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Error:', error);
       setPaymentError(
         language === 'pt'
-          ? 'Erro ao processar. Tente novamente ou use o PIX manual abaixo.'
-          : 'Error processing. Try again or use manual PIX below.'
+          ? 'Erro ao processar. Tente novamente.'
+          : 'Error processing. Try again.'
       );
-      setShowDetails(true);
-    } finally {
       setPaymentLoading(false);
     }
   };
-
-  // Calculate final price
-  let basePrice = pricing.price || 99;
-  let totalDiscount = 0;
-
-  // Apply pricing discount if active
-  if (pricing.discountActive && pricing.discountPercent > 0) {
-    const validUntil = pricing.discountEndDate ? new Date(pricing.discountEndDate) : null;
-    if (!validUntil || validUntil >= new Date()) {
-      totalDiscount += pricing.discountPercent;
-    }
-  }
-
-  // Apply coupon discount
-  if (appliedCoupon) {
-    totalDiscount += appliedCoupon.discountPercent;
-  }
-
-  // Cap discount at 100%
-  totalDiscount = Math.min(totalDiscount, 100);
-
-  const finalPrice = basePrice * (1 - totalDiscount / 100);
 
   const features = [
     language === 'pt' ? 'Acesso completo ao sistema web e mobile' : 'Full access to web and mobile app',
@@ -213,13 +476,29 @@ function PurchaseContent() {
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>{language === 'pt' ? 'Voltar' : 'Back'}</span>
-          </Link>
+          {step === 'payment' ? (
+            <button
+              onClick={() => {
+                setStep('info');
+                setBrickReady(false);
+                if (brickControllerRef.current) {
+                  brickControllerRef.current.unmount();
+                }
+              }}
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>{language === 'pt' ? 'Voltar' : 'Back'}</span>
+            </button>
+          ) : (
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>{language === 'pt' ? 'Voltar' : 'Back'}</span>
+            </Link>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
               <span className="text-white font-bold text-sm">L</span>
@@ -245,340 +524,361 @@ function PurchaseContent() {
               </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-3">
-              {language === 'pt' ? 'Finalizar Compra' : 'Complete Purchase'}
+              {step === 'info'
+                ? (language === 'pt' ? 'Finalizar Compra' : 'Complete Purchase')
+                : (language === 'pt' ? 'Pagamento' : 'Payment')}
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
               {language === 'pt' ? 'Acesso vitalício ao Limas Finance' : 'Lifetime access to Limas Finance'}
             </p>
-          </div>
 
-          <div className="grid lg:grid-cols-2 gap-4 sm:gap-8">
-            {/* Left: Product Summary */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Product Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
-                  {language === 'pt' ? 'Acesso Completo' : 'Complete Access'}
-                </h2>
-
-                <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
-                  {features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-slate-600 dark:text-slate-300">
-                      <Check className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-500 flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => setShowDetails(!showDetails)}
-                  className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                  {language === 'pt' ? 'Ver mais detalhes' : 'See more details'}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showDetails && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 space-y-2"
-                  >
-                    <p>
-                      {language === 'pt'
-                        ? '• Um sistema por pessoa. Seus dados armazenados na sua própria conta.'
-                        : '• One system per person. Your data stored in your own account.'}
-                    </p>
-                    <p>
-                      {language === 'pt'
-                        ? '• Sem taxas de hospedagem ou domínio.'
-                        : '• No hosting or domain fees.'}
-                    </p>
-                    <p>
-                      {language === 'pt'
-                        ? '• Garantia de reembolso de 30 dias.'
-                        : '• 30-day money-back guarantee.'}
-                    </p>
-                  </motion.div>
-                )}
+            {/* Step indicator */}
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                step === 'info' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600'
+              }`}>
+                {step === 'payment' ? <Check className="w-4 h-4" /> : '1'}
               </div>
-
-              {/* Security Badge */}
-              <div className="flex items-center gap-3 p-4 bg-slate-100 dark:bg-slate-800 rounded-xl">
-                <Shield className="w-6 h-6 text-emerald-500" />
-                <div>
-                  <p className="font-medium text-sm">
-                    {language === 'pt' ? 'Compra Segura' : 'Secure Purchase'}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {language === 'pt' ? 'Seus dados estão protegidos' : 'Your data is protected'}
-                  </p>
-                </div>
+              <div className="w-12 h-0.5 bg-slate-200 dark:bg-slate-700" />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                step === 'payment' ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+              }`}>
+                2
               </div>
             </div>
+          </div>
 
-            {/* Right: Payment */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
-              {/* Price Summary */}
-              <div className="mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between mb-2 text-sm sm:text-base">
-                  <span className="text-slate-600 dark:text-slate-400">
-                    {language === 'pt' ? 'Subtotal' : 'Subtotal'}
-                  </span>
-                  <span className={totalDiscount > 0 ? 'line-through text-slate-400' : ''}>
-                    R$ {basePrice.toFixed(2)}
-                  </span>
+          {step === 'info' ? (
+            <div className="grid lg:grid-cols-2 gap-4 sm:gap-8">
+              {/* Left: Product Summary */}
+              <div className="space-y-4 sm:space-y-6">
+                <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+                  <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
+                    {language === 'pt' ? 'Acesso Completo' : 'Complete Access'}
+                  </h2>
+
+                  <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                    {features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-slate-600 dark:text-slate-300">
+                        <Check className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-500 flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    {language === 'pt' ? 'Ver mais detalhes' : 'See more details'}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showDetails && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 space-y-2"
+                    >
+                      <p>
+                        {language === 'pt'
+                          ? '• Um sistema por pessoa. Seus dados armazenados na sua própria conta.'
+                          : '• One system per person. Your data stored in your own account.'}
+                      </p>
+                      <p>
+                        {language === 'pt'
+                          ? '• Sem taxas de hospedagem ou domínio.'
+                          : '• No hosting or domain fees.'}
+                      </p>
+                      <p>
+                        {language === 'pt'
+                          ? '• Garantia de reembolso de 30 dias.'
+                          : '• 30-day money-back guarantee.'}
+                      </p>
+                    </motion.div>
+                  )}
                 </div>
 
-                {totalDiscount > 0 && (
-                  <div className="flex items-center justify-between mb-2 text-sm sm:text-base text-emerald-600 dark:text-emerald-400">
-                    <span>{language === 'pt' ? 'Desconto' : 'Discount'} ({totalDiscount}%)</span>
-                    <span>- R$ {(basePrice - finalPrice).toFixed(2)}</span>
+                <div className="flex items-center gap-3 p-4 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  <Shield className="w-6 h-6 text-emerald-500" />
+                  <div>
+                    <p className="font-medium text-sm">
+                      {language === 'pt' ? 'Compra Segura' : 'Secure Purchase'}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {language === 'pt' ? 'Pagamento processado pelo Mercado Pago' : 'Payment processed by Mercado Pago'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Info Form */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+                {/* Price Summary */}
+                <div className="mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between mb-2 text-sm sm:text-base">
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {language === 'pt' ? 'Subtotal' : 'Subtotal'}
+                    </span>
+                    <span className={totalDiscount > 0 ? 'line-through text-slate-400' : ''}>
+                      R$ {basePrice.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {totalDiscount > 0 && (
+                    <div className="flex items-center justify-between mb-2 text-sm sm:text-base text-emerald-600 dark:text-emerald-400">
+                      <span>{language === 'pt' ? 'Desconto' : 'Discount'} ({totalDiscount}%)</span>
+                      <span>- R$ {(basePrice - finalPrice).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xl sm:text-2xl font-bold">
+                    <span>Total</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">R$ {finalPrice.toFixed(2)}</span>
+                  </div>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {language === 'pt' ? 'Pagamento único' : 'One-time payment'}
+                  </p>
+                </div>
+
+                {/* Coupon */}
+                <div className="mb-4 sm:mb-6">
+                  <label className="block text-xs sm:text-sm font-medium mb-2">
+                    {language === 'pt' ? 'Cupom de desconto' : 'Discount coupon'}
+                  </label>
+
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-emerald-600" />
+                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                          {appliedCoupon.code}
+                        </span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          -{appliedCoupon.discountPercent}%
+                        </span>
+                      </div>
+                      <button onClick={removeCoupon} className="text-slate-400 hover:text-slate-600">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="CODIGO"
+                        className="h-11 rounded-xl uppercase font-mono"
+                      />
+                      <Button
+                        onClick={applyCoupon}
+                        disabled={couponLoading || !couponCode.trim()}
+                        variant="outline"
+                        className="h-11 px-4 rounded-xl"
+                      >
+                        {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'pt' ? 'Aplicar' : 'Apply')}
+                      </Button>
+                    </div>
+                  )}
+
+                  {couponError && (
+                    <p className="text-sm text-rose-500 mt-2">{couponError}</p>
+                  )}
+                </div>
+
+                {/* User Info */}
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {language === 'pt' ? 'Seu nome' : 'Your name'}
+                    </label>
+                    <Input
+                      type="text"
+                      name="name"
+                      autoComplete="name"
+                      inputMode="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={language === 'pt' ? 'João Silva' : 'John Doe'}
+                      className="h-11 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {language === 'pt' ? 'Seu email' : 'Your email'} *
+                    </label>
+                    <Input
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setPaymentError('');
+                      }}
+                      placeholder="email@exemplo.com"
+                      className="h-11 rounded-xl"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      {language === 'pt'
+                        ? 'Este email será liberado para acessar o app após o pagamento.'
+                        : 'This email will be granted access after payment.'}
+                    </p>
+                  </div>
+                </div>
+
+                {paymentError && (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-200 dark:border-rose-800 mb-4">
+                    <p className="text-sm text-rose-600 dark:text-rose-400">{paymentError}</p>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-xl sm:text-2xl font-bold">
-                  <span>Total</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">R$ {finalPrice.toFixed(2)}</span>
+                {/* Continue Button */}
+                <Button
+                  onClick={handleContinueToPayment}
+                  disabled={paymentLoading || !email}
+                  className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {paymentLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : (
+                    <ArrowRight className="w-5 h-5 mr-2" />
+                  )}
+                  {language === 'pt' ? 'Continuar para pagamento' : 'Continue to payment'}
+                </Button>
+
+                {/* Payment Methods Icons */}
+                <div className="flex items-center justify-center gap-3 mt-4 text-slate-400">
+                  <div className="flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
+                    <span className="text-[#32BCAD]">PIX</span>
+                  </div>
+                  <CreditCard className="w-6 h-6" />
+                  <span className="text-xs">Visa</span>
+                  <span className="text-xs">Master</span>
+                  <span className="text-xs">Amex</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Payment Step - Checkout Brick */
+            <div className="max-w-xl mx-auto">
+              <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+                {/* Order Summary */}
+                <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-slate-600 dark:text-slate-400">Limas Finance - Acesso Vitalício</span>
+                    <span className="font-bold text-emerald-600">R$ {finalPrice.toFixed(2)}</span>
+                  </div>
+                  <p className="text-xs text-slate-500">{email}</p>
                 </div>
 
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {language === 'pt' ? 'Pagamento único' : 'One-time payment'}
+                {paymentError && (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-200 dark:border-rose-800 mb-4">
+                    <p className="text-sm text-rose-600 dark:text-rose-400">{paymentError}</p>
+                  </div>
+                )}
+
+                {/* PIX Generated Message */}
+                {pixGenerated && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 mb-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <Check className="w-5 h-5 text-white" />
+                      </div>
+                      <h3 className="font-bold text-emerald-700 dark:text-emerald-300">
+                        {language === 'pt' ? 'PIX gerado com sucesso!' : 'PIX generated successfully!'}
+                      </h3>
+                    </div>
+                    <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-2">
+                      {language === 'pt'
+                        ? 'Escaneie o QR Code ou copie o código PIX abaixo para completar o pagamento.'
+                        : 'Scan the QR Code or copy the PIX code below to complete your payment.'}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {language === 'pt'
+                        ? 'Aguardando confirmação do pagamento...'
+                        : 'Waiting for payment confirmation...'}
+                    </div>
+                  </div>
+                )}
+
+                {/* Card Payment Under Review Message */}
+                {paymentPending && !pixGenerated && (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800 mb-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      </div>
+                      <h3 className="font-bold text-amber-700 dark:text-amber-300">
+                        {language === 'pt' ? 'Pagamento em análise' : 'Payment under review'}
+                      </h3>
+                    </div>
+                    <p className="text-sm text-amber-600 dark:text-amber-400 mb-2">
+                      {language === 'pt'
+                        ? 'Seu pagamento está sendo processado. Isso pode levar alguns instantes.'
+                        : 'Your payment is being processed. This may take a few moments.'}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {language === 'pt'
+                        ? 'Verificando status do pagamento...'
+                        : 'Checking payment status...'}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Brick Container */}
+                <style>{`
+                  /* Fix Mercado Pago brick button on mobile */
+                  #payment-brick-container button[type="submit"],
+                  #payment-brick-container .mp-checkout-button,
+                  #payment-brick-container [class*="button"] {
+                    min-height: 48px !important;
+                    font-size: 16px !important;
+                    line-height: 1.2 !important;
+                    padding: 12px 24px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    white-space: nowrap !important;
+                    overflow: visible !important;
+                  }
+                  #payment-brick-container button span,
+                  #payment-brick-container [class*="button"] span {
+                    display: inline-block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                  }
+                  @media (max-width: 640px) {
+                    #payment-brick-container button[type="submit"],
+                    #payment-brick-container .mp-checkout-button {
+                      width: 100% !important;
+                      font-size: 14px !important;
+                    }
+                  }
+                `}</style>
+                <div
+                  id="payment-brick-container"
+                  className="min-h-[400px]"
+                >
+                  {!brickReady && (
+                    <div className="flex items-center justify-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-center text-xs text-slate-500 mt-4">
+                  {language === 'pt'
+                    ? 'Pagamento seguro processado pelo Mercado Pago'
+                    : 'Secure payment processed by Mercado Pago'}
                 </p>
               </div>
-
-              {/* Coupon */}
-              <div className="mb-4 sm:mb-6">
-                <label className="block text-xs sm:text-sm font-medium mb-2">
-                  {language === 'pt' ? 'Cupom de desconto' : 'Discount coupon'}
-                </label>
-
-                {appliedCoupon ? (
-                  <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                    <div className="flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-emerald-600" />
-                      <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300">
-                        {appliedCoupon.code}
-                      </span>
-                      <span className="text-emerald-600 dark:text-emerald-400">
-                        -{appliedCoupon.discountPercent}%
-                      </span>
-                    </div>
-                    <button onClick={removeCoupon} className="text-slate-400 hover:text-slate-600">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      placeholder="CODIGO"
-                      className="h-11 rounded-xl uppercase font-mono"
-                    />
-                    <Button
-                      onClick={applyCoupon}
-                      disabled={couponLoading || !couponCode.trim()}
-                      variant="outline"
-                      className="h-11 px-4 rounded-xl"
-                    >
-                      {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (language === 'pt' ? 'Aplicar' : 'Apply')}
-                    </Button>
-                  </div>
-                )}
-
-                {couponError && (
-                  <p className="text-sm text-rose-500 mt-2">{couponError}</p>
-                )}
-              </div>
-
-              {/* Payment Method */}
-              <div className="mb-4 sm:mb-6">
-                <label className="block text-xs sm:text-sm font-medium mb-2 sm:mb-3">
-                  {language === 'pt' ? 'Método de pagamento' : 'Payment method'}
-                </label>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <button
-                    onClick={() => setPaymentMethod('pix')}
-                    className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                      paymentMethod === 'pix'
-                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-300'
-                    }`}
-                  >
-                    <QrCode className="w-4 sm:w-5 h-4 sm:h-5" />
-                    PIX
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod('card')}
-                    className={`py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                      paymentMethod === 'card'
-                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-300'
-                    }`}
-                  >
-                    <CreditCard className="w-4 sm:w-5 h-4 sm:h-5" />
-                    {language === 'pt' ? 'Cartão' : 'Card'}
-                  </button>
-                </div>
-              </div>
-
-              {/* PIX Payment */}
-              {paymentMethod === 'pix' && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-4"
-                >
-                  {/* Email input for automatic PIX */}
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {language === 'pt' ? 'Seu nome' : 'Your name'}
-                      </label>
-                      <Input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder={language === 'pt' ? 'João Silva' : 'John Doe'}
-                        className="h-11 rounded-xl"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {language === 'pt' ? 'Seu email' : 'Your email'} *
-                      </label>
-                      <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value);
-                          setPaymentError('');
-                        }}
-                        placeholder="email@exemplo.com"
-                        className="h-11 rounded-xl"
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        {language === 'pt'
-                          ? 'Este email será liberado para acessar o app após o pagamento.'
-                          : 'This email will be granted access after payment.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {paymentError && (
-                    <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl border border-rose-200 dark:border-rose-800">
-                      <p className="text-sm text-rose-600 dark:text-rose-400">{paymentError}</p>
-                    </div>
-                  )}
-
-                  {/* Mercado Pago button */}
-                  <Button
-                    onClick={handleMercadoPagoPayment}
-                    disabled={paymentLoading || !email}
-                    className="w-full h-12 sm:h-14 text-base sm:text-lg rounded-xl bg-[#009ee3] hover:bg-[#008dd0] text-white"
-                  >
-                    {paymentLoading ? (
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    ) : (
-                      <QrCode className="w-5 h-5 mr-2" />
-                    )}
-                    {language === 'pt' ? 'Pagar com PIX' : 'Pay with PIX'}
-                  </Button>
-
-                  <p className="text-center text-xs text-slate-500">
-                    {language === 'pt'
-                      ? 'Você será redirecionado para o Mercado Pago para concluir o pagamento.'
-                      : 'You will be redirected to Mercado Pago to complete payment.'}
-                  </p>
-
-                  {/* Manual PIX fallback */}
-                  {pix?.key && (
-                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <button
-                        onClick={() => setShowDetails(!showDetails)}
-                        className="flex items-center justify-center gap-2 w-full text-sm text-slate-500 hover:text-slate-700"
-                      >
-                        {language === 'pt' ? 'Ou pague manualmente' : 'Or pay manually'}
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {showDetails && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          className="mt-4 space-y-4"
-                        >
-                          <div className="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                              {language === 'pt'
-                                ? `Transfira R$ ${finalPrice.toFixed(2)} via PIX para:`
-                                : `Transfer R$ ${finalPrice.toFixed(2)} via PIX to:`}
-                            </p>
-                            {pix.beneficiary && (
-                              <p className="font-semibold mb-3">{pix.beneficiary}</p>
-                            )}
-
-                            {pix.qrCodeUrl && (
-                              <div className="flex justify-center mb-4">
-                                <img src={pix.qrCodeUrl} alt="QR Code PIX" className="w-40 h-40 rounded-lg" />
-                              </div>
-                            )}
-
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-white dark:bg-slate-900 rounded-lg px-3 py-2 font-mono text-xs truncate border border-slate-200 dark:border-slate-700">
-                                {pix.key}
-                              </div>
-                              <Button
-                                onClick={copyPixKey}
-                                variant={copied ? "emerald" : "outline"}
-                                size="sm"
-                                className="rounded-lg"
-                              >
-                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
-                            <p className="text-xs text-amber-700 dark:text-amber-300">
-                              {language === 'pt'
-                                ? 'Após o pagamento, envie o comprovante pelo WhatsApp para liberarmos seu acesso em até 24h.'
-                                : 'After payment, send the receipt via WhatsApp and we\'ll grant access within 24h.'}
-                            </p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Card Payment */}
-              {paymentMethod === 'card' && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-4"
-                >
-                  <div className="p-6 bg-slate-100 dark:bg-slate-800 rounded-xl text-center">
-                    <CreditCard className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-                    <p className="text-slate-600 dark:text-slate-400 mb-4">
-                      {language === 'pt'
-                        ? 'Pagamento com cartão em breve. Por enquanto, use PIX ou entre em contato pelo WhatsApp.'
-                        : 'Card payment coming soon. For now, use PIX or contact us via WhatsApp.'}
-                    </p>
-                    <Button
-                      onClick={() => setPaymentMethod('pix')}
-                      variant="outline"
-                      className="rounded-xl"
-                    >
-                      {language === 'pt' ? 'Usar PIX' : 'Use PIX'}
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
             </div>
-          </div>
+          )}
         </motion.div>
       </main>
     </div>
@@ -589,7 +889,7 @@ export default function Purchase() {
   return (
     <LanguageProvider>
       <PurchaseContent />
-      <WhatsAppButton message="Olá! Acabei de fazer um pagamento PIX para o Limas Finance e gostaria de confirmar." />
+      <WhatsAppButton message="Olá! Preciso de ajuda com minha compra do Limas Finance." />
     </LanguageProvider>
   );
 }
