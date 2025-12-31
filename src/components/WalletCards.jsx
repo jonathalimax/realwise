@@ -3,7 +3,7 @@ import { useSettings } from '../contexts/SettingsContext';
 
 export default function WalletCards({ onManageCards }) {
   const { userBanks, getBankInfo, getBankColor } = useCards();
-  const { t, language } = useSettings();
+  const { language } = useSettings();
 
   if (userBanks.length === 0) {
     return (
@@ -42,7 +42,7 @@ export default function WalletCards({ onManageCards }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-1">
         {userBanks.map((userBank) => {
           const bankInfo = getBankInfo(userBank.bankId);
           const colors = getBankColor(userBank.bankId);
@@ -63,7 +63,7 @@ export default function WalletCards({ onManageCards }) {
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{bankInfo.icon}</span>
                   <span className="text-white font-semibold text-sm truncate">
-                    {bankInfo.name}
+                    {userBank.cardName || bankInfo.name}
                   </span>
                 </div>
 

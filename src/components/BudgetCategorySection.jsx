@@ -36,7 +36,7 @@ const COLORS = [
 ];
 
 export default function BudgetCategorySection({ transactions, selectedMonth, onConfigure, onCategoryClick }) {
-  const { formatCurrency, t, language, categories } = useSettings();
+  const { language, formatCurrency, categories } = useSettings();
   const { getBudgetForMonth, getBudgetStatus, getStatusColor } = useBudget();
 
   const budget = getBudgetForMonth(selectedMonth);

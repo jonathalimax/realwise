@@ -6,28 +6,30 @@ export default function BalanceSummary({ transactions = [] }) {
   const { formatCurrency, t } = useSettings();
   const { investments, getTotalCurrentValue, getTotalGrowth } = useInvestments();
 
-  const summary = useMemo(() => {
-    let income = 0;
-    let expenses = 0;
-
-    transactions.forEach((trans) => {
-      // Skip ignored transactions
-      if (trans.ignored) return;
-
-      if (trans.type === 'income') {
-        income += trans.amount;
-      } else {
-        expenses += trans.amount;
-      }
-    });
-
-    return {
-      totalIncome: income,
-      totalExpenses: expenses,
-      balance: income - expenses
-    };
-  }, [transactions]);
-
+      const summary = useMemo(() => {
+      let income = 0;
+      let expenses = 0;
+  
+      transactions.forEach((trans) => {
+        // Skip ignored transactions
+        if (trans.ignored) return;
+  
+        if (trans.type === 'income') {
+          income += trans.amount;
+        } else {
+          expenses += trans.amount;
+        }
+      });
+  
+      console.log('BalanceSummary - transactions:', transactions);
+      console.log('BalanceSummary - Calculated Income:', income, 'Expenses:', expenses);
+  
+      return {
+        totalIncome: income,
+        totalExpenses: expenses,
+        balance: income - expenses
+      };
+    }, [transactions]);
   const portfolioValue = getTotalCurrentValue();
   const portfolioGrowth = getTotalGrowth();
   const hasInvestments = investments.length > 0;

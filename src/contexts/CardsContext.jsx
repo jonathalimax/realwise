@@ -108,17 +108,11 @@ export function CardsProvider({ children }) {
       return null;
     }
 
-    // Check if bank already exists
-    const exists = userBanks.some(b => b.bankId === bankData.bankId);
-    if (exists) {
-      console.error('Bank already added');
-      return null;
-    }
-
     try {
       const newBank = {
         userId: auth.currentUser.uid,
         bankId: bankData.bankId,
+        cardName: bankData.cardName,
         hasCredit: bankData.hasCredit || false,
         closingDay: bankData.hasCredit ? (bankData.closingDay || 10) : null,
         paymentDay: bankData.hasCredit ? (bankData.paymentDay || 15) : null,
@@ -136,7 +130,10 @@ export function CardsProvider({ children }) {
   const updateBank = async (docId, updates) => {
     try {
       const bankRef = doc(db, 'userBanks', docId);
-      await updateDoc(bankRef, updates);
+      await updateDoc(bankRef, {
+        ...updates,
+        cardName: updates.cardName || null,
+      });
       return true;
     } catch (error) {
       console.error('Error updating bank:', error);

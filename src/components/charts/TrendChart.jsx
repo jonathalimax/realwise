@@ -1,17 +1,31 @@
 import { useSettings } from '../../contexts/SettingsContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Line } from 'recharts';
+
+// Custom Tooltip for Recharts
+const CustomTooltip = ({ active, payload, label, formatCurrency, t }) => {
+  if (active && payload && payload.length) {
+    const income = payload.find(p => p.dataKey === 'income')?.value || 0;
+    const expense = payload.find(p => p.dataKey === 'expense')?.value || 0;
+    const balance = income - expense;
+
+    return (
+      <div className="bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 text-sm">
+        <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
+        <p className="text-emerald-500">{`${t('balance.income')}: ${formatCurrency(income)}`}</p>
+        <p className="text-rose-500">{`${t('balance.expenses')}: ${formatCurrency(expense)}`}</p>
+        <p className={`mt-1 font-medium ${balance >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+          {`${t('balance.totalBalance')}: ${formatCurrency(balance)}`}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function TrendChart({ transactions, selectedMonth }) {
   const { formatCurrency, t, language } = useSettings();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  // Format currency in compact form
-  const formatCompact = (value) => {
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}k`;
-    }
-    return value.toFixed(0);
-  };
 
   // Generate 6 months starting from selected month
   const getMonthsRange = () => {
@@ -24,8 +38,7 @@ export default function TrendChart({ transactions, selectedMonth }) {
       date.setMonth(startDate.getMonth() + i);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const label = date.toLocaleDateString(locale, { month: 'short' });
-      const fullLabel = date.toLocaleDateString(locale, { month: 'long' });
-      months.push({ key, label, fullLabel, isCurrent: i === 0 });
+      months.push({ key, label });
     }
 
     return months;
@@ -53,20 +66,14 @@ export default function TrendChart({ transactions, selectedMonth }) {
   }, {});
 
   // Create data for the 6 months range
-  const data = monthsRange.map(({ key, label, fullLabel, isCurrent }) => ({
-    month: label,
-    fullMonth: fullLabel,
-    monthKey: key,
+  const chartData = monthsRange.map(({ key, label }) => ({
+    name: label,
     income: monthlyData[key]?.income || 0,
     expense: monthlyData[key]?.expense || 0,
     balance: (monthlyData[key]?.income || 0) - (monthlyData[key]?.expense || 0),
-    isCurrent,
   }));
 
-  // Find max value for scaling bars
-  const maxValue = Math.max(...data.map(d => Math.max(d.income, d.expense)), 1);
-
-  const hasData = data.some(d => d.income > 0 || d.expense > 0);
+  const hasData = chartData.some(d => d.income > 0 || d.expense > 0);
 
   if (!hasData) {
     return (
@@ -78,84 +85,29 @@ export default function TrendChart({ transactions, selectedMonth }) {
   }
 
   return (
-    <div className="space-y-3">
-      {/* Legend */}
-      <div className="flex justify-end gap-4 text-xs">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-          <span className="text-gray-500 dark:text-gray-400">{t('balance.income')}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-rose-500" />
-          <span className="text-gray-500 dark:text-gray-400">{t('balance.expenses')}</span>
-        </div>
-      </div>
-
-      {/* Month cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {data.map((item, index) => (
-          <div
-            key={item.monthKey}
-            className={`relative p-3 rounded-xl border transition-all ${
-              item.isCurrent
-                ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800'
-                : 'bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-700'
-            }`}
-          >
-            {/* Month label */}
-            <div className="flex items-center justify-between mb-3">
-              <span className={`text-sm font-semibold capitalize ${
-                item.isCurrent ? 'text-rose-600 dark:text-rose-400' : 'text-gray-700 dark:text-gray-300'
-              }`}>
-                {item.month}
-              </span>
-              {item.isCurrent && (
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              )}
-            </div>
-
-            {/* Visual bars */}
-            <div className="space-y-2 mb-3">
-              {/* Income bar */}
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style={{ width: `${(item.income / maxValue) * 100}%` }}
-                  />
-                </div>
-              </div>
-              {/* Expense bar */}
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-rose-500 rounded-full transition-all duration-500"
-                    style={{ width: `${(item.expense / maxValue) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Values */}
-            <div className="space-y-1 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                  +{formatCompact(item.income)}
-                </span>
-                <span className="text-rose-600 dark:text-rose-400 font-medium">
-                  -{formatCompact(item.expense)}
-                </span>
-              </div>
-              {/* Balance */}
-              <div className={`text-center font-semibold pt-1 border-t border-gray-200 dark:border-gray-600 ${
-                item.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-              }`}>
-                {item.balance >= 0 ? '+' : ''}{formatCompact(item.balance)}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="h-72 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={chartData}
+                              margin={{
+                                top: 20,
+                                right: 30,
+                                left: 20,
+                                bottom: 5,
+                              }}
+                            >
+                              <XAxis dataKey="name" stroke="#6b7280" />
+                              <YAxis
+                                stroke="#6b7280"
+                                tickFormatter={(value) => formatCurrency(value, { compact: true })}
+                                domain={['auto', 'auto']}
+                              />
+                              <Tooltip content={<CustomTooltip formatCurrency={formatCurrency} t={t} />} cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
+                              <Legend />
+                              <Bar dataKey="income" name={t('balance.income')} fill="#10B981" animationDuration={800} />
+                              <Bar dataKey="expense" name={t('balance.expenses')} fill="#EF4444" animationDuration={800} />
+                              <Line type="monotone" dataKey="balance" name={t('balance.totalBalance')} stroke="#3B82F6" strokeWidth={2} dot={{ r: 4 }} animationDuration={800} />
+                            </BarChart>      </ResponsiveContainer>
     </div>
   );
 }

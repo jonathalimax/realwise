@@ -4,7 +4,6 @@ import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
-import { useBudget } from '../contexts/BudgetContext';
 import BalanceSummary from './BalanceSummary';
 import WalletCards from './WalletCards';
 import BudgetCategorySection from './BudgetCategorySection';
@@ -41,9 +40,10 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('payment'); // Default to payment view
   const [selectedBankFilter, setSelectedBankFilter] = useState('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date'); // 'date', 'description', 'amount'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
   const { t, language, darkMode, toggleDarkMode, categories } = useSettings();
   const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
-  const { loading: budgetLoading } = useBudget();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -86,7 +86,7 @@ export default function Dashboard() {
     return Array.from(months).sort().reverse();
   }, [transactions]);
 
-  const filteredTransactions = useMemo(() => {
+  const monthlyTransactions = useMemo(() => {
     if (!selectedMonth) return transactions;
 
     return transactions.filter(t => {
@@ -99,10 +99,6 @@ export default function Dashboard() {
           // Check if transaction's bank matches filter
           if (t.bankId !== selectedBankFilter) return false;
         }
-      }
-
-      if (selectedCategoryFilter !== 'all') {
-        if (t.category !== selectedCategoryFilter) return false;
       }
 
       // Get the transaction date key
@@ -127,7 +123,14 @@ export default function Dashboard() {
         return paymentKey === selectedMonth;
       }
     });
-  }, [transactions, selectedMonth, viewMode, selectedBankFilter, selectedCategoryFilter, getPaymentMonthKey]);
+  }, [transactions, selectedMonth, viewMode, selectedBankFilter, getPaymentMonthKey]);
+
+  const filteredTransactions = useMemo(() => {
+    if (selectedCategoryFilter === 'all') {
+      return monthlyTransactions;
+    }
+    return monthlyTransactions.filter(t => t.category === selectedCategoryFilter);
+  }, [monthlyTransactions, selectedCategoryFilter]);
 
   const availableCategories = useMemo(() => {
     const cats = new Set();
@@ -138,10 +141,10 @@ export default function Dashboard() {
   }, [transactions]);
 
   const totalIncome = useMemo(() => {
-    return filteredTransactions
+    return monthlyTransactions
       .filter(t => t.type === 'income' && !t.ignored)
       .reduce((sum, t) => sum + t.amount, 0);
-  }, [filteredTransactions]);
+  }, [monthlyTransactions]);
 
   const expenseCategories = useMemo(() => {
     return categories.expense || [];
@@ -332,8 +335,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Bank and Category Filters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Bank Filter */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Banco' : 'Bank'}
@@ -353,6 +356,7 @@ export default function Dashboard() {
                 </select>
               </div>
 
+              {/* Category Filter */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
                   {t('charts.category')}
@@ -382,6 +386,37 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
+
+              {/* Sort By */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                  {language === 'pt' ? 'Ordenar por' : 'Sort by'}
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                >
+                  <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
+                  <option value="description">{language === 'pt' ? 'Descrição' : 'Description'}</option>
+                  <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
+                </select>
+              </div>
+
+              {/* Sort Order */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                  {language === 'pt' ? 'Ordem' : 'Order'}
+                </label>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                >
+                  <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
+                  <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
+                </select>
+              </div>
             </div>
 
             {activeFiltersCount > 0 && (
@@ -400,11 +435,10 @@ export default function Dashboard() {
         )}
 
         {/* 1. Balance Cards */}
-        <BalanceSummary transactions={filteredTransactions} />
+        <BalanceSummary transactions={monthlyTransactions} />
 
-        {/* 2. Wallet Cards | Expenses by Category */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-          <WalletCards onManageCards={() => setShowCards(true)} />
+        {/* 2. Expenses by Category */}
+        <div className="mt-4 sm:mt-6">
           <BudgetCategorySection
             transactions={filteredTransactions}
             selectedMonth={selectedMonth}
@@ -413,23 +447,7 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* 4. Income vs Expenses Trend (current + 5 next months) */}
-        <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
-          <TrendChart transactions={transactions} selectedMonth={selectedMonth} />
-        </div>
-
-        {/* 5. 50/30/20 Rules | Goals */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-          <RuleComparison
-            transactions={filteredTransactions}
-            totalIncome={totalIncome}
-            onConfigure={() => setShowBudget(true)}
-          />
-          <GoalProgress onManageGoals={() => setShowGoals(true)} />
-        </div>
-
-        {/* 6. Transactions List */}
+        {/* 3. Transactions List */}
         <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{t('transactionList.title')}</h3>
@@ -438,7 +456,13 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
-            <TransactionList transactions={filteredTransactions.slice(0, 15)} selectedMonth={selectedMonth} compact />
+            <TransactionList
+              transactions={filteredTransactions.slice(0, 15)}
+              selectedMonth={selectedMonth}
+              compact
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+            />
           </div>
           {filteredTransactions.length > 15 && (
             <button
@@ -448,6 +472,27 @@ export default function Dashboard() {
               {language === 'pt' ? `Ver todos (${filteredTransactions.length})` : `See all (${filteredTransactions.length})`}
             </button>
           )}
+        </div>
+
+        {/* 4. 50/30/20 Rules | Goals */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
+          <RuleComparison
+            transactions={monthlyTransactions}
+            totalIncome={totalIncome}
+            onConfigure={() => setShowBudget(true)}
+          />
+          <GoalProgress onManageGoals={() => setShowGoals(true)} />
+        </div>
+
+        {/* 5. Wallet Cards */}
+        <div className="mt-4 sm:mt-6">
+          <WalletCards onManageCards={() => setShowCards(true)} />
+        </div>
+
+        {/* 6. Income vs Expenses Trend (current + 5 next months) */}
+        <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
+          <TrendChart transactions={transactions} selectedMonth={selectedMonth} />
         </div>
       </main>
 
@@ -585,7 +630,12 @@ export default function Dashboard() {
             </div>
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <TransactionList transactions={filteredTransactions} selectedMonth={selectedMonth} />
+              <TransactionList
+                transactions={filteredTransactions}
+                selectedMonth={selectedMonth}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+              />
             </div>
           </div>
         </div>

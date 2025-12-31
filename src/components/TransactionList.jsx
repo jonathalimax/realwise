@@ -5,7 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 
-export default function TransactionList({ transactions = [], selectedMonth, compact = false }) {
+export default function TransactionList({ transactions = [], selectedMonth, compact = false, sortBy = 'date', sortOrder = 'desc' }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
@@ -25,10 +25,22 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
     }
   };
 
-  // Sort transactions by date (newest first)
-  const sortedTransactions = [...transactions].sort((a, b) => {
-    return new Date(b.date) - new Date(a.date);
-  });
+  const getSortedTransactions = () => {
+    return [...transactions].sort((a, b) => {
+      let compare = 0;
+      if (sortBy === 'date') {
+        compare = new Date(a.date) - new Date(b.date);
+      } else if (sortBy === 'description') {
+        compare = a.description?.localeCompare(b.description || '') || 0;
+      } else if (sortBy === 'amount') {
+        compare = a.amount - b.amount;
+      }
+
+      return sortOrder === 'asc' ? compare : -compare;
+    });
+  };
+
+  const sortedTransactions = getSortedTransactions();
 
   const filteredTransactions = sortedTransactions.filter((trans) =>
     trans.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,7 +174,8 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
           filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className={`group flex items-center gap-2 sm:gap-4 ${compact ? 'py-2.5' : 'px-4 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg
+              onClick={() => setEditingTransaction(transaction)}
+              className={`group flex items-center gap-2 sm:gap-4 ${compact ? 'py-2.5' : 'px-4 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg cursor-pointer
                 ${selectedIds.has(transaction.id) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`}
             >
               {/* Selection Checkbox - Hidden in compact mode */}
@@ -242,7 +255,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
               {!compact && (
                 <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button
-                    onClick={() => setEditingTransaction(transaction)}
+                    onClick={(e) => { e.stopPropagation(); setEditingTransaction(transaction); }}
                     className="p-2 text-gray-400 hover:text-blue-500
                       hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
                     title={language === 'pt' ? 'Editar' : 'Edit'}
@@ -252,7 +265,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                     </svg>
                   </button>
                   <button
-                    onClick={() => handleDelete(transaction.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
                     className="p-2 text-gray-400 hover:text-rose-500
                       hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
                     title={language === 'pt' ? 'Excluir' : 'Delete'}

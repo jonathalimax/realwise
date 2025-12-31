@@ -28,6 +28,7 @@ export default function CardsModal({ isOpen, onClose }) {
   // Form state
   const [formData, setFormData] = useState({
     bankId: 'nubank',
+    cardName: '',
     hasCredit: true,
     closingDay: 10,
     paymentDay: 15
@@ -38,6 +39,7 @@ export default function CardsModal({ isOpen, onClose }) {
   const resetForm = () => {
     setFormData({
       bankId: 'nubank',
+      cardName: '',
       hasCredit: true,
       closingDay: 10,
       paymentDay: 15
@@ -50,6 +52,7 @@ export default function CardsModal({ isOpen, onClose }) {
       setEditingBank(userBank);
       setFormData({
         bankId: userBank.bankId,
+        cardName: userBank.cardName || '',
         hasCredit: userBank.hasCredit || false,
         closingDay: userBank.closingDay || 10,
         paymentDay: userBank.paymentDay || 15
@@ -65,6 +68,7 @@ export default function CardsModal({ isOpen, onClose }) {
 
     const bankData = {
       bankId: formData.bankId,
+      cardName: formData.cardName,
       hasCredit: formData.hasCredit,
       closingDay: formData.hasCredit ? parseInt(formData.closingDay) : null,
       paymentDay: formData.hasCredit ? parseInt(formData.paymentDay) : null
@@ -86,9 +90,7 @@ export default function CardsModal({ isOpen, onClose }) {
   };
 
   // Get available banks (not yet added)
-  const availableBanks = BANKS.filter(bank =>
-    !userBanks.some(ub => ub.bankId === bank.id) || (editingBank && editingBank.bankId === bank.id)
-  );
+  const availableBanks = BANKS;
 
   const BankItem = ({ userBank }) => {
     const bankInfo = getBankInfo(userBank.bankId);
@@ -101,7 +103,8 @@ export default function CardsModal({ isOpen, onClose }) {
             {bankInfo.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white">{bankInfo.name}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">{userBank.cardName || bankInfo.name}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{bankInfo.name}</p>
 
             {userBank.hasCredit ? (
               <div className="mt-1.5">
@@ -268,6 +271,21 @@ export default function CardsModal({ isOpen, onClose }) {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Card Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'pt' ? 'Nome do Cartão' : 'Card Name'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.cardName}
+                  onChange={(e) => setFormData({ ...formData, cardName: e.target.value })}
+                  placeholder={language === 'pt' ? 'Ex: Cartão Pessoal' : 'Ex: Personal Card'}
+                  className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                    text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+                />
               </div>
 
               {/* Has Credit Card Toggle */}

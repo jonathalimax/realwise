@@ -66,7 +66,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/app" element={<AppContent />} />
+        <Route path="/home" element={<AppContent />} />
+        <Route path="/app" element={<Navigate to="/home" replace />} />
         <Route path="/donations" element={<Donations />} />
         <Route path="/feedback" element={<FeatureRequest />} />
         <Route path="/support" element={<Support />} />
