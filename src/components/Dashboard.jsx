@@ -492,7 +492,7 @@ export default function Dashboard() {
         {/* 6. Income vs Expenses Trend (current + 5 next months) */}
         <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
-          <TrendChart transactions={transactions} selectedMonth={selectedMonth} />
+          <TrendChart transactions={monthlyTransactions} selectedMonth={selectedMonth} />
         </div>
       </main>
 
