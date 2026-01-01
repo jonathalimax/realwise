@@ -15,10 +15,12 @@ import CardsModal from './CardsModal';
 import BudgetModal from './BudgetModal';
 import TransactionModal from './TransactionModal';
 import InvestmentModal from './InvestmentModal';
+import BillModal from './BillModal';
 import GoalProgress from './GoalProgress';
 import RuleComparison from './RuleComparison';
 import SpendingChart from './charts/SpendingChart';
 import TrendChart from './charts/TrendChart';
+import BillsList from './BillsList';
 import { PlusIcon, XMarkIcon, ChevronDownIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 
 export default function Dashboard() {
@@ -29,10 +31,12 @@ export default function Dashboard() {
   const [showBudget, setShowBudget] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showInvestments, setShowInvestments] = useState(false);
+  const [showBillModal, setShowBillModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showFullTransactions, setShowFullTransactions] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -44,6 +48,8 @@ export default function Dashboard() {
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
   const { t, language, darkMode, toggleDarkMode, categories } = useSettings();
   const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
+
+  const triggerRefresh = () => setRefreshKey(prev => prev + 1);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -64,7 +70,7 @@ export default function Dashboard() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [refreshKey]);
 
   const handleSignOut = async () => {
     try {
@@ -238,6 +244,7 @@ export default function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </button>
+
             </div>
           </div>
         </div>
@@ -252,7 +259,7 @@ export default function Dashboard() {
             <button
               onClick={goToPreviousMonth}
               disabled={!canGoPrevious}
-              className="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all"
+              className="p-2 sm:p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all"
             >
               <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -262,7 +269,7 @@ export default function Dashboard() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="pl-4 pr-10 py-2.5 bg-white dark:bg-gray-800 rounded-xl font-semibold text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-rose-500 cursor-pointer min-w-[180px] text-center capitalize"
+              className="pl-3 pr-8 py-2 sm:pl-4 sm:pr-10 sm:py-2.5 bg-white dark:bg-gray-800 rounded-xl font-semibold text-sm sm:text-base text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-rose-500 cursor-pointer min-w-[160px] sm:min-w-[180px] text-center capitalize"
             >
               {availableMonths.map(month => (
                 <option key={month} value={month} className="capitalize">
@@ -274,7 +281,7 @@ export default function Dashboard() {
             <button
               onClick={goToNextMonth}
               disabled={!canGoNext}
-              className="p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all"
+              className="p-2 sm:p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all"
             >
               <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -285,7 +292,7 @@ export default function Dashboard() {
           {/* Filters Button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl shadow-sm transition-all ${
+            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-sm transition-all ${
               showFilters || activeFiltersCount > 0
                 ? 'bg-rose-500 text-white'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -305,7 +312,7 @@ export default function Dashboard() {
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm space-y-4">
+          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm space-y-4">
             {/* View Mode Toggle */}
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
@@ -314,7 +321,7 @@ export default function Dashboard() {
               <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 <button
                   onClick={() => setViewMode('purchase')}
-                  className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                  className={`flex-1 px-3 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all ${
                     viewMode === 'purchase'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                       : 'text-gray-500 dark:text-gray-400'
@@ -324,7 +331,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => setViewMode('payment')}
-                  className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                  className={`flex-1 px-3 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all ${
                     viewMode === 'payment'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                       : 'text-gray-500 dark:text-gray-400'
@@ -335,7 +342,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Bank Filter */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
@@ -400,6 +407,7 @@ export default function Dashboard() {
                   <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
                   <option value="description">{language === 'pt' ? 'Descrição' : 'Description'}</option>
                   <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
+                  <option value="createdAt">{language === 'pt' ? 'Data de Inserção' : 'Date of Insertion'}</option>
                 </select>
               </div>
 
@@ -447,6 +455,11 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* 2.5. Bills to Pay */}
+        <div className="mt-4 sm:mt-6">
+          <BillsList compact />
+        </div>
+
         {/* 3. Transactions List */}
         <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -462,6 +475,7 @@ export default function Dashboard() {
               compact
               sortBy={sortBy}
               sortOrder={sortOrder}
+              onSuccess={triggerRefresh}
             />
           </div>
           {filteredTransactions.length > 15 && (
@@ -492,7 +506,7 @@ export default function Dashboard() {
         {/* 6. Income vs Expenses Trend (current + 5 next months) */}
         <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
-          <TrendChart transactions={monthlyTransactions} selectedMonth={selectedMonth} />
+          <TrendChart transactions={transactions} selectedMonth={selectedMonth} viewMode={viewMode} />
         </div>
       </main>
 
@@ -575,6 +589,18 @@ export default function Dashboard() {
               </div>
               <span className="font-medium text-gray-900 dark:text-white">{language === 'pt' ? 'Meus Bancos' : 'My Banks'}</span>
             </button>
+
+            <button
+              onClick={() => { setShowBillModal(true); setShowFabMenu(false); }}
+              className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
+            >
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <span className="font-medium text-gray-900 dark:text-white">{language === 'pt' ? 'Nova Conta' : 'New Bill'}</span>
+            </button>
           </>
         )}
 
@@ -610,6 +636,10 @@ export default function Dashboard() {
         isOpen={showInvestments}
         onClose={() => setShowInvestments(false)}
       />
+      <BillModal
+        isOpen={showBillModal}
+        onClose={() => setShowBillModal(false)}
+      />
 
       {/* Full Transactions Modal */}
       {showFullTransactions && (
@@ -635,6 +665,7 @@ export default function Dashboard() {
                 selectedMonth={selectedMonth}
                 sortBy={sortBy}
                 sortOrder={sortOrder}
+                onSuccess={triggerRefresh}
               />
             </div>
           </div>

@@ -151,7 +151,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
                   {/* Icon */}
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
                     style={{
                       background: `linear-gradient(135deg, ${category.color.light}20, ${category.color.main}30)`,
                       border: `1px solid ${category.color.main}30`
@@ -168,7 +168,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                           {category.name}
                         </span>
                         {totalSpent > 0 && category.spent > 0 && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                          <span className="hidden sm:inline-block text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 flex-shrink-0">
                             {((category.spent / totalSpent) * 100).toFixed(0)}%
                           </span>
                         )}

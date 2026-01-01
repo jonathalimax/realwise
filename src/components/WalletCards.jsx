@@ -42,7 +42,7 @@ export default function WalletCards({ onManageCards }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-1">
         {userBanks.map((userBank) => {
           const bankInfo = getBankInfo(userBank.bankId);
           const colors = getBankColor(userBank.bankId);
@@ -50,24 +50,25 @@ export default function WalletCards({ onManageCards }) {
           return (
             <div
               key={userBank.id}
-              className={`h-24 rounded-xl p-4 relative overflow-hidden ${colors.bg} shadow-lg`}
+              className={`h-28 rounded-xl p-3 sm:p-4 relative overflow-hidden ${colors.bg} shadow-lg flex flex-col justify-between`}
             >
               {/* Pattern overlay */}
               <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-2 right-2 w-12 h-12 rounded-full border-4 border-white" />
-                <div className="absolute bottom-2 left-2 w-8 h-8 rounded-full border-4 border-white" />
+                <div className="absolute -top-2 -right-4 w-16 h-16 rounded-full border-4 border-white" />
+                <div className="absolute -bottom-4 -left-2 w-12 h-12 rounded-full border-4 border-white" />
               </div>
 
               {/* Content */}
-              <div className="relative z-10 h-full flex flex-col justify-between">
+              <div className="relative z-10">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{bankInfo.icon}</span>
                   <span className="text-white font-semibold text-sm truncate">
                     {userBank.cardName || bankInfo.name}
                   </span>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-2">
+              <div className="relative z-10">
                   {userBank.hasCredit ? (
                     <span className="text-white/80 text-xs">
                       {language === 'pt' ? 'Crédito' : 'Credit'} • {language === 'pt' ? 'Fecha' : 'Closes'} {userBank.closingDay}
@@ -78,7 +79,6 @@ export default function WalletCards({ onManageCards }) {
                     </span>
                   )}
                 </div>
-              </div>
             </div>
           );
         })}

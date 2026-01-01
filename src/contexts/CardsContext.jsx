@@ -102,6 +102,49 @@ export function CardsProvider({ children }) {
     return () => unsubscribe();
   }, [userId]);
 
+  // Helper function to create a bill for a credit card
+  const createBillForCreditCard = async (bankData, bankDocId) => {
+    if (!auth.currentUser || !bankData.hasCredit) return null;
+
+    try {
+      const bankInfo = getBankInfo(bankData.bankId);
+      const cardDisplayName = bankData.cardName || bankInfo.name;
+
+      // Calculate next due date based on payment day
+      const today = new Date();
+      const paymentDay = bankData.paymentDay || 15;
+      let dueDate = new Date(today.getFullYear(), today.getMonth(), paymentDay);
+
+      // If payment day has passed this month, set to next month
+      if (today.getDate() > paymentDay) {
+        dueDate.setMonth(dueDate.getMonth() + 1);
+      }
+
+      const billData = {
+        userId: auth.currentUser.uid,
+        name: `Fatura ${cardDisplayName}`,
+        description: `Fatura do cartão de crédito ${cardDisplayName}`,
+        category: 'credit_card',
+        dueDate: dueDate.toISOString().split('T')[0],
+        recurrence: 'monthly',
+        repeatForever: true,
+        repeatUntil: null,
+        notifyDaysBefore: 3,
+        status: 'pending',
+        linkedBankId: bankDocId, // Link to the bank/card
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      const billRef = await addDoc(collection(db, 'bills'), billData);
+      console.log(`Created bill for credit card: ${cardDisplayName}`, billRef.id);
+      return billRef.id;
+    } catch (error) {
+      console.error('Error creating bill for credit card:', error);
+      return null;
+    }
+  };
+
   const addBank = async (bankData) => {
     if (!auth.currentUser) {
       console.error('No authenticated user');
@@ -120,6 +163,12 @@ export function CardsProvider({ children }) {
       };
 
       const docRef = await addDoc(collection(db, 'userBanks'), newBank);
+
+      // Auto-create bill for credit cards
+      if (newBank.hasCredit) {
+        await createBillForCreditCard(newBank, docRef.id);
+      }
+
       return docRef.id;
     } catch (error) {
       console.error('Error adding bank:', error);
@@ -237,6 +286,56 @@ export function CardsProvider({ children }) {
   };
 
   /**
+   * Create bills for existing credit cards that don't have bills yet
+   * Returns the number of bills created
+   */
+  const createBillsForExistingCreditCards = async () => {
+    if (!auth.currentUser) {
+      console.error('No authenticated user');
+      return { success: false, error: 'No authenticated user', created: 0 };
+    }
+
+    try {
+      // Get all existing bills to check for linked cards
+      const billsQuery = query(
+        collection(db, 'bills'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const billsSnapshot = await getDocs(billsQuery);
+      const existingLinkedBankIds = new Set(
+        billsSnapshot.docs
+          .map(doc => doc.data().linkedBankId)
+          .filter(id => id)
+      );
+
+      // Find credit cards without bills
+      const creditCardsWithoutBills = userBanks.filter(
+        bank => bank.hasCredit && !existingLinkedBankIds.has(bank.id)
+      );
+
+      let createdCount = 0;
+      for (const bank of creditCardsWithoutBills) {
+        const billId = await createBillForCreditCard({
+          bankId: bank.bankId,
+          cardName: bank.cardName,
+          hasCredit: bank.hasCredit,
+          paymentDay: bank.paymentDay
+        }, bank.id);
+
+        if (billId) {
+          createdCount++;
+        }
+      }
+
+      console.log(`Created ${createdCount} bills for existing credit cards`);
+      return { success: true, created: createdCount };
+    } catch (error) {
+      console.error('Error creating bills for existing credit cards:', error);
+      return { success: false, error: error.message, created: 0 };
+    }
+  };
+
+  /**
    * Migrate transactions from old cardId system to new bankId system
    * Reads old cards collection to find bank mapping
    */
@@ -335,6 +434,7 @@ export function CardsProvider({ children }) {
       getPaymentMonth,
       getPaymentMonthKey,
       migrateCardIdToBankId,
+      createBillsForExistingCreditCards,
       banks: BANKS,
       bankColors: BANK_COLORS
     }}>
@@ -360,6 +460,7 @@ export const useCards = () => {
       getPaymentMonth: () => new Date(),
       getPaymentMonthKey: () => '',
       migrateCardIdToBankId: async () => ({ success: false, error: 'No context' }),
+      createBillsForExistingCreditCards: async () => ({ success: false, error: 'No context', created: 0 }),
       banks: BANKS,
       bankColors: BANK_COLORS
     };

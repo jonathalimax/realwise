@@ -5,7 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 
-export default function TransactionList({ transactions = [], selectedMonth, compact = false, sortBy = 'date', sortOrder = 'desc' }) {
+export default function TransactionList({ transactions = [], selectedMonth, compact = false, sortBy = 'date', sortOrder = 'desc', onSuccess }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
@@ -34,6 +34,10 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
         compare = a.description?.localeCompare(b.description || '') || 0;
       } else if (sortBy === 'amount') {
         compare = a.amount - b.amount;
+      } else if (sortBy === 'createdAt') {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        compare = dateA - dateB;
       }
 
       return sortOrder === 'asc' ? compare : -compare;
@@ -175,13 +179,13 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
             <div
               key={transaction.id}
               onClick={() => setEditingTransaction(transaction)}
-              className={`group flex items-center gap-2 sm:gap-4 ${compact ? 'py-2.5' : 'px-4 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg cursor-pointer
+              className={`group flex items-center gap-3 sm:gap-4 ${compact ? 'py-2.5' : 'px-3 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg cursor-pointer
                 ${selectedIds.has(transaction.id) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`}
             >
               {/* Selection Checkbox - Hidden in compact mode */}
               {!compact && (
                 <button
-                  onClick={() => toggleSelection(transaction.id)}
+                  onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
                   className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
                     ${selectedIds.has(transaction.id)
                       ? 'bg-gray-900 dark:bg-gray-100 border-gray-900 dark:border-gray-100'
@@ -198,7 +202,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
 
               {/* Icon - Hidden on mobile, show colored dot instead */}
               <div
-                className={`hidden sm:flex ${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-full items-center justify-center flex-shrink-0
+                className={`hidden sm:flex ${compact ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'} rounded-full items-center justify-center flex-shrink-0
                   ${transaction.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}
               >
                 <svg
@@ -342,7 +346,10 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
         isOpen={!!editingTransaction}
         onClose={() => setEditingTransaction(null)}
         transaction={editingTransaction}
-        onSuccess={() => setEditingTransaction(null)}
+        onSuccess={() => {
+          setEditingTransaction(null);
+          onSuccess?.();
+        }}
       />
     </div>
   );

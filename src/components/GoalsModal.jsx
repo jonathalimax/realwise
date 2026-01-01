@@ -213,7 +213,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                 <div className={`mt-2 px-3 py-2 rounded-lg ${color.light}`}>
                   <div className="flex items-center gap-2">
                     <span className="text-lg">📊</span>
-                    <div>
+                    <div className="min-w-0">
                       <p className={`text-sm font-medium ${color.text}`}>
                         {t('goals.monthlyNeeded', { amount: formatCurrency(monthlyNeeded.amount) })}
                       </p>
@@ -537,17 +537,18 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
 
               {/* Preview new total */}
               {fundAmount > 0 && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-100 dark:border-emerald-800">
-                  <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                    <span className="font-medium">{t('goals.currentAmount')}:</span>{' '}
-                    {formatCurrency(selectedGoalForFunds.currentAmount || 0)}
-                  </p>
-                  <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
-                    <span className="font-medium">+ {formatCurrency(fundAmount)}</span>
-                  </p>
-                  <p className="text-sm text-emerald-800 dark:text-emerald-200 font-semibold mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700">
-                    = {formatCurrency((selectedGoalForFunds.currentAmount || 0) + fundAmount)}
-                  </p>
+                <div className="p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-100 dark:border-emerald-800 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium text-emerald-700 dark:text-emerald-300">{t('goals.currentAmount')}:</span>
+                    <span className="text-emerald-700 dark:text-emerald-300">{formatCurrency(selectedGoalForFunds.currentAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium text-emerald-700 dark:text-emerald-300">+ {formatCurrency(fundAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-base mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700">
+                    <span className="font-semibold text-emerald-800 dark:text-emerald-200">{t('goals.newTotal')}:</span>
+                    <span className="font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency((selectedGoalForFunds.currentAmount || 0) + fundAmount)}</span>
+                  </div>
                 </div>
               )}
 

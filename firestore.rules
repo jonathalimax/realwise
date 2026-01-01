@@ -4,8 +4,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Transactions collection
     match /transactions/{transactionId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && ((resource.data.userId == null && request.resource.data.userId == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
     // Settings collection
@@ -71,6 +73,18 @@ service cloud.firestore {
     match /purchases/{purchaseId} {
       allow read: if request.auth != null && request.auth.token.email == resource.data.email;
       allow write: if false; // Only cloud functions can write
+    }
+
+    // Bills collection
+    match /bills/{billId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Bill reminders (postponement history)
+    match /bill_reminders/{reminderId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
   }
 }

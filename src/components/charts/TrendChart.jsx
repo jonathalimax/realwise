@@ -1,4 +1,5 @@
 import { useSettings } from '../../contexts/SettingsContext';
+import { useCards } from '../../contexts/CardsContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Line } from 'recharts';
 
 // Custom Tooltip for Recharts
@@ -22,8 +23,9 @@ const CustomTooltip = ({ active, payload, label, formatCurrency, t }) => {
   return null;
 };
 
-export default function TrendChart({ transactions, selectedMonth }) {
+export default function TrendChart({ transactions, selectedMonth, viewMode }) {
   const { formatCurrency, t, language } = useSettings();
+  const { getPaymentMonthKey } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -49,8 +51,19 @@ export default function TrendChart({ transactions, selectedMonth }) {
   // Group transactions by month
   const monthlyData = transactions.reduce((acc, trans) => {
     if (trans.ignored) return acc;
-    const date = new Date(trans.date);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+    let monthKey;
+    if (viewMode === 'purchase') {
+      const date = new Date(trans.date);
+      monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    } else {
+      if (trans.type === 'income' || trans.investmentId) {
+        const date = new Date(trans.date);
+        monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      } else {
+        monthKey = getPaymentMonthKey(trans.date, trans.bankId);
+      }
+    }
 
     if (!acc[monthKey]) {
       acc[monthKey] = { income: 0, expense: 0 };

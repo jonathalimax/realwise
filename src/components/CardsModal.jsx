@@ -3,7 +3,7 @@ import { useCards, BANKS } from '../contexts/CardsContext';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function CardsModal({ isOpen, onClose }) {
-  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, migrateCardIdToBankId } = useCards();
+  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, migrateCardIdToBankId, createBillsForExistingCreditCards } = useCards();
   const { t, language } = useSettings();
 
   const [view, setView] = useState('list'); // 'list', 'form'
@@ -11,6 +11,21 @@ export default function CardsModal({ isOpen, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [migrationStatus, setMigrationStatus] = useState(null);
   const [migrating, setMigrating] = useState(false);
+  const [billCreationStatus, setBillCreationStatus] = useState(null);
+  const [creatingBills, setCreatingBills] = useState(false);
+
+  const handleCreateBillsForCards = async () => {
+    setCreatingBills(true);
+    setBillCreationStatus(null);
+    try {
+      const result = await createBillsForExistingCreditCards();
+      setBillCreationStatus(result);
+    } catch (error) {
+      setBillCreationStatus({ success: false, error: error.message, created: 0 });
+    } finally {
+      setCreatingBills(false);
+    }
+  };
 
   const handleMigrate = async () => {
     setMigrating(true);
@@ -395,6 +410,51 @@ export default function CardsModal({ isOpen, onClose }) {
                 </svg>
                 {language === 'pt' ? 'Adicionar Banco' : 'Add Bank'}
               </button>
+            )}
+
+            {/* Create bills for credit cards button */}
+            {userBanks.filter(b => b.hasCredit).length > 0 && (
+              <button
+                onClick={handleCreateBillsForCards}
+                disabled={creatingBills}
+                className="w-full py-2.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-xl
+                  hover:bg-purple-200 dark:hover:bg-purple-900/60 disabled:opacity-50 transition flex items-center justify-center gap-2"
+              >
+                {creatingBills ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-700 dark:border-purple-300" />
+                    {language === 'pt' ? 'Criando contas...' : 'Creating bills...'}
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {language === 'pt' ? 'Criar contas para cartões' : 'Create bills for cards'}
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Bill creation status */}
+            {billCreationStatus && (
+              <div className={`p-3 rounded-xl text-sm ${
+                billCreationStatus.success
+                  ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300'
+              }`}>
+                {billCreationStatus.success
+                  ? (language === 'pt'
+                      ? billCreationStatus.created > 0
+                        ? `${billCreationStatus.created} conta(s) criada(s) para seus cartões!`
+                        : 'Todos os cartões já possuem contas.'
+                      : billCreationStatus.created > 0
+                        ? `${billCreationStatus.created} bill(s) created for your cards!`
+                        : 'All cards already have bills.')
+                  : (language === 'pt'
+                      ? `Erro: ${billCreationStatus.error}`
+                      : `Error: ${billCreationStatus.error}`)}
+              </div>
             )}
 
             {/* Migration button */}

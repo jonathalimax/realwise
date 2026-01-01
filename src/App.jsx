@@ -9,6 +9,7 @@ import { GoalsProvider } from './contexts/GoalsContext';
 import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
 import { InvestmentProvider } from './contexts/InvestmentContext';
+import { BillsProvider } from './contexts/BillsContext';
 
 // Landing pages
 import Home from './pages/Home';
@@ -50,7 +51,9 @@ function AppContent() {
         <CardsProvider>
           <BudgetProvider>
             <InvestmentProvider>
-              <Dashboard />
+              <BillsProvider>
+                <Dashboard />
+              </BillsProvider>
             </InvestmentProvider>
           </BudgetProvider>
         </CardsProvider>

@@ -91,39 +91,75 @@ export default function BalanceSummary({ transactions = [] }) {
   ];
 
   return (
-    <div className={`grid grid-cols-1 gap-4 ${hasInvestments ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
-      {cards.map((card, index) => (
-        <div
-          key={index}
-          className={`
-            relative overflow-hidden rounded-2xl p-6
-            bg-white dark:bg-gray-800 border ${card.borderColor}
-            hover:shadow-md transition-shadow duration-300
-          `}
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{card.title}</p>
-              <p className={`text-2xl sm:text-3xl font-semibold ${card.color}`}>
-                {formatCurrency(card.value)}
-              </p>
-              {card.subtitle && (
-                <p className={`text-sm font-medium mt-1 ${card.subtitleColor}`}>
-                  {card.subtitle}
-                </p>
-              )}
-            </div>
-            <div className={`p-2.5 rounded-xl ${card.bgColor} ${card.color}`}>
-              {card.icon}
-            </div>
-          </div>
-
-          {/* Subtle decoration */}
-          <div
-            className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full ${card.bgColor} opacity-50`}
-          />
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 md:p-0 shadow-sm md:bg-transparent md:border-none md:shadow-none">
+      {/* Mobile view: single card */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('balance.totalBalance')}</p>
+          <p className={`text-2xl font-semibold ${summary.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
+            {formatCurrency(summary.balance)}
+          </p>
         </div>
-      ))}
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-3">
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">{t('balance.income')}</p>
+            <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(summary.totalIncome)}</p>
+          </div>
+          <div className="bg-rose-50 dark:bg-rose-900/30 rounded-lg p-3">
+            <p className="text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide">{t('balance.expenses')}</p>
+            <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">-{formatCurrency(summary.totalExpenses)}</p>
+          </div>
+        </div>
+        {hasInvestments && (
+            <div className="mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('investments.portfolioValue')}</p>
+                        <p className="text-xl font-semibold text-blue-600">{formatCurrency(portfolioValue)}</p>
+                    </div>
+                    <p className={`text-sm font-medium ${portfolioGrowth >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {portfolioGrowth >= 0 ? '+' : ''}{formatCurrency(portfolioGrowth)}
+                    </p>
+                </div>
+            </div>
+        )}
+      </div>
+
+      {/* Desktop view: grid of cards */}
+      <div className={`hidden ${hasInvestments ? 'md:grid md:grid-cols-4' : 'md:grid md:grid-cols-3'} gap-4`}>
+        {cards.map((card, index) => (
+          <div
+            key={index}
+            className={`
+              relative overflow-hidden rounded-2xl p-6
+              bg-white dark:bg-gray-800 border ${card.borderColor}
+              hover:shadow-md transition-shadow duration-300
+            `}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{card.title}</p>
+                <p className={`text-2xl sm:text-3xl font-semibold ${card.color}`}>
+                  {formatCurrency(card.value)}
+                </p>
+                {card.subtitle && (
+                  <p className={`text-sm font-medium mt-1 ${card.subtitleColor}`}>
+                    {card.subtitle}
+                  </p>
+                )}
+              </div>
+              <div className={`p-2.5 rounded-xl ${card.bgColor} ${card.color}`}>
+                {card.icon}
+              </div>
+            </div>
+
+            {/* Subtle decoration */}
+            <div
+              className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full ${card.bgColor} opacity-50`}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
