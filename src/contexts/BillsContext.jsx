@@ -18,24 +18,26 @@ export const BillsProvider = ({ children }) => {
 
   // Load bills from Firestore
   useEffect(() => {
-    if (!auth.currentUser) {
-      setBills([]);
-      setLoading(false);
-      return;
-    }
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      if (user) {
+        const q = query(
+          collection(db, 'bills'),
+          where('userId', '==', user.uid)
+        );
 
-    const q = query(
-      collection(db, 'bills'),
-      where('userId', '==', auth.currentUser.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const billsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setBills(billsData);
-      setLoading(false);
+        const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+          const billsData = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          setBills(billsData);
+          setLoading(false);
+        });
+        return unsubscribeSnapshot;
+      } else {
+        setBills([]);
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
