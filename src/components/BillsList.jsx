@@ -5,8 +5,8 @@ import BillModal from './BillModal';
 import { BellIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 export default function BillsList({ compact = false }) {
-  const { bills, loading, deleteBill, markBillAsPaid, getUpcomingBills, getOverdueBills } = useBills();
-  const { language, t } = useSettings();
+  const { bills, loading, markBillAsPaid, getUpcomingBills, getOverdueBills } = useBills();
+  const { language } = useSettings();
   const [editingBill, setEditingBill] = useState(null);
   const [showAllBills, setShowAllBills] = useState(false);
 
@@ -14,11 +14,6 @@ export default function BillsList({ compact = false }) {
   const overdueBills = getOverdueBills();
   const paidBills = bills.filter(b => b.status === 'paid');
 
-  const handleDelete = async (billId) => {
-    if (window.confirm(language === 'pt' ? 'Excluir esta conta?' : 'Delete this bill?')) {
-      await deleteBill(billId);
-    }
-  };
 
   const handleMarkPaid = async (billId) => {
     await markBillAsPaid(billId);
@@ -68,19 +63,7 @@ export default function BillsList({ compact = false }) {
     return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  const getCategoryLabel = (category) => {
-    if (!category) return '';
-    const categoryLabels = {
-      credit_card: language === 'pt' ? 'Cartão de Crédito' : 'Credit Card',
-      utilities: language === 'pt' ? 'Utilidades' : 'Utilities',
-      rent: language === 'pt' ? 'Aluguel' : 'Rent',
-      insurance: language === 'pt' ? 'Seguro' : 'Insurance',
-      subscription: language === 'pt' ? 'Assinatura' : 'Subscription',
-      loan: language === 'pt' ? 'Empréstimo' : 'Loan',
-      other: language === 'pt' ? 'Outro' : 'Other',
-    };
-    return categoryLabels[category] || category;
-  };
+
 
   const BillItem = ({ bill }) => {
     const status = getBillStatus(bill);
@@ -141,9 +124,12 @@ export default function BillsList({ compact = false }) {
     );
   }
 
+  console.log('BillsList - Before compact view logic. Loading:', loading, 'Bills:', bills, 'Upcoming:', upcomingBills, 'Overdue:', overdueBills);
+
   if (compact) {
     // Compact view for dashboard
-    const displayBills = [...overdueBills, ...upcomingBills].slice(0, 3);
+        const allBills = [...overdueBills, ...upcomingBills];
+    const displayBills = allBills.slice(0, 3);
 
     if (displayBills.length === 0) {
       return (
@@ -166,33 +152,129 @@ export default function BillsList({ compact = false }) {
     }
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-            {language === 'pt' ? 'Contas a Pagar' : 'Bills to Pay'}
-          </h3>
-          {bills.length > 3 && (
-            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              {bills.length} {language === 'pt' ? 'contas' : 'bills'}
-            </span>
+      <>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+              {language === 'pt' ? 'Contas a Pagar' : 'Bills to Pay'}
+            </h3>
+            {allBills.length > 3 && (
+              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                {allBills.length} {language === 'pt' ? 'contas' : 'bills'}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-1 sm:space-y-2">
+            {displayBills.map((bill) => (
+              <BillItem key={bill.id} bill={bill} />
+            ))}
+          </div>
+
+          {allBills.length > 3 && (
+            <button
+              onClick={() => setShowAllBills(true)}
+              className="mt-2 sm:mt-3 w-full py-2 text-xs sm:text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+            >
+              {language === 'pt' ? `Ver todas (${allBills.length})` : `See all (${allBills.length})`}
+            </button>
           )}
         </div>
 
-        <div className="space-y-1 sm:space-y-2">
-          {displayBills.map((bill) => (
-            <BillItem key={bill.id} bill={bill} />
-          ))}
-        </div>
+        {/* Edit Bill Modal */}
+        <BillModal
+          isOpen={!!editingBill}
+          onClose={() => setEditingBill(null)}
+          bill={editingBill}
+        />
 
-        {bills.length > 3 && (
-          <button
-            onClick={() => setShowAllBills(true)}
-            className="mt-2 sm:mt-3 w-full py-2 text-xs sm:text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
-          >
-            {language === 'pt' ? `Ver todas (${bills.length})` : `See all (${bills.length})`}
-          </button>
+        {/* Full Bills Modal */}
+        {showAllBills && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowAllBills(false)} />
+            <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                  {language === 'pt' ? 'Todas as Contas' : 'All Bills'}
+                </h2>
+                <button
+                  onClick={() => setShowAllBills(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                >
+                  <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                {/* Summary cards */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+                  <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-3 sm:p-4">
+                    <p className="text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">
+                      {language === 'pt' ? 'Vencidas' : 'Overdue'}
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400">{overdueBills.length}</p>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 sm:p-4">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">
+                      {language === 'pt' ? 'Próximas' : 'Upcoming'}
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{upcomingBills.length}</p>
+                  </div>
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 sm:p-4">
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">
+                      {language === 'pt' ? 'Pagas' : 'Paid'}
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{paidBills.length}</p>
+                  </div>
+                </div>
+
+                {/* Bills list */}
+                <div className="space-y-4">
+                  {overdueBills.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
+                        {language === 'pt' ? 'Vencidas' : 'Overdue'}
+                      </h3>
+                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                        {overdueBills.map((bill) => (
+                          <BillItem key={bill.id} bill={bill} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {upcomingBills.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
+                        {language === 'pt' ? 'Próximas (7 dias)' : 'Upcoming (7 days)'}
+                      </h3>
+                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                        {upcomingBills.map((bill) => (
+                          <BillItem key={bill.id} bill={bill} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {paidBills.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
+                        {language === 'pt' ? 'Pagas recentemente' : 'Recently Paid'}
+                      </h3>
+                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                        {paidBills.slice(0, 10).map((bill) => (
+                          <BillItem key={bill.id} bill={bill} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
-      </div>
+      </>
     );
   }
 
@@ -288,93 +370,6 @@ export default function BillsList({ compact = false }) {
         onClose={() => setEditingBill(null)}
         bill={editingBill}
       />
-
-      {/* Full Bills Modal */}
-      {showAllBills && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowAllBills(false)} />
-          <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                {language === 'pt' ? 'Todas as Contas' : 'All Bills'}
-              </h2>
-              <button
-                onClick={() => setShowAllBills(false)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-              >
-                <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              {/* Summary cards */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
-                <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-3 sm:p-4">
-                  <p className="text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">
-                    {language === 'pt' ? 'Vencidas' : 'Overdue'}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400">{overdueBills.length}</p>
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 sm:p-4">
-                  <p className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">
-                    {language === 'pt' ? 'Próximas' : 'Upcoming'}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{upcomingBills.length}</p>
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 sm:p-4">
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">
-                    {language === 'pt' ? 'Pagas' : 'Paid'}
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{paidBills.length}</p>
-                </div>
-              </div>
-
-              {/* Bills list */}
-              <div className="space-y-4">
-                {overdueBills.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
-                      {language === 'pt' ? 'Vencidas' : 'Overdue'}
-                    </h3>
-                    <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
-                      {overdueBills.map((bill) => (
-                        <BillItem key={bill.id} bill={bill} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {upcomingBills.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
-                      {language === 'pt' ? 'Próximas (7 dias)' : 'Upcoming (7 days)'}
-                    </h3>
-                    <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
-                      {upcomingBills.map((bill) => (
-                        <BillItem key={bill.id} bill={bill} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {paidBills.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
-                      {language === 'pt' ? 'Pagas recentemente' : 'Recently Paid'}
-                    </h3>
-                    <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
-                      {paidBills.slice(0, 10).map((bill) => (
-                        <BillItem key={bill.id} bill={bill} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
