@@ -3,8 +3,11 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAccess } from '../contexts/AccessContext';
+import { useBills } from '../contexts/BillsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import BalanceSummary from './BalanceSummary';
+import InvestmentsListModal from './InvestmentsListModal';
 import WalletCards from './WalletCards';
 import BudgetCategorySection from './BudgetCategorySection';
 import TransactionList from './TransactionList';
@@ -21,7 +24,8 @@ import RuleComparison from './RuleComparison';
 import SpendingChart from './charts/SpendingChart';
 import TrendChart from './charts/TrendChart';
 import BillsList from './BillsList';
-import { PlusIcon, XMarkIcon, ChevronDownIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import TutorialModal from './TutorialModal';
+import { PlusIcon, XMarkIcon, ChevronDownIcon, FunnelIcon, AdjustmentsHorizontalIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 
 export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
@@ -31,10 +35,13 @@ export default function Dashboard() {
   const [showBudget, setShowBudget] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showInvestments, setShowInvestments] = useState(false);
+  const [showInvestmentsList, setShowInvestmentsList] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [showFullTransactions, setShowFullTransactions] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [isFirstTimeTutorial, setIsFirstTimeTutorial] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -46,19 +53,29 @@ export default function Dashboard() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date'); // 'date', 'description', 'amount'
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
-  const { t, language, darkMode, toggleDarkMode, categories } = useSettings();
+  const { t, language, darkMode, toggleDarkMode, categories, tutorialCompleted, loading: settingsLoading } = useSettings();
+  const { canWrite, ownerId } = useAccess();
   const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
+  const { bills, loading: billsLoading } = useBills();
 
   const triggerRefresh = () => setRefreshKey(prev => prev + 1);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
+  // Show tutorial for first-time users
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!settingsLoading && !tutorialCompleted) {
+      setIsFirstTimeTutorial(true);
+      setShowTutorial(true);
+    }
+  }, [settingsLoading, tutorialCompleted]);
+
+  useEffect(() => {
+    if (!auth.currentUser || !ownerId) return;
 
     const q = query(
       collection(db, 'transactions'),
-      where('userId', '==', auth.currentUser.uid)
+      where('userId', '==', ownerId) // Use ownerId instead of currentUser.uid
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -70,7 +87,7 @@ export default function Dashboard() {
     });
 
     return () => unsubscribe();
-  }, [refreshKey]);
+  }, [refreshKey, ownerId]); // Add ownerId to dependencies
 
   const handleSignOut = async () => {
     try {
@@ -210,6 +227,14 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => { setIsFirstTimeTutorial(false); setShowTutorial(true); }}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                title={language === 'pt' ? 'Ajuda' : 'Help'}
+              >
+                <QuestionMarkCircleIcon className="w-5 h-5" />
+              </button>
+
               <button
                 onClick={toggleDarkMode}
                 className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
@@ -443,21 +468,22 @@ export default function Dashboard() {
         )}
 
         {/* 1. Balance Cards */}
-        <BalanceSummary transactions={monthlyTransactions} />
+        <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
 
-        {/* 2. Expenses by Category */}
-        <div className="mt-4 sm:mt-6">
-          <BudgetCategorySection
-            transactions={filteredTransactions}
-            selectedMonth={selectedMonth}
-            onConfigure={() => setShowBudget(true)}
-            onCategoryClick={handleCategoryClick}
-          />
-        </div>
+        {/* 2. Expenses by Category + Bills to Pay - Side by Side Layout */}
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Expenses by Category - Takes 2/3 of space */}
+          <div className="lg:col-span-2">
+            <BudgetCategorySection
+              transactions={filteredTransactions}
+              selectedMonth={selectedMonth}
+              onConfigure={() => setShowBudget(true)}
+              onCategoryClick={handleCategoryClick}
+            />
+          </div>
 
-        {/* 2.5. Bills to Pay */}
-        <div className="mt-4 sm:mt-6">
-          <BillsList compact />
+          {/* Bills to Pay - Takes 1/3 of space */}
+          <BillsList compact selectedMonth={selectedMonth} />
         </div>
 
         {/* 3. Transactions List */}
@@ -510,16 +536,16 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* FAB Menu Overlay */}
-      {showFabMenu && (
+      {/* FAB Menu Overlay - Only show for write access */}
+      {canWrite && showFabMenu && (
         <div
           className="fixed inset-0 bg-black/30 z-40"
           onClick={() => setShowFabMenu(false)}
         />
       )}
 
-      {/* FAB Menu */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-end gap-3">
+      {/* FAB Menu - Only show for write access */}
+      {canWrite && <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-end gap-3">
         {showFabMenu && (
           <>
             <button
@@ -614,7 +640,7 @@ export default function Dashboard() {
         >
           <PlusIcon className="w-7 h-7 text-white" />
         </button>
-      </div>
+      </div>}
 
       {/* Modals */}
       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
@@ -636,9 +662,18 @@ export default function Dashboard() {
         isOpen={showInvestments}
         onClose={() => setShowInvestments(false)}
       />
+      <InvestmentsListModal
+        isOpen={showInvestmentsList}
+        onClose={() => setShowInvestmentsList(false)}
+      />
       <BillModal
         isOpen={showBillModal}
         onClose={() => setShowBillModal(false)}
+      />
+      <TutorialModal
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        isFirstTime={isFirstTimeTutorial}
       />
 
       {/* Full Transactions Modal */}

@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { AccessProvider } from './contexts/AccessContext';
 import { GoalsProvider } from './contexts/GoalsContext';
 import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
@@ -31,6 +32,8 @@ function AppContent() {
       setLoading(false);
     });
 
+    console.log('User state changed:', auth);
+
     return () => unsubscribe();
   }, []);
 
@@ -46,19 +49,21 @@ function AppContent() {
   }
 
   return user ? (
-    <SettingsProvider>
-      <GoalsProvider>
-        <CardsProvider>
-          <BudgetProvider>
-            <InvestmentProvider>
-              <BillsProvider>
-                <Dashboard />
-              </BillsProvider>
-            </InvestmentProvider>
-          </BudgetProvider>
-        </CardsProvider>
-      </GoalsProvider>
-    </SettingsProvider>
+    <AccessProvider>
+      <SettingsProvider>
+        <GoalsProvider>
+          <CardsProvider>
+            <BudgetProvider>
+              <InvestmentProvider>
+                <BillsProvider>
+                  <Dashboard />
+                </BillsProvider>
+              </InvestmentProvider>
+            </BudgetProvider>
+          </CardsProvider>
+        </GoalsProvider>
+        </SettingsProvider>
+      </AccessProvider>
   ) : (
     <Auth />
   );

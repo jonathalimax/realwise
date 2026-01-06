@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useGoals, GOAL_ICONS, GOAL_COLORS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useInvestments } from '../contexts/InvestmentContext';
 import CurrencyInput from './ui/CurrencyInput';
 
 export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
   const { goals, loading, addGoal, updateGoal, deleteGoal, addAmountToGoal, getGoalProgress, getMonthlyNeeded, getGoalColor } = useGoals();
   const { formatCurrency, t, language } = useSettings();
+  const { getInvestmentsByGoal, getGoalInvestmentValue, getGoalInvestmentGrowth } = useInvestments();
 
   const [view, setView] = useState('list'); // 'list', 'form', 'addFunds', 'transactions'
   const [editingGoal, setEditingGoal] = useState(null);
@@ -161,6 +163,9 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
     const daysLeft = getDaysRemaining(goal.deadline);
     const monthlyNeeded = getMonthlyNeeded(goal);
     const icon = GOAL_ICONS[goal.icon] || GOAL_ICONS.other;
+    const linkedInvestments = getInvestmentsByGoal(goal.id);
+    const investmentValue = getGoalInvestmentValue(goal.id);
+    const investmentGrowth = getGoalInvestmentGrowth(goal.id);
 
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow">
@@ -170,7 +175,15 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">{goal.name}</h3>
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="font-semibold text-gray-900 dark:text-white truncate">{goal.name}</h3>
+                {linkedInvestments.length > 0 && (
+                  <span className="flex-shrink-0 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-full flex items-center gap-0.5">
+                    <span>📈</span>
+                    <span>{linkedInvestments.length}</span>
+                  </span>
+                )}
+              </div>
               {goal.completed && (
                 <span className="flex-shrink-0 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium rounded-full">
                   {t('goals.completed')}
@@ -184,8 +197,19 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
             {/* Progress bar */}
             <div className="mt-3">
               <div className="flex justify-between text-sm mb-1.5">
-                <span className={`font-medium ${color.text}`}>
-                  {formatCurrency(goal.currentAmount || 0)}
+                <span className={`font-medium ${investmentValue > 0 ? 'text-blue-500 dark:text-blue-400' : color.text}`}>
+                  {investmentValue > 0 ? (
+                    <>
+                      {formatCurrency(investmentValue)}
+                      {investmentGrowth !== 0 && (
+                        <span className={investmentGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                          {' '}({investmentGrowth > 0 ? '+' : ''}{formatCurrency(investmentGrowth)})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    formatCurrency(goal.currentAmount || 0)
+                  )}
                 </span>
                 <span className="text-gray-500 dark:text-gray-400">{formatCurrency(goal.targetAmount)}</span>
               </div>
@@ -512,7 +536,26 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">{selectedGoalForFunds.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatCurrency(selectedGoalForFunds.currentAmount || 0)} / {formatCurrency(selectedGoalForFunds.targetAmount)}
+                      {(() => {
+                        const fundsInvestmentValue = getGoalInvestmentValue(selectedGoalForFunds.id);
+                        const fundsInvestmentGrowth = getGoalInvestmentGrowth(selectedGoalForFunds.id);
+
+                        if (fundsInvestmentValue > 0) {
+                          return (
+                            <span className="text-blue-500 dark:text-blue-400">
+                              {formatCurrency(fundsInvestmentValue)}
+                              {fundsInvestmentGrowth !== 0 && (
+                                <span className={fundsInvestmentGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                                  {' '}({fundsInvestmentGrowth > 0 ? '+' : ''}{formatCurrency(fundsInvestmentGrowth)})
+                                </span>
+                              )}
+                            </span>
+                          );
+                        }
+                        return `${formatCurrency(selectedGoalForFunds.currentAmount || 0)}`;
+                      })()}
+                      {' / '}
+                      {formatCurrency(selectedGoalForFunds.targetAmount)}
                     </p>
                   </div>
                 </div>
@@ -576,7 +619,26 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">{selectedGoalForTransactions.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatCurrency(selectedGoalForTransactions.currentAmount || 0)} / {formatCurrency(selectedGoalForTransactions.targetAmount)}
+                      {(() => {
+                        const transInvestmentValue = getGoalInvestmentValue(selectedGoalForTransactions.id);
+                        const transInvestmentGrowth = getGoalInvestmentGrowth(selectedGoalForTransactions.id);
+
+                        if (transInvestmentValue > 0) {
+                          return (
+                            <span className="text-blue-500 dark:text-blue-400">
+                              {formatCurrency(transInvestmentValue)}
+                              {transInvestmentGrowth !== 0 && (
+                                <span className={transInvestmentGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                                  {' '}({transInvestmentGrowth > 0 ? '+' : ''}{formatCurrency(transInvestmentGrowth)})
+                                </span>
+                              )}
+                            </span>
+                          );
+                        }
+                        return `${formatCurrency(selectedGoalForTransactions.currentAmount || 0)}`;
+                      })()}
+                      {' / '}
+                      {formatCurrency(selectedGoalForTransactions.targetAmount)}
                     </p>
                   </div>
                 </div>

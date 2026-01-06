@@ -23,3 +23,31 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase Cache
+.firebase/hosting.ZGlzdA.cache
+
+# WhatsApp Bot (separate module)
+whatsapp-bot/
+
+# Documentation and temporary files
+BILLS_FEATURE_SUMMARY.md
+BILLS_FIXES_SUMMARY.md
+BILL_NOTIFICATIONS_SETUP.md
+DEPLOY.md
+IMPLEMENTATION_SUMMARY.md
+WHATSAPP-BOT-SUMMARY.md
+WHATSAPP_ARCHITECTURE.md
+WHATSAPP_INTEGRATION.md
+WHATSAPP_QUICKSTART.md
+WHATSAPP_QUICK_REF.md
+WHATSAPP_README.md
+WHATSAPP_SETUP.md
+functions/DEPLOYMENT_SUMMARY.md
+functions/README.md
+functions/WHATSAPP_SETUP.md
+functions/setup-whatsapp.sh
+functions/whatsapp-service.js
+public/screenshots/
+src/utils/analytics.js
+test-whatsapp.sh

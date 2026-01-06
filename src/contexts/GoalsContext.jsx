@@ -10,8 +10,10 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   serverTimestamp
 } from 'firebase/firestore';
+import { useAccess } from './AccessContext';
 
 const GoalsContext = createContext();
 
@@ -45,33 +47,25 @@ export const GOAL_COLORS = [
 export function GoalsProvider({ children }) {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
+  const { ownerId } = useAccess();
 
-  // Listen for auth state changes
+  // Listen for goals when ownerId is available
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUserId(user?.uid || null);
-    });
-    return () => unsubscribe();
-  }, []);
+    console.log('Goals useEffect - ownerId:', ownerId);
 
-  // Listen for goals when userId is available
-  useEffect(() => {
-    console.log('Goals useEffect - userId:', userId);
-
-    if (!userId) {
-      console.log('No userId, clearing goals');
+    if (!ownerId) {
+      console.log('No ownerId, clearing goals');
       setGoals([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    console.log('Setting up goals listener for user:', userId);
+    console.log('Setting up goals listener for owner:', ownerId);
 
     const q = query(
       collection(db, 'goals'),
-      where('userId', '==', userId)
+      where('userId', '==', ownerId) // Use ownerId instead of userId
     );
 
     const unsubscribe = onSnapshot(
@@ -99,7 +93,7 @@ export function GoalsProvider({ children }) {
     );
 
     return () => unsubscribe();
-  }, [userId]);
+  }, [ownerId]); // Use ownerId instead of userId
 
   const addGoal = async (goalData) => {
     console.log('addGoal called with:', goalData);
@@ -156,16 +150,40 @@ export function GoalsProvider({ children }) {
   };
 
   const addAmountToGoal = async (goalId, amount) => {
-    const goal = goals.find(g => g.id === goalId);
-    if (!goal) return false;
+    console.log('[GoalsContext] addAmountToGoal called - goalId:', goalId, 'amount:', amount);
 
-    const newAmount = (goal.currentAmount || 0) + amount;
-    const completed = newAmount >= goal.targetAmount;
+    try {
+      // Fetch current goal directly from Firestore to avoid stale state
+      const goalDoc = await getDoc(doc(db, 'goals', goalId));
+      if (!goalDoc.exists()) {
+        console.error('[GoalsContext] Goal not found in Firestore:', goalId);
+        return false;
+      }
 
-    return updateGoal(goalId, {
-      currentAmount: newAmount,
-      completed
-    });
+      const goal = { id: goalDoc.id, ...goalDoc.data() };
+      const previousAmount = goal.currentAmount || 0;
+      const newAmount = previousAmount + amount;
+      const completed = newAmount >= goal.targetAmount;
+
+      console.log('[GoalsContext] Updating goal progress:');
+      console.log('  - Goal:', goal.name);
+      console.log('  - Previous amount:', previousAmount);
+      console.log('  - Amount to add:', amount);
+      console.log('  - New amount:', newAmount);
+      console.log('  - Target amount:', goal.targetAmount);
+      console.log('  - Completed:', completed);
+
+      const result = await updateGoal(goalId, {
+        currentAmount: newAmount,
+        completed
+      });
+
+      console.log('[GoalsContext] Update result:', result);
+      return result;
+    } catch (error) {
+      console.error('[GoalsContext] Error updating goal:', error);
+      return false;
+    }
   };
 
   const getGoalProgress = (goal) => {

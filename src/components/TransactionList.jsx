@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { db } from '../firebase';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAccess } from '../contexts/AccessContext';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 
@@ -12,6 +13,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
   const [editingTransaction, setEditingTransaction] = useState(null);
 
   const { formatCurrency, t, language } = useSettings();
+  const { canWrite } = useAccess();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -98,8 +100,8 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
         <div className="p-6 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              {/* Select All Checkbox */}
-              {filteredTransactions.length > 0 && (
+              {/* Select All Checkbox - Only for write access */}
+              {canWrite && filteredTransactions.length > 0 && (
                 <button
                   onClick={toggleSelectAll}
                   className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
@@ -121,8 +123,8 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Edit Selected Button */}
-              {hasSelection && (
+              {/* Edit Selected Button - Only for write access */}
+              {canWrite && hasSelection && (
                 <button
                   onClick={() => setShowEditModal(true)}
                   className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
@@ -178,12 +180,12 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
           filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              onClick={() => setEditingTransaction(transaction)}
-              className={`group flex items-center gap-3 sm:gap-4 ${compact ? 'py-2.5' : 'px-3 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg cursor-pointer
+              onClick={() => canWrite && setEditingTransaction(transaction)}
+              className={`group flex items-center gap-3 sm:gap-4 ${compact ? 'py-2.5' : 'px-3 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg ${canWrite ? 'cursor-pointer' : ''}
                 ${selectedIds.has(transaction.id) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`}
             >
-              {/* Selection Checkbox - Hidden in compact mode */}
-              {!compact && (
+              {/* Selection Checkbox - Hidden in compact mode and for read-only users */}
+              {!compact && canWrite && (
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
                   className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
@@ -255,8 +257,8 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                 {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
               </p>
 
-              {/* Edit & Delete Buttons - Hidden in compact mode and on mobile */}
-              {!compact && (
+              {/* Edit & Delete Buttons - Hidden in compact mode, on mobile, and for read-only users */}
+              {!compact && canWrite && (
                 <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingTransaction(transaction); }}

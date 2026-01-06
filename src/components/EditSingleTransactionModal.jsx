@@ -6,6 +6,7 @@ import { doc, updateDoc, writeBatch, query, collection, where, getDocs } from 'f
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
+import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import CurrencyInput from './ui/CurrencyInput';
 
 export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess }) {
@@ -19,10 +20,17 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [isIgnored, setIsIgnored] = useState(false);
   const [loading, setLoading] = useState(false);
   const [updateAllInstallments, setUpdateAllInstallments] = useState(true);
+  const [investmentType, setInvestmentType] = useState('fixed_income');
+
+  // Investment-specific fields
+  const [expectedReturn, setExpectedReturn] = useState(0);
+  const [returnType, setReturnType] = useState('annual');
+  const [maturityDate, setMaturityDate] = useState('');
 
   const { categories, t, language } = useSettings();
   const { goals, getGoalColor } = useGoals();
   const { userBanks, getBankInfo } = useCards();
+  const { addInvestment, updateInvestment, investments } = useInvestments();
 
   const availableGoals = goals.filter(g => !g.completed);
 
@@ -38,8 +46,24 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       setSelectedBankId(transaction.bankId || null);
       setIsIgnored(transaction.ignored || false);
       setUpdateAllInstallments(transaction.isInstallment || false);
+      setInvestmentType(transaction.investmentType || 'fixed_income');
+
+      // Load investment data if transaction is linked to an investment
+      if (transaction.investmentId) {
+        const linkedInvestment = investments.find(inv => inv.id === transaction.investmentId);
+        if (linkedInvestment) {
+          setExpectedReturn((linkedInvestment.expectedReturn || 0) * 100); // Convert to percentage
+          setReturnType(linkedInvestment.returnType || 'annual');
+          setMaturityDate(linkedInvestment.maturityDate || '');
+        }
+      } else {
+        // Reset investment fields
+        setExpectedReturn(0);
+        setReturnType('annual');
+        setMaturityDate('');
+      }
     }
-  }, [transaction]);
+  }, [transaction, investments]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,18 +82,52 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       const baseDate = new Date(transactionDate + 'T12:00:00');
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
 
+      const finalCategory = category || categories[type][0];
+
+      const isInvestmentCategory = (finalCategory === 'Investments' || finalCategory === 'Investimentos');
+
       const updates = {
         userId: auth.currentUser.uid,
         type,
         description,
         amount: parseFloat(amount),
-        category: category || categories[type][0],
+        category: finalCategory,
         date: baseDate.toISOString(),
         goalId: selectedGoalId || null,
         goalName: selectedGoal?.name || null,
         bankId: selectedBankId || null,
         ignored: isIgnored,
+        // Investment type (if category is Investments)
+        investmentType: isInvestmentCategory ? investmentType : null
       };
+
+      // Handle investment record creation/update if category is Investments
+      if (isInvestmentCategory) {
+        const investmentData = {
+          name: description,
+          type: investmentType,
+          bank: selectedBankId || '',
+          initialAmount: parseFloat(amount),
+          currentAmount: parseFloat(amount),
+          expectedReturn: parseFloat(expectedReturn) / 100, // Convert percentage to decimal
+          returnType: returnType,
+          purchaseDate: transactionDate,
+          maturityDate: maturityDate || null,
+          goalId: selectedGoalId || null,
+          notes: '',
+        };
+
+        if (transaction.investmentId) {
+          // Update existing investment
+          await updateInvestment(transaction.investmentId, investmentData);
+        } else {
+          // Create new investment and link it to the transaction
+          const newInvestmentId = await addInvestment(investmentData, false); // false = don't create transaction
+          if (newInvestmentId) {
+            updates.investmentId = newInvestmentId;
+          }
+        }
+      }
 
       // If this is an installment and user wants to update all
       if (transaction.isInstallment && transaction.installmentGroupId && updateAllInstallments) {
@@ -282,6 +340,105 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       ))}
                     </select>
                   </div>
+
+                  {/* Investment Type (only shown when category is Investments) */}
+                  {(category === 'Investments' || category === 'Investimentos') && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          {t('investments.type')}
+                        </label>
+                        <div className="grid grid-cols-5 gap-2">
+                          {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setInvestmentType(key)}
+                              className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
+                                investmentType === key
+                                  ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
+                                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                              }`}
+                              title={t(`investments.types.${key}`)}
+                            >
+                              <span>{info.icon}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                                {t(`investments.types.${key}`)}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Expected Return */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={expectedReturn}
+                              onChange={(e) => setExpectedReturn(e.target.value)}
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              className="w-full px-4 py-3 pr-10 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                text-gray-900 dark:text-white placeholder-gray-400
+                                focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                transition-all duration-200"
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                              %
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Return Type */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Tipo de Retorno' : 'Return Type'}
+                          </label>
+                          <select
+                            value={returnType}
+                            onChange={(e) => setReturnType(e.target.value)}
+                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                              text-gray-900 dark:text-white
+                              focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                              transition-all duration-200 appearance-none cursor-pointer pr-10"
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                              backgroundPosition: 'right 12px center',
+                              backgroundRepeat: 'no-repeat',
+                              backgroundSize: '20px'
+                            }}
+                          >
+                            <option value={RETURN_TYPES.cdi}>CDI</option>
+                            <option value={RETURN_TYPES.annual}>{language === 'pt' ? 'Anual' : 'Annual'}</option>
+                            <option value={RETURN_TYPES.monthly}>{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
+                            <option value={RETURN_TYPES.total}>Total</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Maturity Date (optional) */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          {language === 'pt' ? 'Data de Vencimento' : 'Maturity Date'} ({language === 'pt' ? 'opcional' : 'optional'})
+                        </label>
+                        <input
+                          type="date"
+                          value={maturityDate}
+                          onChange={(e) => setMaturityDate(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                            text-gray-900 dark:text-white
+                            focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                            transition-all duration-200"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   {/* Bank Selector */}
                   <div>

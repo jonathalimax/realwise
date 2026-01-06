@@ -1,9 +1,11 @@
 import { useCards, BANK_COLORS } from '../contexts/CardsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAccess } from '../contexts/AccessContext';
 
 export default function WalletCards({ onManageCards }) {
   const { userBanks, getBankInfo, getBankColor } = useCards();
   const { language } = useSettings();
+  const { canWrite } = useAccess();
 
   if (userBanks.length === 0) {
     return (
@@ -13,17 +15,28 @@ export default function WalletCards({ onManageCards }) {
             {language === 'pt' ? 'Minhas Carteiras' : 'My Wallets'}
           </h3>
         </div>
-        <button
-          onClick={onManageCards}
-          className="w-full py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-all"
-        >
-          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <span className="text-2xl">🏦</span>
+        {canWrite ? (
+          <button
+            onClick={onManageCards}
+            className="w-full py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-all"
+          >
+            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+              <span className="text-2xl">🏦</span>
+            </div>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {language === 'pt' ? 'Adicionar banco' : 'Add bank'}
+            </span>
+          </button>
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">🏦</span>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {language === 'pt' ? 'Nenhum banco cadastrado' : 'No banks registered'}
+            </p>
           </div>
-          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            {language === 'pt' ? 'Adicionar banco' : 'Add bank'}
-          </span>
-        </button>
+        )}
       </div>
     );
   }
@@ -34,12 +47,14 @@ export default function WalletCards({ onManageCards }) {
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Minhas Carteiras' : 'My Wallets'}
         </h3>
-        <button
-          onClick={onManageCards}
-          className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:underline"
-        >
-          {language === 'pt' ? 'Gerenciar' : 'Manage'}
-        </button>
+        {canWrite && (
+          <button
+            onClick={onManageCards}
+            className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:underline"
+          >
+            {language === 'pt' ? 'Gerenciar' : 'Manage'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pr-1">

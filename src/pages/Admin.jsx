@@ -26,7 +26,8 @@ import {
   HelpCircle,
   Home,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  BarChart3
 } from 'lucide-react';
 
 const ADMIN_EMAIL = 'jonathalimax@gmail.com';
@@ -104,6 +105,17 @@ export default function Admin() {
     maxUses: 100,
     expiresAt: '',
     active: true
+  });
+
+  // Analytics state
+  const [analyticsData, setAnalyticsData] = useState([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [analyticsStats, setAnalyticsStats] = useState({
+    totalEvents: 0,
+    uniqueSessions: 0,
+    pageViews: 0,
+    ctaClicks: 0,
+    purchases: 0
   });
 
   // All content translations
@@ -243,6 +255,41 @@ export default function Admin() {
     } catch (error) {
       console.error('Error loading CMS data:', error);
       showMessage('error', 'Erro ao carregar dados');
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const analyticsSnapshot = await getDocs(collection(db, 'analytics'));
+      const data = analyticsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().createdAt)
+      }));
+
+      // Sort by timestamp descending
+      data.sort((a, b) => b.timestamp - a.timestamp);
+      setAnalyticsData(data);
+
+      // Calculate stats
+      const uniqueSessions = new Set(data.map(d => d.sessionId)).size;
+      const pageViews = data.filter(d => d.event === 'page_view').length;
+      const ctaClicks = data.filter(d => d.event === 'cta_click').length;
+      const purchases = data.filter(d => d.event === 'purchase_complete').length;
+
+      setAnalyticsStats({
+        totalEvents: data.length,
+        uniqueSessions,
+        pageViews,
+        ctaClicks,
+        purchases
+      });
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      showMessage('error', 'Erro ao carregar analytics');
+    } finally {
+      setLoadingAnalytics(false);
     }
   };
 
@@ -430,7 +477,11 @@ export default function Admin() {
       )}
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <Tabs defaultValue="content" className="space-y-8">
+        <Tabs defaultValue="content" className="space-y-8" onValueChange={(value) => {
+          if (value === 'analytics' && analyticsData.length === 0 && !loadingAnalytics) {
+            loadAnalytics();
+          }
+        }}>
           <TabsList className="flex flex-wrap justify-center gap-2 h-auto p-2 bg-slate-100 dark:bg-slate-900 rounded-2xl">
             <TabsTrigger value="content" className="px-4">
               <FileText className="w-4 h-4 mr-2" />
@@ -447,6 +498,10 @@ export default function Admin() {
             <TabsTrigger value="pix" className="px-4">
               <CreditCard className="w-4 h-4 mr-2" />
               PIX
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="px-4">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
             </TabsTrigger>
           </TabsList>
 
@@ -837,6 +892,112 @@ export default function Admin() {
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Salvar PIX
               </Button>
+            </div>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <div className="space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Total Events</div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white">{analyticsStats.totalEvents.toLocaleString()}</div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Sessions</div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white">{analyticsStats.uniqueSessions.toLocaleString()}</div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Page Views</div>
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white">{analyticsStats.pageViews.toLocaleString()}</div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">CTA Clicks</div>
+                  <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{analyticsStats.ctaClicks.toLocaleString()}</div>
+                </div>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Purchases</div>
+                  <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{analyticsStats.purchases.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Events Table */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Recent Events</h2>
+                  <Button onClick={loadAnalytics} disabled={loadingAnalytics} variant="outline" size="sm">
+                    {loadingAnalytics ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BarChart3 className="w-4 h-4 mr-2" />}
+                    Refresh
+                  </Button>
+                </div>
+
+                {loadingAnalytics ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                  </div>
+                ) : analyticsData.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BarChart3 className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                    <p className="text-slate-500 dark:text-slate-400">No analytics data yet</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                          <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Event</th>
+                          <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Data</th>
+                          <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Device</th>
+                          <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">URL</th>
+                          <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {analyticsData.slice(0, 50).map((event) => (
+                          <tr key={event.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                event.event === 'purchase_complete' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' :
+                                event.event === 'cta_click' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                event.event === 'page_view' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                                'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                              }`}>
+                                {event.event}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                              {event.data && Object.keys(event.data).length > 0 ? (
+                                <span className="font-mono text-xs">{JSON.stringify(event.data).slice(0, 40)}...</span>
+                              ) : '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                              {event.device?.type || '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                              <code className="text-xs">{event.url || '-'}</code>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                              {event.timestamp ? new Date(event.timestamp).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {analyticsData.length > 50 && (
+                  <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+                    Showing 50 of {analyticsData.length} events
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
         </Tabs>

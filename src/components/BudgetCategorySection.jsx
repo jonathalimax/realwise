@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useBudget } from '../contexts/BudgetContext';
+import { useAccess } from '../contexts/AccessContext';
 
 // Category icons
 const CATEGORY_ICONS = {
@@ -38,6 +39,7 @@ const COLORS = [
 export default function BudgetCategorySection({ transactions, selectedMonth, onConfigure, onCategoryClick }) {
   const { language, formatCurrency, categories } = useSettings();
   const { getBudgetForMonth, getBudgetStatus, getStatusColor } = useBudget();
+  const { canWrite } = useAccess();
 
   const budget = getBudgetForMonth(selectedMonth);
   const categoryBudgets = budget?.categoryBudgets || {};
@@ -99,12 +101,14 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h3>
-        <button
-          onClick={onConfigure}
-          className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:underline"
-        >
-          {language === 'pt' ? 'Configurar' : 'Configure'}
-        </button>
+        {canWrite && (
+          <button
+            onClick={onConfigure}
+            className="text-sm font-medium text-rose-600 dark:text-rose-400 hover:underline"
+          >
+            {language === 'pt' ? 'Configurar' : 'Configure'}
+          </button>
+        )}
       </div>
 
       {/* Summary bar */}
@@ -218,7 +222,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
         </div>
       )}
 
-      {!totalBudget && (
+      {!totalBudget && canWrite && (
         <button
           onClick={onConfigure}
           className="w-full mt-3 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"

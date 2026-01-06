@@ -13,6 +13,7 @@ import {
   getDocs,
   serverTimestamp
 } from 'firebase/firestore';
+import { useAccess } from './AccessContext';
 
 const CardsContext = createContext();
 
@@ -52,19 +53,11 @@ export const BANK_COLORS = {
 export function CardsProvider({ children }) {
   const [userBanks, setUserBanks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
+  const { ownerId } = useAccess();
 
-  // Listen for auth state changes
+  // Listen for user banks when ownerId is available
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUserId(user?.uid || null);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Listen for user banks when userId is available
-  useEffect(() => {
-    if (!userId) {
+    if (!ownerId) {
       setUserBanks([]);
       setLoading(false);
       return;
@@ -74,7 +67,7 @@ export function CardsProvider({ children }) {
 
     const q = query(
       collection(db, 'userBanks'),
-      where('userId', '==', userId)
+      where('userId', '==', ownerId) // Use ownerId instead of userId
     );
 
     const unsubscribe = onSnapshot(
@@ -100,7 +93,7 @@ export function CardsProvider({ children }) {
     );
 
     return () => unsubscribe();
-  }, [userId]);
+  }, [ownerId]); // Use ownerId instead of userId
 
   // Helper function to create a bill for a credit card
   const createBillForCreditCard = async (bankData, bankDocId) => {
@@ -156,6 +149,7 @@ export function CardsProvider({ children }) {
         userId: auth.currentUser.uid,
         bankId: bankData.bankId,
         cardName: bankData.cardName,
+        customBankName: bankData.bankId === 'other' ? (bankData.customBankName || null) : null,
         hasCredit: bankData.hasCredit || false,
         closingDay: bankData.hasCredit ? (bankData.closingDay || 10) : null,
         paymentDay: bankData.hasCredit ? (bankData.paymentDay || 15) : null,
@@ -182,6 +176,7 @@ export function CardsProvider({ children }) {
       await updateDoc(bankRef, {
         ...updates,
         cardName: updates.cardName || null,
+        customBankName: updates.bankId === 'other' ? (updates.customBankName || null) : null,
       });
       return true;
     } catch (error) {
@@ -202,6 +197,18 @@ export function CardsProvider({ children }) {
 
   const getBankInfo = (bankId) => {
     return BANKS.find(b => b.id === bankId) || BANKS.find(b => b.id === 'other');
+  };
+
+  // Get display name for a user bank (considers custom bank name)
+  const getBankDisplayName = (userBank) => {
+    if (!userBank) return 'Unknown';
+    // If it's "other" bank with custom name, use that
+    if (userBank.bankId === 'other' && userBank.customBankName) {
+      return userBank.customBankName;
+    }
+    // Otherwise use the standard bank name
+    const bankInfo = getBankInfo(userBank.bankId);
+    return bankInfo?.name || 'Unknown';
   };
 
   const getBankColor = (bankId) => {
@@ -428,6 +435,7 @@ export function CardsProvider({ children }) {
       updateBank,
       deleteBank,
       getBankInfo,
+      getBankDisplayName,
       getBankColor,
       getUserBankById,
       getUserBankByBankId,
@@ -454,6 +462,7 @@ export const useCards = () => {
       updateBank: async () => false,
       deleteBank: async () => false,
       getBankInfo: () => BANKS[BANKS.length - 1],
+      getBankDisplayName: () => 'Unknown',
       getBankColor: () => BANK_COLORS.slate,
       getUserBankById: () => null,
       getUserBankByBankId: () => null,

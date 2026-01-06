@@ -1,18 +1,140 @@
 import { useState } from 'react';
 import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAccess } from '../contexts/AccessContext';
 import BillModal from './BillModal';
 import { BellIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
-export default function BillsList({ compact = false }) {
+export default function BillsList({ compact = false, selectedMonth }) {
   const { bills, loading, markBillAsPaid, getUpcomingBills, getOverdueBills } = useBills();
   const { language } = useSettings();
+  const { canWrite } = useAccess();
   const [editingBill, setEditingBill] = useState(null);
   const [showAllBills, setShowAllBills] = useState(false);
 
-  const upcomingBills = getUpcomingBills();
-  const overdueBills = getOverdueBills();
-  const paidBills = bills.filter(b => b.status === 'paid');
+  // Parse selectedMonth for filtering (format: "YYYY-MM")
+  const [selectedYear, selectedMonthNum] = selectedMonth
+    ? selectedMonth.split('-').map(Number)
+    : [new Date().getFullYear(), new Date().getMonth() + 1];
+
+  // Expand recurring bills to show virtual instances for the selected month
+  const expandRecurringBills = (billsList) => {
+    const expandedBills = [];
+
+    billsList.forEach(bill => {
+      const originalDueDate = new Date(bill.dueDate);
+      // Use UTC methods to avoid timezone issues
+      const originalYear = originalDueDate.getUTCFullYear();
+      const originalMonth = originalDueDate.getUTCMonth() + 1;
+
+      // If bill is in the selected month, add it as-is
+      if (originalYear === selectedYear && originalMonth === selectedMonthNum) {
+        expandedBills.push(bill);
+        return;
+      }
+
+      // For non-recurring bills not in selected month, skip
+      if (!bill.recurrence || bill.recurrence === 'none') {
+        // Still add it for overdue checking
+        expandedBills.push(bill);
+        return;
+      }
+
+      // Check if recurrence has ended
+      if (bill.recurrenceEndDate) {
+        const endDate = new Date(bill.recurrenceEndDate);
+        const selectedDateUTC = Date.UTC(selectedYear, selectedMonthNum - 1, 1);
+        if (selectedDateUTC > endDate.getTime()) {
+          return; // Recurrence ended before selected month
+        }
+      }
+
+      // For recurring bills, calculate the due date for the selected month
+      if (bill.recurrence === 'monthly') {
+        // Only generate instance if selected month is >= original month
+        const selectedDateUTC = Date.UTC(selectedYear, selectedMonthNum - 1, 1);
+        const originalDateUTC = Date.UTC(originalYear, originalMonth - 1, 1);
+
+        if (selectedDateUTC >= originalDateUTC) {
+          // Create virtual instance for the selected month using UTC
+          const day = originalDueDate.getUTCDate();
+          // Handle months with fewer days (e.g., Feb 30 -> Feb 28)
+          const lastDayOfMonth = new Date(Date.UTC(selectedYear, selectedMonthNum, 0)).getUTCDate();
+          const adjustedDay = Math.min(day, lastDayOfMonth);
+          const virtualDueDate = new Date(Date.UTC(selectedYear, selectedMonthNum - 1, adjustedDay));
+
+          expandedBills.push({
+            ...bill,
+            dueDate: virtualDueDate.toISOString(),
+            originalDueDate: bill.dueDate,
+            isRecurringInstance: true,
+            status: bill.status === 'paid' ? 'pending' : bill.status // Reset status for future instances
+          });
+        }
+      } else if (bill.recurrence === 'yearly') {
+        // For yearly, only show if it's the same month as original
+        if (originalMonth === selectedMonthNum && selectedYear >= originalYear) {
+          const day = originalDueDate.getUTCDate();
+          const lastDayOfMonth = new Date(Date.UTC(selectedYear, selectedMonthNum, 0)).getUTCDate();
+          const adjustedDay = Math.min(day, lastDayOfMonth);
+          const virtualDueDate = new Date(Date.UTC(selectedYear, selectedMonthNum - 1, adjustedDay));
+
+          expandedBills.push({
+            ...bill,
+            dueDate: virtualDueDate.toISOString(),
+            originalDueDate: bill.dueDate,
+            isRecurringInstance: true,
+            status: bill.status === 'paid' ? 'pending' : bill.status
+          });
+        }
+      }
+      // Weekly bills are handled differently - we'd need to check each week
+      // For simplicity, we'll show them if they started before selected month
+      else if (bill.recurrence === 'weekly') {
+        // Add original bill for reference
+        expandedBills.push(bill);
+      }
+    });
+
+    return expandedBills;
+  };
+
+  // Expand bills to include recurring instances for selected month
+  const expandedBills = expandRecurringBills(bills);
+
+  const isInSelectedMonth = (bill) => {
+    const dueDate = new Date(bill.dueDate);
+    return dueDate.getUTCFullYear() === selectedYear &&
+           (dueDate.getUTCMonth() + 1) === selectedMonthNum;
+  };
+
+  const isOverdueFromPreviousMonth = (bill) => {
+    if (bill.status === 'paid') return false;
+    if (bill.isRecurringInstance) return false; // Don't show recurring instances as overdue from previous months
+    const dueDate = new Date(bill.dueDate);
+    const now = new Date();
+    return dueDate < now && (
+      dueDate.getUTCFullYear() < selectedYear ||
+      (dueDate.getUTCFullYear() === selectedYear && (dueDate.getUTCMonth() + 1) < selectedMonthNum)
+    );
+  };
+
+  const upcomingBills = getUpcomingBills().filter(isInSelectedMonth);
+  const overdueBills = getOverdueBills().filter(bill =>
+    isInSelectedMonth(bill) || isOverdueFromPreviousMonth(bill)
+  );
+  const paidBills = expandedBills.filter(b => b.status === 'paid' && isInSelectedMonth(b));
+  // Get all pending bills that are not overdue or upcoming (due more than 7 days away)
+  const otherPendingBills = expandedBills
+    .filter(bill => {
+      if (bill.status === 'paid') return false;
+      if (!isInSelectedMonth(bill)) return false;
+      const dueDate = new Date(bill.dueDate);
+      const now = new Date();
+      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      return dueDate > nextWeek; // Due more than 7 days from now
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)); // Sort by dueDate ascending
 
 
   const handleMarkPaid = async (billId) => {
@@ -60,7 +182,7 @@ export default function BillsList({ compact = false }) {
   const formatDueDate = (dateString) => {
     const date = new Date(dateString);
     const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   };
 
 
@@ -71,8 +193,8 @@ export default function BillsList({ compact = false }) {
 
     return (
       <div
-        onClick={() => setEditingBill(bill)}
-        className="group flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors"
+        onClick={() => canWrite && setEditingBill(bill)}
+        className={`group flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg ${canWrite ? 'cursor-pointer' : ''} transition-colors`}
       >
         <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${status.bgColor} flex items-center justify-center flex-shrink-0`}>
           <StatusIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${status.color}`} />
@@ -83,13 +205,6 @@ export default function BillsList({ compact = false }) {
             <p className="font-medium text-gray-900 dark:text-white truncate text-xs sm:text-sm">
               {bill.name}
             </p>
-            {bill.recurrence !== 'none' && (
-              <span className="hidden sm:inline-flex flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400 rounded">
-                {bill.recurrence === 'monthly' ? (language === 'pt' ? 'Mensal' : 'Monthly') :
-                 bill.recurrence === 'weekly' ? (language === 'pt' ? 'Semanal' : 'Weekly') :
-                 (language === 'pt' ? 'Anual' : 'Yearly')}
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
             <span className={`${status.color} font-medium`}>{status.label}</span>
@@ -98,7 +213,8 @@ export default function BillsList({ compact = false }) {
           </div>
         </div>
 
-        {bill.status !== 'paid' && (
+        {/* Mark as paid button - only for write access */}
+        {canWrite && bill.status !== 'paid' && (
           <button
             onClick={(e) => { e.stopPropagation(); handleMarkPaid(bill.id); }}
             className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all flex-shrink-0"
@@ -127,11 +243,28 @@ export default function BillsList({ compact = false }) {
   console.log('BillsList - Before compact view logic. Loading:', loading, 'Bills:', bills, 'Upcoming:', upcomingBills, 'Overdue:', overdueBills);
 
   if (compact) {
-    // Compact view for dashboard
-        const allBills = [...overdueBills, ...upcomingBills];
-    const displayBills = allBills.slice(0, 3);
+    // Filter expanded bills for the selected month (unpaid bills with dueDate in selected month)
+    const monthBills = expandedBills.filter(bill => {
+      if (bill.status === 'paid') return false;
+      return isInSelectedMonth(bill);
+    });
 
-    if (displayBills.length === 0) {
+    // Also include overdue bills from previous months that are still unpaid (non-recurring only)
+    const overdueFromPreviousMonths = expandedBills.filter(bill => {
+      if (bill.status === 'paid') return false;
+      if (bill.isRecurringInstance) return false;
+      const dueDate = new Date(bill.dueDate);
+      const now = new Date();
+      // Bill is overdue (past due date) and from a previous month
+      return dueDate < now && (dueDate.getUTCFullYear() < selectedYear ||
+        (dueDate.getUTCFullYear() === selectedYear && (dueDate.getUTCMonth() + 1) < selectedMonthNum));
+    });
+
+    // Combine and sort by due date (no limit - show all)
+    const displayBills = [...overdueFromPreviousMonths, ...monthBills].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    const totalBillsCount = expandedBills.filter(b => isInSelectedMonth(b)).length; // Count for selected month
+
+    if (displayBills.length === 0 && totalBillsCount === 0) {
       return (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
@@ -144,7 +277,7 @@ export default function BillsList({ compact = false }) {
               </svg>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              {language === 'pt' ? 'Nenhuma conta pendente' : 'No pending bills'}
+              {language === 'pt' ? 'Nenhuma conta cadastrada' : 'No bills registered'}
             </p>
           </div>
         </div>
@@ -158,25 +291,35 @@ export default function BillsList({ compact = false }) {
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
               {language === 'pt' ? 'Contas a Pagar' : 'Bills to Pay'}
             </h3>
-            {allBills.length > 3 && (
+            {displayBills.length > 0 && (
               <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                {allBills.length} {language === 'pt' ? 'contas' : 'bills'}
+                {displayBills.length} {language === 'pt' ? 'pendentes' : 'pending'}
               </span>
             )}
           </div>
 
-          <div className="space-y-1 sm:space-y-2">
-            {displayBills.map((bill) => (
-              <BillItem key={bill.id} bill={bill} />
-            ))}
-          </div>
+          {displayBills.length > 0 ? (
+            <>
+              <div className="space-y-1 sm:space-y-2">
+                {displayBills.map((bill) => (
+                  <BillItem key={bill.id} bill={bill} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                {language === 'pt' ? 'Nenhuma conta pendente' : 'No pending bills'}
+              </p>
+            </div>
+          )}
 
-          {allBills.length > 3 && (
+          {totalBillsCount > 0 && (
             <button
               onClick={() => setShowAllBills(true)}
               className="mt-2 sm:mt-3 w-full py-2 text-xs sm:text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
             >
-              {language === 'pt' ? `Ver todas (${allBills.length})` : `See all (${allBills.length})`}
+              {language === 'pt' ? `Ver todas (${totalBillsCount})` : `See all (${totalBillsCount})`}
             </button>
           )}
         </div>
@@ -208,7 +351,7 @@ export default function BillsList({ compact = false }) {
               </div>
               <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 {/* Summary cards */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
                   <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-3 sm:p-4">
                     <p className="text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">
                       {language === 'pt' ? 'Vencidas' : 'Overdue'}
@@ -220,6 +363,12 @@ export default function BillsList({ compact = false }) {
                       {language === 'pt' ? 'Próximas' : 'Upcoming'}
                     </p>
                     <p className="text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{upcomingBills.length}</p>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 sm:p-4">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">
+                      {language === 'pt' ? 'Outras' : 'Other'}
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{otherPendingBills.length}</p>
                   </div>
                   <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 sm:p-4">
                     <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">
@@ -251,6 +400,19 @@ export default function BillsList({ compact = false }) {
                       </h3>
                       <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
                         {upcomingBills.map((bill) => (
+                          <BillItem key={bill.id} bill={bill} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {otherPendingBills.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
+                        {language === 'pt' ? 'Outras Pendentes' : 'Other Pending'}
+                      </h3>
+                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                        {otherPendingBills.map((bill) => (
                           <BillItem key={bill.id} bill={bill} />
                         ))}
                       </div>

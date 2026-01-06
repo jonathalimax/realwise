@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useBudget, RULE_COLORS } from '../contexts/BudgetContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAccess } from '../contexts/AccessContext';
 import { ChevronDownIcon, ChevronUpIcon, Cog6ToothIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 const RULE_EMOJIS = {
@@ -12,6 +13,7 @@ const RULE_EMOJIS = {
 export default function RuleComparison({ transactions, totalIncome, onConfigure }) {
   const { calculate50_30_20, rulePercentages } = useBudget();
   const { formatCurrency, t, language } = useSettings();
+  const { canWrite } = useAccess();
   const [expanded, setExpanded] = useState(false);
 
   const ruleData = calculate50_30_20(transactions, totalIncome);
@@ -40,7 +42,7 @@ export default function RuleComparison({ transactions, totalIncome, onConfigure 
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
         <div className="flex items-center gap-2">
-          {onConfigure && (
+          {onConfigure && canWrite && (
             <button
               onClick={onConfigure}
               className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

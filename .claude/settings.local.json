@@ -15,7 +15,8 @@
       "Bash(firebase projects:create:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git log:*)"
     ]
   }
 }

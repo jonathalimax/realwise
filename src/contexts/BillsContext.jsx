@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { useAccess } from './AccessContext';
 
 const BillsContext = createContext();
 
@@ -15,33 +16,32 @@ export const useBills = () => {
 export const BillsProvider = ({ children }) => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { ownerId } = useAccess();
 
   // Load bills from Firestore
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      if (user) {
-        const q = query(
-          collection(db, 'bills'),
-          where('userId', '==', user.uid)
-        );
+    if (!ownerId) {
+      setBills([]);
+      setLoading(false);
+      return;
+    }
 
-        const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-          const billsData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          setBills(billsData);
-          setLoading(false);
-        });
-        return unsubscribeSnapshot;
-      } else {
-        setBills([]);
-        setLoading(false);
-      }
+    const q = query(
+      collection(db, 'bills'),
+      where('userId', '==', ownerId) // Use ownerId instead of user.uid
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const billsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setBills(billsData);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [ownerId]); // Use ownerId
 
   // Add a new bill
   const addBill = async (billData) => {
@@ -140,21 +140,25 @@ export const BillsProvider = ({ children }) => {
     const now = new Date();
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    return bills.filter(bill => {
-      if (bill.status === 'paid') return false;
-      const dueDate = new Date(bill.dueDate);
-      return dueDate >= now && dueDate <= nextWeek;
-    });
+    return bills
+      .filter(bill => {
+        if (bill.status === 'paid') return false;
+        const dueDate = new Date(bill.dueDate);
+        return dueDate >= now && dueDate <= nextWeek;
+      })
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)); // Sort by dueDate ascending
   };
 
   // Get overdue bills
   const getOverdueBills = () => {
     const now = new Date();
-    return bills.filter(bill => {
-      if (bill.status === 'paid') return false;
-      const dueDate = new Date(bill.dueDate);
-      return dueDate < now;
-    });
+    return bills
+      .filter(bill => {
+        if (bill.status === 'paid') return false;
+        const dueDate = new Date(bill.dueDate);
+        return dueDate < now;
+      })
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)); // Sort by dueDate ascending
   };
 
   // Calculate next occurrence for recurring bills

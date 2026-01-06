@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
+import { useAccess, OWNER_EMAIL } from '../contexts/AccessContext';
 import { db, auth } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -17,6 +18,7 @@ export default function SettingsModal({ isOpen, onClose }) {
     toggleCategory,
     t
   } = useSettings();
+  const { isOwner } = useAccess();
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [newIncomeCategory, setNewIncomeCategory] = useState('');
   const [activeTab, setActiveTab] = useState('language');
@@ -26,6 +28,7 @@ export default function SettingsModal({ isOpen, onClose }) {
   // Access control state
   const [allowedEmails, setAllowedEmails] = useState([]);
   const [newEmail, setNewEmail] = useState('');
+  const [newEmailRole, setNewEmailRole] = useState('write');
   const [emailError, setEmailError] = useState('');
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [savingEmails, setSavingEmails] = useState(false);
@@ -56,7 +59,19 @@ export default function SettingsModal({ isOpen, onClose }) {
     try {
       const accessDoc = await getDoc(doc(db, 'access', 'allowed_emails'));
       if (accessDoc.exists()) {
-        setAllowedEmails(accessDoc.data().emails || []);
+        const data = accessDoc.data();
+        const emails = data.emails || [];
+
+        // Handle old format (simple array of strings) - auto-migrate to new format
+        if (emails.length > 0 && typeof emails[0] === 'string') {
+          console.log('Migrating old email format to new format with roles');
+          const converted = emails.map(email => ({ email, role: 'write' }));
+          await saveAllowedEmails(converted);
+          setAllowedEmails(converted);
+        } else {
+          // New format (array of objects with email and role)
+          setAllowedEmails(emails);
+        }
       } else {
         setAllowedEmails([]);
       }
@@ -91,19 +106,31 @@ export default function SettingsModal({ isOpen, onClose }) {
       return;
     }
 
-    if (allowedEmails.includes(email)) {
+    // Check if email already exists
+    if (allowedEmails.some(e => e.email === email)) {
       setEmailError(language === 'pt' ? 'Email já existe' : 'Email already exists');
       return;
     }
 
-    const newEmails = [...allowedEmails, email];
+    const newEmails = [...allowedEmails, { email, role: newEmailRole }];
     await saveAllowedEmails(newEmails);
     setNewEmail('');
+    setNewEmailRole('write'); // Reset to default
     setEmailError('');
   };
 
   const handleRemoveEmail = async (email) => {
-    const newEmails = allowedEmails.filter(e => e !== email);
+    const newEmails = allowedEmails.filter(e => e.email !== email);
+    await saveAllowedEmails(newEmails);
+  };
+
+  const handleChangeRole = async (email, newRole) => {
+    // Don't allow changing owner's role
+    if (email === OWNER_EMAIL) return;
+
+    const newEmails = allowedEmails.map(e =>
+      e.email === email ? { ...e, role: newRole } : e
+    );
     await saveAllowedEmails(newEmails);
   };
 
@@ -582,6 +609,14 @@ export default function SettingsModal({ isOpen, onClose }) {
                       if (e.key === 'Enter') handleAddEmail();
                     }}
                   />
+                  <select
+                    value={newEmailRole}
+                    onChange={(e) => setNewEmailRole(e.target.value)}
+                    className="px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl text-sm focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500 focus:outline-none"
+                  >
+                    <option value="write">{language === 'pt' ? 'Escrita' : 'Write'}</option>
+                    <option value="read">{language === 'pt' ? 'Leitura' : 'Read'}</option>
+                  </select>
                   <button
                     onClick={handleAddEmail}
                     disabled={savingEmails || !newEmail.trim()}
@@ -630,28 +665,58 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {allowedEmails.map((email) => (
-                      <div
-                        key={email}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl group"
-                      >
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                          </svg>
-                          <span className="text-sm text-gray-700 dark:text-gray-300">{email}</span>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveEmail(email)}
-                          disabled={savingEmails}
-                          className="p-1 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    {allowedEmails.map((entry) => {
+                      const emailStr = typeof entry === 'string' ? entry : entry.email;
+                      const role = typeof entry === 'string' ? 'write' : (entry.role || 'write');
+                      const isOwnerEmail = emailStr === OWNER_EMAIL;
+
+                      return (
+                        <div
+                          key={emailStr}
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl group"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                            </svg>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{emailStr}</span>
+                            {isOwnerEmail && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full flex-shrink-0">
+                                {language === 'pt' ? 'Dono' : 'Owner'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isOwnerEmail ? (
+                              <span className="px-2 py-1 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded">
+                                {language === 'pt' ? 'Escrita' : 'Write'}
+                              </span>
+                            ) : (
+                              <select
+                                value={role}
+                                onChange={(e) => handleChangeRole(emailStr, e.target.value)}
+                                disabled={savingEmails}
+                                className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500"
+                              >
+                                <option value="write">{language === 'pt' ? 'Escrita' : 'Write'}</option>
+                                <option value="read">{language === 'pt' ? 'Leitura' : 'Read'}</option>
+                              </select>
+                            )}
+                            {!isOwnerEmail && (
+                              <button
+                                onClick={() => handleRemoveEmail(emailStr)}
+                                disabled={savingEmails}
+                                className="p-1 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

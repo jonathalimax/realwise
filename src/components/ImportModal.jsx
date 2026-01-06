@@ -295,7 +295,7 @@ export default function ImportModal({ isOpen, onClose }) {
               <div
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors
+                className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-colors
                   ${file ? 'border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'}`}
               >
                 {file ? (
@@ -329,7 +329,6 @@ export default function ImportModal({ isOpen, onClose }) {
                       accept=".csv,.xlsx,.xls"
                       onChange={handleDrop}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      style={{ position: 'relative' }}
                     />
                   </div>
                 )}

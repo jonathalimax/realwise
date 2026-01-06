@@ -12,6 +12,7 @@ import {
   doc,
   serverTimestamp
 } from 'firebase/firestore';
+import { useAccess } from './AccessContext';
 
 const InvestmentContext = createContext();
 
@@ -102,19 +103,11 @@ export const getBusinessDays = (startDate, endDate) => {
 export function InvestmentProvider({ children }) {
   const [investments, setInvestments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
+  const { ownerId } = useAccess();
 
-  // Listen for auth state changes
+  // Listen for investments when ownerId is available
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUserId(user?.uid || null);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Listen for investments when userId is available
-  useEffect(() => {
-    if (!userId) {
+    if (!ownerId) {
       setInvestments([]);
       setLoading(false);
       return;
@@ -124,7 +117,7 @@ export function InvestmentProvider({ children }) {
 
     const q = query(
       collection(db, 'investments'),
-      where('userId', '==', userId)
+      where('userId', '==', ownerId) // Use ownerId instead of userId
     );
 
     const unsubscribe = onSnapshot(
@@ -150,7 +143,7 @@ export function InvestmentProvider({ children }) {
     );
 
     return () => unsubscribe();
-  }, [userId]);
+  }, [ownerId]); // Use ownerId instead of userId
 
   // Calculate projected value based on return rate and time
   const calculateProjectedValue = (investment) => {
@@ -311,6 +304,16 @@ export function InvestmentProvider({ children }) {
     return getInvestmentsByGoal(goalId).reduce((sum, inv) => sum + getCurrentValue(inv), 0);
   };
 
+  // Get total initial investment amount for a goal
+  const getGoalInvestmentInitialAmount = (goalId) => {
+    return getInvestmentsByGoal(goalId).reduce((sum, inv) => sum + (inv.initialAmount || 0), 0);
+  };
+
+  // Get investment growth for a goal (current - initial)
+  const getGoalInvestmentGrowth = (goalId) => {
+    return getGoalInvestmentValue(goalId) - getGoalInvestmentInitialAmount(goalId);
+  };
+
   // Add new investment
   const addInvestment = async (investmentData, createTransaction = true) => {
     if (!auth.currentUser) {
@@ -432,6 +435,8 @@ export function InvestmentProvider({ children }) {
       getTotalGrowth,
       getInvestmentsByGoal,
       getGoalInvestmentValue,
+      getGoalInvestmentInitialAmount,
+      getGoalInvestmentGrowth,
       getInvestmentColor,
       getInvestmentType,
       getDaysUntilMaturity,
@@ -464,6 +469,8 @@ export const useInvestments = () => {
       getTotalGrowth: () => 0,
       getInvestmentsByGoal: () => [],
       getGoalInvestmentValue: () => 0,
+      getGoalInvestmentInitialAmount: () => 0,
+      getGoalInvestmentGrowth: () => 0,
       getInvestmentColor: () => INVESTMENT_COLORS[0],
       getInvestmentType: () => INVESTMENT_TYPES.fixed_income,
       getDaysUntilMaturity: () => null,

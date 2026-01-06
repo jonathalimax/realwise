@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { db, auth } from '../firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { LANGUAGES, DEFAULT_LANGUAGE, getTranslation } from '../locales';
+import { useAccess } from './AccessContext';
 
 const SettingsContext = createContext();
 
@@ -43,12 +44,14 @@ export function SettingsProvider({ children }) {
   const [currency, setCurrency] = useState('BRL');
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [categories, setCategories] = useState(getDefaultCategories(DEFAULT_LANGUAGE));
+  const [tutorialCompleted, setTutorialCompletedState] = useState(true); // Default true to avoid flash
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     if (saved !== null) return JSON.parse(saved);
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [loading, setLoading] = useState(true);
+  const { ownerId } = useAccess();
 
   // Apply dark mode class to document
   useEffect(() => {
@@ -61,12 +64,12 @@ export function SettingsProvider({ children }) {
   }, [darkMode]);
 
   useEffect(() => {
-    if (!auth.currentUser) {
+    if (!auth.currentUser || !ownerId) {
       setLoading(false);
       return;
     }
 
-    const settingsRef = doc(db, 'settings', auth.currentUser.uid);
+    const settingsRef = doc(db, 'settings', ownerId); // Use ownerId instead of currentUser.uid
 
     const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -79,12 +82,17 @@ export function SettingsProvider({ children }) {
           expense: data.expenseCategories || defaultCats.expense,
           income: data.incomeCategories || defaultCats.income
         });
+        // Tutorial: false means show tutorial, undefined means first user (show tutorial)
+        setTutorialCompletedState(data.tutorialCompleted === true);
+      } else {
+        // No settings doc = first time user, show tutorial
+        setTutorialCompletedState(false);
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser?.uid]);
+  }, [ownerId]); // Use ownerId instead of currentUser.uid
 
   const updateCurrency = async (newCurrency) => {
     setCurrency(newCurrency);
@@ -104,6 +112,14 @@ export function SettingsProvider({ children }) {
 
   const toggleDarkMode = () => {
     setDarkMode(prev => !prev);
+  };
+
+  const setTutorialCompleted = async (completed = true) => {
+    setTutorialCompletedState(completed);
+    if (auth.currentUser) {
+      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
+      await setDoc(settingsRef, { tutorialCompleted: completed }, { merge: true });
+    }
   };
 
   // Translation function
@@ -202,6 +218,8 @@ export function SettingsProvider({ children }) {
       formatCurrency,
       darkMode,
       toggleDarkMode,
+      tutorialCompleted,
+      setTutorialCompleted,
       loading
     }}>
       {children}

@@ -44,6 +44,7 @@ export default function CardsModal({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
     bankId: 'nubank',
     cardName: '',
+    customBankName: '',
     hasCredit: true,
     closingDay: 10,
     paymentDay: 15
@@ -55,6 +56,7 @@ export default function CardsModal({ isOpen, onClose }) {
     setFormData({
       bankId: 'nubank',
       cardName: '',
+      customBankName: '',
       hasCredit: true,
       closingDay: 10,
       paymentDay: 15
@@ -68,6 +70,7 @@ export default function CardsModal({ isOpen, onClose }) {
       setFormData({
         bankId: userBank.bankId,
         cardName: userBank.cardName || '',
+        customBankName: userBank.customBankName || '',
         hasCredit: userBank.hasCredit || false,
         closingDay: userBank.closingDay || 10,
         paymentDay: userBank.paymentDay || 15
@@ -84,6 +87,7 @@ export default function CardsModal({ isOpen, onClose }) {
     const bankData = {
       bankId: formData.bankId,
       cardName: formData.cardName,
+      customBankName: formData.bankId === 'other' ? formData.customBankName : null,
       hasCredit: formData.hasCredit,
       closingDay: formData.hasCredit ? parseInt(formData.closingDay) : null,
       paymentDay: formData.hasCredit ? parseInt(formData.paymentDay) : null
@@ -110,6 +114,9 @@ export default function CardsModal({ isOpen, onClose }) {
   const BankItem = ({ userBank }) => {
     const bankInfo = getBankInfo(userBank.bankId);
     const color = getBankColor(userBank.bankId);
+    // Display name: custom bank name (for "other") or card name or default bank name
+    const displayName = userBank.cardName || (userBank.bankId === 'other' && userBank.customBankName) || bankInfo.name;
+    const subtitleName = userBank.bankId === 'other' && userBank.customBankName ? userBank.customBankName : bankInfo.name;
 
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow">
@@ -118,8 +125,8 @@ export default function CardsModal({ isOpen, onClose }) {
             {bankInfo.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white">{userBank.cardName || bankInfo.name}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{bankInfo.name}</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white">{displayName}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{subtitleName}</p>
 
             {userBank.hasCredit ? (
               <div className="mt-1.5">
@@ -274,7 +281,7 @@ export default function CardsModal({ isOpen, onClose }) {
                 </label>
                 <select
                   value={formData.bankId}
-                  onChange={(e) => setFormData({ ...formData, bankId: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, bankId: e.target.value, customBankName: '' })}
                   disabled={!!editingBank}
                   className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                     text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition
@@ -287,6 +294,23 @@ export default function CardsModal({ isOpen, onClose }) {
                   ))}
                 </select>
               </div>
+
+              {/* Custom Bank Name - shown when "Outro" is selected */}
+              {formData.bankId === 'other' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {language === 'pt' ? 'Nome do Banco' : 'Bank Name'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.customBankName}
+                    onChange={(e) => setFormData({ ...formData, customBankName: e.target.value })}
+                    placeholder={language === 'pt' ? 'Ex: Banco XYZ' : 'Ex: XYZ Bank'}
+                    className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                      text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+                  />
+                </div>
+              )}
 
               {/* Card Name */}
               <div>

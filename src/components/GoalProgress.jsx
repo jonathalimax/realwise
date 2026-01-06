@@ -1,11 +1,13 @@
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
+import { useAccess } from '../contexts/AccessContext';
 
 export default function GoalProgress({ onManageGoals }) {
   const { goals, loading, getGoalProgress, getMonthlyNeeded, getGoalColor } = useGoals();
   const { formatCurrency, t } = useSettings();
-  const { getInvestmentsByGoal, getGoalInvestmentValue } = useInvestments();
+  const { getInvestmentsByGoal, getGoalInvestmentValue, getGoalInvestmentGrowth } = useInvestments();
+  const { canWrite } = useAccess();
 
   // Show only active (non-completed) goals, sorted by progress
   const activeGoals = goals
@@ -14,6 +16,11 @@ export default function GoalProgress({ onManageGoals }) {
     .slice(0, 4); // Show max 4 on dashboard
 
   const completedCount = goals.filter(g => g.completed).length;
+
+  console.log('[GoalProgress] Rendering with', goals.length, 'goals:');
+  goals.forEach(goal => {
+    console.log('  -', goal.name, ':', goal.currentAmount, '/', goal.targetAmount, '=', getGoalProgress(goal).toFixed(1) + '%');
+  });
 
   if (loading) {
     return (
@@ -33,12 +40,14 @@ export default function GoalProgress({ onManageGoals }) {
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('goals.myGoals')}</h2>
-        <button
-          onClick={onManageGoals}
-          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium transition"
-        >
-          {goals.length > 0 ? t('common.edit') : t('goals.addGoal')}
-        </button>
+        {canWrite && (
+          <button
+            onClick={onManageGoals}
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium transition"
+          >
+            {goals.length > 0 ? t('common.edit') : t('goals.addGoal')}
+          </button>
+        )}
       </div>
 
       {goals.length === 0 ? (
@@ -48,12 +57,14 @@ export default function GoalProgress({ onManageGoals }) {
           </div>
           <p className="text-gray-600 dark:text-gray-300 font-medium">{t('goals.noGoals')}</p>
           <p className="text-sm text-gray-400 mt-1">{t('goals.noGoalsSubtitle')}</p>
-          <button
-            onClick={onManageGoals}
-            className="mt-4 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition"
-          >
-            {t('goals.addGoal')}
-          </button>
+          {canWrite && (
+            <button
+              onClick={onManageGoals}
+              className="mt-4 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition"
+            >
+              {t('goals.addGoal')}
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -66,12 +77,13 @@ export default function GoalProgress({ onManageGoals }) {
               const monthlyNeeded = getMonthlyNeeded(goal);
               const linkedInvestments = getInvestmentsByGoal(goal.id);
               const investmentValue = getGoalInvestmentValue(goal.id);
+              const investmentGrowth = getGoalInvestmentGrowth(goal.id);
 
               return (
                 <div
                   key={goal.id}
-                  onClick={onManageGoals}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition group"
+                  onClick={canWrite ? onManageGoals : undefined}
+                  className={`flex items-center gap-3 p-3 rounded-xl ${canWrite ? 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer' : ''} transition group`}
                 >
                   <div className={`w-10 h-10 ${color.light} rounded-lg flex items-center justify-center text-lg flex-shrink-0`}>
                     {icon}
@@ -99,11 +111,17 @@ export default function GoalProgress({ onManageGoals }) {
                     </div>
                     <div className="flex justify-between mt-1">
                       <span className={`text-xs ${color.text}`}>
-                        {formatCurrency(goal.currentAmount || 0)}
-                        {investmentValue > 0 && (
-                          <span className="text-blue-500 ml-1">
-                            (+{formatCurrency(investmentValue)})
+                        {investmentValue > 0 ? (
+                          <span className="text-blue-500 dark:text-blue-400">
+                            {formatCurrency(investmentValue)}
+                            {investmentGrowth !== 0 && (
+                              <span className={investmentGrowth > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                                {' '}({investmentGrowth > 0 ? '+' : ''}{formatCurrency(investmentGrowth)})
+                              </span>
+                            )}
                           </span>
+                        ) : (
+                          formatCurrency(goal.currentAmount || 0)
                         )}
                       </span>
                       {monthlyNeeded ? (

@@ -2,10 +2,11 @@ import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { db, auth } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
+import { INVESTMENT_TYPES, useInvestments } from '../contexts/InvestmentContext';
 import CurrencyInput from './ui/CurrencyInput';
 import { generateTransactionHash, generateInstallmentGroupId } from '../services/installments';
 
@@ -31,10 +32,13 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceFrequency, setRecurrenceFrequency] = useState('monthly'); // 'daily', 'weekly', 'monthly', 'yearly'
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+  // Investment type state
+  const [investmentType, setInvestmentType] = useState('fixed_income');
 
   const { categories, t, language } = useSettings();
   const { goals, addAmountToGoal, getGoalColor } = useGoals();
   const { userBanks, getBankInfo, getBankColor } = useCards();
+  const { addInvestment } = useInvestments();
 
   const availableGoals = goals.filter(g => !g.completed);
 
@@ -60,6 +64,7 @@ export default function TransactionModal({ isOpen, onClose }) {
     setRecurrenceFrequency('monthly');
     setRecurrenceEndDate('');
     setSuccessMessage('');
+    setInvestmentType('fixed_income');
   };
 
   const handleSubmit = async (e) => {
@@ -80,6 +85,9 @@ export default function TransactionModal({ isOpen, onClose }) {
           amount: parseFloat(amount),
           date: baseDate.toISOString()
         });
+
+        console.log('[TransactionModal] Creating installments:', currentInstallment, 'to', totalInstallments);
+        let totalInstallmentsCreated = 0;
 
         for (let i = currentInstallment; i <= totalInstallments; i++) {
           const installmentDate = new Date(baseDate);
@@ -107,10 +115,42 @@ export default function TransactionModal({ isOpen, onClose }) {
             isRecurring: isRecurring,
             recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
             recurrenceEndDate: isRecurring && recurrenceEndDate ? new Date(recurrenceEndDate + 'T12:00:00').toISOString() : null,
+            // Investment type (if category is Investments)
+            investmentType: baseCategory === 'Investments' ? investmentType : null
           };
 
           transactionData.hash = generateTransactionHash(transactionData);
           await addDoc(collection(db, 'transactions'), transactionData);
+          totalInstallmentsCreated++;
+        }
+
+        // If category is Investments, create an investment record
+        const isInvestment = baseCategory === 'Investments' || baseCategory === 'Investimentos';
+        if (isInvestment) {
+          const totalInvestmentAmount = parseFloat(amount) * totalInstallmentsCreated;
+          const investmentData = {
+            name: description,
+            type: investmentType,
+            bank: selectedBankId || '',
+            initialAmount: totalInvestmentAmount,
+            currentAmount: totalInvestmentAmount,
+            expectedReturn: 0,
+            returnType: 'annual',
+            purchaseDate: baseDate.toISOString().split('T')[0],
+            maturityDate: null,
+            goalId: selectedGoalId || null,
+            notes: `Installment investment: ${totalInstallmentsCreated} payments of ${amount}`,
+          };
+          await addInvestment(investmentData, false);
+        }
+
+        // If linked to a goal, add to goal progress for ALL installments created
+        // Investments contribute positively (you're saving money)
+        if (selectedGoalId) {
+          const amountPerInstallment = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
+          const totalAmountToAdd = amountPerInstallment * totalInstallmentsCreated;
+          console.log('[TransactionModal] Updating goal', selectedGoalId, 'with total amount:', totalAmountToAdd, '(', totalInstallmentsCreated, 'installments x', amountPerInstallment, ')');
+          await addAmountToGoal(selectedGoalId, totalAmountToAdd);
         }
       } else {
         const transactionData = {
@@ -129,14 +169,47 @@ export default function TransactionModal({ isOpen, onClose }) {
           isRecurring: isRecurring,
           recurrenceFrequency: isRecurring ? recurrenceFrequency : null,
           recurrenceEndDate: isRecurring && recurrenceEndDate ? new Date(recurrenceEndDate + 'T12:00:00').toISOString() : null,
+          // Investment type (if category is Investments)
+          investmentType: baseCategory === 'Investments' ? investmentType : null
         };
 
         transactionData.hash = generateTransactionHash(transactionData);
-        await addDoc(collection(db, 'transactions'), transactionData);
-      }
+        const docRef = await addDoc(collection(db, 'transactions'), transactionData);
 
-      if (selectedGoalId && type === 'income') {
-        await addAmountToGoal(selectedGoalId, parseFloat(amount));
+        // If category is Investments, create an investment record and link it
+        const isInvestment = baseCategory === 'Investments' || baseCategory === 'Investimentos';
+        if (isInvestment) {
+          const investmentData = {
+            name: description,
+            type: investmentType,
+            bank: selectedBankId || '',
+            initialAmount: parseFloat(amount),
+            currentAmount: parseFloat(amount),
+            expectedReturn: 0,
+            returnType: 'annual',
+            purchaseDate: baseDate.toISOString().split('T')[0],
+            maturityDate: null,
+            goalId: selectedGoalId || null,
+            notes: '',
+          };
+
+          const investmentId = await addInvestment(investmentData, false);
+
+          // Link transaction to investment
+          if (investmentId) {
+            await updateDoc(doc(db, 'transactions', docRef.id), {
+              investmentId: investmentId
+            });
+          }
+        }
+
+        // If linked to a goal, add to goal progress
+        // Investments contribute positively (you're saving money), other expenses subtract
+        if (selectedGoalId) {
+          const amountToAdd = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
+          console.log('[TransactionModal] Updating goal', selectedGoalId, 'with amount:', amountToAdd);
+          await addAmountToGoal(selectedGoalId, amountToAdd);
+        }
       }
 
       if (addAnother) {
@@ -297,6 +370,35 @@ export default function TransactionModal({ isOpen, onClose }) {
                       ))}
                     </select>
                   </div>
+
+                  {/* Investment Type (only shown when category is Investments) */}
+                  {(category === 'Investments' || (!category && categories[type][0] === 'Investments')) && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('investments.type')}
+                      </label>
+                      <div className="grid grid-cols-5 gap-2">
+                        {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setInvestmentType(key)}
+                            className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
+                              investmentType === key
+                                ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
+                                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                            }`}
+                            title={t(`investments.types.${key}`)}
+                          >
+                            <span>{info.icon}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                              {t(`investments.types.${key}`)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Bank Selector */}
                   <div>

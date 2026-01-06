@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useAccess } from './AccessContext';
 
 const BudgetContext = createContext();
 
@@ -59,17 +60,18 @@ export function BudgetProvider({ children }) {
   const [categoryRuleMapping, setCategoryRuleMappingState] = useState(DEFAULT_RULE_MAPPING);
   const [rulePercentages, setRulePercentagesState] = useState(DEFAULT_RULE_PERCENTAGES);
   const [loading, setLoading] = useState(true);
+  const { ownerId } = useAccess();
 
   // Listen for budget documents
   useEffect(() => {
-    if (!auth.currentUser) {
+    if (!auth.currentUser || !ownerId) {
       setLoading(false);
       return;
     }
 
     const budgetsQuery = query(
       collection(db, 'budgets'),
-      where('userId', '==', auth.currentUser.uid)
+      where('userId', '==', ownerId) // Use ownerId instead of currentUser.uid
     );
 
     const unsubscribe = onSnapshot(budgetsQuery, (snapshot) => {
@@ -82,7 +84,7 @@ export function BudgetProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser?.uid]);
+  }, [ownerId]); // Use ownerId instead of currentUser.uid
 
   // Get budget for a specific month
   const getBudgetForMonth = (month) => {
@@ -304,9 +306,9 @@ export function BudgetProvider({ children }) {
 
   // Load category rule mapping and percentages from settings
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !ownerId) return;
 
-    const settingsRef = doc(db, 'settings', auth.currentUser.uid);
+    const settingsRef = doc(db, 'settings', ownerId); // Use ownerId
     const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -326,7 +328,7 @@ export function BudgetProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser?.uid]);
+  }, [ownerId]); // Use ownerId
 
   // Auto-distribute budget based on custom percentages
   const autoDistributeBudget = (totalBudget, expenseCategories, mapping = null) => {
