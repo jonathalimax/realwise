@@ -42,6 +42,7 @@ export default function Dashboard() {
   const [showFullTransactions, setShowFullTransactions] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [isFirstTimeTutorial, setIsFirstTimeTutorial] = useState(false);
+  const [activeTab, setActiveTab] = useState('summary'); // 'summary' or 'details'
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -223,7 +224,7 @@ export default function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Limas Finance</span>
+              <span className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Blim Wallet</span>
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2">
@@ -278,66 +279,69 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* Header: Month Selector + Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
-          {/* Month Selector */}
-          <div className="flex items-center justify-center sm:justify-start gap-3">
-            <button
-              onClick={goToPreviousMonth}
-              disabled={!canGoPrevious}
-              className="p-2 sm:p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all"
-            >
-              <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+        <div className="flex flex-col gap-3 mb-4 sm:mb-6">
+          {/* Month Selector + Filter Button - side by side on mobile */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Month Selector */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <button
+                onClick={goToPreviousMonth}
+                disabled={!canGoPrevious}
+                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
+              >
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
 
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="pl-3 pr-8 py-2 sm:pl-4 sm:pr-10 sm:py-2.5 bg-white dark:bg-gray-800 rounded-xl font-semibold text-sm sm:text-base text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-rose-500 cursor-pointer min-w-[160px] sm:min-w-[180px] text-center capitalize"
-            >
-              {availableMonths.map(month => (
-                <option key={month} value={month} className="capitalize">
-                  {getMonthLabel(month)}
-                </option>
-              ))}
-            </select>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-semibold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-rose-500 cursor-pointer text-center capitalize"
+              >
+                {availableMonths.map(month => (
+                  <option key={month} value={month} className="capitalize">
+                    {getMonthLabel(month)}
+                  </option>
+                ))}
+              </select>
 
+              <button
+                onClick={goToNextMonth}
+                disabled={!canGoNext}
+                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
+              >
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Filters Button */}
             <button
-              onClick={goToNextMonth}
-              disabled={!canGoNext}
-              className="p-2 sm:p-2.5 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all"
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
+                showFilters || activeFiltersCount > 0
+                  ? 'bg-rose-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
             >
-              <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <AdjustmentsHorizontalIcon className="w-5 h-5" />
+              <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
+              {activeFiltersCount > 0 && (
+                <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
+                  showFilters ? 'bg-white/20' : 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
+                }`}>
+                  {activeFiltersCount}
+                </span>
+              )}
             </button>
           </div>
-
-          {/* Filters Button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-sm transition-all ${
-              showFilters || activeFiltersCount > 0
-                ? 'bg-rose-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <AdjustmentsHorizontalIcon className="w-5 h-5" />
-            <span className="font-medium text-sm">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
-            {activeFiltersCount > 0 && (
-              <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                showFilters ? 'bg-white/20' : 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
-              }`}>
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
         </div>
 
-        {/* Filters Panel */}
+        {/* Filters Panel - Improved mobile layout */}
         {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm space-y-4">
+          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm space-y-3 sm:space-y-4">
             {/* View Mode Toggle */}
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
@@ -346,7 +350,7 @@ export default function Dashboard() {
               <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 <button
                   onClick={() => setViewMode('purchase')}
-                  className={`flex-1 px-3 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all ${
+                  className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'purchase'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                       : 'text-gray-500 dark:text-gray-400'
@@ -356,7 +360,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => setViewMode('payment')}
-                  className={`flex-1 px-3 py-1.5 sm:py-2 text-sm font-medium rounded-md transition-all ${
+                  className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'payment'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
                       : 'text-gray-500 dark:text-gray-400'
@@ -367,7 +371,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Bank Filter */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
@@ -467,73 +471,132 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* 1. Balance Cards */}
-        <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
-
-        {/* 2. Expenses by Category + Bills to Pay - Side by Side Layout */}
-        <div className="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Expenses by Category - Takes 2/3 of space */}
-          <div className="lg:col-span-2">
-            <BudgetCategorySection
-              transactions={filteredTransactions}
-              selectedMonth={selectedMonth}
-              onConfigure={() => setShowBudget(true)}
-              onCategoryClick={handleCategoryClick}
-            />
-          </div>
-
-          {/* Bills to Pay - Takes 1/3 of space */}
-          <BillsList compact selectedMonth={selectedMonth} />
+        {/* Balance Cards - Always visible on desktop, inside tabs on mobile */}
+        <div className="hidden md:block mb-4 sm:mb-6">
+          <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
         </div>
 
-        {/* 3. Transactions List */}
-        <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{t('transactionList.title')}</h3>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
-            </span>
-          </div>
-          <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
-            <TransactionList
-              transactions={filteredTransactions.slice(0, 15)}
-              selectedMonth={selectedMonth}
-              compact
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSuccess={triggerRefresh}
-            />
-          </div>
-          {filteredTransactions.length > 15 && (
-            <button
-              onClick={() => setShowFullTransactions(true)}
-              className="mt-3 w-full py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
-            >
-              {language === 'pt' ? `Ver todos (${filteredTransactions.length})` : `See all (${filteredTransactions.length})`}
-            </button>
-          )}
+        {/* Tabs Navigation */}
+        <div className="flex gap-1 mb-4 sm:mb-6 bg-white dark:bg-gray-800 rounded-xl p-1 shadow-sm">
+          <button
+            onClick={() => setActiveTab('summary')}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              activeTab === 'summary'
+                ? 'bg-rose-500 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            {language === 'pt' ? '📊 Resumo' : '📊 Summary'}
+          </button>
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              activeTab === 'details'
+                ? 'bg-rose-500 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            {language === 'pt' ? '📋 Detalhes' : '📋 Details'}
+          </button>
         </div>
 
-        {/* 4. 50/30/20 Rules | Goals */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-          <RuleComparison
-            transactions={monthlyTransactions}
-            totalIncome={totalIncome}
-            onConfigure={() => setShowBudget(true)}
-          />
-          <GoalProgress onManageGoals={() => setShowGoals(true)} />
-        </div>
+        {/* Tab Content: Summary */}
+        {activeTab === 'summary' && (
+          <>
+            {/* Balance Cards - Mobile only */}
+            <div className="md:hidden mb-4">
+              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
+            </div>
 
-        {/* 5. Wallet Cards */}
-        <div className="mt-4 sm:mt-6">
-          <WalletCards onManageCards={() => setShowCards(true)} />
-        </div>
+            {/* 2. Expenses by Category Chart */}
+            <div className="mt-4 sm:mt-6">
+              <BudgetCategorySection
+                transactions={filteredTransactions}
+                selectedMonth={selectedMonth}
+                onConfigure={() => setShowBudget(true)}
+                onCategoryClick={handleCategoryClick}
+              />
+            </div>
 
-        {/* 6. Income vs Expenses Trend (current + 5 next months) */}
-        <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
-          <TrendChart transactions={transactions} selectedMonth={selectedMonth} viewMode={viewMode} />
-        </div>
+            {/* 3. 50/30/20 Rule Comparison */}
+            <div className="mt-4 sm:mt-6">
+              <RuleComparison
+                transactions={monthlyTransactions}
+                totalIncome={totalIncome}
+                onConfigure={() => setShowBudget(true)}
+              />
+            </div>
+
+            {/* 4. Income vs Expenses Trend Chart */}
+            <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
+              <TrendChart transactions={transactions} selectedMonth={selectedMonth} viewMode={viewMode} />
+            </div>
+          </>
+        )}
+
+        {/* Tab Content: Details */}
+        {activeTab === 'details' && (
+          <>
+            {/* Balance Cards - Mobile only */}
+            <div className="md:hidden mb-4">
+              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
+            </div>
+
+            {/* 1. Transactions List */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{t('transactionList.title')}</h3>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
+                </span>
+              </div>
+              <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
+                <TransactionList
+                  transactions={filteredTransactions.slice(0, 15)}
+                  selectedMonth={selectedMonth}
+                  compact
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSuccess={triggerRefresh}
+                />
+              </div>
+              {filteredTransactions.length > 15 && (
+                <button
+                  onClick={() => setShowFullTransactions(true)}
+                  className="mt-3 w-full py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                >
+                  {language === 'pt' ? `Ver todos (${filteredTransactions.length})` : `See all (${filteredTransactions.length})`}
+                </button>
+              )}
+            </div>
+
+            {/* 2. Expenses by Category (Detailed View) */}
+            <div className="mt-4 sm:mt-6">
+              <BudgetCategorySection
+                transactions={filteredTransactions}
+                selectedMonth={selectedMonth}
+                onConfigure={() => setShowBudget(true)}
+                onCategoryClick={handleCategoryClick}
+              />
+            </div>
+
+            {/* 3. Goals */}
+            <div className="mt-4 sm:mt-6">
+              <GoalProgress onManageGoals={() => setShowGoals(true)} />
+            </div>
+
+            {/* 4. Wallet Cards */}
+            <div className="mt-4 sm:mt-6">
+              <WalletCards onManageCards={() => setShowCards(true)} />
+            </div>
+
+            {/* 5. Bills to Pay */}
+            <div className="mt-4 sm:mt-6">
+              <BillsList selectedMonth={selectedMonth} />
+            </div>
+          </>
+        )}
       </main>
 
       {/* FAB Menu Overlay - Only show for write access */}

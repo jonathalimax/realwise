@@ -98,29 +98,38 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
   }
 
   return (
-    <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                              data={chartData}
-                              margin={{
-                                top: 20,
-                                right: 30,
-                                left: 20,
-                                bottom: 5,
-                              }}
-                            >
-                              <XAxis dataKey="name" stroke="#6b7280" />
-                              <YAxis
-                                stroke="#6b7280"
-                                tickFormatter={(value) => formatCurrency(value, { compact: true })}
-                                domain={['auto', 'auto']}
-                              />
-                              <Tooltip content={<CustomTooltip formatCurrency={formatCurrency} t={t} />} cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
-                              <Legend />
-                              <Bar dataKey="income" name={t('balance.income')} fill="#10B981" animationDuration={800} />
-                              <Bar dataKey="expense" name={t('balance.expenses')} fill="#EF4444" animationDuration={800} />
-                              <Line type="monotone" dataKey="balance" name={t('balance.totalBalance')} stroke="#3B82F6" strokeWidth={2} dot={{ r: 4 }} animationDuration={800} />
-                            </BarChart>      </ResponsiveContainer>
+    <div className="h-72 sm:h-80 w-full overflow-x-auto">
+      <div className="min-w-[500px] w-full h-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={chartData}
+            margin={{
+              top: 20,
+              right: 10,
+              left: 0,
+              bottom: 5,
+            }}
+          >
+            <XAxis
+              dataKey="name"
+              stroke="#6b7280"
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis
+              stroke="#6b7280"
+              tickFormatter={(value) => formatCurrency(value, { compact: true })}
+              domain={['auto', 'auto']}
+              tick={{ fontSize: 12 }}
+              width={60}
+            />
+            <Tooltip content={<CustomTooltip formatCurrency={formatCurrency} t={t} />} cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
+            <Legend wrapperStyle={{ fontSize: '12px' }} />
+            <Bar dataKey="income" name={t('balance.income')} fill="#10B981" animationDuration={800} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expense" name={t('balance.expenses')} fill="#EF4444" animationDuration={800} radius={[4, 4, 0, 0]} />
+            <Line type="monotone" dataKey="balance" name={t('balance.totalBalance')} stroke="#3B82F6" strokeWidth={2} dot={{ r: 4 }} animationDuration={800} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

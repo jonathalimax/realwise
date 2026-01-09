@@ -157,41 +157,43 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                 </div>
 
                 <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-                  <Tab.List className="flex space-x-1 sm:space-x-2 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-4 overflow-x-auto">
+                  <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-4">
                     <Tab
                       className={({ selected }) =>
-                        `w-full rounded-lg py-2 px-1 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap
+                        `flex-1 rounded-lg py-2.5 sm:py-2 px-2 text-[11px] leading-tight sm:text-sm font-medium transition-colors flex items-center justify-center gap-1
                         ${selected
                           ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         }`
                       }
                     >
-                      {t('budget.perCategory')}
+                      <span className="hidden sm:inline">{t('budget.perCategory')}</span>
+                      <span className="sm:hidden">📊</span>
                     </Tab>
                     <Tab
                       className={({ selected }) =>
-                        `w-full rounded-lg py-2 px-1 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap
+                        `flex-1 rounded-lg py-2.5 sm:py-2 px-2 text-[11px] leading-tight sm:text-sm font-medium transition-colors flex items-center justify-center gap-1
                         ${selected
                           ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         }`
                       }
                     >
-                      {t('budget.categoryAssignment')}
+                      <span className="hidden sm:inline">{t('budget.categoryAssignment')}</span>
+                      <span className="sm:hidden">🏷️</span>
                     </Tab>
                     <Tab
                       className={({ selected }) =>
-                        `w-full rounded-lg py-2 px-1 text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 whitespace-nowrap
+                        `flex-1 rounded-lg py-2.5 sm:py-2 px-2 text-[11px] leading-tight sm:text-sm font-medium transition-colors flex items-center justify-center gap-1
                         ${selected
                           ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                         }`
                       }
                     >
-                      <AdjustmentsHorizontalIcon className="w-3 sm:w-4 h-3 sm:h-4" />
+                      <AdjustmentsHorizontalIcon className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                       <span className="hidden sm:inline">{t('budget.targetPercentages')}</span>
-                      <span className="sm:hidden">%</span>
+                      <span className="sm:hidden text-xs">%</span>
                     </Tab>
                   </Tab.List>
 

@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useInvestments, INVESTMENT_TYPES, INVESTMENT_COLORS, CDI_ANNUAL_RATE } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from './ui/CurrencyInput';
 
-export default function InvestmentModal({ isOpen, onClose }) {
+export default function InvestmentModal({ isOpen, onClose, initialView = 'list', editingInvestment: externalEditingInvestment = null }) {
   const {
     investments,
     loading,
@@ -24,8 +24,8 @@ export default function InvestmentModal({ isOpen, onClose }) {
   const { formatCurrency, t, language } = useSettings();
   const { goals, getGoalColor } = useGoals();
 
-  const [view, setView] = useState('list'); // 'list', 'form', 'updateValue'
-  const [editingInvestment, setEditingInvestment] = useState(null);
+  const [view, setView] = useState(initialView); // 'list', 'form', 'updateValue'
+  const [editingInvestment, setEditingInvestment] = useState(externalEditingInvestment);
   const [selectedInvestmentForUpdate, setSelectedInvestmentForUpdate] = useState(null);
   const [newCurrentValue, setNewCurrentValue] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -47,6 +47,13 @@ export default function InvestmentModal({ isOpen, onClose }) {
 
   // Non-completed goals for linking
   const availableGoals = goals.filter(g => !g.completed);
+
+  // Handle external editing investment
+  useEffect(() => {
+    if (externalEditingInvestment && isOpen) {
+      handleOpenForm(externalEditingInvestment);
+    }
+  }, [externalEditingInvestment, isOpen]);
 
   if (!isOpen) return null;
 
@@ -463,7 +470,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('investments.type')}
                 </label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
                     <button
                       key={key}
@@ -477,7 +484,7 @@ export default function InvestmentModal({ isOpen, onClose }) {
                       title={t(`investments.types.${key}`)}
                     >
                       <span>{info.icon}</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                      <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 w-full text-center leading-tight px-0.5 line-clamp-2">
                         {t(`investments.types.${key}`)}
                       </span>
                     </button>

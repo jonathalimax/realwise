@@ -68,8 +68,8 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
   return (
     <div className="space-y-6">
       {/* Donut Chart with Center Stats */}
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={220}>
+      <div className="relative w-full">
+        <ResponsiveContainer width="100%" height={220} className="mx-auto">
           <PieChart>
             <defs>
               {COLORS.map((color, index) => (
@@ -83,8 +83,8 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={70}
-              outerRadius={95}
+              innerRadius={60}
+              outerRadius={85}
               paddingAngle={3}
               dataKey="value"
               strokeWidth={0}
@@ -103,7 +103,7 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
 
         {/* Center Stats */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-xl font-bold text-gray-900 dark:text-white">
+          <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">
             {formatCurrency(total)}
           </p>
         </div>

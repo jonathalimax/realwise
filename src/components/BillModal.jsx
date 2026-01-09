@@ -3,7 +3,7 @@ import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function BillModal({ isOpen, onClose, bill = null }) {
-  const { addBill, updateBill } = useBills();
+  const { addBill, updateBill, deleteBill } = useBills();
   const { t, language, categories } = useSettings();
 
   const [formData, setFormData] = useState({
@@ -19,6 +19,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
 
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Populate form when editing
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
       });
     }
     setErrors({});
+    setConfirmDelete(false);
   }, [bill, isOpen]);
 
   const validate = () => {
@@ -112,6 +114,25 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
       }
     } catch (error) {
       console.error('Error saving bill:', error);
+      setErrors({ submit: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!bill) return;
+
+    setSaving(true);
+    try {
+      const result = await deleteBill(bill.id);
+      if (result.success) {
+        onClose();
+      } else {
+        setErrors({ submit: result.error });
+      }
+    } catch (error) {
+      console.error('Error deleting bill:', error);
       setErrors({ submit: error.message });
     } finally {
       setSaving(false);
@@ -295,28 +316,73 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
           </div>
         </form>
 
-        <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-700 flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 disabled:opacity-50 transition"
-          >
-            {saving ? (
-              <svg className="animate-spin w-5 h-5 mx-auto" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : (
-              bill ? t('common.save') : (language === 'pt' ? 'Criar Conta' : 'Create Bill')
-            )}
-          </button>
+        <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-700">
+          {confirmDelete ? (
+            <div className="space-y-3">
+              <p className="text-sm text-center text-gray-700 dark:text-gray-300 font-medium">
+                {language === 'pt' ? 'Tem certeza que deseja excluir esta conta?' : 'Are you sure you want to delete this bill?'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={saving}
+                  className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 disabled:opacity-50 transition"
+                >
+                  {saving ? (
+                    <svg className="animate-spin w-5 h-5 mx-auto" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  ) : (
+                    t('common.delete')
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-3">
+              {bill && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="p-2.5 border border-rose-300 dark:border-rose-600 text-rose-600 dark:text-rose-400 rounded-xl font-medium hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
+                  title={t('common.delete')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={saving}
+                className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600 disabled:opacity-50 transition"
+              >
+                {saving ? (
+                  <svg className="animate-spin w-5 h-5 mx-auto" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  bill ? t('common.save') : (language === 'pt' ? 'Criar Conta' : 'Create Bill')
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

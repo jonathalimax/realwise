@@ -108,7 +108,11 @@ export default function CardsModal({ isOpen, onClose }) {
     setConfirmDelete(null);
   };
 
-  // Get available banks (not yet added)
+  // Get available banks including custom ones
+  const customBankNames = userBanks
+    .filter(ub => ub.bankId === 'other' && ub.customBankName)
+    .map(ub => ub.customBankName);
+
   const availableBanks = BANKS;
 
   const BankItem = ({ userBank }) => {
@@ -305,10 +309,23 @@ export default function CardsModal({ isOpen, onClose }) {
                     type="text"
                     value={formData.customBankName}
                     onChange={(e) => setFormData({ ...formData, customBankName: e.target.value })}
+                    list="custom-bank-names"
                     placeholder={language === 'pt' ? 'Ex: Banco XYZ' : 'Ex: XYZ Bank'}
                     className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                       text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
                   />
+                  {customBankNames.length > 0 && (
+                    <datalist id="custom-bank-names">
+                      {customBankNames.map((name, idx) => (
+                        <option key={idx} value={name} />
+                      ))}
+                    </datalist>
+                  )}
+                  {customBankNames.length > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {language === 'pt' ? 'Sugestões dos bancos que você já adicionou' : 'Suggestions from banks you already added'}
+                    </p>
+                  )}
                 </div>
               )}
 

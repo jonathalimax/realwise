@@ -11,6 +11,7 @@ export default function BillsList({ compact = false, selectedMonth }) {
   const { canWrite } = useAccess();
   const [editingBill, setEditingBill] = useState(null);
   const [showAllBills, setShowAllBills] = useState(false);
+  const [confirmPayBillId, setConfirmPayBillId] = useState(null);
 
   // Parse selectedMonth for filtering (format: "YYYY-MM")
   const [selectedYear, selectedMonthNum] = selectedMonth
@@ -139,6 +140,17 @@ export default function BillsList({ compact = false, selectedMonth }) {
 
   const handleMarkPaid = async (billId) => {
     await markBillAsPaid(billId);
+    setConfirmPayBillId(null);
+  };
+
+  const handleConfirmPayClick = (billId, event) => {
+    event.stopPropagation();
+    setConfirmPayBillId(billId);
+  };
+
+  const handleCancelPay = (event) => {
+    event.stopPropagation();
+    setConfirmPayBillId(null);
   };
 
   const getBillStatus = (bill) => {
@@ -190,38 +202,62 @@ export default function BillsList({ compact = false, selectedMonth }) {
   const BillItem = ({ bill }) => {
     const status = getBillStatus(bill);
     const StatusIcon = status.icon;
+    const isConfirming = confirmPayBillId === bill.id;
 
     return (
-      <div
-        onClick={() => canWrite && setEditingBill(bill)}
-        className={`group flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg ${canWrite ? 'cursor-pointer' : ''} transition-colors`}
-      >
-        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${status.bgColor} flex items-center justify-center flex-shrink-0`}>
-          <StatusIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${status.color}`} />
+      <div className="relative">
+        <div
+          onClick={() => canWrite && !isConfirming && setEditingBill(bill)}
+          className={`group flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg ${canWrite && !isConfirming ? 'cursor-pointer' : ''} transition-colors`}
+        >
+          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${status.bgColor} flex items-center justify-center flex-shrink-0`}>
+            <StatusIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${status.color}`} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <p className="font-medium text-gray-900 dark:text-white truncate text-xs sm:text-sm">
+                {bill.name}
+              </p>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+              <span className={`${status.color} font-medium`}>{status.label}</span>
+              <span className="text-gray-300 dark:text-gray-600">•</span>
+              <span className="truncate">{formatDueDate(bill.dueDate)}</span>
+            </div>
+          </div>
+
+          {/* Mark as paid button - only for write access */}
+          {canWrite && bill.status !== 'paid' && !isConfirming && (
+            <button
+              onClick={(e) => handleConfirmPayClick(bill.id, e)}
+              className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all flex-shrink-0"
+              title={language === 'pt' ? 'Marcar como pago' : 'Mark as paid'}
+            >
+              <CheckCircleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          )}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <p className="font-medium text-gray-900 dark:text-white truncate text-xs sm:text-sm">
-              {bill.name}
-            </p>
+        {/* Confirmation overlay */}
+        {isConfirming && (
+          <div className="absolute inset-0 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-2 sm:p-3 flex items-center gap-2 z-10">
+            <span className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 font-medium flex-1">
+              {language === 'pt' ? 'Marcar como pago?' : 'Mark as paid?'}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleMarkPaid(bill.id); }}
+              className="px-2 sm:px-3 py-1 bg-emerald-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-700 transition"
+            >
+              {language === 'pt' ? 'Sim' : 'Yes'}
+            </button>
+            <button
+              onClick={handleCancelPay}
+              className="px-2 sm:px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+            >
+              {language === 'pt' ? 'Não' : 'No'}
+            </button>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
-            <span className={`${status.color} font-medium`}>{status.label}</span>
-            <span className="text-gray-300 dark:text-gray-600">•</span>
-            <span className="truncate">{formatDueDate(bill.dueDate)}</span>
-          </div>
-        </div>
-
-        {/* Mark as paid button - only for write access */}
-        {canWrite && bill.status !== 'paid' && (
-          <button
-            onClick={(e) => { e.stopPropagation(); handleMarkPaid(bill.id); }}
-            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all flex-shrink-0"
-            title={language === 'pt' ? 'Marcar como pago' : 'Mark as paid'}
-          >
-            <CheckCircleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
         )}
       </div>
     );
@@ -300,7 +336,8 @@ export default function BillsList({ compact = false, selectedMonth }) {
 
           {displayBills.length > 0 ? (
             <>
-              <div className="space-y-1 sm:space-y-2">
+              {/* Scrollable container with max height to prevent layout breaking */}
+              <div className="space-y-1 sm:space-y-2 max-h-[280px] overflow-y-auto pr-1">
                 {displayBills.map((bill) => (
                   <BillItem key={bill.id} bill={bill} />
                 ))}

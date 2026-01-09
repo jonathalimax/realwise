@@ -83,17 +83,18 @@ export default function GoalProgress({ onManageGoals }) {
                 <div
                   key={goal.id}
                   onClick={canWrite ? onManageGoals : undefined}
-                  className={`flex items-center gap-3 p-3 rounded-xl ${canWrite ? 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer' : ''} transition group`}
+                  className={`flex items-start gap-2 sm:gap-3 p-3 rounded-xl ${canWrite ? 'hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer' : ''} transition group`}
                 >
-                  <div className={`w-10 h-10 ${color.light} rounded-lg flex items-center justify-center text-lg flex-shrink-0`}>
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 ${color.light} rounded-lg flex items-center justify-center text-base sm:text-lg flex-shrink-0`}>
                     {icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         <span className="font-medium text-gray-900 dark:text-white truncate text-sm">{goal.name}</span>
+                        {/* Hide investment badge on mobile */}
                         {linkedInvestments.length > 0 && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-full flex items-center gap-0.5">
+                          <span className="hidden sm:flex flex-shrink-0 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-full items-center gap-0.5">
                             <span>📈</span>
                             <span>{linkedInvestments.length}</span>
                           </span>
@@ -103,14 +104,15 @@ export default function GoalProgress({ onManageGoals }) {
                         {progress.toFixed(0)}%
                       </span>
                     </div>
-                    <div className="mt-1.5 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${color.bg} rounded-full transition-all duration-500`}
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="flex justify-between mt-1">
-                      <span className={`text-xs ${color.text}`}>
+                    {/* Stack info vertically on mobile for better readability */}
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-0.5 sm:gap-2 mt-1.5">
+                      <span className={`text-xs ${color.text} truncate`}>
                         {investmentValue > 0 ? (
                           <span className="text-blue-500 dark:text-blue-400">
                             {formatCurrency(investmentValue)}
@@ -125,11 +127,11 @@ export default function GoalProgress({ onManageGoals }) {
                         )}
                       </span>
                       {monthlyNeeded ? (
-                        <span className={`text-xs ${color.text} font-medium`}>
+                        <span className={`text-xs ${color.text} font-medium truncate`}>
                           {t('goals.monthlyNeededShort', { amount: formatCurrency(monthlyNeeded.amount) })}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-400 truncate">
                           {t('goals.remaining')}: {formatCurrency(remaining > 0 ? remaining : 0)}
                         </span>
                       )}

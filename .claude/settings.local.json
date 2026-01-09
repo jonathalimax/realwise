@@ -16,7 +16,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(node:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(ls:*)"
     ]
-  }
+  },
+  "outputStyle": "default"
 }

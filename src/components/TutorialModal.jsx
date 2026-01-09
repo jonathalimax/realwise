@@ -1,193 +1,79 @@
 import { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import InstallPWAButton from './ui/InstallPWAButton';
 
-// Topics that are selected by default for first-time users
-const DEFAULT_SELECTED_TOPICS = ['settings'];
+// Topics that are selected by default for first-time users - simpler and shorter
+const DEFAULT_SELECTED_TOPICS = ['basics', 'features'];
 
 const TUTORIAL_TOPICS = [
   {
-    id: 'settings',
-    icon: '⚙️',
-    title: { pt: 'Configurações', en: 'Settings' },
+    id: 'basics',
+    icon: '🚀',
+    title: { pt: 'Como Começar', en: 'Getting Started' },
     content: {
       pt: {
-        subtitle: 'Personalize o app do seu jeito',
+        subtitle: 'O essencial para você começar',
         points: [
-          'Modo Escuro - Alterne entre tema claro e escuro clicando no ícone de sol/lua na barra superior',
-          'Compartilhar Finanças - Adicione outras pessoas para acessar e gerenciar as finanças juntos (em Configurações > Acesso)',
-          'Notificações WhatsApp - Configure números para receber lembretes de contas a pagar (em Configurações > WhatsApp)',
-          'Categorias - Personalize as categorias de receitas e despesas (em Configurações > Categorias)'
+          '💰 Adicione Transações - Use o botão + para adicionar receitas e despesas',
+          '🏦 Configure Bancos - Registre seus cartões para organizar melhor',
+          '📊 Filtre por Mês - Navegue entre meses e use filtros por banco/categoria'
         ]
       },
       en: {
-        subtitle: 'Customize the app your way',
+        subtitle: 'The essentials to get you started',
         points: [
-          'Dark Mode - Toggle between light and dark theme by clicking the sun/moon icon in the top bar',
-          'Share Finances - Add other people to access and manage finances together (in Settings > Access)',
-          'WhatsApp Notifications - Set up phone numbers to receive bill reminders (in Settings > WhatsApp)',
-          'Categories - Customize income and expense categories (in Settings > Categories)'
+          '💰 Add Transactions - Use the + button to add income and expenses',
+          '🏦 Set Up Banks - Register your cards for better organization',
+          '📊 Filter by Month - Navigate between months and use bank/category filters'
         ]
       }
     }
   },
   {
-    id: 'dashboard',
-    icon: '📊',
-    title: { pt: 'Visão Geral', en: 'Dashboard Overview' },
+    id: 'features',
+    icon: '⭐',
+    title: { pt: 'Recursos Principais', en: 'Key Features' },
     content: {
       pt: {
-        subtitle: 'Seu resumo financeiro em um só lugar',
+        subtitle: 'Tudo que você precisa saber',
         points: [
-          'Cartões de Saldo - Veja receitas, despesas e saldo total instantaneamente',
-          'Seletor de Mês - Navegue entre meses usando as setas ou o dropdown',
-          'Filtros - Filtre por banco, categoria ou alterne entre visualização de compra/pagamento para cartões de crédito'
+          '📋 Contas a Pagar - Cadastre e receba notificações no WhatsApp',
+          '🎯 Metas - Crie objetivos e acompanhe seu progresso',
+          '📈 Investimentos - Registre e monitore rendimentos',
+          '🌙 Modo Escuro - Toque no ícone sol/lua para alternar'
         ]
       },
       en: {
-        subtitle: 'Your financial snapshot at a glance',
+        subtitle: 'Everything you need to know',
         points: [
-          'Balance Cards - See income, expenses and total balance instantly',
-          'Month Selector - Navigate between months using arrows or dropdown',
-          'Filters - Filter by bank, category, or switch between purchase/payment view for credit cards'
+          '📋 Bills to Pay - Register and get WhatsApp notifications',
+          '🎯 Goals - Create objectives and track progress',
+          '📈 Investments - Record and monitor returns',
+          '🌙 Dark Mode - Tap sun/moon icon to toggle'
         ]
       }
     }
   },
   {
-    id: 'transactions',
-    icon: '💳',
-    title: { pt: 'Transações', en: 'Transactions' },
+    id: 'tips',
+    icon: '💡',
+    title: { pt: 'Dicas Rápidas', en: 'Quick Tips' },
     content: {
       pt: {
-        subtitle: 'Gerencie suas movimentações financeiras',
+        subtitle: 'Aproveite ao máximo o Blim Wallet',
         points: [
-          'Adicionar Manualmente - Clique no botão + e selecione "Adicionar" para criar transações de receita ou despesa',
-          'Importar do Banco - Importe extratos CSV ou OFX diretamente do seu banco',
-          'Parcelas e Recorrência - Configure transações parceladas ou recorrentes (mensal, semanal, anual)'
+          '📱 Instale como App - Use o botão de instalação para acesso rápido',
+          '👥 Compartilhe - Adicione pessoas em Configurações > Acesso',
+          '📁 Personalize - Crie categorias personalizadas em Configurações'
         ]
       },
       en: {
-        subtitle: 'Manage your financial transactions',
+        subtitle: 'Make the most of Blim Wallet',
         points: [
-          'Add Manually - Click the + button and select "Add" to create income or expense transactions',
-          'Import from Bank - Import CSV or OFX statements directly from your bank',
-          'Installments & Recurring - Set up installment or recurring transactions (monthly, weekly, yearly)'
-        ]
-      }
-    }
-  },
-  {
-    id: 'categories',
-    icon: '📁',
-    title: { pt: 'Categorias e Orçamento', en: 'Categories & Budget' },
-    content: {
-      pt: {
-        subtitle: 'Organize e controle seus gastos',
-        points: [
-          'Categorias - Organize transações em categorias como Alimentação, Moradia, Lazer, etc.',
-          'Limites de Orçamento - Defina limites mensais por categoria e acompanhe seu progresso',
-          'Regra 50/30/20 - Use a regra de planejamento financeiro: 50% necessidades, 30% desejos, 20% poupança'
-        ]
-      },
-      en: {
-        subtitle: 'Organize and control your spending',
-        points: [
-          'Categories - Organize transactions into categories like Food, Housing, Leisure, etc.',
-          'Budget Limits - Set monthly limits per category and track your progress',
-          '50/30/20 Rule - Use the financial planning rule: 50% needs, 30% wants, 20% savings'
-        ]
-      }
-    }
-  },
-  {
-    id: 'banks',
-    icon: '🏦',
-    title: { pt: 'Bancos e Cartões', en: 'Banks & Cards' },
-    content: {
-      pt: {
-        subtitle: 'Gerencie múltiplas contas',
-        points: [
-          'Adicionar Bancos - Registre seus bancos e cartões de crédito para melhor organização',
-          'Data de Fechamento - Configure o dia de fechamento da fatura do cartão de crédito',
-          'Visualização Compra vs Pagamento - Alterne entre ver transações pela data da compra ou mês de pagamento'
-        ]
-      },
-      en: {
-        subtitle: 'Manage multiple accounts',
-        points: [
-          'Add Banks - Register your banks and credit cards for better organization',
-          'Closing Date - Set up your credit card statement closing date',
-          'Purchase vs Payment View - Switch between viewing transactions by purchase date or payment month'
-        ]
-      }
-    }
-  },
-  {
-    id: 'bills',
-    icon: '📋',
-    title: { pt: 'Contas a Pagar', en: 'Bills & Reminders' },
-    content: {
-      pt: {
-        subtitle: 'Nunca perca um vencimento',
-        points: [
-          'Criar Contas - Adicione contas com data de vencimento, valor e recorrência',
-          'Marcar como Pago - Com um clique, marque contas como pagas',
-          'Notificações WhatsApp - Receba lembretes no WhatsApp antes do vencimento'
-        ]
-      },
-      en: {
-        subtitle: 'Never miss a due date',
-        points: [
-          'Create Bills - Add bills with due date, amount and recurrence',
-          'Mark as Paid - With one click, mark bills as paid',
-          'WhatsApp Notifications - Receive reminders on WhatsApp before due dates'
-        ]
-      }
-    }
-  },
-  {
-    id: 'goals',
-    icon: '🎯',
-    title: { pt: 'Metas e Poupança', en: 'Goals & Savings' },
-    content: {
-      pt: {
-        subtitle: 'Alcance seus objetivos financeiros',
-        points: [
-          'Criar Metas - Defina metas como viagem, carro, casa ou reserva de emergência',
-          'Acompanhar Progresso - Visualize quanto falta para atingir cada meta',
-          'Adicionar Fundos - Registre contribuições e veja a evolução ao longo do tempo'
-        ]
-      },
-      en: {
-        subtitle: 'Achieve your financial goals',
-        points: [
-          'Create Goals - Set goals like travel, car, house or emergency fund',
-          'Track Progress - See how much is left to reach each goal',
-          'Add Funds - Record contributions and see progress over time'
-        ]
-      }
-    }
-  },
-  {
-    id: 'investments',
-    icon: '📈',
-    title: { pt: 'Investimentos', en: 'Investments' },
-    content: {
-      pt: {
-        subtitle: 'Acompanhe sua carteira',
-        points: [
-          'Adicionar Investimentos - Registre renda fixa, ações, fundos, cripto e imóveis',
-          'Vincular a Metas - Associe investimentos às suas metas de poupança',
-          'Calcular Rendimentos - Acompanhe rendimentos e impostos (IOF, IR) automaticamente'
-        ]
-      },
-      en: {
-        subtitle: 'Track your portfolio',
-        points: [
-          'Add Investments - Record fixed income, stocks, funds, crypto and real estate',
-          'Link to Goals - Associate investments with your savings goals',
-          'Calculate Returns - Track returns and taxes automatically'
+          '📱 Install as App - Use the install button for quick access',
+          '👥 Share - Add people in Settings > Access',
+          '📁 Customize - Create custom categories in Settings'
         ]
       }
     }
@@ -271,7 +157,7 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
               {currentStep === 0
-                ? (lang === 'pt' ? 'Bem-vindo ao Limas Finance!' : 'Welcome to Limas Finance!')
+                ? (lang === 'pt' ? 'Bem-vindo ao Blim Wallet!' : 'Welcome to Blim Wallet!')
                 : currentTopic?.title[lang]
               }
             </h2>
@@ -354,12 +240,15 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
           <div className="flex items-center justify-between p-4 sm:p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             {currentStep === 0 ? (
               <>
-                <button
-                  onClick={handleSkip}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium transition"
-                >
-                  {lang === 'pt' ? 'Pular' : 'Skip'}
-                </button>
+                <div>
+                  <InstallPWAButton />
+                  <button
+                    onClick={handleSkip}
+                    className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium transition"
+                  >
+                    {lang === 'pt' ? 'Pular' : 'Skip'}
+                  </button>
+                </div>
                 <button
                   onClick={handleStart}
                   className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition flex items-center gap-2"

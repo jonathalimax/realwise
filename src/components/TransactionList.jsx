@@ -227,35 +227,49 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                   ${transaction.type === 'income' ? 'bg-emerald-500' : 'bg-rose-500'}`}
               />
 
-              {/* Info */}
-              <div className={`flex-1 min-w-0 ${transaction.ignored ? 'opacity-50' : ''}`}>
-                <div className="flex items-center gap-2">
+              {/* Info - Stack vertically on mobile when not compact */}
+              <div className={`flex-1 min-w-0 ${transaction.ignored ? 'opacity-50' : ''} ${!compact ? 'sm:flex sm:items-center sm:justify-between' : ''}`}>
+                <div className={!compact ? 'sm:flex-1 sm:min-w-0' : ''}>
+                  <div className="flex items-center gap-2">
+                    <p
+                      className={`font-medium text-gray-900 dark:text-white truncate ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}
+                      title={transaction.description}
+                    >
+                      {transaction.description}
+                    </p>
+                    {transaction.ignored && (
+                      <span className="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
+                        {t('transactionForm.ignored')}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-1.5 text-gray-500 dark:text-gray-400 ${compact ? 'text-xs' : 'text-xs sm:text-sm'}`}>
+                    <span className="truncate" title={transaction.category}>{transaction.category}</span>
+                    <span className="text-gray-300 dark:text-gray-600">•</span>
+                    <span className="flex-shrink-0">{new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
+                  </div>
+                </div>
+
+                {/* Amount - Show on same line on desktop (when not compact), on new line on mobile */}
+                {!compact && (
                   <p
-                    className={`font-medium text-gray-900 dark:text-white truncate ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}
-                    title={transaction.description}
+                    className={`font-semibold whitespace-nowrap mt-1 sm:mt-0 sm:ml-4 flex-shrink-0 text-sm sm:text-base
+                      ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}
                   >
-                    {transaction.description}
+                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                   </p>
-                  {transaction.ignored && (
-                    <span className="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
-                      {t('transactionForm.ignored')}
-                    </span>
-                  )}
-                </div>
-                <div className={`flex items-center gap-1.5 text-gray-500 dark:text-gray-400 ${compact ? 'text-xs' : 'text-xs sm:text-sm'}`}>
-                  <span className="truncate" title={transaction.category}>{transaction.category}</span>
-                  <span className="text-gray-300 dark:text-gray-600">•</span>
-                  <span className="flex-shrink-0">{new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
-                </div>
+                )}
               </div>
 
-              {/* Amount */}
-              <p
-                className={`font-semibold whitespace-nowrap flex-shrink-0 ${compact ? 'text-sm' : 'text-sm sm:text-base'}
-                  ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}
-              >
-                {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-              </p>
+              {/* Amount - Compact mode keeps it on the side */}
+              {compact && (
+                <p
+                  className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
+                    ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}
+                >
+                  {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                </p>
+              )}
 
               {/* Edit & Delete Buttons - Hidden in compact mode, on mobile, and for read-only users */}
               {!compact && canWrite && (

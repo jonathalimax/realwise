@@ -40,6 +40,61 @@ const DEFAULT_CATEGORIES_BY_LANG = {
 export const getAllCategories = (lang) => ALL_CATEGORIES_BY_LANG[lang] || ALL_CATEGORIES_BY_LANG.pt;
 const getDefaultCategories = (lang) => DEFAULT_CATEGORIES_BY_LANG[lang] || DEFAULT_CATEGORIES_BY_LANG.pt;
 
+// Category translation mapping (PT -> EN and EN -> PT)
+const CATEGORY_TRANSLATION_MAP = {
+  // Expense categories
+  'Housing': 'Moradia',
+  'Moradia': 'Housing',
+  'Bills': 'Contas',
+  'Contas': 'Bills',
+  'Vehicle': 'Veículo',
+  'Veículo': 'Vehicle',
+  'Food': 'Alimentação',
+  'Alimentação': 'Food',
+  'Healthcare': 'Saúde',
+  'Saúde': 'Healthcare',
+  'Education': 'Educação',
+  'Educação': 'Education',
+  'Leisure': 'Lazer',
+  'Lazer': 'Leisure',
+  'Clothing': 'Vestuário',
+  'Vestuário': 'Clothing',
+  'Taxes': 'Impostos',
+  'Impostos': 'Taxes',
+  'Subscriptions': 'Assinaturas',
+  'Assinaturas': 'Subscriptions',
+  'Travel': 'Viagens',
+  'Viagens': 'Travel',
+  'Church': 'Igreja',
+  'Igreja': 'Church',
+  'Investments': 'Investimentos',
+  'Investimentos': 'Investments',
+  'Other': 'Diversos',
+  'Diversos': 'Other',
+  // Income categories
+  'Salary': 'Salário',
+  'Salário': 'Salary',
+  'Freelance': 'Freelance',
+  'Investment': 'Investimentos',
+  'Gift': 'Presente',
+  'Presente': 'Gift',
+  'Bonus': 'Bônus',
+  'Bônus': 'Bonus',
+  'Rental': 'Aluguel',
+  'Aluguel': 'Rental',
+  'Outros': 'Other'
+};
+
+// Translate categories when language changes
+const translateCategories = (categories, fromLang, toLang) => {
+  if (!categories || fromLang === toLang) return categories;
+
+  return {
+    expense: categories.expense?.map(cat => CATEGORY_TRANSLATION_MAP[cat] || cat) || [],
+    income: categories.income?.map(cat => CATEGORY_TRANSLATION_MAP[cat] || cat) || []
+  };
+};
+
 export function SettingsProvider({ children }) {
   const [currency, setCurrency] = useState('BRL');
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
@@ -103,10 +158,22 @@ export function SettingsProvider({ children }) {
   };
 
   const updateLanguage = async (newLanguage) => {
+    if (newLanguage === language) return; // No change needed
+
+    const oldLanguage = language;
     setLanguage(newLanguage);
+
+    // Translate existing categories
+    const translatedCategories = translateCategories(categories, oldLanguage, newLanguage);
+    setCategories(translatedCategories);
+
     if (auth.currentUser) {
       const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { language: newLanguage }, { merge: true });
+      await setDoc(settingsRef, {
+        language: newLanguage,
+        expenseCategories: translatedCategories.expense,
+        incomeCategories: translatedCategories.income
+      }, { merge: true });
     }
   };
 

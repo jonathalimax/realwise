@@ -11,6 +11,7 @@ import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
 import { InvestmentProvider } from './contexts/InvestmentContext';
 import { BillsProvider } from './contexts/BillsContext';
+import { PWAInstallProvider } from './contexts/PWAInstallContext';
 
 // Landing pages
 import Home from './pages/Home';
@@ -71,23 +72,25 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/home" element={<AppContent />} />
-        <Route path="/app" element={<Navigate to="/home" replace />} />
-        <Route path="/donations" element={<Donations />} />
-        <Route path="/feedback" element={<FeatureRequest />} />
-        <Route path="/support" element={<Support />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/purchase" element={<Purchase />} />
-        <Route path="/purchase/success" element={<PurchaseSuccess />} />
-        <Route path="/purchase/failure" element={<PurchaseFailure />} />
-        <Route path="/purchase/pending" element={<PurchaseSuccess />} />
-        {/* Redirect old paths */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <PWAInstallProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<AppContent />} />
+          <Route path="/app" element={<Navigate to="/home" replace />} />
+          <Route path="/donations" element={<Donations />} />
+          <Route path="/feedback" element={<FeatureRequest />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/purchase" element={<Purchase />} />
+          <Route path="/purchase/success" element={<PurchaseSuccess />} />
+          <Route path="/purchase/failure" element={<PurchaseFailure />} />
+          <Route path="/purchase/pending" element={<PurchaseSuccess />} />
+          {/* Redirect old paths */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </PWAInstallProvider>
   );
 }
 

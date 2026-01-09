@@ -5,6 +5,7 @@ const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 const whatsappService = require('./whatsapp-service');
+const { normalizeBrazilE164FixNine, assertBrazilE164 } = require('./phoneUtils');
 
 admin.initializeApp();
 
@@ -427,12 +428,10 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
  */
 exports.whatsappWebhook = functions.https.onRequest(async (req, res) => {
   try {
-    // Webhook verification (GET request from Meta)
     if (req.method === 'GET') {
       const mode = req.query['hub.mode'];
       const token = req.query['hub.verify_token'];
       const challenge = req.query['hub.challenge'];
-
       const config = whatsappService.getWhatsAppConfig();
 
       if (mode === 'subscribe' && token === config.verifyToken) {
@@ -446,44 +445,56 @@ exports.whatsappWebhook = functions.https.onRequest(async (req, res) => {
       }
     }
 
-    // Handle incoming messages (POST request from Meta)
     if (req.method === 'POST') {
       const body = req.body;
 
-      // Check if it's a WhatsApp message notification
       if (body.object === 'whatsapp_business_account') {
         const entry = body.entry?.[0];
         const changes = entry?.changes?.[0];
         const value = changes?.value;
 
-        // Handle incoming messages
+        const waId = value?.contacts?.[0]?.wa_id;           // canonical when correct
+        const msgFrom = value?.messages?.[0]?.from;         // sometimes missing the 9
+        const ctxFrom = value?.messages?.[0]?.context?.from;
+
+        console.log('Identifiers received:', { waId, msgFrom, ctxFrom });
+
+        // Prefer wa_id, fallback to message.from
+        const rawSender = waId ?? msgFrom;
+        if (!rawSender) {
+          console.error('Missing sender identifiers', JSON.stringify(body, null, 2));
+          res.status(400).send('Missing sender');
+          return;
+        }
+
+        // Normalize and fix missing 9 when applicable
+        const sender = assertBrazilE164(normalizeBrazilE164FixNine(rawSender));
+
+        // Proceed with message handling
         if (value?.messages && value.messages.length > 0) {
           const message = value.messages[0];
-          const from = message.from; // Sender's phone number
           const messageId = message.id;
           const messageType = message.type;
 
           console.log('Received WhatsApp message:', {
-            from,
+            sender,
+            waId,
+            from: msgFrom,
             messageId,
             type: messageType,
           });
 
-          // Mark message as read
           await whatsappService.markMessageAsRead(messageId);
 
-          // Handle text messages
           if (messageType === 'text') {
             const text = message.text.body.trim().toUpperCase();
-            await handleIncomingMessage(from, text, messageId);
+            await handleIncomingMessage(sender, text, messageId);
           }
 
-          // Handle button replies
           if (messageType === 'interactive') {
             const buttonReply = message.interactive?.button_reply;
             if (buttonReply) {
-              const buttonId = buttonReply.id;
-              await handleButtonReply(from, buttonId);
+              await handleButtonReply(sender, buttonReply.id);
             }
           }
         }
@@ -560,20 +571,32 @@ async function handleButtonReply(from, buttonId) {
   try {
     const phoneNumber = whatsappService.formatPhoneNumber(from);
 
-    const userQuery = await db.collection('users')
-      .where('phoneNumber', '==', `+${phoneNumber}`)
-      .limit(1)
-      .get();
+    // Find user by WhatsApp number in settings collection
+    const settingsSnapshot = await db.collection('settings').get();
+    let userId = null;
 
-    if (userQuery.empty) return;
+    for (const doc of settingsSnapshot.docs) {
+      const data = doc.data();
+      const userWhatsApp = data.whatsappNumber || (data.whatsappNumbers && data.whatsappNumbers[0]);
+      if (userWhatsApp && whatsappService.formatPhoneNumber(userWhatsApp) === phoneNumber) {
+        userId = doc.id;
+        break;
+      }
+    }
 
-    const userId = userQuery.docs[0].id;
+    if (!userId) {
+      console.log('No user found with WhatsApp number:', phoneNumber);
+      return;
+    }
 
-    if (buttonId.includes('paid')) {
-      await handleMarkAsPaid(from, userId);
-    } else if (buttonId.includes('postpone')) {
-      await handlePostpone(from, userId);
-    } else if (buttonId.includes('view')) {
+    // Extract bill ID from button ID (format: "paid_billId" or "view_billId")
+    const parts = buttonId.split('_');
+    const action = parts[0];
+    const billId = parts.slice(1).join('_'); // Handle IDs with underscores
+
+    if (action === 'paid' && billId) {
+      await handleMarkBillAsPaid(from, userId, billId);
+    } else if (action === 'view') {
       await whatsappService.sendTextMessage(from,
         '🔗 Acesse: https://limas-finance.web.app'
       );
@@ -584,39 +607,54 @@ async function handleButtonReply(from, buttonId) {
 }
 
 /**
- * Mark the most recent unpaid bill as paid
+ * Mark a specific bill as paid by ID
  */
-async function handleMarkAsPaid(phoneNumber, userId) {
+async function handleMarkBillAsPaid(phoneNumber, userId, billId) {
   try {
-    // Get the most recent unpaid bill
-    const billsQuery = await db.collection(`users/${userId}/bills`)
-      .where('status', '==', 'pending')
-      .orderBy('dueDate', 'asc')
-      .limit(1)
-      .get();
+    // Get the specific bill from top-level bills collection
+    const billRef = db.collection('bills').doc(billId);
+    const billDoc = await billRef.get();
 
-    if (billsQuery.empty) {
+    if (!billDoc.exists) {
       await whatsappService.sendTextMessage(phoneNumber,
-        '✅ Você não tem contas pendentes no momento!'
+        '❌ Conta não encontrada.'
       );
       return;
     }
 
-    const billDoc = billsQuery.docs[0];
     const billData = billDoc.data();
 
+    // Verify the bill belongs to this user
+    if (billData.userId !== userId) {
+      await whatsappService.sendTextMessage(phoneNumber,
+        '❌ Você não tem permissão para marcar esta conta.'
+      );
+      return;
+    }
+
+    // Check if already paid
+    if (billData.status === 'paid') {
+      await whatsappService.sendTextMessage(phoneNumber,
+        '✅ Esta conta já está marcada como paga!'
+      );
+      return;
+    }
+
     // Update bill status to paid
-    await billDoc.ref.update({
+    await billRef.update({
       status: 'paid',
       paidAt: admin.firestore.FieldValue.serverTimestamp(),
       paidVia: 'whatsapp',
     });
 
+    const billName = billData.name || billData.description || 'Conta';
+    const billValue = billData.value || billData.amount || 0;
+
     await whatsappService.sendTextMessage(phoneNumber,
       `✅ *Conta marcada como paga!*
 
-📋 ${billData.description}
-💰 R$ ${billData.value.toFixed(2)}
+📋 ${billName}
+💰 R$ ${billValue.toFixed(2)}
 
 🎉 Parabéns por manter suas finanças em dia!`
     );
@@ -656,18 +694,36 @@ async function handlePostpone(phoneNumber, userId) {
 /**
  * Scheduled function to send WhatsApp bill reminders
  * Runs daily at 9 AM Brazil time
+ * Sends reminders to ALL users who have WhatsApp configured
  */
 exports.scheduledBillReminders = functions.pubsub
   .schedule('0 9 * * *')
   .timeZone('America/Sao_Paulo')
   .onRun(async (context) => {
     try {
-      console.log('Starting scheduled bill reminders...');
+      console.log('Starting scheduled bill reminders for all users...');
 
-      const targetPhone = '+5585992265544';
-      const remindersSent = await sendBillReminders(targetPhone);
+      // Get all users with WhatsApp numbers configured
+      const usersWithWhatsApp = await whatsappService.getAllUsersWithWhatsApp(db);
+      console.log(`Found ${usersWithWhatsApp.length} user(s) with WhatsApp configured`);
 
-      console.log(`Scheduled reminders completed. Sent ${remindersSent} reminder(s).`);
+      let totalRemindersSent = 0;
+
+      // Send reminders to each user
+      for (const { userId, whatsappNumber } of usersWithWhatsApp) {
+        try {
+          const remindersSent = await sendBillRemindersForUser(userId, whatsappNumber);
+          totalRemindersSent += remindersSent;
+          console.log(`Sent ${remindersSent} reminder(s) to user ${userId}`);
+
+          // Wait 1 second between users to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          console.error(`Error sending reminders to user ${userId}:`, error);
+        }
+      }
+
+      console.log(`Scheduled reminders completed. Sent ${totalRemindersSent} total reminder(s) to ${usersWithWhatsApp.length} user(s).`);
       return null;
     } catch (error) {
       console.error('Error in scheduled reminders:', error);
@@ -676,61 +732,60 @@ exports.scheduledBillReminders = functions.pubsub
   });
 
 /**
- * Send bill reminders to a specific phone number
+ * Send bill reminders for a specific user
  */
-async function sendBillReminders(phoneNumber) {
+async function sendBillRemindersForUser(userId, whatsappNumber) {
   try {
-    const formattedPhone = whatsappService.formatPhoneNumber(phoneNumber);
-
-    // Find user by phone number
-    const userQuery = await db.collection('users')
-      .where('phoneNumber', '==', phoneNumber)
-      .limit(1)
-      .get();
-
-    if (userQuery.empty) {
-      console.log('No user found with phone number:', phoneNumber);
-      return 0;
-    }
-
-    const userId = userQuery.docs[0].id;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const endOfToday = new Date(today);
     endOfToday.setHours(23, 59, 59, 999);
 
-    // Get bills that are due today or overdue
-    const billsQuery = await db.collection(`users/${userId}/bills`)
+    // Get bills from top-level collection that are due today or overdue
+    const billsQuery = await db.collection('bills')
+      .where('userId', '==', userId)
       .where('status', '==', 'pending')
-      .where('dueDate', '<=', admin.firestore.Timestamp.fromDate(endOfToday))
-      .orderBy('dueDate', 'asc')
-      .limit(5) // Limit to 5 reminders per day
       .get();
 
-    if (billsQuery.empty) {
+    // Filter bills that are due today or overdue (since we can't compound query on dueDate)
+    const pendingBills = billsQuery.docs.filter((doc) => {
+      const billData = doc.data();
+      if (!billData.dueDate) return false;
+      const dueDate = billData.dueDate.toDate ? billData.dueDate.toDate() : new Date(billData.dueDate);
+      return dueDate <= endOfToday;
+    }).slice(0, 5); // Limit to 5 reminders per day
+
+    if (pendingBills.length === 0) {
       console.log('No pending bills found for user:', userId);
       return 0;
     }
 
     let remindersSent = 0;
 
-    // Send reminder for each bill
-    for (const billDoc of billsQuery.docs) {
+    // Send reminder for each bill with interactive buttons
+    for (const billDoc of pendingBills) {
       const billData = billDoc.data();
-      const message = whatsappService.formatBillReminderMessage(billData, phoneNumber);
+      const message = whatsappService.formatBillReminderMessage(billData, whatsappNumber);
+
+      // Define interactive buttons
+      const buttons = [
+        { id: `paid_${billDoc.id}`, title: 'Marcar como pago' },
+        { id: `view_${billDoc.id}`, title: 'Ver detalhes' },
+      ];
 
       try {
-        await whatsappService.sendTextMessage(phoneNumber, message);
+        await whatsappService.sendInteractiveMessage(whatsappNumber, message, buttons);
         remindersSent++;
 
         // Log the reminder in Firestore
-        await db.collection(`users/${userId}/reminder_logs`).add({
+        await db.collection('reminder_logs').add({
+          userId: userId,
           billId: billDoc.id,
-          billDescription: billData.description,
+          billName: billData.name || billData.description,
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
           sentVia: 'whatsapp',
-          phoneNumber: phoneNumber,
+          whatsappNumber: whatsappNumber,
         });
 
         // Wait 2 seconds between messages to avoid rate limiting
@@ -742,29 +797,47 @@ async function sendBillReminders(phoneNumber) {
 
     return remindersSent;
   } catch (error) {
-    console.error('Error sending bill reminders:', error);
+    console.error('Error sending bill reminders for user:', userId, error);
     throw error;
   }
 }
 
 /**
  * Manual trigger for WhatsApp reminders (for testing)
- * Usage: Call this function via HTTP to test WhatsApp integration
+ * Sends reminders to ALL users with WhatsApp configured
  */
 exports.sendWhatsAppReminder = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
-      const { phoneNumber } = req.body || {};
-      const targetPhone = phoneNumber || '+5585992265544';
+      console.log('Manual WhatsApp reminder triggered for all users');
 
-      console.log('Manual WhatsApp reminder triggered for:', targetPhone);
+      // Get all users with WhatsApp numbers configured
+      const usersWithWhatsApp = await whatsappService.getAllUsersWithWhatsApp(db);
+      console.log(`Found ${usersWithWhatsApp.length} user(s) with WhatsApp configured`);
 
-      const remindersSent = await sendBillReminders(targetPhone);
+      const results = [];
+      let totalRemindersSent = 0;
+
+      // Send reminders to each user
+      for (const { userId, whatsappNumber } of usersWithWhatsApp) {
+        try {
+          const remindersSent = await sendBillRemindersForUser(userId, whatsappNumber);
+          totalRemindersSent += remindersSent;
+          results.push({ userId, whatsappNumber, remindersSent, success: true });
+
+          // Wait 1 second between users
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          results.push({ userId, whatsappNumber, error: error.message, success: false });
+        }
+      }
 
       res.json({
         success: true,
-        message: `Sent ${remindersSent} reminder(s) to ${targetPhone}`,
-        remindersSent,
+        message: `Sent ${totalRemindersSent} reminder(s) to ${usersWithWhatsApp.length} user(s)`,
+        totalRemindersSent,
+        usersProcessed: usersWithWhatsApp.length,
+        results,
       });
     } catch (error) {
       console.error('Error in manual reminder trigger:', error);

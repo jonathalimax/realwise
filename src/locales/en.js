@@ -369,4 +369,9 @@ export default {
       total: 'Total',
     },
   },
+
+  // PWA
+  pwa: {
+    install_pwa: 'Install App',
+  },
 };

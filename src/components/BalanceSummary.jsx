@@ -93,7 +93,7 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick }
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 md:p-0 shadow-sm md:bg-transparent md:border-none md:shadow-none">
+    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 md:p-0 shadow-sm md:bg-transparent md:dark:bg-transparent md:border-none md:shadow-none">
       {/* Mobile view: single card */}
       <div className="md:hidden">
         <div className="flex items-center justify-between mb-4">

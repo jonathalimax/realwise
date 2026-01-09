@@ -11,16 +11,44 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide number input spinners */
+/* Hide number input spinners and prevent increment/decrement */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+  display: none;
 }
 
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* Prevent keyboard arrow keys from incrementing/decrementing */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Dark mode date/time input calendar picker styles */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+.dark input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Style the date input to look better in dark mode */
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="time"] {
+  color-scheme: dark;
 }
 
 /* Custom scrollbar styles */
