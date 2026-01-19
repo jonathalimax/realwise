@@ -102,10 +102,10 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
     return (
       <button
         onClick={() => handleInvestmentClick(investment)}
-        className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer text-left"
+        className="w-full bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer text-left"
       >
-        <div className="flex items-start gap-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl
+        <div className="flex items-start gap-2 sm:gap-3">
+          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl flex-shrink-0
             ${investment.type === 'fixed_income' ? 'bg-blue-100 dark:bg-blue-900/40' : ''}
             ${investment.type === 'stocks' ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}
             ${investment.type === 'crypto' ? 'bg-orange-100 dark:bg-orange-900/40' : ''}
@@ -115,24 +115,24 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
             {typeInfo.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate flex-1">
                 {investment.name}
               </h3>
-              <span className="font-bold text-gray-900 dark:text-white whitespace-nowrap">
+              <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap flex-shrink-0">
                 {formatCurrency(currentValue)}
               </span>
             </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 sm:mt-1">
+              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
                 {t(`investments.types.${investment.type}`)} • {daysHeld}d
               </span>
-              <span className={`text-sm font-medium ${growth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              <span className={`text-xs sm:text-sm font-medium whitespace-nowrap ${growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 {growth >= 0 ? '+' : ''}{formatCurrency(growth)} ({growthPercent >= 0 ? '+' : ''}{growthPercent.toFixed(2)}%)
               </span>
             </div>
             {investment.expectedReturn > 0 && (
-              <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-1">
                 {investment.returnType === 'cdi' && `${(investment.expectedReturn * 100).toFixed(0)}% CDI`}
                 {investment.returnType === 'annual' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.a.' : 'p.a.'}`}
                 {investment.returnType === 'monthly' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.m.' : 'p.m.'}`}

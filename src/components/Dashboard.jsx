@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -6,6 +7,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useBills } from '../contexts/BillsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
+import { useIsMobile } from '../hooks/useIsMobile';
 import BalanceSummary from './BalanceSummary';
 import InvestmentsListModal from './InvestmentsListModal';
 import WalletCards from './WalletCards';
@@ -28,6 +30,9 @@ import TutorialModal from './TutorialModal';
 import { PlusIcon, XMarkIcon, ChevronDownIcon, FunnelIcon, AdjustmentsHorizontalIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
   const [showSettings, setShowSettings] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
@@ -58,6 +63,42 @@ export default function Dashboard() {
   const { canWrite, ownerId } = useAccess();
   const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
   const { bills, loading: billsLoading } = useBills();
+
+  // Navigation handlers for mobile
+  const handleOpenSettings = () => {
+    if (isMobile) navigate('/home/settings');
+    else setShowSettings(true);
+  };
+
+  const handleOpenGoals = () => {
+    if (isMobile) navigate('/home/goals');
+    else setShowGoals(true);
+  };
+
+  const handleOpenCards = () => {
+    if (isMobile) navigate('/home/cards');
+    else setShowCards(true);
+  };
+
+  const handleOpenBudget = () => {
+    if (isMobile) navigate('/home/budget');
+    else setShowBudget(true);
+  };
+
+  const handleOpenInvestments = () => {
+    if (isMobile) navigate('/home/investments');
+    else setShowInvestments(true);
+  };
+
+  const handleOpenInvestmentsList = () => {
+    if (isMobile) navigate('/home/investments');
+    else setShowInvestmentsList(true);
+  };
+
+  const handleOpenTransactions = () => {
+    if (isMobile) navigate('/home/transactions');
+    else setShowFullTransactions(true);
+  };
 
   const triggerRefresh = () => setRefreshKey(prev => prev + 1);
 
@@ -252,7 +293,7 @@ export default function Dashboard() {
               </button>
 
               <button
-                onClick={() => setShowSettings(true)}
+                onClick={handleOpenSettings}
                 className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,7 +514,7 @@ export default function Dashboard() {
 
         {/* Balance Cards - Always visible on desktop, inside tabs on mobile */}
         <div className="hidden md:block mb-4 sm:mb-6">
-          <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
+          <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={handleOpenInvestmentsList} />
         </div>
 
         {/* Tabs Navigation */}
@@ -505,29 +546,25 @@ export default function Dashboard() {
           <>
             {/* Balance Cards - Mobile only */}
             <div className="md:hidden mb-4">
-              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
+              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={handleOpenInvestmentsList} />
             </div>
 
-            {/* 2. Expenses by Category Chart */}
-            <div className="mt-4 sm:mt-6">
+            {/* Expenses by Category + 50/30/20 Rule Comparison - Side by side on desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <BudgetCategorySection
                 transactions={filteredTransactions}
                 selectedMonth={selectedMonth}
-                onConfigure={() => setShowBudget(true)}
+                onConfigure={handleOpenBudget}
                 onCategoryClick={handleCategoryClick}
               />
-            </div>
-
-            {/* 3. 50/30/20 Rule Comparison */}
-            <div className="mt-4 sm:mt-6">
               <RuleComparison
                 transactions={monthlyTransactions}
                 totalIncome={totalIncome}
-                onConfigure={() => setShowBudget(true)}
+                onConfigure={handleOpenBudget}
               />
             </div>
 
-            {/* 4. Income vs Expenses Trend Chart */}
+            {/* Income vs Expenses Trend Chart */}
             <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
               <TrendChart transactions={transactions} selectedMonth={selectedMonth} viewMode={viewMode} />
@@ -540,7 +577,7 @@ export default function Dashboard() {
           <>
             {/* Balance Cards - Mobile only */}
             <div className="md:hidden mb-4">
-              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={() => setShowInvestmentsList(true)} />
+              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={handleOpenInvestmentsList} />
             </div>
 
             {/* 1. Transactions List */}
@@ -563,7 +600,7 @@ export default function Dashboard() {
               </div>
               {filteredTransactions.length > 15 && (
                 <button
-                  onClick={() => setShowFullTransactions(true)}
+                  onClick={handleOpenTransactions}
                   className="mt-3 w-full py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
                 >
                   {language === 'pt' ? `Ver todos (${filteredTransactions.length})` : `See all (${filteredTransactions.length})`}
@@ -576,24 +613,29 @@ export default function Dashboard() {
               <BudgetCategorySection
                 transactions={filteredTransactions}
                 selectedMonth={selectedMonth}
-                onConfigure={() => setShowBudget(true)}
+                onConfigure={handleOpenBudget}
                 onCategoryClick={handleCategoryClick}
               />
             </div>
 
-            {/* 3. Goals */}
+            {/* 3. Goals and Bills - Mobile: stacked, Desktop: side by side */}
             <div className="mt-4 sm:mt-6">
-              <GoalProgress onManageGoals={() => setShowGoals(true)} />
+              {/* Mobile: stacked */}
+              <div className="md:hidden space-y-4">
+                <GoalProgress onManageGoals={handleOpenGoals} />
+                <BillsList selectedMonth={selectedMonth} />
+              </div>
+
+              {/* Desktop: side by side */}
+              <div className="hidden md:grid md:grid-cols-2 gap-6">
+                <GoalProgress onManageGoals={handleOpenGoals} />
+                <BillsList selectedMonth={selectedMonth} />
+              </div>
             </div>
 
             {/* 4. Wallet Cards */}
             <div className="mt-4 sm:mt-6">
-              <WalletCards onManageCards={() => setShowCards(true)} />
-            </div>
-
-            {/* 5. Bills to Pay */}
-            <div className="mt-4 sm:mt-6">
-              <BillsList selectedMonth={selectedMonth} />
+              <WalletCards onManageCards={handleOpenCards} />
             </div>
           </>
         )}
@@ -638,7 +680,7 @@ export default function Dashboard() {
             <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-1" />
 
             <button
-              onClick={() => { setShowGoals(true); setShowFabMenu(false); }}
+              onClick={() => { handleOpenGoals(); setShowFabMenu(false); }}
               className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
             >
               <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
@@ -648,7 +690,7 @@ export default function Dashboard() {
             </button>
 
             <button
-              onClick={() => { setShowBudget(true); setShowFabMenu(false); }}
+              onClick={() => { handleOpenBudget(); setShowFabMenu(false); }}
               className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
             >
               <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -660,7 +702,7 @@ export default function Dashboard() {
             </button>
 
             <button
-              onClick={() => { setShowInvestments(true); setShowFabMenu(false); }}
+              onClick={() => { handleOpenInvestments(); setShowFabMenu(false); }}
               className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
             >
               <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -670,7 +712,7 @@ export default function Dashboard() {
             </button>
 
             <button
-              onClick={() => { setShowCards(true); setShowFabMenu(false); }}
+              onClick={() => { handleOpenCards(); setShowFabMenu(false); }}
               className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
             >
               <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center">

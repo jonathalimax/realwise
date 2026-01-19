@@ -17,7 +17,8 @@
       "Bash(git commit:*)",
       "Bash(node:*)",
       "Bash(git log:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(test:*)"
     ]
   },
   "outputStyle": "default"

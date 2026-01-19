@@ -152,10 +152,10 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                 onClick={() => onCategoryClick?.(category.name)}
                 className="w-full group"
               >
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
+                <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
                   {/* Icon */}
                   <div
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-lg sm:text-xl flex-shrink-0"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-xl flex-shrink-0"
                     style={{
                       background: `linear-gradient(135deg, ${category.color.light}20, ${category.color.main}30)`,
                       border: `1px solid ${category.color.main}30`
@@ -166,24 +166,24 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <span className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1 min-w-0 flex-1">
+                        <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-base truncate">
                           {category.name}
                         </span>
-                        {/* Show percentage badge on mobile if space allows */}
+                        {/* Show percentage badge */}
                         {totalSpent > 0 && category.spent > 0 && (
-                          <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                          <span className="text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 flex-shrink-0">
                             {((category.spent / totalSpent) * 100).toFixed(0)}%
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
-                        <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">
+                      <div className="flex flex-col items-end ml-1.5 sm:ml-2 flex-shrink-0">
+                        <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap">
                           {formatCurrency(category.spent)}
                         </span>
                         {category.hasLimit && (
-                          <span className="text-xs text-gray-400 hidden sm:inline">
+                          <span className="text-[9px] sm:text-xs text-gray-400">
                             / {formatCurrency(category.limit)}
                           </span>
                         )}
@@ -191,8 +191,8 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                     </div>
 
                     {/* Progress bar */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 sm:h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="flex-1 h-1.5 sm:h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                         {category.hasLimit ? (
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${statusColors.bg}`}
@@ -210,8 +210,8 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                       </div>
 
                       {category.hasLimit && (
-                        <span className={`text-xs font-semibold ${statusColors.text} min-w-[60px] sm:min-w-[70px] text-right`}>
-                          {category.budgetPercentage.toFixed(0)}% <span className="hidden sm:inline">{language === 'pt' ? 'usado' : 'used'}</span>
+                        <span className={`text-[9px] sm:text-xs font-semibold ${statusColors.text} min-w-[45px] sm:min-w-[70px] text-right`}>
+                          {category.budgetPercentage.toFixed(0)}%
                         </span>
                       )}
                     </div>

@@ -169,8 +169,8 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
 
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow">
-        <div className="flex items-start gap-3">
-          <div className={`w-10 h-10 sm:w-12 sm:h-12 ${color.light} rounded-lg sm:rounded-xl flex items-center justify-center text-lg sm:text-2xl flex-shrink-0`}>
+        <div className="flex items-start gap-2 sm:gap-3">
+          <div className={`w-9 h-9 sm:w-12 sm:h-12 ${color.light} rounded-lg sm:rounded-xl flex items-center justify-center text-base sm:text-2xl flex-shrink-0`}>
             {icon}
           </div>
           <div className="flex-1 min-w-0">
@@ -529,8 +529,8 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
             <div className="space-y-5">
               {/* Goal Preview */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 ${getGoalColor(selectedGoalForFunds.color).light} rounded-lg sm:rounded-xl flex items-center justify-center text-lg sm:text-2xl`}>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className={`w-9 h-9 sm:w-12 sm:h-12 ${getGoalColor(selectedGoalForFunds.color).light} rounded-lg sm:rounded-xl flex items-center justify-center text-base sm:text-2xl`}>
                     {GOAL_ICONS[selectedGoalForFunds.icon]}
                   </div>
                   <div>
@@ -612,8 +612,8 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
             <div className="space-y-4">
               {/* Goal Summary */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 ${getGoalColor(selectedGoalForTransactions.color).light} rounded-lg sm:rounded-xl flex items-center justify-center text-lg sm:text-2xl`}>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className={`w-9 h-9 sm:w-12 sm:h-12 ${getGoalColor(selectedGoalForTransactions.color).light} rounded-lg sm:rounded-xl flex items-center justify-center text-base sm:text-2xl`}>
                     {GOAL_ICONS[selectedGoalForTransactions.icon]}
                   </div>
                   <div>

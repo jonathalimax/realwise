@@ -23,6 +23,14 @@ import Purchase from './pages/Purchase';
 import PurchaseSuccess from './pages/PurchaseSuccess';
 import PurchaseFailure from './pages/PurchaseFailure';
 
+// App pages (mobile-first)
+import SettingsPage from './pages/Settings';
+import GoalsPage from './pages/Goals';
+import CardsPage from './pages/Cards';
+import BudgetPage from './pages/Budget';
+import InvestmentsPage from './pages/Investments';
+import TransactionsPage from './pages/Transactions';
+
 function AppContent() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +65,16 @@ function AppContent() {
             <BudgetProvider>
               <InvestmentProvider>
                 <BillsProvider>
-                  <Dashboard />
+                  <Routes>
+                    <Route index element={<Dashboard />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="goals" element={<GoalsPage />} />
+                    <Route path="cards" element={<CardsPage />} />
+                    <Route path="budget" element={<BudgetPage />} />
+                    <Route path="investments" element={<InvestmentsPage />} />
+                    <Route path="transactions" element={<TransactionsPage />} />
+                    <Route path="*" element={<Navigate to="/home" replace />} />
+                  </Routes>
                 </BillsProvider>
               </InvestmentProvider>
             </BudgetProvider>
@@ -76,7 +93,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/home" element={<AppContent />} />
+          <Route path="/home/*" element={<AppContent />} />
           <Route path="/app" element={<Navigate to="/home" replace />} />
           <Route path="/donations" element={<Donations />} />
           <Route path="/feedback" element={<FeatureRequest />} />
