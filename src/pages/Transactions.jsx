@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
@@ -9,7 +8,6 @@ import TransactionList from '../components/TransactionList';
 import { XMarkIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 
 export default function TransactionsPage() {
-  const navigate = useNavigate();
   const { t, language, categories } = useSettings();
   const { ownerId } = useAccess();
   const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
@@ -145,20 +143,10 @@ export default function TransactionsPage() {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/home')}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-                {t('transactionList.title')}
-              </h1>
-            </div>
+          <div className="flex items-center h-14 sm:h-16">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
+              {t('transactionList.title')}
+            </h1>
           </div>
         </div>
       </div>
@@ -183,7 +171,7 @@ export default function TransactionsPage() {
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-semibold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-rose-500 cursor-pointer text-center capitalize"
+                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-semibold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize"
               >
                 {availableMonths.map(month => (
                   <option key={month} value={month} className="capitalize">
@@ -208,7 +196,7 @@ export default function TransactionsPage() {
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
                 showFilters || activeFiltersCount > 0
-                  ? 'bg-rose-500 text-white'
+                  ? 'bg-violet-500 text-white'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
@@ -216,7 +204,7 @@ export default function TransactionsPage() {
               <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
               {activeFiltersCount > 0 && (
                 <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                  showFilters ? 'bg-white/20' : 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
+                  showFilters ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400'
                 }`}>
                   {activeFiltersCount}
                 </span>
@@ -266,7 +254,7 @@ export default function TransactionsPage() {
                 <select
                   value={selectedBankFilter}
                   onChange={(e) => setSelectedBankFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'}</option>
                   <option value="cash">{language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'}</option>
@@ -287,9 +275,9 @@ export default function TransactionsPage() {
                   <select
                     value={selectedCategoryFilter}
                     onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent ${
+                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
                       selectedCategoryFilter !== 'all'
-                        ? 'bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+                        ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300'
                         : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
                     }`}
                   >
@@ -301,7 +289,7 @@ export default function TransactionsPage() {
                   {selectedCategoryFilter !== 'all' && (
                     <button
                       onClick={() => setSelectedCategoryFilter('all')}
-                      className="p-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg"
+                      className="p-2.5 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg"
                     >
                       <XMarkIcon className="w-5 h-5" />
                     </button>
@@ -317,7 +305,7 @@ export default function TransactionsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
                   <option value="description">{language === 'pt' ? 'Descrição' : 'Description'}</option>
@@ -334,7 +322,7 @@ export default function TransactionsPage() {
                 <select
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
                   <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
@@ -349,7 +337,7 @@ export default function TransactionsPage() {
                   setSelectedBankFilter('all');
                   setSelectedCategoryFilter('all');
                 }}
-                className="w-full py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                className="w-full py-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
               >
                 {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
               </button>

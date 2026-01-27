@@ -65,8 +65,8 @@ export default {
   // Balance Summary
   balance: {
     totalBalance: 'Saldo Total',
-    income: 'Receitas',
-    expenses: 'Despesas',
+    income: 'Entrada',
+    expenses: 'Saída',
     thisMonth: 'este mês',
   },
 
@@ -275,6 +275,7 @@ export default {
     configure: 'Configurar',
     // 50/30/20 Rule
     rule: 'Regra 50/30/20',
+    planningTitle: 'Planejamento',
     needs: 'Necessidades',
     wants: 'Desejos',
     savings: 'Poupança',
@@ -368,6 +369,33 @@ export default {
       monthly: 'Mensal',
       total: 'Total',
     },
+    // Withdrawal
+    withdraw: 'Resgatar',
+    withdrawAmount: 'Valor do Resgate',
+    withdrawDate: 'Data do Resgate',
+    fullWithdrawal: 'Resgate Total',
+    confirmWithdraw: 'Confirmar Resgate',
+    contributeToGoal: 'Contribuir para Meta (opcional)',
+    noGoal: 'Nenhuma meta',
+    withdrawSuccess: 'Resgate realizado com sucesso',
+  },
+
+  // Sidebar
+  sidebar: {
+    dashboard: 'Painel',
+    planning: 'Planejamento',
+    expenses: 'Despesas',
+    income: 'Receitas',
+    goals: 'Metas',
+    bills: 'Contas',
+    cards: 'Cartões',
+    investments: 'Investimentos',
+    help: 'Ajuda',
+    settings: 'Configurações',
+    darkMode: 'Modo escuro',
+    logout: 'Sair',
+    collapse: 'Recolher',
+    expand: 'Expandir',
   },
 
   // PWA

@@ -208,17 +208,9 @@ export default function CardsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Page Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center h-14">
-            <button
-              onClick={handleClose}
-              className="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-14 sm:h-16">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
               {view === 'list' && (language === 'pt' ? 'Meus Bancos' : 'My Banks')}
               {view === 'form' && (editingBank
                 ? (language === 'pt' ? 'Editar Banco' : 'Edit Bank')
@@ -242,7 +234,7 @@ export default function CardsPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-lg mx-auto p-4 pb-24">
+      <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8 pb-24">
         {/* List View */}
         {view === 'list' && (
           <div className="space-y-3">

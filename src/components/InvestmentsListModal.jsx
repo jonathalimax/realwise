@@ -14,7 +14,8 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
     getTotalCurrentValue,
     getTotalGrowth,
     getInvestmentType,
-    getDaysHeld
+    getDaysHeld,
+    withdrawFromInvestment
   } = useInvestments();
   const { formatCurrency, t, language } = useSettings();
 
@@ -23,6 +24,8 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedInvestment, setSelectedInvestment] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [investmentToWithdraw, setInvestmentToWithdraw] = useState(null);
 
   if (!isOpen) return null;
 
@@ -34,6 +37,17 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
   const handleCloseEdit = () => {
     setShowEditModal(false);
     setSelectedInvestment(null);
+  };
+
+  const handleOpenWithdraw = (e, investment) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    setInvestmentToWithdraw(investment);
+    setShowWithdrawModal(true);
+  };
+
+  const handleCloseWithdraw = () => {
+    setShowWithdrawModal(false);
+    setInvestmentToWithdraw(null);
   };
 
   // Filter investments
@@ -100,48 +114,66 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
     };
 
     return (
-      <button
-        onClick={() => handleInvestmentClick(investment)}
-        className="w-full bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer text-left"
-      >
-        <div className="flex items-start gap-2 sm:gap-3">
-          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl flex-shrink-0
-            ${investment.type === 'fixed_income' ? 'bg-blue-100 dark:bg-blue-900/40' : ''}
-            ${investment.type === 'stocks' ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}
-            ${investment.type === 'crypto' ? 'bg-orange-100 dark:bg-orange-900/40' : ''}
-            ${investment.type === 'funds' ? 'bg-purple-100 dark:bg-purple-900/40' : ''}
-            ${investment.type === 'real_estate' ? 'bg-amber-100 dark:bg-amber-900/40' : ''}
-          `}>
-            {typeInfo.icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate flex-1">
-                {investment.name}
-              </h3>
-              <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap flex-shrink-0">
-                {formatCurrency(currentValue)}
-              </span>
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all">
+        <button
+          onClick={() => handleInvestmentClick(investment)}
+          className="w-full text-left"
+        >
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl flex-shrink-0
+              ${investment.type === 'fixed_income' ? 'bg-blue-100 dark:bg-blue-900/40' : ''}
+              ${investment.type === 'stocks' ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}
+              ${investment.type === 'crypto' ? 'bg-orange-100 dark:bg-orange-900/40' : ''}
+              ${investment.type === 'funds' ? 'bg-purple-100 dark:bg-purple-900/40' : ''}
+              ${investment.type === 'real_estate' ? 'bg-amber-100 dark:bg-amber-900/40' : ''}
+            `}>
+              {typeInfo.icon}
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 sm:mt-1">
-              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
-                {t(`investments.types.${investment.type}`)} • {daysHeld}d
-              </span>
-              <span className={`text-xs sm:text-sm font-medium whitespace-nowrap ${growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {growth >= 0 ? '+' : ''}{formatCurrency(growth)} ({growthPercent >= 0 ? '+' : ''}{growthPercent.toFixed(2)}%)
-              </span>
-            </div>
-            {investment.expectedReturn > 0 && (
-              <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-1">
-                {investment.returnType === 'cdi' && `${(investment.expectedReturn * 100).toFixed(0)}% CDI`}
-                {investment.returnType === 'annual' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.a.' : 'p.a.'}`}
-                {investment.returnType === 'monthly' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.m.' : 'p.m.'}`}
-                {investment.returnType === 'total' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'total' : 'total'}`}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate flex-1">
+                  {investment.name}
+                </h3>
+                <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap flex-shrink-0">
+                  {formatCurrency(currentValue)}
+                </span>
               </div>
-            )}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 sm:mt-1">
+                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {t(`investments.types.${investment.type}`)} • {daysHeld}d
+                </span>
+                <span className={`text-xs sm:text-sm font-medium whitespace-nowrap ${growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {growth >= 0 ? '+' : ''}{formatCurrency(growth)} ({growthPercent >= 0 ? '+' : ''}{growthPercent.toFixed(2)}%)
+                </span>
+              </div>
+              {investment.expectedReturn > 0 && (
+                <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  {investment.returnType === 'cdi' && `${(investment.expectedReturn * 100).toFixed(0)}% CDI`}
+                  {investment.returnType === 'annual' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.a.' : 'p.a.'}`}
+                  {investment.returnType === 'monthly' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.m.' : 'p.m.'}`}
+                  {investment.returnType === 'total' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'total' : 'total'}`}
+                </div>
+              )}
+            </div>
           </div>
+        </button>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+          <button
+            onClick={(e) => handleOpenWithdraw(e, investment)}
+            className="flex-1 py-2 bg-emerald-500 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-600 transition"
+          >
+            {t('investments.withdraw')}
+          </button>
+          <button
+            onClick={() => handleInvestmentClick(investment)}
+            className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+          >
+            {t('common.edit')}
+          </button>
         </div>
-      </button>
+      </div>
     );
   };
 
@@ -287,6 +319,16 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
           onClose={handleCloseEdit}
           initialView="form"
           editingInvestment={selectedInvestment}
+        />
+      )}
+
+      {/* Investment Withdraw Modal */}
+      {showWithdrawModal && investmentToWithdraw && (
+        <InvestmentModal
+          isOpen={showWithdrawModal}
+          onClose={handleCloseWithdraw}
+          initialView="withdraw"
+          editingInvestment={investmentToWithdraw}
         />
       )}
     </div>

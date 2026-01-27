@@ -275,6 +275,7 @@ export default {
     configure: 'Configure',
     // 50/30/20 Rule
     rule: '50/30/20 Rule',
+    planningTitle: 'Planning',
     needs: 'Needs',
     wants: 'Wants',
     savings: 'Savings',
@@ -368,6 +369,33 @@ export default {
       monthly: 'Monthly',
       total: 'Total',
     },
+    // Withdrawal
+    withdraw: 'Withdraw',
+    withdrawAmount: 'Withdrawal Amount',
+    withdrawDate: 'Withdrawal Date',
+    fullWithdrawal: 'Full Withdrawal',
+    confirmWithdraw: 'Confirm Withdrawal',
+    contributeToGoal: 'Contribute to Goal (optional)',
+    noGoal: 'No goal',
+    withdrawSuccess: 'Withdrawal successful',
+  },
+
+  // Sidebar
+  sidebar: {
+    dashboard: 'Dashboard',
+    planning: 'Planning',
+    expenses: 'Expenses',
+    income: 'Income',
+    goals: 'Goals',
+    bills: 'Bills',
+    cards: 'Cards',
+    investments: 'Investments',
+    help: 'Help',
+    settings: 'Settings',
+    darkMode: 'Dark mode',
+    logout: 'Logout',
+    collapse: 'Collapse',
+    expand: 'Expand',
   },
 
   // PWA

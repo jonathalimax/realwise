@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
 import { OWNER_EMAIL } from '../contexts/AccessContext';
@@ -7,7 +6,6 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import InstallPWAButton from '../components/ui/InstallPWAButton';
 
 export default function SettingsPage() {
-  const navigate = useNavigate();
   const {
     currency,
     updateCurrency,
@@ -271,25 +269,13 @@ export default function SettingsPage() {
     );
   };
 
-  const handleClose = () => {
-    navigate(-1);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Page Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center h-14">
-            <button
-              onClick={handleClose}
-              className="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-14 sm:h-16">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
               {t('settings.title')}
             </h1>
           </div>
@@ -297,8 +283,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="sticky top-14 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-4 flex">
+      <div className="sticky top-14 sm:top-16 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex">
           <button
             onClick={() => setActiveTab('general')}
             className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
@@ -333,7 +319,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-lg mx-auto p-4 pb-24">
+      <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8 pb-24">
         {/* General Tab */}
         {activeTab === 'general' && (
           <div className="space-y-6">

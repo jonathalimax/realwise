@@ -5,7 +5,7 @@ import { useAccess } from '../contexts/AccessContext';
 import BillModal from './BillModal';
 import { BellIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
-export default function BillsList({ compact = false, selectedMonth }) {
+export default function BillsList({ compact = false, selectedMonth, statusFilter = 'all' }) {
   const { bills, loading, markBillAsPaid, getUpcomingBills, getOverdueBills } = useBills();
   const { language } = useSettings();
   const { canWrite } = useAccess();

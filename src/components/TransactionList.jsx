@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
+import { useCards } from '../contexts/CardsContext';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 
@@ -14,6 +15,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
 
   const { formatCurrency, t, language } = useSettings();
   const { canWrite } = useAccess();
+  const { getBankInfo } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -244,6 +246,23 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                     )}
                   </div>
                   <div className={`flex items-center gap-1.5 text-gray-500 dark:text-gray-400 ${compact ? 'text-xs' : 'text-xs sm:text-sm'}`}>
+                    {/* Bank icon */}
+                    {transaction.bankId ? (
+                      <span
+                        className="flex-shrink-0"
+                        title={getBankInfo(transaction.bankId)?.name || ''}
+                      >
+                        {getBankInfo(transaction.bankId)?.icon || '🏦'}
+                      </span>
+                    ) : (
+                      <span
+                        className="flex-shrink-0 text-gray-400"
+                        title={language === 'pt' ? 'Dinheiro' : 'Cash'}
+                      >
+                        💵
+                      </span>
+                    )}
+                    <span className="text-gray-300 dark:text-gray-600">•</span>
                     <span className="truncate" title={transaction.category}>{transaction.category}</span>
                     <span className="text-gray-300 dark:text-gray-600">•</span>
                     <span className="flex-shrink-0">{new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>

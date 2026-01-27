@@ -10,6 +10,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   serverTimestamp
 } from 'firebase/firestore';
 import { useAccess } from './AccessContext';
@@ -32,7 +33,7 @@ export const INVESTMENT_COLORS = [
   { name: 'orange', bg: 'bg-orange-500', light: 'bg-orange-100 dark:bg-orange-900/40', text: 'text-orange-600 dark:text-orange-400' },
   { name: 'purple', bg: 'bg-purple-500', light: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-600 dark:text-purple-400' },
   { name: 'amber', bg: 'bg-amber-500', light: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-600 dark:text-amber-400' },
-  { name: 'rose', bg: 'bg-rose-500', light: 'bg-rose-100 dark:bg-rose-900/40', text: 'text-rose-600 dark:text-rose-400' },
+  { name: 'violet', bg: 'bg-violet-500', light: 'bg-violet-100 dark:bg-violet-900/40', text: 'text-violet-600 dark:text-violet-400' },
   { name: 'teal', bg: 'bg-teal-500', light: 'bg-teal-100 dark:bg-teal-900/40', text: 'text-teal-600 dark:text-teal-400' },
   { name: 'indigo', bg: 'bg-indigo-500', light: 'bg-indigo-100 dark:bg-indigo-900/40', text: 'text-indigo-600 dark:text-indigo-400' },
 ];
@@ -398,6 +399,85 @@ export function InvestmentProvider({ children }) {
     }
   };
 
+  // Withdraw from investment
+  const withdrawFromInvestment = async (investmentId, amount, options = {}) => {
+    const { goalId = null, createTransaction = true, withdrawDate = null } = options;
+
+    if (!auth.currentUser) {
+      console.error('No authenticated user');
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    try {
+      // Find investment
+      const investment = investments.find(inv => inv.id === investmentId);
+      if (!investment) {
+        return { success: false, error: 'Investment not found' };
+      }
+
+      const currentValue = getCurrentValue(investment);
+
+      if (amount <= 0 || amount > currentValue) {
+        return { success: false, error: 'Invalid withdrawal amount' };
+      }
+
+      const isFullWithdrawal = amount >= currentValue;
+
+      // Use provided withdraw date or default to today
+      const transactionDate = withdrawDate
+        ? new Date(withdrawDate + 'T12:00:00')
+        : new Date();
+
+      // Update investment
+      const updateData = {
+        currentAmount: isFullWithdrawal ? 0 : currentValue - amount,
+        totalWithdrawn: (investment.totalWithdrawn || 0) + amount,
+        lastWithdrawDate: transactionDate.toISOString(),
+        updatedAt: serverTimestamp()
+      };
+
+      if (isFullWithdrawal) {
+        updateData.status = 'closed';
+      }
+
+      await updateDoc(doc(db, 'investments', investmentId), updateData);
+
+      // Create income transaction
+      if (createTransaction && amount > 0) {
+        await addDoc(collection(db, 'transactions'), {
+          userId: ownerId,
+          type: 'income',
+          description: `Resgate: ${investment.name}`,
+          amount,
+          category: 'Investimentos',
+          date: transactionDate.toISOString(),
+          investmentId,
+          isWithdrawal: true,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // Update goal if specified
+      if (goalId) {
+        const goalRef = doc(db, 'goals', goalId);
+        const goalSnap = await getDoc(goalRef);
+        if (goalSnap.exists()) {
+          const goalData = goalSnap.data();
+          const newGoalAmount = (goalData.currentAmount || 0) + amount;
+          await updateDoc(goalRef, {
+            currentAmount: newGoalAmount,
+            completed: newGoalAmount >= goalData.targetAmount
+          });
+        }
+      }
+
+      return { success: true, isFullWithdrawal };
+    } catch (error) {
+      console.error('Error withdrawing from investment:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Get investment color
   const getInvestmentColor = (colorName) => {
     return INVESTMENT_COLORS.find(c => c.name === colorName) || INVESTMENT_COLORS[0];
@@ -425,6 +505,7 @@ export function InvestmentProvider({ children }) {
       addInvestment,
       updateInvestment,
       deleteInvestment,
+      withdrawFromInvestment,
       calculateProjectedValue,
       getCurrentValue,
       getGrowthPercentage,
@@ -459,6 +540,7 @@ export const useInvestments = () => {
       addInvestment: async () => null,
       updateInvestment: async () => false,
       deleteInvestment: async () => false,
+      withdrawFromInvestment: async () => ({ success: false }),
       calculateProjectedValue: () => 0,
       getCurrentValue: () => 0,
       getGrowthPercentage: () => 0,

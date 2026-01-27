@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -6,7 +5,6 @@ import { FunnelIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import InvestmentModal from '../components/InvestmentModal';
 
 export default function InvestmentsPage() {
-  const navigate = useNavigate();
   const {
     investments,
     loading,
@@ -25,10 +23,6 @@ export default function InvestmentsPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedInvestment, setSelectedInvestment] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-
-  const handleClose = () => {
-    navigate('/home');
-  };
 
   const handleInvestmentClick = (investment) => {
     setSelectedInvestment(investment);
@@ -144,17 +138,9 @@ export default function InvestmentsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Page Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center h-14">
-            <button
-              onClick={handleClose}
-              className="p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="ml-2 text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-14 sm:h-16">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
               {language === 'pt' ? 'Investimentos' : 'Investments'}
             </h1>
           </div>
@@ -162,7 +148,7 @@ export default function InvestmentsPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-lg mx-auto pb-24">
+      <div className="max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8">
         {/* Summary - Very compact on mobile, standard on desktop */}
         <div className="p-2 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
           <div className="grid grid-cols-4 gap-1.5 sm:gap-4">

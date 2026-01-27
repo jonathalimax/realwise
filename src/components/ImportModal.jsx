@@ -184,9 +184,22 @@ export default function ImportModal({ isOpen, onClose }) {
   };
 
   const updateTransactionCategory = (index, category) => {
-    setTransactions(prev => prev.map((t, i) =>
-      i === index ? { ...t, category, autoCategory: false } : t
-    ));
+    const transaction = transactions[index];
+
+    // If this is an installment, update all in the same group
+    if (transaction.isInstallment && transaction.installmentGroupId) {
+      setTransactions(prev => prev.map(t => {
+        if (t.installmentGroupId === transaction.installmentGroupId) {
+          return { ...t, category, autoCategory: false };
+        }
+        return t;
+      }));
+    } else {
+      // Single transaction update
+      setTransactions(prev => prev.map((t, i) =>
+        i === index ? { ...t, category, autoCategory: false } : t
+      ));
+    }
   };
 
   const removeTransaction = (index) => {
@@ -442,8 +455,12 @@ export default function ImportModal({ isOpen, onClose }) {
                     <select
                       value={trans.category}
                       onChange={(e) => updateTransactionCategory(i, e.target.value)}
+                      title={trans.isInstallment && trans.installmentGroupId
+                        ? (language === 'pt' ? 'Aplica a todas as parcelas' : 'Applies to all installments')
+                        : undefined}
                       className={`text-xs pl-2 pr-6 py-1 rounded-lg border-0 focus:ring-0
-                        ${trans.autoCategory ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200'}`}
+                        ${trans.autoCategory ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200'}
+                        ${trans.isInstallment && trans.installmentGroupId ? 'ring-1 ring-blue-300 dark:ring-blue-700' : ''}`}
                     >
                       {categories[trans.type].map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
