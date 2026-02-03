@@ -61,42 +61,42 @@ export default function Dashboard() {
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
   const { t, language, darkMode, toggleDarkMode, categories, tutorialCompleted, loading: settingsLoading } = useSettings();
   const { canWrite, ownerId } = useAccess();
-  const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
+  const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
   const { bills, loading: billsLoading } = useBills();
 
   // Navigation handlers for mobile
   const handleOpenSettings = () => {
-    if (isMobile) navigate('/home/settings');
+    if (isMobile) navigate('/settings');
     else setShowSettings(true);
   };
 
   const handleOpenGoals = () => {
-    if (isMobile) navigate('/home/goals');
+    if (isMobile) navigate('/goals');
     else setShowGoals(true);
   };
 
   const handleOpenCards = () => {
-    if (isMobile) navigate('/home/cards');
+    if (isMobile) navigate('/cards');
     else setShowCards(true);
   };
 
   const handleOpenBudget = () => {
-    if (isMobile) navigate('/home/budget');
+    if (isMobile) navigate('/budget');
     else setShowBudget(true);
   };
 
   const handleOpenInvestments = () => {
-    if (isMobile) navigate('/home/investments');
+    if (isMobile) navigate('/investments');
     else setShowInvestments(true);
   };
 
   const handleOpenInvestmentsList = () => {
-    if (isMobile) navigate('/home/investments');
+    if (isMobile) navigate('/investments');
     else setShowInvestmentsList(true);
   };
 
   const handleOpenTransactions = () => {
-    if (isMobile) navigate('/home/transactions');
+    if (isMobile) navigate('/transactions');
     else setShowFullTransactions(true);
   };
 
@@ -134,6 +134,7 @@ export default function Dashboard() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -155,14 +156,18 @@ export default function Dashboard() {
     if (!selectedMonth) return transactions;
 
     return transactions.filter(t => {
-      // Filter by bank (using bankId directly on transaction)
+      // Filter by bank - supports both new (unique doc ID) and old (bank type) formats
       if (selectedBankFilter !== 'all') {
         if (selectedBankFilter === 'cash') {
           // Show only transactions without bank
           if (t.bankId) return false;
         } else {
-          // Check if transaction's bank matches filter
-          if (t.bankId !== selectedBankFilter) return false;
+          // Support both new format (unique document ID) and old format (bank type ID)
+          const matchesDirectly = t.bankId === selectedBankFilter;
+          const transactionUserBank = findUserBank(t.bankId);
+          const matchesViaLookup = transactionUserBank && transactionUserBank.id === selectedBankFilter;
+
+          if (!matchesDirectly && !matchesViaLookup) return false;
         }
       }
 
@@ -188,7 +193,7 @@ export default function Dashboard() {
         return paymentKey === selectedMonth;
       }
     });
-  }, [transactions, selectedMonth, viewMode, selectedBankFilter, getPaymentMonthKey]);
+  }, [transactions, selectedMonth, viewMode, selectedBankFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
     if (selectedCategoryFilter === 'all') {
@@ -216,7 +221,13 @@ export default function Dashboard() {
   }, [categories]);
 
   const handleCategoryClick = (category) => {
-    setSelectedCategoryFilter(prev => prev === category ? 'all' : category);
+    if (isMobile) {
+      // On mobile, navigate to transactions page with category filter
+      navigate(`/transactions?category=${encodeURIComponent(category)}&month=${selectedMonth}`);
+    } else {
+      // On desktop, filter in place
+      setSelectedCategoryFilter(prev => prev === category ? 'all' : category);
+    }
   };
 
   const getMonthLabel = (monthKey) => {
@@ -248,10 +259,18 @@ export default function Dashboard() {
     selectedCategoryFilter !== 'all'
   ].filter(Boolean).length;
 
-  // Get available banks (user's registered banks)
+  // Get available banks (user's registered banks) with unique IDs for filtering
   const availableBanks = useMemo(() => {
-    return userBanks.map(ub => getBankInfo(ub.bankId));
-  }, [userBanks, getBankInfo]);
+    return userBanks.map(ub => {
+      const bankInfo = getBankInfo(ub.bankId);
+      return {
+        id: ub.id, // Unique document ID for filtering
+        bankId: ub.bankId,
+        name: getBankDisplayName(ub),
+        icon: bankInfo.icon
+      };
+    });
+  }, [userBanks, getBankInfo, getBankDisplayName]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">

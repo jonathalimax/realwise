@@ -12,6 +12,7 @@ import { BudgetProvider } from './contexts/BudgetContext';
 import { InvestmentProvider } from './contexts/InvestmentContext';
 import { BillsProvider } from './contexts/BillsContext';
 import { PWAInstallProvider } from './contexts/PWAInstallContext';
+import { MonthProvider } from './contexts/MonthContext';
 
 // Landing/Marketing pages
 import Home from './pages/Home';
@@ -31,6 +32,7 @@ import CardsPage from './pages/Cards';
 import BudgetPage from './pages/Budget';
 import PlanningPage from './pages/Planning';
 import InvestmentsPage from './pages/Investments';
+import InvestmentForm from './pages/InvestmentForm';
 import TransactionsPage from './pages/Transactions';
 import ExpensesPage from './pages/Expenses';
 import IncomePage from './pages/Income';
@@ -42,14 +44,15 @@ function AuthenticatedApp() {
   return (
     <AccessProvider>
       <SettingsProvider>
-        <GoalsProvider>
-          <CardsProvider>
-            <BudgetProvider>
-              <InvestmentProvider>
-                <BillsProvider>
-                  <Routes>
+        <MonthProvider>
+          <GoalsProvider>
+            <CardsProvider>
+              <BudgetProvider>
+                <InvestmentProvider>
+                  <BillsProvider>
+                    <Routes>
                     <Route element={<Layout />}>
-                      <Route index element={<DashboardPage />} />
+                      <Route index element={<Navigate to="/dashboard" replace />} />
                       <Route path="dashboard" element={<DashboardPage />} />
                       <Route path="planning" element={<PlanningPage />} />
                       <Route path="expenses" element={<ExpensesPage />} />
@@ -58,21 +61,23 @@ function AuthenticatedApp() {
                       <Route path="bills" element={<BillsPage />} />
                       <Route path="cards" element={<CardsPage />} />
                       <Route path="investments" element={<InvestmentsPage />} />
+                      <Route path="investments/new" element={<InvestmentForm />} />
+                      <Route path="investments/:id/edit" element={<InvestmentForm />} />
+                      <Route path="investments/:id/withdraw" element={<InvestmentForm />} />
                       <Route path="transactions" element={<TransactionsPage />} />
                       <Route path="settings" element={<SettingsPage />} />
                       <Route path="budget" element={<BudgetPage />} />
                       <Route path="help" element={<HelpPage />} />
                       <Route path="whatsapp" element={<WhatsAppPage />} />
                     </Route>
-                    {/* Redirect old /home paths */}
-                    <Route path="home/*" element={<Navigate to="/dashboard" replace />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                  </Routes>
-                </BillsProvider>
-              </InvestmentProvider>
-            </BudgetProvider>
-          </CardsProvider>
-        </GoalsProvider>
+                    </Routes>
+                  </BillsProvider>
+                </InvestmentProvider>
+              </BudgetProvider>
+            </CardsProvider>
+          </GoalsProvider>
+        </MonthProvider>
       </SettingsProvider>
     </AccessProvider>
   );
@@ -104,7 +109,8 @@ function AppRouter() {
 
   return (
     <Routes>
-      {/* Public routes */}
+      {/* Public routes - Landing page and related pages (always accessible) */}
+      <Route path="/" element={<Home />} />
       <Route path="/selling" element={<Home />} />
       <Route path="/donations" element={<Donations />} />
       <Route path="/feedback" element={<FeatureRequest />} />
@@ -115,8 +121,14 @@ function AppRouter() {
       <Route path="/purchase/failure" element={<PurchaseFailure />} />
       <Route path="/purchase/pending" element={<PurchaseSuccess />} />
 
-      {/* Auth or App routes */}
-      <Route path="/*" element={user ? <AuthenticatedApp /> : <Auth />} />
+      {/* Auth route - redirect to dashboard if already logged in */}
+      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
+
+      {/* Authenticated App routes */}
+      {user && <Route path="/*" element={<AuthenticatedApp />} />}
+
+      {/* Fallback - redirect to login if not authenticated */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

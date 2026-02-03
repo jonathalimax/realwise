@@ -1,14 +1,22 @@
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useInvestments } from '../contexts/InvestmentContext';
 
 export default function GoalProgress({ onManageGoals }) {
-  const { goals, loading, getGoalProgress, getGoalColor } = useGoals();
+  const { goals, loading, getGoalColor, getGoalProgress } = useGoals();
   const { t } = useSettings();
+  const { getGoalInvestmentValue } = useInvestments();
+
+  // Calculate progress including investments using the context function
+  const calculateProgress = (goal) => {
+    const investmentValue = getGoalInvestmentValue(goal.id) || 0;
+    return getGoalProgress(goal, investmentValue);
+  };
 
   // Show only active (non-completed) goals, sorted by progress
   const activeGoals = goals
     .filter(g => !g.completed)
-    .sort((a, b) => getGoalProgress(b) - getGoalProgress(a))
+    .sort((a, b) => calculateProgress(b) - calculateProgress(a))
     .slice(0, 4); // Show max 4 on dashboard
 
   const completedCount = goals.filter(g => g.completed).length;
@@ -49,7 +57,7 @@ export default function GoalProgress({ onManageGoals }) {
           <div className="space-y-3">
             {activeGoals.map((goal) => {
               const color = getGoalColor(goal.color);
-              const progress = getGoalProgress(goal);
+              const progress = calculateProgress(goal);
               const icon = GOAL_ICONS[goal.icon] || GOAL_ICONS.other;
 
               return (

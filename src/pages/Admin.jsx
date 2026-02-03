@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -77,6 +78,7 @@ function TranslationField({ label, ptValue, enValue, onPtChange, onEnChange, mul
 }
 
 export default function Admin() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -117,6 +119,12 @@ export default function Admin() {
     ctaClicks: 0,
     purchases: 0
   });
+
+  // Access control state
+  const [accessEmails, setAccessEmails] = useState([]);
+  const [newAccessEmail, setNewAccessEmail] = useState('');
+  const [newAccessRole, setNewAccessRole] = useState('read');
+  const [loadingAccess, setLoadingAccess] = useState(false);
 
   // All content translations
   const [content, setContent] = useState({
@@ -293,6 +301,75 @@ export default function Admin() {
     }
   };
 
+  const loadAccessControl = async () => {
+    setLoadingAccess(true);
+    try {
+      const accessDoc = await getDoc(doc(db, 'access', 'allowed_emails'));
+      if (accessDoc.exists()) {
+        const data = accessDoc.data();
+        // Handle both old format (array of strings) and new format (array of objects)
+        const emails = data.emails || [];
+        if (emails.length > 0 && typeof emails[0] === 'string') {
+          // Convert old format to new format
+          setAccessEmails(emails.map(email => ({ email, role: 'write' })));
+        } else {
+          setAccessEmails(emails);
+        }
+      } else {
+        setAccessEmails([]);
+      }
+    } catch (error) {
+      console.error('Error loading access control:', error);
+      showMessage('error', 'Erro ao carregar controle de acesso');
+    } finally {
+      setLoadingAccess(false);
+    }
+  };
+
+  const saveAccessControl = async (emails) => {
+    if (!auth.currentUser) return;
+    try {
+      await setDoc(doc(db, 'access', 'allowed_emails'), {
+        emails: emails,
+        ownerId: auth.currentUser.uid, // Always set owner's UID when saving
+        updatedAt: serverTimestamp()
+      });
+      showMessage('success', 'Acesso atualizado!');
+    } catch (error) {
+      console.error('Error saving access control:', error);
+      showMessage('error', 'Erro ao salvar');
+    }
+  };
+
+  const addAccessEmail = async () => {
+    if (!newAccessEmail || !newAccessEmail.includes('@')) return;
+    const emailLower = newAccessEmail.toLowerCase().trim();
+    // Check if already exists
+    if (accessEmails.some(e => e.email === emailLower)) {
+      showMessage('error', 'Email já adicionado');
+      return;
+    }
+    const updatedEmails = [...accessEmails, { email: emailLower, role: newAccessRole }];
+    setAccessEmails(updatedEmails);
+    await saveAccessControl(updatedEmails);
+    setNewAccessEmail('');
+    setNewAccessRole('read');
+  };
+
+  const removeAccessEmail = async (emailToRemove) => {
+    const updatedEmails = accessEmails.filter(e => e.email !== emailToRemove);
+    setAccessEmails(updatedEmails);
+    await saveAccessControl(updatedEmails);
+  };
+
+  const updateAccessRole = async (email, newRole) => {
+    const updatedEmails = accessEmails.map(e =>
+      e.email === email ? { ...e, role: newRole } : e
+    );
+    setAccessEmails(updatedEmails);
+    await saveAccessControl(updatedEmails);
+  };
+
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -310,6 +387,7 @@ export default function Admin() {
 
   const handleLogout = async () => {
     await signOut(auth);
+    navigate('/login');
   };
 
   const savePricing = async () => {
@@ -481,6 +559,9 @@ export default function Admin() {
           if (value === 'analytics' && analyticsData.length === 0 && !loadingAnalytics) {
             loadAnalytics();
           }
+          if (value === 'access' && accessEmails.length === 0 && !loadingAccess) {
+            loadAccessControl();
+          }
         }}>
           <TabsList className="flex flex-wrap justify-center gap-2 h-auto p-2 bg-slate-100 dark:bg-slate-900 rounded-2xl">
             <TabsTrigger value="content" className="px-4">
@@ -498,6 +579,10 @@ export default function Admin() {
             <TabsTrigger value="pix" className="px-4">
               <CreditCard className="w-4 h-4 mr-2" />
               PIX
+            </TabsTrigger>
+            <TabsTrigger value="access" className="px-4">
+              <Shield className="w-4 h-4 mr-2" />
+              Acesso
             </TabsTrigger>
             <TabsTrigger value="analytics" className="px-4">
               <BarChart3 className="w-4 h-4 mr-2" />
@@ -892,6 +977,125 @@ export default function Admin() {
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Salvar PIX
               </Button>
+            </div>
+          </TabsContent>
+
+          {/* Access Control Tab */}
+          <TabsContent value="access">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Controle de Acesso</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Gerencie quem pode ver seus dados financeiros
+                  </p>
+                </div>
+                <Button onClick={loadAccessControl} disabled={loadingAccess} variant="outline" size="sm">
+                  {loadingAccess ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                </Button>
+              </div>
+
+              {/* Owner Info */}
+              <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-emerald-800 dark:text-emerald-200">Proprietário (você)</p>
+                    <p className="text-sm text-emerald-600 dark:text-emerald-400">{user?.email}</p>
+                    <p className="text-xs text-emerald-500 dark:text-emerald-500 mt-1 font-mono">
+                      UID: {auth.currentUser?.uid}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add New User */}
+              <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                  Adicionar usuário com acesso compartilhado
+                </h3>
+                <div className="flex gap-3">
+                  <Input
+                    type="email"
+                    value={newAccessEmail}
+                    onChange={(e) => setNewAccessEmail(e.target.value)}
+                    placeholder="email@exemplo.com"
+                    className="flex-1 h-11 rounded-lg"
+                  />
+                  <select
+                    value={newAccessRole}
+                    onChange={(e) => setNewAccessRole(e.target.value)}
+                    className="h-11 px-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  >
+                    <option value="read">Leitura</option>
+                    <option value="write">Leitura/Escrita</option>
+                  </select>
+                  <Button onClick={addAccessEmail} className="h-11 px-6 rounded-lg">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  <strong>Leitura:</strong> Pode ver os dados mas não editar. <strong>Leitura/Escrita:</strong> Pode ver e editar os dados.
+                </p>
+              </div>
+
+              {/* Users List */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Usuários com acesso ({accessEmails.length})
+                </h3>
+
+                {loadingAccess ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                  </div>
+                ) : accessEmails.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>Nenhum usuário com acesso compartilhado</p>
+                  </div>
+                ) : (
+                  accessEmails.map((access) => (
+                    <div
+                      key={access.email}
+                      className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                          <span className="text-lg">👤</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white">{access.email}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {access.role === 'write' ? 'Pode ver e editar' : 'Somente leitura'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={access.role}
+                          onChange={(e) => updateAccessRole(access.email, e.target.value)}
+                          className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white"
+                        >
+                          <option value="read">Leitura</option>
+                          <option value="write">Leitura/Escrita</option>
+                        </select>
+                        <Button
+                          onClick={() => removeAccessEmail(access.email)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </TabsContent>
 

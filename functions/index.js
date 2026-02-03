@@ -122,8 +122,8 @@ const sendPurchaseNotification = async (purchaseData) => {
 };
 
 /**
- * Create a payment preference for PIX checkout
- * Called from the frontend to get a checkout URL
+ * Initialize payment - returns public key for Mercado Pago Bricks
+ * Called from the frontend to get the public key
  */
 exports.createPayment = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
@@ -133,84 +133,143 @@ exports.createPayment = functions.https.onRequest((req, res) => {
     }
 
     try {
-      const { email, name, price, couponCode } = req.body;
+      const { email, name, price, couponCode, contribution } = req.body;
 
       if (!email || !price) {
         res.status(400).json({ error: 'Email and price are required' });
         return;
       }
 
-      const client = getMercadoPagoClient();
-      const preference = new Preference(client);
-
-      // Get the base URL for redirects
-      const baseUrl = functions.config().app?.url || 'https://limasfinance.web.app';
-
-      const preferenceData = {
-        items: [
-          {
-            id: 'limas-finance-lifetime',
-            title: 'Limas Finance - Acesso Vitalício',
-            description: 'Acesso completo ao sistema de finanças pessoais',
-            quantity: 1,
-            currency_id: 'BRL',
-            unit_price: parseFloat(price),
-          },
-        ],
-        payer: {
-          email: email,
-          name: name || '',
-        },
-        payment_methods: {
-          // Only allow PIX
-          excluded_payment_types: [
-            { id: 'credit_card' },
-            { id: 'debit_card' },
-            { id: 'ticket' },
-            { id: 'atm' },
-          ],
-          installments: 1,
-        },
-        back_urls: {
-          success: `${baseUrl}/purchase/success`,
-          failure: `${baseUrl}/purchase/failure`,
-          pending: `${baseUrl}/purchase/pending`,
-        },
-        auto_return: 'approved',
-        external_reference: JSON.stringify({
-          email: email.toLowerCase(),
-          name: name || '',
-          couponCode: couponCode || null,
-          timestamp: Date.now(),
-        }),
-        notification_url: `${baseUrl}/api/webhook/mercadopago`,
-        statement_descriptor: 'LIMAS FINANCE',
-      };
-
-      const response = await preference.create({ body: preferenceData });
+      const publicKey = functions.config().mercadopago?.public_key;
+      if (!publicKey) {
+        throw new Error('Mercado Pago public key not configured');
+      }
 
       // Save pending payment to Firestore
       await db.collection('pending_payments').add({
         email: email.toLowerCase(),
         name: name || '',
         price: parseFloat(price),
+        contribution: parseFloat(contribution) || 0,
         couponCode: couponCode || null,
-        preferenceId: response.id,
         status: 'pending',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      res.json({
-        id: response.id,
-        init_point: response.init_point,
-        sandbox_init_point: response.sandbox_init_point,
-      });
+      res.json({ publicKey });
     } catch (error) {
-      console.error('Error creating payment:', error);
+      console.error('Error initializing payment:', error);
       res.status(500).json({ error: error.message });
     }
   });
 });
+
+/**
+ * Process payment - handles the actual payment from Mercado Pago Bricks
+ */
+exports.processPayment = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      const {
+        token,
+        issuer_id,
+        payment_method_id,
+        transaction_amount,
+        installments,
+        payer,
+        email,
+        name,
+        couponCode,
+        contribution
+      } = req.body;
+
+      const client = getMercadoPagoClient();
+      const payment = new Payment(client);
+
+      const paymentData = {
+        transaction_amount: parseFloat(transaction_amount),
+        token: token,
+        description: 'Limas Finance - Acesso Completo',
+        installments: parseInt(installments) || 1,
+        payment_method_id: payment_method_id,
+        issuer_id: issuer_id,
+        payer: {
+          email: payer?.email || email,
+          first_name: payer?.first_name || name?.split(' ')[0] || '',
+          last_name: payer?.last_name || name?.split(' ').slice(1).join(' ') || '',
+          identification: payer?.identification || undefined,
+        },
+        external_reference: JSON.stringify({
+          email: (payer?.email || email).toLowerCase(),
+          name: name || '',
+          couponCode: couponCode || null,
+          contribution: parseFloat(contribution) || 0,
+          timestamp: Date.now(),
+        }),
+        statement_descriptor: 'LIMAS FINANCE',
+      };
+
+      const response = await payment.create({ body: paymentData });
+
+      // Update pending payment status
+      const pendingQuery = await db.collection('pending_payments')
+        .where('email', '==', (payer?.email || email).toLowerCase())
+        .where('status', '==', 'pending')
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+
+      if (!pendingQuery.empty) {
+        await pendingQuery.docs[0].ref.update({
+          status: response.status,
+          paymentId: response.id,
+          statusDetail: response.status_detail,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      // If approved, grant access and send email
+      if (response.status === 'approved') {
+        await grantAccessAndNotify((payer?.email || email).toLowerCase(), name, couponCode);
+      }
+
+      res.json({
+        id: response.id,
+        status: response.status,
+        status_detail: response.status_detail,
+      });
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
+
+// Helper function to grant access and send notification
+async function grantAccessAndNotify(email, name, couponCode) {
+  try {
+    // Add to purchases collection
+    await db.collection('purchases').add({
+      email: email.toLowerCase(),
+      name: name || '',
+      couponCode: couponCode || null,
+      purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Send notification email (implementation depends on your email setup)
+    const transporter = getEmailTransporter();
+    if (transporter) {
+      // Send email notification logic here
+    }
+  } catch (error) {
+    console.error('Error granting access:', error);
+  }
+}
 
 /**
  * Webhook to receive Mercado Pago payment notifications

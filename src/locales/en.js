@@ -243,6 +243,23 @@ export default {
     sortByName: 'Name',
     sortByValue: 'Value',
     sortByCreated: 'Created date',
+    // Monthly Investment Summary
+    summary: {
+      title: 'Monthly Investment Needed',
+      totalMonthly: 'Total per month',
+      breakdown: 'Goal Breakdown',
+      remaining: 'Remaining',
+      monthlyRequired: 'Monthly required',
+      deadline: 'Deadline',
+      noDeadline: 'No deadline',
+      overdue: 'Overdue',
+      achieved: 'Achieved',
+      assumingMonths: 'Assuming {months} months',
+      needsNow: 'Full amount needed',
+      noActiveGoals: 'No active goals to track',
+      showDetails: 'Show details',
+      hideDetails: 'Hide details',
+    },
     // Goal icons
     icons: {
       dream: 'Dream',
@@ -272,6 +289,8 @@ export default {
     noBudget: 'No budget set',
     setBudgetHint: 'Set a budget to track your spending',
     autoDistribute: 'Auto-distribute (50/30/20)',
+    copyFromLastMonth: 'Copy from last month',
+    noPreviousMonthData: 'No data from previous month',
     configure: 'Configure',
     // 50/30/20 Rule
     rule: '50/30/20 Rule',

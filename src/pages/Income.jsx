@@ -3,6 +3,7 @@ import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
+import { useMonth } from '../contexts/MonthContext';
 import TransactionList from '../components/TransactionList';
 import TransactionModal from '../components/TransactionModal';
 import MonthSelector from '../components/MonthSelector';
@@ -11,13 +12,10 @@ import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react
 export default function IncomePage() {
   const { t, language, categories } = useSettings();
   const { ownerId, canWrite } = useAccess();
+  const { selectedMonth, setSelectedMonth } = useMonth();
 
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -256,12 +254,12 @@ export default function IncomePage() {
         )}
 
         {/* Transactions List */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white capitalize">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
             </span>
           </div>

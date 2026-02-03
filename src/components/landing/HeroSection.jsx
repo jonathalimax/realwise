@@ -1,12 +1,35 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Monitor, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Monitor, Smartphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/LanguageToggle';
 import { Link } from 'react-router-dom';
 
+const screenshots = [
+  { src: '/dashboard-overview.png', alt: 'Dashboard Overview' },
+  { src: '/dashboard-categories.png', alt: 'Spending by Category' },
+];
+
 export default function HeroSection() {
   const { t } = useLanguage();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Auto-rotate every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % screenshots.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev - 1 + screenshots.length) % screenshots.length);
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % screenshots.length);
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
       {/* Subtle gradient background */}
@@ -79,7 +102,7 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* App Preview - Using actual screenshot */}
+        {/* App Preview - Real Screenshots Carousel */}
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
@@ -98,17 +121,58 @@ export default function HeroSection() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="max-w-md mx-auto h-6 rounded-md bg-slate-700 flex items-center px-3">
-                    <span className="text-xs text-slate-400">limas-finance.web.app</span>
+                    <span className="text-xs text-slate-400">blimwallet.com</span>
                   </div>
                 </div>
               </div>
 
-              {/* Screenshot */}
-              <img
-                src="/screenshots/dashboard.png"
-                alt="Limas Finance Dashboard"
-                className="w-full"
-              />
+              {/* Screenshot carousel */}
+              <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentIndex}
+                    src={screenshots[currentIndex].src}
+                    alt={screenshots[currentIndex].alt}
+                    className="w-full h-full object-cover object-top"
+                    initial={{ opacity: 0, x: 100 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </AnimatePresence>
+
+                {/* Navigation arrows */}
+                <button
+                  onClick={goToPrevious}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors backdrop-blur-sm"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={goToNext}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors backdrop-blur-sm"
+                  aria-label="Next"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+
+                {/* Dots indicator */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {screenshots.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        index === currentIndex
+                          ? 'bg-white w-6'
+                          : 'bg-white/50 hover:bg-white/70'
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Floating elements */}

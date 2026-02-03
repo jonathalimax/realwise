@@ -3,14 +3,12 @@ import { useCards, BANKS } from '../contexts/CardsContext';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function CardsModal({ isOpen, onClose }) {
-  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, migrateCardIdToBankId, createBillsForExistingCreditCards } = useCards();
+  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, createBillsForExistingCreditCards } = useCards();
   const { t, language } = useSettings();
 
   const [view, setView] = useState('list'); // 'list', 'form'
   const [editingBank, setEditingBank] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [migrationStatus, setMigrationStatus] = useState(null);
-  const [migrating, setMigrating] = useState(false);
   const [billCreationStatus, setBillCreationStatus] = useState(null);
   const [creatingBills, setCreatingBills] = useState(false);
 
@@ -24,19 +22,6 @@ export default function CardsModal({ isOpen, onClose }) {
       setBillCreationStatus({ success: false, error: error.message, created: 0 });
     } finally {
       setCreatingBills(false);
-    }
-  };
-
-  const handleMigrate = async () => {
-    setMigrating(true);
-    setMigrationStatus(null);
-    try {
-      const result = await migrateCardIdToBankId();
-      setMigrationStatus(result);
-    } catch (error) {
-      setMigrationStatus({ success: false, error: error.message });
-    } finally {
-      setMigrating(false);
     }
   };
 
@@ -115,11 +100,40 @@ export default function CardsModal({ isOpen, onClose }) {
 
   const availableBanks = BANKS;
 
+  // Get display name with auto-numbering for duplicate bank types without custom names
+  const getDisplayNameWithNumber = (userBank) => {
+    const bankInfo = getBankInfo(userBank.bankId);
+
+    // If user has a custom card name, use it
+    if (userBank.cardName) {
+      return userBank.cardName;
+    }
+
+    // If it's "other" bank with custom name
+    if (userBank.bankId === 'other' && userBank.customBankName) {
+      return userBank.customBankName;
+    }
+
+    // Count how many banks of the same type exist without custom names
+    const sameBankTypeWithoutName = userBanks.filter(
+      b => b.bankId === userBank.bankId && !b.cardName
+    );
+
+    // If there's only one, just use the bank name
+    if (sameBankTypeWithoutName.length <= 1) {
+      return bankInfo.name;
+    }
+
+    // Otherwise, add a number based on creation order
+    const index = sameBankTypeWithoutName.findIndex(b => b.id === userBank.id) + 1;
+    return `${bankInfo.name} (${index})`;
+  };
+
   const BankItem = ({ userBank }) => {
     const bankInfo = getBankInfo(userBank.bankId);
     const color = getBankColor(userBank.bankId);
-    // Display name: custom bank name (for "other") or card name or default bank name
-    const displayName = userBank.cardName || (userBank.bankId === 'other' && userBank.customBankName) || bankInfo.name;
+    // Display name with auto-numbering for duplicates
+    const displayName = getDisplayNameWithNumber(userBank);
     const subtitleName = userBank.bankId === 'other' && userBank.customBankName ? userBank.customBankName : bankInfo.name;
 
     return (
@@ -495,45 +509,6 @@ export default function CardsModal({ isOpen, onClose }) {
                   : (language === 'pt'
                       ? `Erro: ${billCreationStatus.error}`
                       : `Error: ${billCreationStatus.error}`)}
-              </div>
-            )}
-
-            {/* Migration button */}
-            <button
-              onClick={handleMigrate}
-              disabled={migrating}
-              className="w-full py-2.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-sm font-medium rounded-xl
-                hover:bg-amber-200 dark:hover:bg-amber-900/60 disabled:opacity-50 transition flex items-center justify-center gap-2"
-            >
-              {migrating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-700 dark:border-amber-300" />
-                  {language === 'pt' ? 'Migrando...' : 'Migrating...'}
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  {language === 'pt' ? 'Migrar dados antigos' : 'Migrate old data'}
-                </>
-              )}
-            </button>
-
-            {/* Migration status */}
-            {migrationStatus && (
-              <div className={`p-3 rounded-xl text-sm ${
-                migrationStatus.success
-                  ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300'
-              }`}>
-                {migrationStatus.success
-                  ? (language === 'pt'
-                      ? `Migração concluída! ${migrationStatus.migratedCount} transações atualizadas.`
-                      : `Migration complete! ${migrationStatus.migratedCount} transactions updated.`)
-                  : (language === 'pt'
-                      ? `Erro: ${migrationStatus.error}`
-                      : `Error: ${migrationStatus.error}`)}
               </div>
             )}
           </div>

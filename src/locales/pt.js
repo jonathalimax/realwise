@@ -243,6 +243,23 @@ export default {
     sortByName: 'Nome',
     sortByValue: 'Valor',
     sortByCreated: 'Data de criação',
+    // Monthly Investment Summary
+    summary: {
+      title: 'Investimento Mensal Necessário',
+      totalMonthly: 'Total por mês',
+      breakdown: 'Detalhamento por Meta',
+      remaining: 'Faltam',
+      monthlyRequired: 'Mensal necessário',
+      deadline: 'Prazo',
+      noDeadline: 'Sem prazo',
+      overdue: 'Atrasada',
+      achieved: 'Alcançada',
+      assumingMonths: 'Considerando {months} meses',
+      needsNow: 'Valor total necessário',
+      noActiveGoals: 'Nenhuma meta ativa para acompanhar',
+      showDetails: 'Ver detalhes',
+      hideDetails: 'Ocultar detalhes',
+    },
     // Goal icons
     icons: {
       dream: 'Sonho',
@@ -272,6 +289,8 @@ export default {
     noBudget: 'Sem orçamento definido',
     setBudgetHint: 'Defina um orçamento para acompanhar seus gastos',
     autoDistribute: 'Auto-distribuir (50/30/20)',
+    copyFromLastMonth: 'Copiar do mes anterior',
+    noPreviousMonthData: 'Sem dados do mes anterior',
     configure: 'Configurar',
     // 50/30/20 Rule
     rule: 'Regra 50/30/20',

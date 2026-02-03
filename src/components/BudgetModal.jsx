@@ -3,6 +3,7 @@ import { Dialog, Transition, Tab } from '@headlessui/react';
 import { XMarkIcon, ArrowPathIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 import { useBudget, RULE_COLORS, DEFAULT_RULE_MAPPING, DEFAULT_RULE_PERCENTAGES } from '../contexts/BudgetContext';
 import { useSettings } from '../contexts/SettingsContext';
+import CurrencyInput from './ui/CurrencyInput';
 
 export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome, expenseCategories }) {
   const {
@@ -41,10 +42,9 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
   };
 
   const handleCategoryBudgetChange = (category, value) => {
-    const numValue = parseFloat(value) || 0;
     setCategoryBudgetsLocal(prev => ({
       ...prev,
-      [category]: numValue
+      [category]: value
     }));
   };
 
@@ -205,11 +205,10 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           {t('budget.totalBudget')}
                         </label>
-                        <input
-                          type="number"
+                        <CurrencyInput
                           value={totalBudget}
-                          onChange={(e) => setTotalBudgetLocal(parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          onChange={(value) => setTotalBudgetLocal(value)}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                         />
                       </div>
 
@@ -257,11 +256,9 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                                     <span className="text-sm text-gray-900 dark:text-white">
                                       {category}
                                     </span>
-                                    <input
-                                      type="number"
-                                      value={categoryBudgets[category] || ''}
-                                      onChange={(e) => handleCategoryBudgetChange(category, e.target.value)}
-                                      placeholder="0"
+                                    <CurrencyInput
+                                      value={categoryBudgets[category] || 0}
+                                      onChange={(value) => handleCategoryBudgetChange(category, value)}
                                       className="w-28 px-2 py-1 text-right text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                   </div>

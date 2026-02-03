@@ -2,7 +2,6 @@ import React from 'react';
 import { LanguageProvider } from '@/components/LanguageToggle';
 import Header from '@/components/landing/Header';
 import HeroSection from '@/components/landing/HeroSection';
-import BenefitsSection from '@/components/landing/BenefitsSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import PricingSection from '@/components/landing/PricingSection';
 import BetaSection from '@/components/landing/BetaSection';
@@ -16,7 +15,6 @@ export default function Home() {
         <Header />
         <div className="pt-20">
           <HeroSection />
-          <BenefitsSection />
           <FeaturesSection />
           <PricingSection />
           <BetaSection />

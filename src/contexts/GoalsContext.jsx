@@ -186,9 +186,31 @@ export function GoalsProvider({ children }) {
     }
   };
 
-  const getGoalProgress = (goal) => {
+  // Calculate goal progress - optionally include linked investment value
+  // IMPORTANT: When investments are linked to a goal, we use ONLY the investment value
+  // for progress calculation. The goal's currentAmount is for manual cash contributions
+  // that are NOT from investments. If investmentValue > 0, it means all the savings
+  // for this goal are in investments, so we don't add currentAmount to avoid double counting.
+  const getGoalProgress = (goal, investmentValue = 0) => {
     if (!goal || !goal.targetAmount) return 0;
-    return Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+
+    // If there are linked investments, use ONLY the investment value for progress
+    // The investment value already represents the total saved amount for this goal
+    // Adding currentAmount would double count if user withdrew from investment to goal
+    const totalValue = investmentValue > 0 ? investmentValue : (goal.currentAmount || 0);
+
+    // Debug logging - remove after confirming fix works
+    console.log('[GoalProgress Debug]', {
+      goalName: goal.name,
+      goalId: goal.id,
+      targetAmount: goal.targetAmount,
+      currentAmount: goal.currentAmount || 0,
+      investmentValue,
+      totalValue,
+      progress: Math.min((totalValue / goal.targetAmount) * 100, 100)
+    });
+
+    return Math.min((totalValue / goal.targetAmount) * 100, 100);
   };
 
   const getMonthlyNeeded = (goal) => {

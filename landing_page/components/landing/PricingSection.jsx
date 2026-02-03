@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Heart, ArrowRight } from 'lucide-react';
+import { Check, Heart, ArrowRight, Globe, Lock, Infinity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/LanguageToggle';
 
@@ -73,7 +73,8 @@ export default function PricingSection() {
                       t('pricing.feature2'),
                       t('pricing.feature3'),
                       t('pricing.feature4'),
-                      t('pricing.feature5')
+                      t('pricing.feature5'),
+                      t('pricing.feature6')
                     ].map((item, i) => (
                       <li key={i} className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
                         <Check className="w-5 h-5 text-emerald-500 flex-shrink-0" />
@@ -109,44 +110,34 @@ export default function PricingSection() {
           </div>
         </motion.div>
 
-        {/* Why we donate section */}
+        {/* Why Choose Us section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="mt-16 text-center max-w-2xl mx-auto space-y-6"
+          className="mt-16"
         >
-          <h3 className="text-xl font-semibold mb-4">{t('pricing.why.title')}</h3>
-          <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-            {t('pricing.why.desc')}
-          </p>
-          
-          {language === 'pt' && (
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-slate-50 dark:bg-slate-900 px-4 text-sm text-slate-500 dark:text-slate-400">
-                  ✝
-                </span>
-              </div>
+          <h3 className="text-xl font-semibold mb-6 text-center">{t('pricing.why.title')}</h3>
+          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <Globe className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+              <p className="font-semibold text-slate-700 dark:text-slate-200">{t('pricing.why1.title')}</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why1.desc')}</p>
             </div>
-          )}
-          
-          {language === 'pt' && (
-            <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl p-6 border border-emerald-100 dark:border-emerald-900">
-              <p className="text-slate-700 dark:text-slate-300 italic leading-relaxed mb-3">
-                "{t('pricing.why.verse')}"
-              </p>
-              <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">
-                — {t('pricing.why.verse.ref')}
-              </p>
+            <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <Lock className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+              <p className="font-semibold text-slate-700 dark:text-slate-200">{t('pricing.why2.title')}</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why2.desc')}</p>
             </div>
-          )}
-          
-          <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
+            <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <Infinity className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+              <p className="font-semibold text-slate-700 dark:text-slate-200">{t('pricing.why3.title')}</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why3.desc')}</p>
+            </div>
+          </div>
+
+          <div className="pt-8 mt-8 border-t border-slate-200 dark:border-slate-700 text-center max-w-2xl mx-auto">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {t('pricing.note')}
             </p>

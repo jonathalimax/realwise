@@ -35,7 +35,11 @@ export default function Auth() {
         console.log('Whitelist is empty - allowing access');
         return true;
       }
-      const isAllowed = allowedEmails.some(e => e.toLowerCase() === email.toLowerCase());
+      // Handle both old format (array of strings) and new format (array of objects)
+      const isAllowed = allowedEmails.some(e => {
+        const emailStr = typeof e === 'string' ? e : e.email;
+        return emailStr?.toLowerCase() === email.toLowerCase();
+      });
       console.log(`Email ${email} allowed: ${isAllowed}`);
       return isAllowed;
     } catch (err) {
@@ -128,7 +132,7 @@ export default function Auth() {
       </div>
 
       {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white dark:bg-gray-800">
         <div className="w-full max-w-md">
           {/* Language Selector & Mobile Logo */}
           <div className="flex items-center justify-between mb-8">
@@ -138,12 +142,12 @@ export default function Auth() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-2xl font-semibold text-gray-900">Limas Finance</span>
+              <span className="text-2xl font-semibold text-gray-900 dark:text-white">Limas Finance</span>
             </div>
             <div className="hidden lg:block" />
             <button
               onClick={() => setLanguage(language === 'pt' ? 'en' : 'pt')}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <span className="text-lg">{language === 'pt' ? '🇧🇷' : '🇺🇸'}</span>
               <span>{language === 'pt' ? 'PT' : 'EN'}</span>
@@ -151,10 +155,10 @@ export default function Auth() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
               {t('auth.welcomeBack')}
             </h2>
-            <p className="text-gray-500 mt-2">
+            <p className="text-gray-500 dark:text-gray-400 mt-2">
               {language === 'pt'
                 ? 'Entre com sua conta Google para continuar'
                 : 'Sign in with your Google account to continue'}
@@ -162,8 +166,8 @@ export default function Auth() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl">
-              <p className="text-sm text-rose-600">{error}</p>
+            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-100 dark:border-rose-800 rounded-xl">
+              <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
             </div>
           )}
 
@@ -171,8 +175,8 @@ export default function Auth() {
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-3.5 border border-gray-200 rounded-xl
-                font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors
+              className="w-full flex items-center justify-center gap-3 py-3.5 border border-gray-200 dark:border-gray-600 rounded-xl
+                font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 dark:active:bg-gray-600 transition-colors
                 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (

@@ -1,28 +1,26 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useBudget } from '../contexts/BudgetContext';
 import { useCards } from '../contexts/CardsContext';
+import { useMonth } from '../contexts/MonthContext';
 import BudgetCategorySection from '../components/BudgetCategorySection';
 import RuleComparison from '../components/RuleComparison';
-import BudgetModal from '../components/BudgetModal';
 import MonthSelector from '../components/MonthSelector';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 
 export default function PlanningPage() {
+  const navigate = useNavigate();
   const { t, language, categories } = useSettings();
   const { ownerId } = useAccess();
   const { getPaymentMonthKey } = useCards();
   const { budgetSettings } = useBudget();
+  const { selectedMonth, setSelectedMonth } = useMonth();
 
   const [transactions, setTransactions] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -100,6 +98,10 @@ export default function PlanningPage() {
 
   const balance = totalIncome - totalExpenses;
 
+  const handleCategoryClick = (category) => {
+    navigate(`/transactions?category=${encodeURIComponent(category)}&month=${selectedMonth}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       {/* Header */}
@@ -110,7 +112,7 @@ export default function PlanningPage() {
               {language === 'pt' ? 'Planejamento' : 'Planning'}
             </h1>
             <button
-              onClick={() => setShowBudgetModal(true)}
+              onClick={() => navigate('/budget')}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium text-sm transition-colors"
             >
               <Cog6ToothIcon className="w-5 h-5" />
@@ -166,7 +168,7 @@ export default function PlanningPage() {
           <RuleComparison
             transactions={monthlyTransactions}
             totalIncome={totalIncome}
-            onConfigure={() => setShowBudgetModal(true)}
+            onConfigure={() => navigate('/budget')}
           />
         </div>
 
@@ -174,18 +176,10 @@ export default function PlanningPage() {
         <BudgetCategorySection
           transactions={monthlyTransactions}
           selectedMonth={selectedMonth}
-          onConfigure={() => setShowBudgetModal(true)}
+          onConfigure={() => navigate('/budget')}
+          onCategoryClick={handleCategoryClick}
         />
       </main>
-
-      {/* Budget Modal */}
-      <BudgetModal
-        isOpen={showBudgetModal}
-        onClose={() => setShowBudgetModal(false)}
-        currentMonth={selectedMonth}
-        totalIncome={totalIncome}
-        expenseCategories={expenseCategories}
-      />
     </div>
   );
 }

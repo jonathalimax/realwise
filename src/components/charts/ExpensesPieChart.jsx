@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { useMemo, useState, useEffect } from 'react';
+import { PieChart } from '@mui/x-charts/PieChart';
 import { useSettings } from '../../contexts/SettingsContext';
 
 // Category icons
@@ -37,58 +37,39 @@ const COLORS = [
   '#14B8A6', // Teal
 ];
 
-const CustomTooltip = ({ active, payload }) => {
-  const { formatCurrency } = useSettings();
-
-  if (active && payload && payload.length) {
-    const data = payload[0];
-    return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">{data.payload.icon}</span>
-          <p className="font-semibold text-gray-900 dark:text-white">{data.name}</p>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {formatCurrency(data.value)} <span className="text-xs">({data.payload.percentage}%)</span>
-        </p>
-      </div>
-    );
-  }
-  return null;
-};
-
-const CustomLegend = ({ payload }) => {
-  const { formatCurrency } = useSettings();
-
-  if (!payload || payload.length === 0) return null;
-
-  return (
-    <div className="grid grid-cols-2 gap-2 mt-4">
-      {payload.map((entry, index) => (
-        <div
-          key={`legend-${index}`}
-          className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-        >
-          <div
-            className="w-3 h-3 rounded-full flex-shrink-0"
-            style={{ backgroundColor: entry.color }}
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
-              {entry.icon} {entry.name}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatCurrency(entry.amount)} ({entry.percentage}%)
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export default function ExpensesPieChart({ transactions }) {
-  const { language, formatCurrency, categories } = useSettings();
+  const { language, formatCurrency } = useSettings();
+
+  // Responsive chart dimensions based on screen width
+  const [dimensions, setDimensions] = useState({
+    innerRadius: 100,
+    outerRadius: 180,
+    height: 400,
+    legendCols: 2
+  });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      const width = window.innerWidth;
+      if (width < 360) {
+        // iPhone SE and very small screens
+        setDimensions({ innerRadius: 50, outerRadius: 90, height: 220, legendCols: 1 });
+      } else if (width < 480) {
+        // Small phones
+        setDimensions({ innerRadius: 60, outerRadius: 110, height: 260, legendCols: 1 });
+      } else if (width < 640) {
+        // Medium phones
+        setDimensions({ innerRadius: 70, outerRadius: 130, height: 300, legendCols: 2 });
+      } else {
+        // Tablets and desktop
+        setDimensions({ innerRadius: 100, outerRadius: 180, height: 400, legendCols: 2 });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
 
   const chartData = useMemo(() => {
     const spending = {};
@@ -108,11 +89,11 @@ export default function ExpensesPieChart({ transactions }) {
     const data = Object.entries(spending)
       .filter(([_, amount]) => amount > 0)
       .map(([category, amount], index) => ({
-        name: category,
+        id: index,
         value: amount,
-        amount: amount,
-        percentage: ((amount / total) * 100).toFixed(1),
+        label: category,
         icon: CATEGORY_ICONS[category] || '💰',
+        percentage: ((amount / total) * 100).toFixed(1),
         color: COLORS[index % COLORS.length],
       }))
       .sort((a, b) => b.value - a.value);
@@ -154,30 +135,45 @@ export default function ExpensesPieChart({ transactions }) {
         </p>
       </div>
 
-      <ResponsiveContainer width="100%" height={500}>
-        <PieChart>
-          <Pie
-            data={chartData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={180}
-            innerRadius={100}
-            fill="#8884d8"
-            dataKey="value"
-            animationBegin={0}
-            animationDuration={800}
-            animationEasing="ease-out"
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-        </PieChart>
-      </ResponsiveContainer>
+      <PieChart
+        series={[{
+          data: chartData,
+          innerRadius: dimensions.innerRadius,
+          outerRadius: dimensions.outerRadius,
+          paddingAngle: 2,
+          cornerRadius: 4,
+          highlightScope: { fade: 'global', highlight: 'item' },
+          valueFormatter: (item) => formatCurrency(item.value),
+        }]}
+        slotProps={{
+          legend: { hidden: true },
+        }}
+        height={dimensions.height}
+        margin={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      />
 
-      <CustomLegend payload={chartData} />
+      {/* Custom Legend */}
+      <div className={`grid gap-2 mt-4 ${dimensions.legendCols === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        {chartData.map((entry, index) => (
+          <div
+            key={`legend-${index}`}
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <div
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: entry.color }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
+                {entry.icon} {entry.label}
+              </p>
+              <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                {formatCurrency(entry.value)} ({entry.percentage}%)
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

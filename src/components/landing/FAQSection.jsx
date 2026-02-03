@@ -7,19 +7,19 @@ import { useLanguage } from '@/components/LanguageToggle';
 const faqs = [
   {
     question: "Is this a subscription?",
-    answer: "No. It's a one-time purchase with lifetime access. You pay once and get access to the app forever, including all future updates."
+    answer: "No. It's a one-time purchase of $99. You get access to all features available at the time of purchase. Your purchase includes 2 free support changes for bugs or configuration issues. Future updates and customizations require contacting support."
+  },
+  {
+    question: "What support is included?",
+    answer: "Your purchase includes 2 free support changes for bugs or wrong configurations only. Custom implementations, new features, or source code access require contacting our support team via the support form."
+  },
+  {
+    question: "Are updates included?",
+    answer: "No. Your purchase gives you access to all features available at the time of purchase. Future updates to the system are not automatically included. If you need new features or updates, please contact support via the form."
   },
   {
     question: "Which currencies and languages are supported?",
     answer: "We support BRL (Real), USD (Dollar), EUR (Euro), and GBP (Pound). The app is available in English and Portuguese."
-  },
-  {
-    question: "How do you auto-categorize without AI?",
-    answer: "We use rule-based matching and your custom preferences—simple, predictable, and private. You set the rules, and the app follows them consistently without any AI processing your data."
-  },
-  {
-    question: "Will you show where donations go?",
-    answer: "Yes. We publish regular donation reports detailing amounts and recipients. Transparency is one of our core values, and we want you to see exactly how your purchase makes a difference."
   },
   {
     question: "Can I import my bank statements?",
@@ -72,19 +72,19 @@ export default function FAQSection() {
   const faqsData = language === 'pt' ? [
     {
       question: "É uma assinatura?",
-      answer: "Não. É uma compra única com acesso vitalício. Você paga uma vez e tem acesso ao aplicativo para sempre, incluindo todas as atualizações futuras."
+      answer: "Não. É uma compra única de R$ 99. Você tem acesso a todos os recursos disponíveis no momento da compra. A compra inclui 2 alterações de suporte gratuitas para bugs ou configurações. Atualizações futuras e personalizações requerem contato com o suporte."
+    },
+    {
+      question: "Qual suporte está incluído?",
+      answer: "Sua compra inclui 2 alterações de suporte gratuitas apenas para bugs ou configurações incorretas. Implementações personalizadas, novos recursos ou acesso ao código fonte requerem contato com nossa equipe de suporte através do formulário."
+    },
+    {
+      question: "Atualizações estão inclusas?",
+      answer: "Não. Sua compra dá acesso a todos os recursos disponíveis no momento da compra. Atualizações futuras do sistema não estão automaticamente inclusas. Se precisar de novos recursos ou atualizações, entre em contato com o suporte através do formulário."
     },
     {
       question: "Quais moedas e idiomas são suportados?",
       answer: "Suportamos BRL (Real), USD (Dólar), EUR (Euro) e GBP (Libra). O aplicativo está disponível em Inglês e Português."
-    },
-    {
-      question: "Como você categoriza automaticamente sem IA?",
-      answer: "Usamos correspondência baseada em regras e suas preferências personalizadas—simples, previsível e privado. Você define as regras e o aplicativo as segue de forma consistente sem qualquer processamento de IA dos seus dados."
-    },
-    {
-      question: "Vocês mostram para onde vão as doações?",
-      answer: "Sim. Publicamos relatórios regulares de doações detalhando valores e destinatários. Transparência é um dos nossos valores fundamentais, e queremos que você veja exatamente como sua compra faz a diferença."
     },
     {
       question: "Posso importar meus extratos bancários?",
@@ -97,7 +97,7 @@ export default function FAQSection() {
   ] : faqs;
 
   return (
-    <section className="py-32 px-6 bg-slate-50/50 dark:bg-slate-900/50">
+    <section className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

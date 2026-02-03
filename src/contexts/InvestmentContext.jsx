@@ -203,7 +203,12 @@ export function InvestmentProvider({ children }) {
 
   // Get current value (manual override or projected)
   const getCurrentValue = (investment) => {
-    if (investment.currentAmount && investment.currentAmount !== investment.initialAmount) {
+    // If investment is closed (fully withdrawn), return 0
+    if (investment.status === 'closed') {
+      return 0;
+    }
+    // If currentAmount is explicitly set (including 0 for partial withdrawals), use it
+    if (investment.currentAmount !== undefined && investment.currentAmount !== investment.initialAmount) {
       return investment.currentAmount;
     }
     return calculateProjectedValue(investment);
@@ -295,14 +300,47 @@ export function InvestmentProvider({ children }) {
     return current - invested;
   };
 
-  // Get investments linked to a specific goal
+  // Get investments linked to a specific goal (excludes closed/withdrawn investments)
   const getInvestmentsByGoal = (goalId) => {
-    return investments.filter(inv => inv.goalId === goalId);
+    const filtered = investments.filter(inv => inv.goalId === goalId && inv.status !== 'closed');
+
+    // Debug logging - remove after confirming fix works
+    console.log('[getInvestmentsByGoal Debug]', {
+      goalId,
+      totalInvestments: investments.length,
+      allInvestmentsForGoal: investments.filter(inv => inv.goalId === goalId).map(inv => ({
+        id: inv.id,
+        name: inv.name,
+        status: inv.status,
+        goalId: inv.goalId,
+        currentAmount: inv.currentAmount,
+        initialAmount: inv.initialAmount
+      })),
+      filteredCount: filtered.length,
+      filteredInvestments: filtered.map(inv => ({
+        id: inv.id,
+        name: inv.name,
+        status: inv.status,
+        currentValue: getCurrentValue(inv)
+      }))
+    });
+
+    return filtered;
   };
 
   // Get total investment value for a goal
   const getGoalInvestmentValue = (goalId) => {
-    return getInvestmentsByGoal(goalId).reduce((sum, inv) => sum + getCurrentValue(inv), 0);
+    const goalInvestments = getInvestmentsByGoal(goalId);
+    const total = goalInvestments.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
+
+    // Debug logging - remove after confirming fix works
+    console.log('[getGoalInvestmentValue Debug]', {
+      goalId,
+      investmentCount: goalInvestments.length,
+      totalValue: total
+    });
+
+    return total;
   };
 
   // Get total initial investment amount for a goal

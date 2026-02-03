@@ -29,7 +29,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
   const { categories, t, language } = useSettings();
   const { goals, getGoalColor } = useGoals();
-  const { userBanks, getBankInfo } = useCards();
+  const { userBanks, getBankInfo, getBankDisplayName, findUserBank } = useCards();
   const { addInvestment, updateInvestment, investments } = useInvestments();
 
   const availableGoals = goals.filter(g => !g.completed);
@@ -43,7 +43,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       setCategory(transaction.category || '');
       setTransactionDate(transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0]);
       setSelectedGoalId(transaction.goalId || '');
-      setSelectedBankId(transaction.bankId || null);
+      // Handle both old (bank type) and new (document ID) formats
+      // Convert old format to new format by finding the user bank
+      if (transaction.bankId) {
+        const userBank = findUserBank(transaction.bankId);
+        setSelectedBankId(userBank ? userBank.id : null);
+      } else {
+        setSelectedBankId(null);
+      }
       setIsIgnored(transaction.ignored || false);
       setUpdateAllInstallments(transaction.isInstallment || false);
       setInvestmentType(transaction.investmentType || 'fixed_income');
@@ -63,7 +70,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         setMaturityDate('');
       }
     }
-  }, [transaction, investments]);
+  }, [transaction, investments, findUserBank]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -462,9 +469,10 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
                       {userBanks.map((userBank) => {
                         const bankInfo = getBankInfo(userBank.bankId);
+                        const displayName = getBankDisplayName(userBank);
                         return (
-                          <option key={userBank.bankId} value={userBank.bankId}>
-                            {bankInfo.icon} {bankInfo.name}
+                          <option key={userBank.id} value={userBank.id}>
+                            {bankInfo.icon} {displayName}
                           </option>
                         );
                       })}

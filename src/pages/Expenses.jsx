@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
+import { useMonth } from '../contexts/MonthContext';
 import TransactionList from '../components/TransactionList';
 import TransactionModal from '../components/TransactionModal';
 import MonthSelector from '../components/MonthSelector';
@@ -12,14 +13,11 @@ import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react
 export default function ExpensesPage() {
   const { t, language, categories } = useSettings();
   const { ownerId, canWrite } = useAccess();
-  const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
+  const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
+  const { selectedMonth, setSelectedMonth } = useMonth();
 
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
   const [viewMode, setViewMode] = useState('payment');
   const [selectedBankFilter, setSelectedBankFilter] = useState('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
@@ -70,7 +68,12 @@ export default function ExpensesPage() {
         if (selectedBankFilter === 'cash') {
           if (t.bankId) return false;
         } else {
-          if (t.bankId !== selectedBankFilter) return false;
+          // Support both new format (unique document ID) and old format (bank type ID)
+          const matchesDirectly = t.bankId === selectedBankFilter;
+          const transactionUserBank = findUserBank(t.bankId);
+          const matchesViaLookup = transactionUserBank && transactionUserBank.id === selectedBankFilter;
+
+          if (!matchesDirectly && !matchesViaLookup) return false;
         }
       }
 
@@ -87,7 +90,7 @@ export default function ExpensesPage() {
         return paymentKey === selectedMonth;
       }
     });
-  }, [transactions, selectedMonth, viewMode, selectedBankFilter, getPaymentMonthKey]);
+  }, [transactions, selectedMonth, viewMode, selectedBankFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
     if (selectedCategoryFilter === 'all') {
@@ -110,9 +113,18 @@ export default function ExpensesPage() {
     return Array.from(cats).sort();
   }, [transactions]);
 
+  // Return userBanks with their display info for the filter dropdown
   const availableBanks = useMemo(() => {
-    return userBanks.map(ub => getBankInfo(ub.bankId));
-  }, [userBanks, getBankInfo]);
+    return userBanks.map(ub => {
+      const bankInfo = getBankInfo(ub.bankId);
+      return {
+        id: ub.id, // Unique document ID for filtering
+        bankId: ub.bankId,
+        name: getBankDisplayName(ub),
+        icon: bankInfo.icon
+      };
+    });
+  }, [userBanks, getBankInfo, getBankDisplayName]);
 
   const getMonthLabel = (monthKey) => {
     const [year, month] = monthKey.split('-');
@@ -334,12 +346,12 @@ export default function ExpensesPage() {
         )}
 
         {/* Transactions List */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white capitalize">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
             </span>
           </div>

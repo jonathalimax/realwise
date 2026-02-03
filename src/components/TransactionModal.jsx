@@ -422,9 +422,10 @@ export default function TransactionModal({ isOpen, onClose }) {
                       <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
                       {userBanks.map((userBank) => {
                         const bankInfo = getBankInfo(userBank.bankId);
+                        const displayName = userBank.cardName || (userBank.bankId === 'other' && userBank.customBankName) || bankInfo.name;
                         return (
-                          <option key={userBank.bankId} value={userBank.bankId}>
-                            {bankInfo.icon} {bankInfo.name}
+                          <option key={userBank.id} value={userBank.id}>
+                            {bankInfo.icon} {displayName}
                           </option>
                         );
                       })}

@@ -130,7 +130,6 @@ export function CardsProvider({ children }) {
       };
 
       const billRef = await addDoc(collection(db, 'bills'), billData);
-      console.log(`Created bill for credit card: ${cardDisplayName}`, billRef.id);
       return billRef.id;
     } catch (error) {
       console.error('Error creating bill for credit card:', error);
@@ -171,13 +170,89 @@ export function CardsProvider({ children }) {
   };
 
   const updateBank = async (docId, updates) => {
+    if (!auth.currentUser) {
+      console.error('No authenticated user');
+      return false;
+    }
+
     try {
+      // Get the current bank data to compare changes
+      const currentBank = getUserBankById(docId);
+
+      // Update the bank
       const bankRef = doc(db, 'userBanks', docId);
       await updateDoc(bankRef, {
         ...updates,
         cardName: updates.cardName || null,
         customBankName: updates.bankId === 'other' ? (updates.customBankName || null) : null,
       });
+
+      // Handle linked bill sync
+      // Find any bill linked to this bank
+      const billsQuery = query(
+        collection(db, 'bills'),
+        where('userId', '==', auth.currentUser.uid),
+        where('linkedBankId', '==', docId)
+      );
+      const billsSnapshot = await getDocs(billsQuery);
+
+      // Check if credit was disabled
+      if (updates.hasCredit === false) {
+        // Delete linked bill if credit was disabled
+        for (const billDoc of billsSnapshot.docs) {
+          await deleteDoc(doc(db, 'bills', billDoc.id));
+        }
+      } else if (updates.hasCredit === true && billsSnapshot.empty) {
+        // Create bill if credit was enabled and no bill exists
+        const bankData = {
+          bankId: updates.bankId || currentBank?.bankId,
+          cardName: updates.cardName || currentBank?.cardName,
+          hasCredit: true,
+          paymentDay: updates.paymentDay || currentBank?.paymentDay || 15
+        };
+        await createBillForCreditCard(bankData, docId);
+      } else if (billsSnapshot.size > 0 && (currentBank?.hasCredit || updates.hasCredit !== false)) {
+        // Update existing bill if card name or payment day changed
+        const billDoc = billsSnapshot.docs[0];
+        const billData = billDoc.data();
+        const billUpdates = {};
+
+        // Check if card name changed
+        const newCardName = updates.cardName !== undefined ? updates.cardName : currentBank?.cardName;
+        const oldCardName = currentBank?.cardName;
+        const bankInfo = getBankInfo(updates.bankId || currentBank?.bankId);
+
+        if (newCardName !== oldCardName) {
+          const cardDisplayName = newCardName || bankInfo.name;
+          billUpdates.name = `Fatura ${cardDisplayName}`;
+          billUpdates.description = `Fatura do cartão de crédito ${cardDisplayName}`;
+        }
+
+        // Check if payment day changed
+        const newPaymentDay = updates.paymentDay !== undefined ? updates.paymentDay : currentBank?.paymentDay;
+        const oldPaymentDay = currentBank?.paymentDay;
+
+        if (newPaymentDay !== undefined && newPaymentDay !== oldPaymentDay) {
+          // Calculate new due date
+          const today = new Date();
+          let dueDate = new Date(today.getFullYear(), today.getMonth(), newPaymentDay);
+
+          // If payment day has passed this month, set to next month
+          if (today.getDate() > newPaymentDay) {
+            dueDate.setMonth(dueDate.getMonth() + 1);
+          }
+
+          billUpdates.dueDate = dueDate.toISOString().split('T')[0];
+        }
+
+        // Apply updates if there are any
+        if (Object.keys(billUpdates).length > 0) {
+          billUpdates.updatedAt = serverTimestamp();
+          const billRef = doc(db, 'bills', billDoc.id);
+          await updateDoc(billRef, billUpdates);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating bank:', error);
@@ -186,7 +261,26 @@ export function CardsProvider({ children }) {
   };
 
   const deleteBank = async (docId) => {
+    if (!auth.currentUser) {
+      console.error('No authenticated user');
+      return false;
+    }
+
     try {
+      // Find and delete any linked bill before deleting the bank
+      const billsQuery = query(
+        collection(db, 'bills'),
+        where('userId', '==', auth.currentUser.uid),
+        where('linkedBankId', '==', docId)
+      );
+      const billsSnapshot = await getDocs(billsQuery);
+
+      // Delete all linked bills
+      for (const billDoc of billsSnapshot.docs) {
+        await deleteDoc(doc(db, 'bills', billDoc.id));
+      }
+
+      // Delete the bank
       await deleteDoc(doc(db, 'userBanks', docId));
       return true;
     } catch (error) {
@@ -199,16 +293,37 @@ export function CardsProvider({ children }) {
     return BANKS.find(b => b.id === bankId) || BANKS.find(b => b.id === 'other');
   };
 
-  // Get display name for a user bank (considers custom bank name)
+  // Get display name for a user bank (considers custom bank name and auto-numbers duplicates)
   const getBankDisplayName = (userBank) => {
     if (!userBank) return 'Unknown';
+
+    // If user has a custom card name, use it
+    if (userBank.cardName) {
+      return userBank.cardName;
+    }
+
     // If it's "other" bank with custom name, use that
     if (userBank.bankId === 'other' && userBank.customBankName) {
       return userBank.customBankName;
     }
-    // Otherwise use the standard bank name
+
+    // Get the standard bank name
     const bankInfo = getBankInfo(userBank.bankId);
-    return bankInfo?.name || 'Unknown';
+    const baseName = bankInfo?.name || 'Unknown';
+
+    // Count how many banks of the same type exist without custom names
+    const sameBankTypeWithoutName = userBanks.filter(
+      b => b.bankId === userBank.bankId && !b.cardName
+    );
+
+    // If there's only one, just use the bank name
+    if (sameBankTypeWithoutName.length <= 1) {
+      return baseName;
+    }
+
+    // Otherwise, add a number based on creation order
+    const index = sameBankTypeWithoutName.findIndex(b => b.id === userBank.id) + 1;
+    return `${baseName} (${index})`;
   };
 
   const getBankColor = (bankId) => {
@@ -216,12 +331,29 @@ export function CardsProvider({ children }) {
     return BANK_COLORS[bank?.color] || BANK_COLORS.slate;
   };
 
+  // Get user bank by unique document ID (preferred for transactions)
   const getUserBankById = (docId) => {
     return userBanks.find(b => b.id === docId) || null;
   };
 
+  // Get user bank by bank type ID (for backwards compatibility with old transactions)
+  // Note: Returns first match only - use getUserBankById for accurate lookups
   const getUserBankByBankId = (bankId) => {
     return userBanks.find(b => b.bankId === bankId) || null;
+  };
+
+  /**
+   * Smart lookup: finds user bank by either document ID or bank type ID
+   * Prioritizes document ID match for accuracy with multiple accounts from same bank
+   * Falls back to bank type ID for backwards compatibility
+   */
+  const findUserBank = (id) => {
+    if (!id) return null;
+    // First try to find by unique document ID
+    const byDocId = userBanks.find(b => b.id === id);
+    if (byDocId) return byDocId;
+    // Fall back to bank type ID for backwards compatibility
+    return userBanks.find(b => b.bankId === id) || null;
   };
 
   /**
@@ -245,12 +377,12 @@ export function CardsProvider({ children }) {
     // Determine which invoice this transaction belongs to
     let invoiceMonth, invoiceYear;
 
-    if (txDay <= closingDay) {
-      // Transaction is before or on closing day - belongs to current month's invoice
+    if (txDay < closingDay) {
+      // Transaction is before closing day - belongs to current month's invoice
       invoiceMonth = txMonth;
       invoiceYear = txYear;
     } else {
-      // Transaction is after closing day - goes to next month's invoice
+      // Transaction is on or after closing day - goes to next month's invoice
       invoiceMonth = txMonth + 1;
       invoiceYear = txYear;
       if (invoiceMonth > 11) {
@@ -278,9 +410,10 @@ export function CardsProvider({ children }) {
 
   /**
    * Get payment month key for grouping (YYYY-MM format)
+   * Uses smart lookup to support both old (bankId) and new (document ID) formats
    */
-  const getPaymentMonthKey = (transactionDate, bankId) => {
-    const userBank = getUserBankByBankId(bankId);
+  const getPaymentMonthKey = (transactionDate, bankIdOrDocId) => {
+    const userBank = findUserBank(bankIdOrDocId);
 
     if (!userBank || !userBank.hasCredit || !userBank.closingDay || !userBank.paymentDay) {
       // For cash/debit or banks without credit settings, use transaction date
@@ -334,96 +467,10 @@ export function CardsProvider({ children }) {
         }
       }
 
-      console.log(`Created ${createdCount} bills for existing credit cards`);
       return { success: true, created: createdCount };
     } catch (error) {
       console.error('Error creating bills for existing credit cards:', error);
       return { success: false, error: error.message, created: 0 };
-    }
-  };
-
-  /**
-   * Migrate transactions from old cardId system to new bankId system
-   * Reads old cards collection to find bank mapping
-   */
-  const migrateCardIdToBankId = async () => {
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
-      return { success: false, error: 'No authenticated user' };
-    }
-
-    try {
-      // 1. Read old cards collection to build cardId -> bankId mapping
-      const cardsQuery = query(
-        collection(db, 'cards'),
-        where('userId', '==', auth.currentUser.uid)
-      );
-      const cardsSnapshot = await getDocs(cardsQuery);
-      const cardToBankMap = {};
-
-      cardsSnapshot.docs.forEach(cardDoc => {
-        const cardData = cardDoc.data();
-        // Use the bank field from the card, or try to detect from name
-        let bankId = cardData.bank;
-        if (!bankId) {
-          // Try to detect bank from card name
-          const cardName = (cardData.name || '').toLowerCase();
-          if (cardName.includes('nubank') || cardName.includes('nu ')) {
-            bankId = 'nubank';
-          } else if (cardName.includes('itau') || cardName.includes('itaú')) {
-            bankId = 'itau';
-          } else if (cardName.includes('bradesco')) {
-            bankId = 'bradesco';
-          } else if (cardName.includes('santander')) {
-            bankId = 'santander';
-          } else if (cardName.includes('inter')) {
-            bankId = 'inter';
-          } else if (cardName.includes('c6')) {
-            bankId = 'c6';
-          } else {
-            bankId = 'other';
-          }
-        }
-        cardToBankMap[cardDoc.id] = bankId;
-      });
-
-      console.log('Card to Bank mapping:', cardToBankMap);
-
-      // 2. Find all transactions with cardId but no bankId
-      const transactionsQuery = query(
-        collection(db, 'transactions'),
-        where('userId', '==', auth.currentUser.uid)
-      );
-      const transactionsSnapshot = await getDocs(transactionsQuery);
-
-      let migratedCount = 0;
-      const batch = [];
-
-      for (const transDoc of transactionsSnapshot.docs) {
-        const data = transDoc.data();
-        // Only migrate if has cardId and no bankId
-        if (data.cardId && !data.bankId) {
-          const bankId = cardToBankMap[data.cardId];
-          if (bankId) {
-            batch.push({
-              ref: doc(db, 'transactions', transDoc.id),
-              bankId: bankId
-            });
-            migratedCount++;
-          }
-        }
-      }
-
-      // 3. Update transactions in batches
-      for (const item of batch) {
-        await updateDoc(item.ref, { bankId: item.bankId });
-      }
-
-      console.log(`Migration complete. Migrated ${migratedCount} transactions.`);
-      return { success: true, migratedCount };
-    } catch (error) {
-      console.error('Migration error:', error);
-      return { success: false, error: error.message };
     }
   };
 
@@ -439,9 +486,9 @@ export function CardsProvider({ children }) {
       getBankColor,
       getUserBankById,
       getUserBankByBankId,
+      findUserBank,
       getPaymentMonth,
       getPaymentMonthKey,
-      migrateCardIdToBankId,
       createBillsForExistingCreditCards,
       banks: BANKS,
       bankColors: BANK_COLORS
@@ -466,9 +513,9 @@ export const useCards = () => {
       getBankColor: () => BANK_COLORS.slate,
       getUserBankById: () => null,
       getUserBankByBankId: () => null,
+      findUserBank: () => null,
       getPaymentMonth: () => new Date(),
       getPaymentMonthKey: () => '',
-      migrateCardIdToBankId: async () => ({ success: false, error: 'No context' }),
       createBillsForExistingCreditCards: async () => ({ success: false, error: 'No context', created: 0 }),
       banks: BANKS,
       bankColors: BANK_COLORS

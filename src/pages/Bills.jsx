@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useBills } from '../contexts/BillsContext';
 import { useAccess } from '../contexts/AccessContext';
+import { useMonth } from '../contexts/MonthContext';
 import BillsList from '../components/BillsList';
 import BillModal from '../components/BillModal';
 import MonthSelector from '../components/MonthSelector';
@@ -11,11 +12,7 @@ export default function BillsPage() {
   const { language } = useSettings();
   const { bills, loading } = useBills();
   const { canWrite } = useAccess();
-
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+  const { selectedMonth, setSelectedMonth } = useMonth();
   const [showBillModal, setShowBillModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);

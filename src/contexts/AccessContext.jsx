@@ -39,15 +39,17 @@ export function AccessProvider({ children }) {
         if (emails.length > 0) {
           if (typeof emails[0] === 'string') {
             // Old format - default to write
-            setUserRole(emails.includes(currentUserEmail) ? 'write' : 'write');
-            setOwnerId(ownerUid || auth.currentUser.uid); // Use owner's UID if available
+            const isInList = emails.some(e => e.toLowerCase() === currentUserEmail);
+            setUserRole(isInList ? 'write' : 'write');
+            // If user is in the allowed list and owner's UID is available, use it
+            setOwnerId(isInList && ownerUid ? ownerUid : auth.currentUser.uid);
           } else {
-            // New format - check for user's role
-            const userEntry = emails.find(e => e.email === currentUserEmail);
+            // New format - check for user's role (case-insensitive)
+            const userEntry = emails.find(e => e.email?.toLowerCase() === currentUserEmail);
             if (userEntry) {
               setUserRole(userEntry.role || 'write');
-              // For read-only users, use owner's UID; for write users, use their own UID
-              setOwnerId(userEntry.role === 'read' ? ownerUid : auth.currentUser.uid);
+              // All shared users (both read and write) should use the owner's UID to see shared data
+              setOwnerId(ownerUid || auth.currentUser.uid);
             } else {
               // User not in list - default to write for backward compatibility
               setUserRole('write');

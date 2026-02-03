@@ -18,8 +18,10 @@
       "Bash(node:*)",
       "Bash(git log:*)",
       "Bash(ls:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npx eslint:*)"
     ]
   },
-  "outputStyle": "default"
+  "outputStyle": "Explanatory"
 }

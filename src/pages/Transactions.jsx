@@ -1,23 +1,39 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
+import { useMonth } from '../contexts/MonthContext';
 import TransactionList from '../components/TransactionList';
 import { XMarkIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 
 export default function TransactionsPage() {
   const { t, language, categories } = useSettings();
   const { ownerId } = useAccess();
-  const { userBanks, getBankInfo, getPaymentMonthKey } = useCards();
+  const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
+  const { selectedMonth, setSelectedMonth } = useMonth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+
+  // Get highlight ID from URL params
+  const highlightId = searchParams.get('highlight');
+
+  // Handle month and category params from URL (for deep linking)
+  useEffect(() => {
+    const monthParam = searchParams.get('month');
+    if (monthParam && monthParam !== selectedMonth) {
+      setSelectedMonth(monthParam);
+    }
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategoryFilter(categoryParam);
+      setShowFilters(true); // Show filters panel when category is pre-selected
+    }
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState('payment');
   const [selectedBankFilter, setSelectedBankFilter] = useState('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
@@ -66,7 +82,14 @@ export default function TransactionsPage() {
         if (selectedBankFilter === 'cash') {
           if (t.bankId) return false;
         } else {
-          if (t.bankId !== selectedBankFilter) return false;
+          // Support both new format (unique document ID) and old format (bank type ID)
+          // matchesDirectly: transaction bankId equals filter (new format uses document ID)
+          const matchesDirectly = t.bankId === selectedBankFilter;
+          // matchesViaLookup: for old format, find the user bank and check if it matches the filter
+          const transactionUserBank = findUserBank(t.bankId);
+          const matchesViaLookup = transactionUserBank && transactionUserBank.id === selectedBankFilter;
+
+          if (!matchesDirectly && !matchesViaLookup) return false;
         }
       }
 
@@ -86,7 +109,7 @@ export default function TransactionsPage() {
         return paymentKey === selectedMonth;
       }
     });
-  }, [transactions, selectedMonth, viewMode, selectedBankFilter, getPaymentMonthKey]);
+  }, [transactions, selectedMonth, viewMode, selectedBankFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
     if (selectedCategoryFilter === 'all') {
@@ -103,9 +126,19 @@ export default function TransactionsPage() {
     return Array.from(cats).sort();
   }, [transactions]);
 
+  // Return userBanks with their display info for the filter dropdown
+  // Each item includes the unique document ID for filtering
   const availableBanks = useMemo(() => {
-    return userBanks.map(ub => getBankInfo(ub.bankId));
-  }, [userBanks, getBankInfo]);
+    return userBanks.map(ub => {
+      const bankInfo = getBankInfo(ub.bankId);
+      return {
+        id: ub.id, // Unique document ID for filtering
+        bankId: ub.bankId, // Bank type ID for icon lookup
+        name: getBankDisplayName(ub), // Display name (custom name or default)
+        icon: bankInfo.icon
+      };
+    });
+  }, [userBanks, getBankInfo, getBankDisplayName]);
 
   const getMonthLabel = (monthKey) => {
     const [year, month] = monthKey.split('-');
@@ -346,12 +379,12 @@ export default function TransactionsPage() {
         )}
 
         {/* Transactions List */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
             </span>
           </div>
@@ -361,6 +394,7 @@ export default function TransactionsPage() {
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSuccess={triggerRefresh}
+            highlightId={highlightId}
           />
         </div>
       </main>

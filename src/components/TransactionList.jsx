@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
@@ -7,17 +7,71 @@ import { useCards } from '../contexts/CardsContext';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 
-export default function TransactionList({ transactions = [], selectedMonth, compact = false, sortBy = 'date', sortOrder = 'desc', onSuccess }) {
+export default function TransactionList({ transactions = [], selectedMonth, compact = false, sortBy = 'date', sortOrder = 'desc', onSuccess, highlightId }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const highlightRef = useRef(null);
+
+  // Scroll to highlighted transaction when it changes
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [highlightId, transactions]);
 
   const { formatCurrency, t, language } = useSettings();
   const { canWrite } = useAccess();
-  const { getBankInfo } = useCards();
+  const { getBankInfo, findUserBank, getBankDisplayName } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
+
+  // Get category icon if available
+  const getCategoryIcon = (category, type) => {
+    // Common category icons mapping
+    const iconMap = {
+      // Expense categories (Portuguese)
+      'Alimentacao': '🍽️',
+      'Transporte': '🚗',
+      'Moradia': '🏠',
+      'Saude': '💊',
+      'Educacao': '📚',
+      'Lazer': '🎮',
+      'Compras': '🛍️',
+      'Servicos': '🔧',
+      'Assinaturas': '📱',
+      'Investimentos': '📈',
+      'Outros': '📦',
+      // Expense categories (English)
+      'Food': '🍽️',
+      'Transportation': '🚗',
+      'Housing': '🏠',
+      'Health': '💊',
+      'Education': '📚',
+      'Entertainment': '🎮',
+      'Shopping': '🛍️',
+      'Services': '🔧',
+      'Subscriptions': '📱',
+      'Investments': '📈',
+      'Others': '📦',
+      // Income categories (Portuguese)
+      'Salario': '💰',
+      'Freelancer': '💻',
+      'Investimento': '📊',
+      'Presente': '🎁',
+      'Reembolso': '↩️',
+      // Income categories (English)
+      'Salary': '💰',
+      'Freelance': '💻',
+      'Investment': '📊',
+      'Gift': '🎁',
+      'Refund': '↩️',
+    };
+    return iconMap[category] || (type === 'income' ? '💵' : '💳');
+  };
 
   const handleDelete = async (id) => {
     if (window.confirm(language === 'pt' ? 'Excluir esta transação?' : 'Delete this transaction?')) {
@@ -96,85 +150,85 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
   const hasSelection = selectedIds.size > 0;
 
   return (
-    <div className={compact ? '' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden'}>
+    <div className={compact ? '' : ''}>
       {/* Header - Hidden in compact mode */}
       {!compact && (
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+        <div className="pb-3 sm:pb-4">
+          {/* Mobile: Search first, then actions */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Search - Full width on mobile */}
+            <div className="relative flex-1 sm:max-w-xs order-1 sm:order-2">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder={t('transactionList.searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white border-0 rounded-xl
+                  placeholder-slate-400 dark:placeholder-slate-500
+                  focus:bg-white dark:focus:bg-slate-600 focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-500 transition-all"
+              />
+            </div>
+
+            {/* Actions row */}
+            <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
               {/* Select All Checkbox - Only for write access */}
               {canWrite && filteredTransactions.length > 0 && (
                 <button
                   onClick={toggleSelectAll}
                   className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
                     ${isAllSelected
-                      ? 'bg-gray-900 dark:bg-gray-100 border-gray-900 dark:border-gray-100'
+                      ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white'
                       : hasSelection
-                        ? 'bg-gray-400 border-gray-400'
-                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400'
+                        ? 'bg-slate-400 border-slate-400'
+                        : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600 hover:border-slate-400'
                     }`}
                 >
                   {(isAllSelected || hasSelection) && (
-                    <svg className="w-3 h-3 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 text-white dark:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </button>
               )}
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('transactionList.title')}</h2>
-            </div>
 
-            <div className="flex items-center gap-3">
               {/* Edit Selected Button - Only for write access */}
               {canWrite && hasSelection && (
                 <button
                   onClick={() => setShowEditModal(true)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  {language === 'pt' ? `Editar (${selectedIds.size})` : `Edit (${selectedIds.size})`}
+                  <span>{language === 'pt' ? `Editar (${selectedIds.size})` : `Edit (${selectedIds.size})`}</span>
                 </button>
               )}
-
-              {/* Search */}
-              <div className="relative flex-1 max-w-xs">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder={t('transactionList.searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border-0 rounded-lg
-                    focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 transition-all"
-                />
-              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* Transactions */}
-      <div className="divide-y divide-gray-50 dark:divide-gray-700">
+      <div className={compact ? 'space-y-1' : 'space-y-1.5'}>
         {filteredTransactions.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="py-8 sm:py-12 text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
-            <p className="font-medium text-gray-900 dark:text-white mb-1">
+            <p className="font-medium text-slate-900 dark:text-white text-sm sm:text-base mb-1">
               {searchTerm ? t('transactionList.noResults') : t('transactionList.empty')}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {searchTerm ? t('transactionList.tryDifferentSearch') : t('transactionList.emptySubtitle')}
             </p>
           </div>
@@ -182,139 +236,136 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
           filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
+              ref={transaction.id === highlightId ? highlightRef : null}
               onClick={() => canWrite && setEditingTransaction(transaction)}
-              className={`group flex items-center gap-3 sm:gap-4 ${compact ? 'py-2.5' : 'px-3 sm:px-6 py-3 sm:py-4'} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg ${canWrite ? 'cursor-pointer' : ''}
-                ${selectedIds.has(transaction.id) ? 'bg-gray-50 dark:bg-gray-700/50' : ''}`}
+              className={`group rounded-xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
+                ${transaction.id === highlightId
+                  ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                  : selectedIds.has(transaction.id)
+                    ? 'bg-slate-100 dark:bg-slate-700/50'
+                    : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
+                }
+                ${compact ? 'p-2' : 'p-2.5 sm:p-3'}
+                ${transaction.ignored ? 'opacity-60' : ''}`}
             >
-              {/* Selection Checkbox - Hidden in compact mode and for read-only users */}
-              {!compact && canWrite && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
-                  className={`w-4 h-4 sm:w-5 sm:h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
-                    ${selectedIds.has(transaction.id)
-                      ? 'bg-gray-900 dark:bg-gray-100 border-gray-900 dark:border-gray-100'
-                      : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400'
-                    }`}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Selection Checkbox - Hidden in compact mode and for read-only users */}
+                {!compact && canWrite && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
+                    className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
+                      ${selectedIds.has(transaction.id)
+                        ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white'
+                        : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600'
+                      }`}
+                  >
+                    {selectedIds.has(transaction.id) && (
+                      <svg className="w-3 h-3 text-white dark:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+
+                {/* Type Indicator with Category Icon - Hidden on mobile to save space */}
+                <div
+                  className={`${compact ? 'hidden' : 'hidden sm:flex'} w-9 h-9 sm:w-10 sm:h-10 rounded-full items-center justify-center flex-shrink-0 text-base sm:text-lg
+                    ${transaction.type === 'income'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/40'
+                      : 'bg-rose-100 dark:bg-rose-900/40'}`}
                 >
-                  {selectedIds.has(transaction.id) && (
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              )}
+                  {getCategoryIcon(transaction.category, transaction.type)}
+                </div>
 
-              {/* Icon - Hidden on mobile, show colored dot instead */}
-              <div
-                className={`hidden sm:flex ${compact ? 'w-8 h-8' : 'w-9 h-9 sm:w-10 sm:h-10'} rounded-full items-center justify-center flex-shrink-0
-                  ${transaction.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}
-              >
-                <svg
-                  className={`${compact ? 'w-4 h-4' : 'w-5 h-5'} ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {transaction.type === 'income' ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
-                  )}
-                </svg>
-              </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      {/* Description */}
+                      <div className="flex items-center gap-1.5">
+                        <p
+                          className={`font-medium text-slate-900 dark:text-white line-clamp-1 ${compact ? 'text-sm' : 'text-sm'}`}
+                          title={transaction.description}
+                        >
+                          {transaction.description}
+                        </p>
+                        {transaction.ignored && (
+                          <span className="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
+                            {t('transactionForm.ignored')}
+                          </span>
+                        )}
+                      </div>
+                      {/* Meta info: date - category - bank */}
+                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        <span className="flex-shrink-0">
+                          {new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                        </span>
+                        <span className="text-slate-300 dark:text-slate-600">-</span>
+                        <span className="truncate max-w-[80px] sm:max-w-none">{transaction.category}</span>
+                        {/* Bank indicator */}
+                        {(() => {
+                          // Use findUserBank for smart lookup (supports both document ID and bank type ID)
+                          const userBank = findUserBank(transaction.bankId);
+                          const bankInfo = userBank ? getBankInfo(userBank.bankId) : getBankInfo(transaction.bankId);
 
-              {/* Mobile: Type indicator dot */}
-              <div
-                className={`sm:hidden w-2 h-2 rounded-full flex-shrink-0
-                  ${transaction.type === 'income' ? 'bg-emerald-500' : 'bg-rose-500'}`}
-              />
-
-              {/* Info - Stack vertically on mobile when not compact */}
-              <div className={`flex-1 min-w-0 ${transaction.ignored ? 'opacity-50' : ''} ${!compact ? 'sm:flex sm:items-center sm:justify-between' : ''}`}>
-                <div className={!compact ? 'sm:flex-1 sm:min-w-0' : ''}>
-                  <div className="flex items-center gap-2">
+                          if (transaction.bankId) {
+                            const displayName = userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '');
+                            return (
+                              <>
+                                <span className="text-slate-300 dark:text-slate-600">-</span>
+                                <span className="flex-shrink-0" title={displayName}>
+                                  {bankInfo?.icon || '🏦'}
+                                </span>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                    {/* Amount - Always visible, right-aligned */}
                     <p
-                      className={`font-medium text-gray-900 dark:text-white truncate ${compact ? 'text-sm' : 'text-sm sm:text-base'}`}
-                      title={transaction.description}
+                      className={`font-semibold whitespace-nowrap flex-shrink-0 ${compact ? 'text-sm' : 'text-sm sm:text-base'}
+                        ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
                     >
-                      {transaction.description}
+                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </p>
-                    {transaction.ignored && (
-                      <span className="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
-                        {t('transactionForm.ignored')}
-                      </span>
-                    )}
-                  </div>
-                  <div className={`flex items-center gap-1.5 text-gray-500 dark:text-gray-400 ${compact ? 'text-xs' : 'text-xs sm:text-sm'}`}>
-                    {/* Bank icon */}
-                    {transaction.bankId ? (
-                      <span
-                        className="flex-shrink-0"
-                        title={getBankInfo(transaction.bankId)?.name || ''}
-                      >
-                        {getBankInfo(transaction.bankId)?.icon || '🏦'}
-                      </span>
-                    ) : (
-                      <span
-                        className="flex-shrink-0 text-gray-400"
-                        title={language === 'pt' ? 'Dinheiro' : 'Cash'}
-                      >
-                        💵
-                      </span>
-                    )}
-                    <span className="text-gray-300 dark:text-gray-600">•</span>
-                    <span className="truncate" title={transaction.category}>{transaction.category}</span>
-                    <span className="text-gray-300 dark:text-gray-600">•</span>
-                    <span className="flex-shrink-0">{new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
                   </div>
                 </div>
 
-                {/* Amount - Show on same line on desktop (when not compact), on new line on mobile */}
-                {!compact && (
-                  <p
-                    className={`font-semibold whitespace-nowrap mt-1 sm:mt-0 sm:ml-4 flex-shrink-0 text-sm sm:text-base
-                      ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}
-                  >
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                  </p>
+                {/* Edit indicator for mobile - shows chevron when tappable */}
+                {canWrite && !compact && (
+                  <svg className="w-4 h-4 text-slate-400 flex-shrink-0 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
+
+                {/* Edit & Delete Buttons - Desktop only */}
+                {!compact && canWrite && (
+                  <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingTransaction(transaction); }}
+                      className="p-2 text-slate-400 hover:text-blue-500
+                        hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                      title={language === 'pt' ? 'Editar' : 'Edit'}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
+                      className="p-2 text-slate-400 hover:text-rose-500
+                        hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
+                      title={language === 'pt' ? 'Excluir' : 'Delete'}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {/* Amount - Compact mode keeps it on the side */}
-              {compact && (
-                <p
-                  className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
-                    ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}
-                >
-                  {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                </p>
-              )}
-
-              {/* Edit & Delete Buttons - Hidden in compact mode, on mobile, and for read-only users */}
-              {!compact && canWrite && (
-                <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingTransaction(transaction); }}
-                    className="p-2 text-gray-400 hover:text-blue-500
-                      hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
-                    title={language === 'pt' ? 'Editar' : 'Edit'}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
-                    className="p-2 text-gray-400 hover:text-rose-500
-                      hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
-                    title={language === 'pt' ? 'Excluir' : 'Delete'}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              )}
             </div>
           ))
         )}
@@ -322,45 +373,43 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
 
       {/* Month Summary Footer - Hidden in compact mode */}
       {!compact && filteredTransactions.length > 0 && (
-        <div className="px-4 sm:px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-          {/* Mobile layout: stacked */}
-          <div className="sm:hidden space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg py-2 px-1">
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">{t('balance.income')}</p>
-                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(monthTotals.income)}</p>
+        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-100 dark:border-slate-700">
+          {/* Mobile layout: compact grid */}
+          <div className="sm:hidden">
+            <div className="grid grid-cols-3 gap-1.5">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl py-2 px-2 text-center">
+                <p className="text-[9px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wide font-medium">{t('balance.income')}</p>
+                <p className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">+{formatCurrency(monthTotals.income)}</p>
               </div>
-              <div className="bg-rose-50 dark:bg-rose-900/20 rounded-lg py-2 px-1">
-                <p className="text-[10px] text-rose-600 dark:text-rose-400 uppercase tracking-wide">{t('balance.expenses')}</p>
-                <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">-{formatCurrency(monthTotals.expense)}</p>
+              <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl py-2 px-2 text-center">
+                <p className="text-[9px] text-rose-600 dark:text-rose-400 uppercase tracking-wide font-medium">{t('balance.expenses')}</p>
+                <p className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 mt-0.5">-{formatCurrency(monthTotals.expense)}</p>
               </div>
-              <div className={`rounded-lg py-2 px-1 ${monthTotals.income - monthTotals.expense >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-rose-50 dark:bg-rose-900/20'}`}>
-                <p className={`text-[10px] uppercase tracking-wide ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <div className={`rounded-xl py-2 px-2 text-center ${monthTotals.income - monthTotals.expense >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-rose-50 dark:bg-rose-900/20'}`}>
+                <p className={`text-[9px] uppercase tracking-wide font-medium ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {language === 'pt' ? 'Saldo' : 'Balance'}
                 </p>
-                <p className={`text-sm font-semibold ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                <p className={`text-xs sm:text-sm font-bold mt-0.5 ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {formatCurrency(monthTotals.income - monthTotals.expense)}
                 </p>
               </div>
             </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-2">
+              {filteredTransactions.length} {language === 'pt' ? 'transacoes' : 'transactions'}
+            </p>
           </div>
 
           {/* Desktop layout: horizontal */}
           <div className="hidden sm:flex items-center justify-between text-sm">
-            <span className="text-gray-500 dark:text-gray-400">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</span>
+            <span className="text-slate-500 dark:text-slate-400">{filteredTransactions.length} {language === 'pt' ? 'transacoes' : 'transactions'}</span>
             <div className="flex items-center gap-4">
-              <span className="text-emerald-600 font-medium">
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                 +{formatCurrency(monthTotals.income)}
               </span>
-              <span className="text-rose-600 font-medium">
+              <span className="text-rose-600 dark:text-rose-400 font-medium">
                 -{formatCurrency(monthTotals.expense)}
               </span>
-              <span className={`font-semibold ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              <span className={`font-semibold ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 = {formatCurrency(monthTotals.income - monthTotals.expense)}
               </span>
             </div>

@@ -1,43 +1,25 @@
+import { useRef, useEffect } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useCards } from '../../contexts/CardsContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Line } from 'recharts';
-
-// Custom Tooltip for Recharts
-const CustomTooltip = ({ active, payload, label, formatCurrency, t }) => {
-  if (active && payload && payload.length) {
-    const income = payload.find(p => p.dataKey === 'income')?.value || 0;
-    const expense = payload.find(p => p.dataKey === 'expense')?.value || 0;
-    const balance = income - expense;
-
-    return (
-      <div className="bg-white dark:bg-gray-700 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 text-sm">
-        <p className="font-semibold text-gray-900 dark:text-white mb-1">{label}</p>
-        <p className="text-emerald-500">{`${t('balance.income')}: ${formatCurrency(income)}`}</p>
-        <p className="text-rose-500">{`${t('balance.expenses')}: ${formatCurrency(expense)}`}</p>
-        <p className={`mt-1 font-medium ${balance >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-          {`${t('balance.totalBalance')}: ${formatCurrency(balance)}`}
-        </p>
-      </div>
-    );
-  }
-  return null;
-};
+import { BarChart } from '@mui/x-charts/BarChart';
 
 export default function TrendChart({ transactions, selectedMonth, viewMode }) {
-  const { formatCurrency, t, language } = useSettings();
+  const scrollContainerRef = useRef(null);
+  const { formatCurrency, t, language, darkMode } = useSettings();
   const { getPaymentMonthKey } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
+  const textColor = darkMode ? '#e5e7eb' : '#374151';
 
-  // Generate 6 months starting from selected month
+  // Generate 12 months centered around selected month (5 before + current + 6 after)
   const getMonthsRange = () => {
     const [year, month] = (selectedMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`).split('-');
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const centerDate = new Date(parseInt(year), parseInt(month) - 1, 1);
     const months = [];
 
-    for (let i = 0; i < 6; i++) {
-      const date = new Date(startDate);
-      date.setMonth(startDate.getMonth() + i);
+    for (let i = -5; i <= 6; i++) {
+      const date = new Date(centerDate);
+      date.setMonth(centerDate.getMonth() + i);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const label = date.toLocaleDateString(locale, { month: 'short' });
       months.push({ key, label });
@@ -78,15 +60,32 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
     return acc;
   }, {});
 
-  // Create data for the 6 months range
-  const chartData = monthsRange.map(({ key, label }) => ({
-    name: label,
-    income: monthlyData[key]?.income || 0,
-    expense: monthlyData[key]?.expense || 0,
-    balance: (monthlyData[key]?.income || 0) - (monthlyData[key]?.expense || 0),
-  }));
+  // Create data for the 12 months range
+  const monthLabels = monthsRange.map(({ label }) => label);
+  const incomeData = monthsRange.map(({ key }) => monthlyData[key]?.income || 0);
+  const expenseData = monthsRange.map(({ key }) => monthlyData[key]?.expense || 0);
 
-  const hasData = chartData.some(d => d.income > 0 || d.expense > 0);
+  const hasData = incomeData.some(d => d > 0) || expenseData.some(d => d > 0);
+
+  // Scroll to show current month (index 5) on mobile when chart loads
+  useEffect(() => {
+    if (scrollContainerRef.current && hasData) {
+      const container = scrollContainerRef.current;
+      const containerWidth = container.clientWidth;
+      const scrollWidth = container.scrollWidth;
+
+      // Only scroll if content is wider than container (mobile/tablet)
+      if (scrollWidth > containerWidth) {
+        // Current month is at index 5 (6th position out of 12)
+        // Calculate scroll position to center the current month
+        const barWidth = scrollWidth / 12;
+        const currentMonthCenter = barWidth * 5 + barWidth / 2;
+        const scrollPosition = currentMonthCenter - containerWidth / 2;
+
+        container.scrollLeft = Math.max(0, scrollPosition);
+      }
+    }
+  }, [hasData]);
 
   if (!hasData) {
     return (
@@ -97,38 +96,84 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
     );
   }
 
+  // Format compact currency for Y-axis (e.g., "1k", "10k")
+  const formatCompactValue = (value) => {
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(0)}M`;
+    }
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(0)}k`;
+    }
+    return value.toString();
+  };
+
   return (
-    <div className="h-72 sm:h-80 w-full overflow-x-auto">
-      <div className="min-w-[500px] w-full h-full">
-        <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full">
+      {/* Custom Legend */}
+      <div className="flex items-center justify-center gap-6 mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm bg-emerald-500" />
+          <span className="text-sm text-gray-700 dark:text-gray-200">{t('balance.income')}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm bg-red-500" />
+          <span className="text-sm text-gray-700 dark:text-gray-200">{t('balance.expenses')}</span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div
+        ref={scrollContainerRef}
+        className="h-64 sm:h-72 md:h-80 w-full overflow-x-auto scroll-smooth"
+      >
+        <div className="min-w-[800px] w-full h-full">
           <BarChart
-            data={chartData}
-            margin={{
-              top: 20,
-              right: 10,
-              left: 0,
-              bottom: 5,
+            xAxis={[{
+              scaleType: 'band',
+              data: monthLabels,
+              tickLabelStyle: {
+                fontSize: 12,
+                fill: textColor,
+              },
+            }]}
+            yAxis={[{
+              tickLabelStyle: {
+                fontSize: 12,
+                fill: textColor,
+              },
+              valueFormatter: formatCompactValue,
+            }]}
+            series={[
+              {
+                data: incomeData,
+                color: '#10B981',
+                valueFormatter: (value) => formatCurrency(value),
+              },
+              {
+                data: expenseData,
+                color: '#EF4444',
+                valueFormatter: (value) => formatCurrency(value),
+              },
+            ]}
+            slotProps={{
+              legend: {
+                hidden: true,
+              },
             }}
-          >
-            <XAxis
-              dataKey="name"
-              stroke="#6b7280"
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis
-              stroke="#6b7280"
-              tickFormatter={(value) => formatCurrency(value, { compact: true })}
-              domain={['auto', 'auto']}
-              tick={{ fontSize: 12 }}
-              width={60}
-            />
-            <Tooltip content={<CustomTooltip formatCurrency={formatCurrency} t={t} />} cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
-            <Legend wrapperStyle={{ fontSize: '12px' }} />
-            <Bar dataKey="income" name={t('balance.income')} fill="#10B981" animationDuration={800} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expense" name={t('balance.expenses')} fill="#EF4444" animationDuration={800} radius={[4, 4, 0, 0]} />
-            <Line type="monotone" dataKey="balance" name={t('balance.totalBalance')} stroke="#3B82F6" strokeWidth={2} dot={{ r: 4 }} animationDuration={800} />
-          </BarChart>
-        </ResponsiveContainer>
+            sx={{
+              '& .MuiChartsAxis-tickLabel': {
+                fill: textColor,
+              },
+              '& .MuiChartsAxis-line': {
+                stroke: textColor,
+              },
+              '& .MuiChartsAxis-tick': {
+                stroke: textColor,
+              },
+            }}
+            margin={{ top: 10, right: 20, bottom: 30, left: 50 }}
+          />
+        </div>
       </div>
     </div>
   );

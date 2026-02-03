@@ -10,7 +10,14 @@ import {
   X,
   ChevronDown,
   ArrowRight,
-  CreditCard
+  CreditCard,
+  Globe,
+  Lock,
+  Infinity,
+  User,
+  BookOpen,
+  Headphones,
+  Key
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,6 +127,7 @@ function PurchaseContent() {
   const [pixGenerated, setPixGenerated] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
   const [paymentId, setPaymentId] = useState(null);
+  const [contribution, setContribution] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -195,20 +203,24 @@ function PurchaseContent() {
   }
 
   totalDiscount = Math.min(totalDiscount, 100);
-  const finalPrice = basePrice * (1 - totalDiscount / 100);
+  const discountedPrice = basePrice * (1 - totalDiscount / 100);
+  const contributionAmount = contribution ? parseFloat(contribution) : 0;
+  const finalPrice = discountedPrice + (contributionAmount > 0 ? contributionAmount : 0);
 
   // Store email and name in refs for use in callbacks
   const emailRef = useRef(email);
   const nameRef = useRef(name);
   const couponRef = useRef(appliedCoupon?.code);
   const priceRef = useRef(finalPrice);
+  const contributionRef = useRef(contributionAmount);
 
   useEffect(() => {
     emailRef.current = email;
     nameRef.current = name;
     couponRef.current = appliedCoupon?.code;
     priceRef.current = finalPrice;
-  }, [email, name, appliedCoupon, finalPrice]);
+    contributionRef.current = contributionAmount;
+  }, [email, name, appliedCoupon, finalPrice, contributionAmount]);
 
   // Initialize Payment Brick (transparent checkout - no preferenceId)
   const initPaymentBrick = useCallback(async () => {
@@ -277,6 +289,7 @@ function PurchaseContent() {
                     name: nameRef.current,
                     couponCode: couponRef.current || null,
                     transaction_amount: priceRef.current,
+                    contribution: contributionRef.current || 0,
                   }),
                 });
 
@@ -292,7 +305,7 @@ function PurchaseContent() {
 
                 // Check actual payment status from Mercado Pago
                 if (result.status === 'approved') {
-                  analytics.purchaseComplete(priceRef.current, couponRef.current);
+                  analytics.purchaseComplete(priceRef.current, couponRef.current, contributionRef.current || 0);
                   resolve();
                   setTimeout(() => navigate('/purchase/success'), 100);
                 } else if (result.status === 'pending' || result.status === 'in_process') {
@@ -381,7 +394,7 @@ function PurchaseContent() {
 
         if (data.approved) {
           clearInterval(pollInterval);
-          analytics.purchaseComplete(finalPrice, appliedCoupon?.code);
+          analytics.purchaseComplete(finalPrice, appliedCoupon?.code, contributionAmount || 0);
           navigate('/purchase/success');
         } else if (data.rejected) {
           clearInterval(pollInterval);
@@ -399,7 +412,7 @@ function PurchaseContent() {
     }, 5000); // Poll every 5 seconds
 
     return () => clearInterval(pollInterval);
-  }, [pixGenerated, paymentPending, paymentId, email, finalPrice, appliedCoupon, language, navigate]);
+  }, [pixGenerated, paymentPending, paymentId, email, finalPrice, appliedCoupon, contributionAmount, language, navigate]);
 
   // Handle continue to payment
   const handleContinueToPayment = async () => {
@@ -417,7 +430,7 @@ function PurchaseContent() {
     setPaymentLoading(true);
     setPaymentError('');
 
-    analytics.purchaseStart(finalPrice, appliedCoupon?.code || null);
+    analytics.purchaseStart(finalPrice, appliedCoupon?.code || null, contributionAmount || 0);
 
     try {
       // Get public key from backend
@@ -429,6 +442,7 @@ function PurchaseContent() {
           name: name,
           price: finalPrice,
           couponCode: appliedCoupon?.code || null,
+          contribution: contributionAmount || 0,
         }),
       });
 
@@ -455,12 +469,32 @@ function PurchaseContent() {
     }
   };
 
-  const features = [
-    language === 'pt' ? 'Acesso completo ao sistema web e mobile' : 'Full access to web and mobile app',
-    language === 'pt' ? 'Transações e contas ilimitadas' : 'Unlimited transactions & accounts',
-    language === 'pt' ? 'Todos os recursos atuais e futuros' : 'All current and future features',
-    language === 'pt' ? 'Atualizações vitalícias incluídas' : 'Lifetime updates included',
-    language === 'pt' ? 'Suporte prioritário' : 'Priority support',
+  const benefits = [
+    {
+      icon: User,
+      title: language === 'pt' ? 'Sua própria conta' : 'Your own account',
+      desc: language === 'pt' ? 'Sistema configurado na sua conta Google/Firebase' : 'System configured in your Google/Firebase account'
+    },
+    {
+      icon: Key,
+      title: language === 'pt' ? 'Seus dados, seu controle' : 'Your data, your control',
+      desc: language === 'pt' ? 'Você é dono dos seus dados financeiros' : 'You own all your financial data'
+    },
+    {
+      icon: Infinity,
+      title: language === 'pt' ? 'Sem custo de hospedagem' : 'No hosting costs',
+      desc: language === 'pt' ? 'Firebase gratuito para uso pessoal' : 'Firebase free tier for personal use'
+    },
+    {
+      icon: BookOpen,
+      title: language === 'pt' ? 'Tutoriais online' : 'Online tutorials',
+      desc: language === 'pt' ? 'Páginas de ajuda para usar o sistema' : 'Help pages to guide you through the system'
+    },
+    {
+      icon: Headphones,
+      title: language === 'pt' ? 'Suporte incluído' : 'Support included',
+      desc: language === 'pt' ? '2 alterações grátis para bugs ou configs' : '2 free changes for bugs or configs'
+    },
   ];
 
   if (loading) {
@@ -475,7 +509,7 @@ function PurchaseContent() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           {step === 'payment' ? (
             <button
               onClick={() => {
@@ -509,7 +543,7 @@ function PurchaseContent() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <main className="max-w-6xl mx-auto px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -517,19 +551,13 @@ function PurchaseContent() {
         >
           {/* Title */}
           <div className="text-center mb-6 sm:mb-12">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 mb-4 sm:mb-6 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
-              <Heart className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                {language === 'pt' ? '50% vão para a igreja' : '50% goes to the church'}
-              </span>
-            </div>
             <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-3">
               {step === 'info'
                 ? (language === 'pt' ? 'Finalizar Compra' : 'Complete Purchase')
                 : (language === 'pt' ? 'Pagamento' : 'Payment')}
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
-              {language === 'pt' ? 'Acesso vitalício ao Limas Finance' : 'Lifetime access to Limas Finance'}
+              {language === 'pt' ? 'Acesso ao Limas Finance' : 'Access to Limas Finance'}
             </p>
 
             {/* Step indicator */}
@@ -550,27 +578,32 @@ function PurchaseContent() {
 
           {step === 'info' ? (
             <div className="grid lg:grid-cols-2 gap-4 sm:gap-8">
-              {/* Left: Product Summary */}
+              {/* Left: What You Get */}
               <div className="space-y-4 sm:space-y-6">
                 <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
-                  <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
-                    {language === 'pt' ? 'Acesso Completo' : 'Complete Access'}
+                  <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">
+                    {language === 'pt' ? 'O que você recebe' : 'What you get'}
                   </h2>
 
-                  <ul className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
-                    {features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-slate-600 dark:text-slate-300">
-                        <Check className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-500 flex-shrink-0" />
-                        {feature}
-                      </li>
+                  <div className="space-y-4">
+                    {benefits.map((benefit, i) => (
+                      <div key={i} className="flex gap-3 sm:gap-4">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center">
+                          <benefit.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm sm:text-base text-slate-800 dark:text-slate-200">{benefit.title}</p>
+                          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{benefit.desc}</p>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
 
                   <button
                     onClick={() => setShowDetails(!showDetails)}
-                    className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
+                    className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 hover:underline mt-4"
                   >
-                    {language === 'pt' ? 'Ver mais detalhes' : 'See more details'}
+                    {language === 'pt' ? 'Como funciona?' : 'How does it work?'}
                     <ChevronDown className={`w-4 h-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
                   </button>
 
@@ -582,15 +615,25 @@ function PurchaseContent() {
                     >
                       <p>
                         {language === 'pt'
-                          ? '• Um sistema por pessoa. Seus dados armazenados na sua própria conta.'
-                          : '• One system per person. Your data stored in your own account.'}
+                          ? '1. Após o pagamento, você será contatado via email.'
+                          : '1. After payment, you\'ll be contacted via email.'}
                       </p>
                       <p>
                         {language === 'pt'
-                          ? '• Sem taxas de hospedagem ou domínio.'
-                          : '• No hosting or domain fees.'}
+                          ? '2. O sistema será configurado na sua conta Google/Firebase - seus dados são 100% seus.'
+                          : '2. The system will be configured in your Google/Firebase account - your data is 100% yours.'}
                       </p>
                       <p>
+                        {language === 'pt'
+                          ? '3. Você receberá tutoriais online para aprender a usar.'
+                          : '3. You\'ll get online tutorials to learn how to use it.'}
+                      </p>
+                      <p className="pt-2 text-xs text-slate-500 dark:text-slate-500">
+                        {language === 'pt'
+                          ? 'Nota: O código fonte não está incluído. Acesso ao código tem custo adicional - entre em contato via suporte.'
+                          : 'Note: Source code is not included. Code access has an additional cost - contact support.'}
+                      </p>
+                      <p className="pt-1 font-medium text-slate-700 dark:text-slate-300">
                         {language === 'pt'
                           ? '• Garantia de reembolso de 30 dias.'
                           : '• 30-day money-back guarantee.'}
@@ -628,7 +671,14 @@ function PurchaseContent() {
                   {totalDiscount > 0 && (
                     <div className="flex items-center justify-between mb-2 text-sm sm:text-base text-emerald-600 dark:text-emerald-400">
                       <span>{language === 'pt' ? 'Desconto' : 'Discount'} ({totalDiscount}%)</span>
-                      <span>- R$ {(basePrice - finalPrice).toFixed(2)}</span>
+                      <span>- R$ {(basePrice - discountedPrice).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {contributionAmount > 0 && (
+                    <div className="flex items-center justify-between mb-2 text-sm sm:text-base text-rose-600 dark:text-rose-400">
+                      <span>{language === 'pt' ? 'Contribuição' : 'Contribution'}</span>
+                      <span>+ R$ {contributionAmount.toFixed(2)}</span>
                     </div>
                   )}
 
@@ -685,6 +735,31 @@ function PurchaseContent() {
                   {couponError && (
                     <p className="text-sm text-rose-500 mt-2">{couponError}</p>
                   )}
+                </div>
+
+                {/* Optional Contribution */}
+                <div className="mb-4 sm:mb-6">
+                  <label className="block text-xs sm:text-sm font-medium mb-2">
+                    <Heart className="w-4 h-4 inline mr-1 text-rose-500" />
+                    {language === 'pt' ? 'Contribuição extra (opcional)' : 'Extra contribution (optional)'}
+                  </label>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                    {language === 'pt'
+                      ? 'Quer apoiar o desenvolvimento? Adicione uma contribuição voluntária.'
+                      : 'Want to support development? Add a voluntary contribution.'}
+                  </p>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">R$</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={contribution}
+                      onChange={(e) => setContribution(e.target.value)}
+                      placeholder="0"
+                      className="h-11 pl-10 rounded-xl"
+                    />
+                  </div>
                 </div>
 
                 {/* User Info */}
@@ -768,7 +843,7 @@ function PurchaseContent() {
                 {/* Order Summary */}
                 <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-slate-600 dark:text-slate-400">Limas Finance - Acesso Vitalício</span>
+                    <span className="text-slate-600 dark:text-slate-400">Limas Finance - Acesso Completo</span>
                     <span className="font-bold text-emerald-600">R$ {finalPrice.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-slate-500">{email}</p>

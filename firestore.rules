@@ -2,47 +2,95 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper function: Get access document
+    function getAccessDoc() {
+      return get(/databases/$(database)/documents/access/allowed_emails);
+    }
+
+    // Helper function: Check if user is the owner of the data
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Helper function: Check if user has shared access (email in allowedEmailsList)
+    function hasSharedAccess() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/access/allowed_emails) &&
+             request.auth.token.email.lower() in getAccessDoc().data.allowedEmailsList;
+    }
+
+    // Helper function: Get the owner's UID from access document
+    function getOwnerId() {
+      return getAccessDoc().data.ownerId;
+    }
+
+    // Helper function: Check if user has write access (email in writeEmailsList)
+    function hasWriteAccess() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/access/allowed_emails) &&
+             request.auth.token.email.lower() in getAccessDoc().data.writeEmailsList;
+    }
+
+    // Helper function: Check if user can read this data (owner or shared user viewing owner's data)
+    function canReadData(dataUserId) {
+      return isOwner(dataUserId) ||
+             (hasSharedAccess() && dataUserId == getOwnerId());
+    }
+
+    // Helper function: Check if user can write this data (owner or shared user with write role)
+    function canWriteData(dataUserId) {
+      return isOwner(dataUserId) ||
+             (hasWriteAccess() && dataUserId == getOwnerId());
+    }
+
     // Transactions collection
     match /transactions/{transactionId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update: if request.auth != null && ((resource.data.userId == null && request.resource.data.userId == request.auth.uid) || resource.data.userId == request.auth.uid);
-      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update: if request.auth != null && canWriteData(resource.data.userId);
+      allow delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // Settings collection
     match /settings/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && canReadData(userId);
+      allow write: if request.auth != null && canWriteData(userId);
     }
 
     // Goals collection
     match /goals/{goalId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // Cards collection (legacy)
     match /cards/{cardId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // User Banks collection
     match /userBanks/{bankId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // Budgets collection
     match /budgets/{budgetId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // Investments collection
     match /investments/{investmentId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // CMS collection - public read, admin-only write
@@ -77,14 +125,16 @@ service cloud.firestore {
 
     // Bills collection
     match /bills/{billId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasSharedAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // Bill reminders (postponement history)
     match /bill_reminders/{reminderId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasSharedAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
     }
 
     // Users collection - for WhatsApp bot access

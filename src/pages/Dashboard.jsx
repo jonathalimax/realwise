@@ -7,6 +7,7 @@ import { useAccess } from '../contexts/AccessContext';
 import { useBills } from '../contexts/BillsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
+import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import InvestmentsListModal from '../components/InvestmentsListModal';
 import ExpensesPieChart from '../components/charts/ExpensesPieChart';
@@ -41,10 +42,7 @@ export default function DashboardPage() {
   const [isFirstTimeTutorial, setIsFirstTimeTutorial] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+  const { selectedMonth, setSelectedMonth } = useMonth();
   const [viewMode, setViewMode] = useState('payment');
   const { t, language, categories, tutorialCompleted, loading: settingsLoading } = useSettings();
   const { canWrite, ownerId } = useAccess();
@@ -61,8 +59,7 @@ export default function DashboardPage() {
   };
 
   const handleOpenBudget = () => {
-    if (isMobile) navigate('/planning');
-    else setShowBudget(true);
+    navigate('/budget');
   };
 
   const handleOpenInvestments = () => {

@@ -83,18 +83,34 @@ export const DEFAULT_RULES = [
     type: 'expense',
     priority: 8
   },
-  // Income categories
+  // Income categories - these should have high priority to override expense detection
   {
-    keywords: ['SALARIO', 'PAGAMENTO', 'DEPOSITO', 'TRANSFERENCIA RECEBIDA', 'PIX RECEBIDO', 'TED RECEBIDO', 'DOC RECEBIDO'],
+    keywords: ['SALARIO', 'PAGAMENTO RECEBIDO', 'DEPOSITO'],
     category: 'Salário',
     type: 'income',
-    priority: 10
+    priority: 15
   },
   {
-    keywords: ['INVESTIMENTO', 'RENDIMENTO', 'DIVIDENDO', 'JUROS', 'APLICACAO'],
+    keywords: [
+      'TRANSFERENCIA RECEBIDA',
+      'TRANSFERÊNCIA RECEBIDA',
+      'PIX RECEBIDO',
+      'TED RECEBIDO',
+      'DOC RECEBIDO',
+      'CREDITO EM CONTA',
+      'CREDITO CONTA',
+      'RECEBIDA',
+      'RECEBIDO'
+    ],
+    category: 'Renda',
+    type: 'income',
+    priority: 15
+  },
+  {
+    keywords: ['INVESTIMENTO', 'RENDIMENTO', 'DIVIDENDO', 'JUROS', 'APLICACAO', 'RESGATE'],
     category: 'Investimentos',
     type: 'income',
-    priority: 9
+    priority: 14
   }
 ];
 

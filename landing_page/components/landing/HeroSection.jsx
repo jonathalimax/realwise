@@ -1,11 +1,34 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { ArrowRight, Monitor, Smartphone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Monitor, Smartphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/LanguageToggle';
 
+const screenshots = [
+  { src: '/dashboard-overview.png', alt: 'Dashboard Overview' },
+  { src: '/dashboard-categories.png', alt: 'Spending by Category' },
+];
+
 export default function HeroSection() {
   const { t } = useLanguage();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Auto-rotate every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % screenshots.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev - 1 + screenshots.length) % screenshots.length);
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % screenshots.length);
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
       {/* Subtle gradient background */}
@@ -76,7 +99,7 @@ export default function HeroSection() {
           </motion.div>
         </motion.div>
 
-        {/* App Preview - Using actual screenshot */}
+        {/* App Preview - Real Screenshots Carousel */}
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
@@ -95,73 +118,60 @@ export default function HeroSection() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="max-w-md mx-auto h-6 rounded-md bg-slate-700 flex items-center px-3">
-                    <span className="text-xs text-slate-400">limas-finance.web.app</span>
+                    <span className="text-xs text-slate-400">blimwallet.com</span>
                   </div>
                 </div>
               </div>
-              
-              {/* Split screen: Login on right, Info on left */}
-              <div className="aspect-[16/9] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
-                {/* Left side - Info */}
-                <div className="flex-1 p-12 flex flex-col justify-center text-white">
-                  <h2 className="text-4xl font-bold mb-4">Assuma o controle das suas finanças</h2>
-                  <p className="text-slate-300 mb-8 text-lg leading-relaxed">
-                    Acompanhe suas receitas e despesas, visualize seus hábitos de consumo e tome decisões financeiras mais inteligentes.
-                  </p>
-                  <div className="grid grid-cols-3 gap-6">
-                    <div>
-                      <div className="text-3xl font-bold mb-1">100%</div>
-                      <div className="text-sm text-slate-400">Grátis</div>
-                    </div>
-                    <div>
-                      <div className="text-3xl font-bold mb-1">Seguro</div>
-                      <div className="text-sm text-slate-400">Armazenamento na nuvem</div>
-                    </div>
-                    <div>
-                      <div className="text-3xl font-bold mb-1">Simples</div>
-                      <div className="text-sm text-slate-400">Fácil de usar</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Right side - Login form */}
-                <div className="w-[480px] bg-white dark:bg-slate-50 p-10 flex flex-col justify-center">
-                  <div className="mb-8">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Bem-vindo de volta</h3>
-                    <p className="text-slate-600">Digite suas credenciais para acessar sua conta</p>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">E-mail</label>
-                      <div className="h-11 rounded-lg border-2 border-slate-200 bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Senha</label>
-                      <div className="h-11 rounded-lg border-2 border-slate-200 bg-white" />
-                    </div>
-                    <div className="h-11 rounded-lg bg-slate-900 flex items-center justify-center">
-                      <span className="text-white font-medium">Entrar</span>
-                    </div>
-                    
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-slate-200" />
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-slate-50 text-slate-500">ou continue com</span>
-                      </div>
-                    </div>
-                    
-                    <div className="h-11 rounded-lg border-2 border-slate-200 bg-white flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-gradient-to-r from-blue-500 to-red-500" />
-                      <span className="text-slate-700 font-medium text-sm">Google</span>
-                    </div>
-                  </div>
+
+              {/* Screenshot carousel */}
+              <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentIndex}
+                    src={screenshots[currentIndex].src}
+                    alt={screenshots[currentIndex].alt}
+                    className="w-full h-full object-cover object-top"
+                    initial={{ opacity: 0, x: 100 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </AnimatePresence>
+
+                {/* Navigation arrows */}
+                <button
+                  onClick={goToPrevious}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors backdrop-blur-sm"
+                  aria-label="Previous"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={goToNext}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors backdrop-blur-sm"
+                  aria-label="Next"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+
+                {/* Dots indicator */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {screenshots.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        index === currentIndex
+                          ? 'bg-white w-6'
+                          : 'bg-white/50 hover:bg-white/70'
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
-            
+
             {/* Floating elements */}
             <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-emerald-400/20 rounded-full blur-3xl" />
             <div className="absolute -top-4 -left-4 w-40 h-40 bg-teal-400/20 rounded-full blur-3xl" />

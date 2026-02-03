@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { useSettings } from '../contexts/SettingsContext';
@@ -12,7 +12,6 @@ import {
   DocumentTextIcon,
   CreditCardIcon,
   ChartBarIcon,
-  ChatBubbleBottomCenterTextIcon,
   QuestionMarkCircleIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
@@ -20,6 +19,7 @@ import {
   MoonIcon,
   Bars3Icon,
   XMarkIcon,
+  ArrowLeftIcon,
 } from '@heroicons/react/24/outline';
 
 const navItems = [
@@ -35,15 +35,35 @@ const navItems = [
 ];
 
 const bottomItems = [
-  { path: '/whatsapp', icon: ChatBubbleBottomCenterTextIcon, labelKey: 'whatsapp' },
   { path: '/help', icon: QuestionMarkCircleIcon, labelKey: 'help' },
   { path: '/settings', icon: Cog6ToothIcon, labelKey: 'settings' },
 ];
 
+// Root routes that should show hamburger menu (not back button)
+const ROOT_ROUTES = [
+  '/dashboard',
+  '/planning',
+  '/expenses',
+  '/income',
+  '/goals',
+  '/bills',
+  '/cards',
+  '/investments',
+  '/transactions',
+  '/settings',
+  '/budget',
+  '/help',
+  '/whatsapp',
+];
+
 export default function Sidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, language, darkMode, toggleDarkMode } = useSettings();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Check if we're on a nested route (should show back button instead of hamburger)
+  const isNestedRoute = !ROOT_ROUTES.includes(location.pathname);
 
   const labels = {
     dashboard: language === 'pt' ? 'Painel' : 'Dashboard',
@@ -54,7 +74,6 @@ export default function Sidebar() {
     bills: language === 'pt' ? 'Contas' : 'Bills',
     cards: language === 'pt' ? 'Cartões' : 'Cards',
     investments: language === 'pt' ? 'Investimentos' : 'Investments',
-    whatsapp: 'WhatsApp',
     help: language === 'pt' ? 'Ajuda' : 'Help',
     settings: language === 'pt' ? 'Configurações' : 'Settings',
     logout: language === 'pt' ? 'Sair' : 'Logout',
@@ -64,7 +83,7 @@ export default function Sidebar() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      navigate('/selling');
+      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -97,6 +116,21 @@ export default function Sidebar() {
     );
   };
 
+  // Get user display name or email
+  const getUserDisplayName = () => {
+    const user = auth.currentUser;
+    if (!user) return null;
+
+    // Try display name first, then email username, then full email
+    if (user.displayName) return user.displayName;
+    if (user.email) {
+      const emailName = user.email.split('@')[0];
+      // Capitalize first letter
+      return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+    }
+    return null;
+  };
+
   const SidebarContent = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -108,6 +142,35 @@ export default function Sidebar() {
         </div>
         <span className="text-lg font-bold text-gray-900 dark:text-white">Blim Wallet</span>
       </div>
+
+      {/* User info */}
+      {auth.currentUser && (
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+            <div className="w-9 h-9 bg-violet-100 dark:bg-violet-900/50 rounded-full flex items-center justify-center flex-shrink-0">
+              {auth.currentUser.photoURL ? (
+                <img
+                  src={auth.currentUser.photoURL}
+                  alt=""
+                  className="w-9 h-9 rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-violet-600 dark:text-violet-300 font-semibold text-sm">
+                  {getUserDisplayName()?.charAt(0)?.toUpperCase() || '?'}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {getUserDisplayName()}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {auth.currentUser.email}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
@@ -130,40 +193,68 @@ export default function Sidebar() {
           />
         ))}
 
-        {/* Dark mode toggle */}
-        <button
-          onClick={toggleDarkMode}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          {darkMode ? (
-            <SunIcon className="w-5 h-5 flex-shrink-0" />
-          ) : (
-            <MoonIcon className="w-5 h-5 flex-shrink-0" />
-          )}
-          <span className="font-medium text-sm">{labels.darkMode}</span>
-        </button>
+        {/* Logout and Dark mode row */}
+        <div className="flex items-center gap-2 pt-1">
+          {/* Logout */}
+          <button
+            onClick={handleSignOut}
+            className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+          >
+            <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium text-sm">{labels.logout}</span>
+          </button>
 
-        {/* Logout */}
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
-        >
-          <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0" />
-          <span className="font-medium text-sm">{labels.logout}</span>
-        </button>
+          {/* Dark mode toggle - icon only */}
+          <button
+            onClick={toggleDarkMode}
+            className="p-2.5 rounded-xl transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            title={labels.darkMode}
+          >
+            {darkMode ? (
+              <SunIcon className="w-5 h-5" />
+            ) : (
+              <MoonIcon className="w-5 h-5" />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
 
+  // Get the parent route for back navigation
+  const getParentRoute = () => {
+    const pathParts = location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 1) {
+      // Return the first segment as the parent route (e.g., /investments/new -> /investments)
+      return '/' + pathParts[0];
+    }
+    return '/dashboard';
+  };
+
+  const handleBackClick = () => {
+    navigate(getParentRoute());
+  };
+
   return (
     <>
-      {/* Mobile hamburger button */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
-      >
-        <Bars3Icon className="w-6 h-6 text-gray-700 dark:text-gray-200" />
-      </button>
+      {/* Mobile navigation button - Shows back arrow on nested routes, hamburger on root routes */}
+      {isNestedRoute ? (
+        <button
+          onClick={handleBackClick}
+          className="md:hidden fixed top-[11px] left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+          aria-label="Go back"
+        >
+          <ArrowLeftIcon className="w-6 h-6 text-gray-700 dark:text-gray-200" />
+        </button>
+      ) : (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="md:hidden fixed top-[11px] left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+          aria-label="Open menu"
+        >
+          <Bars3Icon className="w-6 h-6 text-gray-700 dark:text-gray-200" />
+        </button>
+      )}
 
       {/* Mobile overlay */}
       {mobileOpen && (

@@ -1,36 +1,28 @@
 import { useState, useEffect } from 'react';
-import { useInvestments, INVESTMENT_TYPES, INVESTMENT_COLORS, CDI_ANNUAL_RATE } from '../contexts/InvestmentContext';
+import { useInvestments, INVESTMENT_TYPES, CDI_ANNUAL_RATE } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from './ui/CurrencyInput';
 
-export default function InvestmentModal({ isOpen, onClose, initialView = 'list', editingInvestment: externalEditingInvestment = null }) {
+export default function InvestmentModal({ isOpen, onClose, initialView = 'form', editingInvestment: externalEditingInvestment = null }) {
   const {
-    investments,
-    loading,
     addInvestment,
     updateInvestment,
     deleteInvestment,
     withdrawFromInvestment,
     getCurrentValue,
-    getGrowthPercentage,
     calculateTaxes,
     getInvestmentColor,
     getInvestmentType,
-    getDaysUntilMaturity,
-    getTotalInvested,
-    getTotalCurrentValue,
-    getTotalGrowth,
   } = useInvestments();
   const { formatCurrency, t, language } = useSettings();
   const { goals, getGoalColor } = useGoals();
 
-  const [view, setView] = useState(initialView); // 'list', 'form', 'updateValue', 'withdraw'
+  const [view, setView] = useState(initialView); // 'form', 'updateValue', 'withdraw'
   const [editingInvestment, setEditingInvestment] = useState(externalEditingInvestment);
   const [selectedInvestmentForUpdate, setSelectedInvestmentForUpdate] = useState(null);
   const [newCurrentValue, setNewCurrentValue] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [sortBy, setSortBy] = useState('maturity'); // 'maturity', 'name', 'value', 'type'
 
   // Withdraw state
   const [selectedInvestmentForWithdraw, setSelectedInvestmentForWithdraw] = useState(null);
@@ -141,12 +133,13 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'list',
     }
 
     resetForm();
-    setView('list');
+    onClose();
   };
 
   const handleDelete = async (investmentId) => {
     await deleteInvestment(investmentId);
     setConfirmDelete(null);
+    onClose();
   };
 
   const handleOpenUpdateValue = (investment) => {
@@ -162,7 +155,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'list',
     });
     setSelectedInvestmentForUpdate(null);
     setNewCurrentValue(0);
-    setView('list');
+    onClose();
   };
 
   // Withdraw handlers
@@ -193,7 +186,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'list',
         setIsFullWithdrawal(false);
         setWithdrawGoalId('');
         setWithdrawDate(new Date().toISOString().split('T')[0]);
-        setView('list');
+        onClose();
       } else {
         alert(language === 'pt' ? 'Erro ao realizar resgate. Tente novamente.' : 'Error withdrawing. Please try again.');
       }
@@ -209,242 +202,17 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'list',
     }
   };
 
-  // Sort investments
-  const getSortedInvestments = () => {
-    const sorted = [...investments];
-
-    switch (sortBy) {
-      case 'name':
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case 'value':
-        return sorted.sort((a, b) => getCurrentValue(b) - getCurrentValue(a));
-      case 'type':
-        return sorted.sort((a, b) => a.type.localeCompare(b.type));
-      case 'maturity':
-      default:
-        return sorted.sort((a, b) => {
-          if (!a.maturityDate && !b.maturityDate) return 0;
-          if (!a.maturityDate) return 1;
-          if (!b.maturityDate) return -1;
-          return new Date(a.maturityDate) - new Date(b.maturityDate);
-        });
-    }
-  };
-
-  const InvestmentCard = ({ investment }) => {
-    const typeInfo = getInvestmentType(investment.type);
-    const color = getInvestmentColor(typeInfo.color);
-    const currentValue = getCurrentValue(investment);
-    const growthPercent = getGrowthPercentage(investment);
-    const daysLeft = getDaysUntilMaturity(investment);
-    const linkedGoal = investment.goalId ? goals.find(g => g.id === investment.goalId) : null;
-    const taxes = calculateTaxes(investment);
-    const isFixedIncome = investment.type === 'fixed_income' || investment.returnType === 'cdi';
-
-    return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow">
-        <div className="flex items-start gap-3">
-          <div className={`w-12 h-12 ${color.light} rounded-xl flex items-center justify-center text-2xl flex-shrink-0`}>
-            {typeInfo.icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold text-gray-900 dark:text-white truncate">{investment.name}</h3>
-              <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${color.light} ${color.text}`}>
-                {t(`investments.types.${investment.type}`)}
-              </span>
-            </div>
-            {investment.bank && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">{investment.bank}</p>
-            )}
-
-            {/* Values */}
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('investments.initialAmount')}</p>
-                <p className="font-medium text-gray-900 dark:text-white">{formatCurrency(investment.initialAmount)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {t('investments.currentAmount')}
-                  {investment.returnType === 'cdi' && !investment.currentAmount && (
-                    <span className="ml-1 text-blue-500 dark:text-blue-400">({t('investments.estimated')})</span>
-                  )}
-                </p>
-                <p className={`font-medium ${color.text}`}>{formatCurrency(currentValue)}</p>
-                {investment.returnType === 'cdi' && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    {investment.expectedReturn * 100}% CDI
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Growth & Maturity */}
-            <div className="mt-3 flex items-center justify-between">
-              <div className={`flex items-center gap-1 ${growthPercent >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                <span className="text-sm font-medium">
-                  {growthPercent >= 0 ? '+' : ''}{growthPercent.toFixed(2)}%
-                </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  ({formatCurrency(currentValue - investment.initialAmount)})
-                </span>
-              </div>
-              {daysLeft !== null && (
-                <span className={`text-xs ${daysLeft < 0 ? 'text-rose-500 dark:text-rose-400' : daysLeft < 30 ? 'text-amber-500 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                  {daysLeft < 0
-                    ? t('investments.matured')
-                    : t('investments.daysUntilMaturity', { days: daysLeft })}
-                </span>
-              )}
-            </div>
-
-            {/* Tax Breakdown (only for fixed income with profit) */}
-            {isFixedIncome && taxes.grossProfit > 0 && (
-              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">{t('investments.grossProfit')}</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                    +{formatCurrency(taxes.grossProfit)}
-                  </span>
-                </div>
-
-                {taxes.iofAmount > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-gray-400">
-                      IOF ({(taxes.iofRate * 100).toFixed(0)}%)
-                      <span className="ml-1 text-gray-400">• {taxes.daysHeld} {t('investments.days')}</span>
-                    </span>
-                    <span className="text-rose-500 dark:text-rose-400">
-                      -{formatCurrency(taxes.iofAmount)}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    IR ({(taxes.irpfRate * 100).toFixed(1)}%)
-                  </span>
-                  <span className="text-rose-500 dark:text-rose-400">
-                    -{formatCurrency(taxes.irpfAmount)}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-600 flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    {t('investments.netValue')}
-                  </span>
-                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(taxes.netValue)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Linked Goal */}
-            {linkedGoal && (
-              <div className={`mt-2 px-3 py-2 rounded-lg ${getGoalColor(linkedGoal.color).light}`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{GOAL_ICONS[linkedGoal.icon]}</span>
-                  <span className={`text-sm font-medium ${getGoalColor(linkedGoal.color).text}`}>
-                    {t('investments.linkedToGoal', { goal: linkedGoal.name })}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex items-center gap-1.5 mt-3">
-              <button
-                onClick={() => handleOpenWithdraw(investment)}
-                className="flex-1 py-1.5 bg-emerald-500 text-white text-xs font-medium rounded-lg hover:bg-emerald-600 transition"
-              >
-                {t('investments.withdraw')}
-              </button>
-              <button
-                onClick={() => handleOpenUpdateValue(investment)}
-                className={`flex-1 py-1.5 ${color.bg} text-white text-xs font-medium rounded-lg hover:opacity-90 transition`}
-              >
-                {t('investments.updateValue')}
-              </button>
-              <button
-                onClick={() => handleOpenForm(investment)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-                title={language === 'pt' ? 'Editar' : 'Edit'}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setConfirmDelete(investment.id)}
-                className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition"
-                title={language === 'pt' ? 'Excluir' : 'Delete'}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Delete confirmation */}
-        {confirmDelete === investment.id && (
-          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-100 dark:border-red-800">
-            <p className="text-sm text-red-800 dark:text-red-200 font-medium">{t('investments.confirmDelete')}</p>
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{t('investments.deleteWarning')}</p>
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={() => handleDelete(investment.id)}
-                className="flex-1 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 transition"
-              >
-                {t('common.delete')}
-              </button>
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            {view !== 'list' && (
-              <button
-                onClick={() => {
-                  setView('list');
-                  resetForm();
-                  setSelectedInvestmentForUpdate(null);
-                  setSelectedInvestmentForWithdraw(null);
-                  setWithdrawAmount(0);
-                  setIsFullWithdrawal(false);
-                  setWithdrawGoalId('');
-                }}
-                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-              >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-              {view === 'list' && t('investments.myInvestments')}
-              {view === 'form' && (editingInvestment ? t('investments.editInvestment') : t('investments.newInvestment'))}
-              {view === 'updateValue' && t('investments.updateValue')}
-              {view === 'withdraw' && t('investments.withdraw')}
-            </h2>
-          </div>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+            {view === 'form' && (editingInvestment ? t('investments.editInvestment') : t('investments.newInvestment'))}
+            {view === 'updateValue' && t('investments.updateValue')}
+            {view === 'withdraw' && t('investments.withdraw')}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
@@ -457,70 +225,6 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'list',
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {/* List View */}
-          {view === 'list' && (
-            <div className="space-y-3">
-              {/* Portfolio Summary */}
-              {investments.length > 0 && (
-                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 text-white mb-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-blue-100">{t('investments.totalInvested')}</p>
-                      <p className="text-lg font-bold">{formatCurrency(getTotalInvested())}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-blue-100">{t('investments.portfolioValue')}</p>
-                      <p className="text-lg font-bold">{formatCurrency(getTotalCurrentValue())}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-blue-100">{t('investments.growth')}</p>
-                      <p className={`text-lg font-bold ${getTotalGrowth() >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                        {getTotalGrowth() >= 0 ? '+' : ''}{formatCurrency(getTotalGrowth())}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 dark:border-gray-500 mx-auto" />
-                  <p className="mt-3 text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
-                </div>
-              ) : investments.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">📈</span>
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-300 font-medium">{t('investments.noInvestments')}</p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('investments.noInvestmentsSubtitle')}</p>
-                </div>
-              ) : (
-                <>
-                  {/* Sort Dropdown */}
-                  <div className="flex items-center justify-end gap-2 mb-2">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t('investments.sortBy')}:</span>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="text-xs pl-2 pr-8 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 focus:border-transparent cursor-pointer"
-                    >
-                      <option value="maturity">{t('investments.sortByMaturity')}</option>
-                      <option value="name">{t('investments.sortByName')}</option>
-                      <option value="value">{t('investments.sortByValue')}</option>
-                      <option value="type">{t('investments.sortByType')}</option>
-                    </select>
-                  </div>
-
-                  {/* Investments List */}
-                  {getSortedInvestments().map((investment) => (
-                    <InvestmentCard key={investment.id} investment={investment} />
-                  ))}
-                </>
-              )}
-            </div>
-          )}
-
           {/* Form View */}
           {view === 'form' && (
             <form onSubmit={handleSubmitInvestment} className="space-y-5">
@@ -744,15 +448,56 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'list',
                 />
               </div>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={!formData.name.trim() || (!editingInvestment && !formData.initialAmount)}
-                className="w-full py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-xl
-                  hover:bg-gray-800 dark:hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {editingInvestment ? t('common.save') : t('investments.addInvestment')}
-              </button>
+              {/* Submit and Delete buttons */}
+              <div className="space-y-3">
+                <button
+                  type="submit"
+                  disabled={!formData.name.trim() || (!editingInvestment && !formData.initialAmount)}
+                  className="w-full py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-xl
+                    hover:bg-gray-800 dark:hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {editingInvestment ? t('common.save') : t('investments.addInvestment')}
+                </button>
+
+                {/* Delete button (only when editing) */}
+                {editingInvestment && (
+                  confirmDelete === editingInvestment.id ? (
+                    <div className="p-3 bg-red-50 dark:bg-red-900/30 rounded-xl border border-red-100 dark:border-red-800">
+                      <p className="text-sm text-red-800 dark:text-red-200 font-medium">{t('investments.confirmDelete')}</p>
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">{t('investments.deleteWarning')}</p>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleDelete(editingInvestment.id);
+                            setView('list');
+                            resetForm();
+                          }}
+                          className="flex-1 py-2 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 transition"
+                        >
+                          {t('common.delete')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(null)}
+                          className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(editingInvestment.id)}
+                      className="w-full py-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-medium rounded-xl border border-red-200 dark:border-red-800
+                        hover:bg-red-100 dark:hover:bg-red-900/50 transition"
+                    >
+                      {t('common.delete')} {t('investments.title').slice(0, -1)}
+                    </button>
+                  )
+                )}
+              </div>
             </form>
           )}
 
@@ -977,22 +722,6 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'list',
             </div>
           )}
         </div>
-
-        {/* Footer - Add button for list view */}
-        {view === 'list' && (
-          <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-            <button
-              onClick={() => handleOpenForm()}
-              className="w-full py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-xl
-                hover:bg-gray-800 dark:hover:bg-gray-200 transition flex items-center justify-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              {t('investments.addInvestment')}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

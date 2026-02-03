@@ -70,7 +70,7 @@ function SupportContent() {
             Suporte & Manutenção
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Precisa de ajuda ou manutenção no seu sistema? Entre em contato conosco. Cobramos apenas pelo tempo necessário para resolver sua solicitação.
+            Sua compra inclui 2 alterações de suporte gratuitas para bugs ou configurações incorretas. Para personalizações adicionais, novos recursos ou acesso ao código fonte, entre em contato conosco. Cobramos apenas pelo tempo necessário para resolver sua solicitação.
           </p>
         </motion.div>
 

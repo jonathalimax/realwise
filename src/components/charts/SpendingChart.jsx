@@ -1,7 +1,7 @@
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart } from '@mui/x-charts/PieChart';
 import { useSettings } from '../../contexts/SettingsContext';
 
-// Modern gradient-inspired color palette
+// Modern color palette
 const COLORS = [
   { main: '#8B5CF6', light: '#A78BFA' }, // Purple
   { main: '#EC4899', light: '#F472B6' }, // Pink
@@ -44,7 +44,12 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
     }, {});
 
   const data = Object.entries(categoryTotals)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value], index) => ({
+      id: index,
+      value,
+      label: name,
+      color: COLORS[index % COLORS.length].main,
+    }))
     .sort((a, b) => b.value - a.value);
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -65,41 +70,36 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
     return CATEGORY_ICONS[categoryName] || '💰';
   };
 
+  const handleItemClick = (event, itemIdentifier) => {
+    if (onCategoryClick && itemIdentifier?.dataIndex !== undefined) {
+      const clickedItem = data[itemIdentifier.dataIndex];
+      if (clickedItem) {
+        onCategoryClick(clickedItem.label);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Donut Chart with Center Stats */}
       <div className="relative w-full">
-        <ResponsiveContainer width="100%" height={220} className="mx-auto">
-          <PieChart>
-            <defs>
-              {COLORS.map((color, index) => (
-                <linearGradient key={`gradient-${index}`} id={`gradient-${index}`} x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor={color.light} />
-                  <stop offset="100%" stopColor={color.main} />
-                </linearGradient>
-              ))}
-            </defs>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={85}
-              paddingAngle={3}
-              dataKey="value"
-              strokeWidth={0}
-            >
-              {data.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={`url(#gradient-${index % COLORS.length})`}
-                  className="transition-all duration-300 hover:opacity-80 cursor-pointer drop-shadow-sm"
-                  onClick={() => onCategoryClick?.(entry.name)}
-                />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
+        <PieChart
+          series={[{
+            data,
+            innerRadius: 60,
+            outerRadius: 85,
+            paddingAngle: 3,
+            cornerRadius: 4,
+            highlightScope: { fade: 'global', highlight: 'item' },
+            valueFormatter: (item) => formatCurrency(item.value),
+          }]}
+          onItemClick={handleItemClick}
+          slotProps={{
+            legend: { hidden: true },
+          }}
+          height={220}
+          margin={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        />
 
         {/* Center Stats */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -117,8 +117,8 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
 
           return (
             <button
-              key={item.name}
-              onClick={() => onCategoryClick?.(item.name)}
+              key={item.label}
+              onClick={() => onCategoryClick?.(item.label)}
               className="w-full group"
             >
               <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
@@ -130,14 +130,14 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
                     border: `1px solid ${color.main}30`
                   }}
                 >
-                  {getIcon(item.name)}
+                  {getIcon(item.label)}
                 </div>
 
                 {/* Category Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
-                      {item.name}
+                      {item.label}
                     </span>
                     <span className="font-semibold text-gray-900 dark:text-white text-sm ml-2">
                       {formatCurrency(item.value)}

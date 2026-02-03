@@ -66,7 +66,7 @@ function DonationsContent() {
   };
 
   const currentAmount = customAmount ? parseFloat(customAmount) : selectedAmount;
-  const churchDonation = currentAmount ? (currentAmount * 0.5).toFixed(2) : 0;
+  const donationAmount = currentAmount ? currentAmount.toFixed(2) : 0;
 
   if (cmsLoading) {
     return <PageSkeleton />;
@@ -164,7 +164,7 @@ function DonationsContent() {
                     <span className="font-medium text-emerald-700 dark:text-emerald-300">{t('donations.impact')}</span>
                   </div>
                   <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                    <strong>R$ {churchDonation}</strong> {t('donations.impact.desc')}
+                    <strong>R$ {donationAmount}</strong> {t('donations.impact.desc')}
                   </p>
                 </motion.div>
               )}

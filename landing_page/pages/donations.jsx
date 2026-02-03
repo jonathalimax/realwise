@@ -20,9 +20,9 @@ import ThemeToggle from '@/components/ThemeToggle';
 const donationAmounts = [10, 25, 50, 100];
 
 const impactReports = [
-  { month: 'December 2024', raised: 2450, donated: 1225, recipients: ['Local Church Building Fund', 'Community Outreach'] },
-  { month: 'November 2024', raised: 1890, donated: 945, recipients: ['Youth Ministry', 'Mission Trip Support'] },
-  { month: 'October 2024', raised: 1650, donated: 825, recipients: ['Food Bank Partnership', 'Worship Resources'] },
+  { month: 'December 2024', raised: 2450, donated: 2450, recipients: ['Development', 'Infrastructure'] },
+  { month: 'November 2024', raised: 1890, donated: 1890, recipients: ['New Features', 'Bug Fixes'] },
+  { month: 'October 2024', raised: 1650, donated: 1650, recipients: ['Server Costs', 'Development Tools'] },
 ];
 
 function DonationsContent() {
@@ -41,7 +41,7 @@ function DonationsContent() {
   };
 
   const currentAmount = customAmount ? parseFloat(customAmount) : selectedAmount;
-  const churchDonation = currentAmount ? (currentAmount * 0.5).toFixed(2) : 0;
+  const donationAmount = currentAmount ? currentAmount.toFixed(2) : 0;
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
@@ -135,7 +135,7 @@ function DonationsContent() {
                     <span className="font-medium text-emerald-700 dark:text-emerald-300">{t('donations.impact')}</span>
                   </div>
                   <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                    <strong>R$ {churchDonation}</strong> {t('donations.impact.desc')}
+                    <strong>R$ {donationAmount}</strong> {t('donations.impact.desc')}
                   </p>
                 </motion.div>
               )}

@@ -6,7 +6,7 @@ import BillModal from './BillModal';
 import { BellIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 export default function BillsList({ compact = false, selectedMonth, statusFilter = 'all' }) {
-  const { bills, loading, markBillAsPaid, getUpcomingBills, getOverdueBills } = useBills();
+  const { bills, loading, markBillAsPaid } = useBills();
   const { language } = useSettings();
   const { canWrite } = useAccess();
   const [editingBill, setEditingBill] = useState(null);
@@ -120,22 +120,42 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
     );
   };
 
-  const upcomingBills = getUpcomingBills().filter(isInSelectedMonth);
-  const overdueBills = getOverdueBills().filter(bill =>
-    isInSelectedMonth(bill) || isOverdueFromPreviousMonth(bill)
-  );
-  const paidBills = expandedBills.filter(b => b.status === 'paid' && isInSelectedMonth(b));
-  // Get all pending bills that are not overdue or upcoming (due more than 7 days away)
-  const otherPendingBills = expandedBills
+  const now = new Date();
+  const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  // Filter bills from expandedBills (which includes recurring instances for selected month)
+  const monthlyBills = expandedBills.filter(isInSelectedMonth);
+
+  // Upcoming: pending bills due within 7 days from now AND in selected month
+  const upcomingBills = monthlyBills
     .filter(bill => {
       if (bill.status === 'paid') return false;
-      if (!isInSelectedMonth(bill)) return false;
       const dueDate = new Date(bill.dueDate);
-      const now = new Date();
-      const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      return dueDate > nextWeek; // Due more than 7 days from now
+      return dueDate >= now && dueDate <= nextWeek;
     })
-    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)); // Sort by dueDate ascending
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  // Overdue: pending bills past due (in selected month or from previous months)
+  const overdueBills = expandedBills
+    .filter(bill => {
+      if (bill.status === 'paid') return false;
+      const dueDate = new Date(bill.dueDate);
+      const isOverdue = dueDate < now;
+      return isOverdue && (isInSelectedMonth(bill) || isOverdueFromPreviousMonth(bill));
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+  // Paid bills in selected month
+  const paidBills = monthlyBills.filter(b => b.status === 'paid');
+
+  // Pending bills due more than 7 days away in selected month
+  const otherPendingBills = monthlyBills
+    .filter(bill => {
+      if (bill.status === 'paid') return false;
+      const dueDate = new Date(bill.dueDate);
+      return dueDate > nextWeek;
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
 
   const handleMarkPaid = async (billId) => {
@@ -241,7 +261,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
         {/* Confirmation overlay */}
         {isConfirming && (
-          <div className="absolute inset-0 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-2 sm:p-3 flex items-center gap-2 z-10">
+          <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-900 rounded-lg p-2 sm:p-3 flex items-center gap-2 z-10">
             <span className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 font-medium flex-1">
               {language === 'pt' ? 'Marcar como pago?' : 'Mark as paid?'}
             </span>
@@ -487,7 +507,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-6">
         <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-2 sm:p-4">
           <p className="text-[10px] sm:text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">
             {language === 'pt' ? 'Vencidas' : 'Overdue'}
@@ -499,6 +519,12 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
             {language === 'pt' ? 'Próximas' : 'Upcoming'}
           </p>
           <p className="text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{upcomingBills.length}</p>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2 sm:p-4">
+          <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">
+            {language === 'pt' ? 'Pendentes' : 'Pending'}
+          </p>
+          <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{otherPendingBills.length}</p>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2 sm:p-4">
           <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">
@@ -530,6 +556,19 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
             </h3>
             <div className="space-y-1">
               {upcomingBills.map((bill) => (
+                <BillItem key={bill.id} bill={bill} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {otherPendingBills.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
+              {language === 'pt' ? 'Pendentes' : 'Pending'}
+            </h3>
+            <div className="space-y-1">
+              {otherPendingBills.map((bill) => (
                 <BillItem key={bill.id} bill={bill} />
               ))}
             </div>

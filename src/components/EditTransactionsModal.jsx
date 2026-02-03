@@ -12,7 +12,7 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
   const [error, setError] = useState('');
 
   const { categories, t, language } = useSettings();
-  const { userBanks, getBankInfo } = useCards();
+  const { userBanks, getBankInfo, getBankDisplayName } = useCards();
 
   const handleUpdate = async () => {
     if (!selectedCategory && selectedBankId === 'no-change' && ignoredStatus === 'no-change') {
@@ -132,9 +132,10 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
               <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
               {userBanks.map(userBank => {
                 const bankInfo = getBankInfo(userBank.bankId);
+                const displayName = getBankDisplayName(userBank);
                 return (
-                  <option key={userBank.bankId} value={userBank.bankId}>
-                    {bankInfo.icon} {bankInfo.name}
+                  <option key={userBank.id} value={userBank.id}>
+                    {bankInfo.icon} {displayName}
                   </option>
                 );
               })}

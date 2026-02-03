@@ -61,12 +61,17 @@ export default function SettingsPage() {
       if (accessDoc.exists()) {
         const data = accessDoc.data();
         const emails = data.emails || [];
+        const hasOwnerId = !!data.ownerId;
 
         if (emails.length > 0 && typeof emails[0] === 'string') {
           const converted = emails.map(email => ({ email, role: 'write' }));
           await saveAllowedEmails(converted);
           setAllowedEmails(converted);
         } else {
+          // If ownerId is missing, save it now (for existing documents)
+          if (!hasOwnerId && emails.length > 0) {
+            await saveAllowedEmails(emails);
+          }
           setAllowedEmails(emails);
         }
       } else {
@@ -82,7 +87,18 @@ export default function SettingsPage() {
   const saveAllowedEmails = async (emails) => {
     setSavingEmails(true);
     try {
-      await setDoc(doc(db, 'access', 'allowed_emails'), { emails });
+      // Create simplified lists for Firestore rules (lowercase for case-insensitive matching)
+      const allowedEmailsList = emails.map(e => e.email.toLowerCase());
+      const writeEmailsList = emails.filter(e => e.role === 'write').map(e => e.email.toLowerCase());
+
+      // Save the owner's UID along with the emails so shared users can access owner's data
+      await setDoc(doc(db, 'access', 'allowed_emails'), {
+        emails,
+        ownerId: auth.currentUser.uid,
+        // Simplified lists for Firestore security rules
+        allowedEmailsList,
+        writeEmailsList
+      });
       setAllowedEmails(emails);
     } catch (err) {
       console.error('Error saving allowed emails:', err);

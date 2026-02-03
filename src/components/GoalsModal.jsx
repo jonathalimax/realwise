@@ -15,6 +15,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
   const [selectedGoalForTransactions, setSelectedGoalForTransactions] = useState(null);
   const [fundAmount, setFundAmount] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmAchieved, setConfirmAchieved] = useState(null);
   const [sortBy, setSortBy] = useState('deadline'); // 'deadline', 'name', 'value', 'created'
 
   // Form state
@@ -92,7 +93,18 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
   };
 
   const handleToggleCompleted = async (goal) => {
-    await updateGoal(goal.id, { completed: !goal.completed });
+    // If marking as achieved (not already completed), show confirmation
+    if (!goal.completed) {
+      setConfirmAchieved(goal.id);
+      return;
+    }
+    // If reactivating, do it immediately
+    await updateGoal(goal.id, { completed: false });
+  };
+
+  const handleConfirmAchieved = async (goalId) => {
+    await updateGoal(goalId, { completed: true });
+    setConfirmAchieved(null);
   };
 
   const handleAddFunds = async () => {
@@ -159,13 +171,14 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
 
   const GoalCard = ({ goal }) => {
     const color = getGoalColor(goal.color);
-    const progress = getGoalProgress(goal);
     const daysLeft = getDaysRemaining(goal.deadline);
     const monthlyNeeded = getMonthlyNeeded(goal);
     const icon = GOAL_ICONS[goal.icon] || GOAL_ICONS.other;
     const linkedInvestments = getInvestmentsByGoal(goal.id);
     const investmentValue = getGoalInvestmentValue(goal.id);
     const investmentGrowth = getGoalInvestmentGrowth(goal.id);
+    // Calculate progress including investment value
+    const progress = getGoalProgress(goal, investmentValue);
 
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow">
@@ -251,13 +264,16 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex items-center gap-1.5 mt-3">
               {!goal.completed && (
                 <button
                   onClick={() => openAddFunds(goal)}
-                  className={`flex-1 py-2 ${color.bg} text-white text-sm font-medium rounded-lg hover:opacity-90 transition`}
+                  className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition"
+                  title={t('goals.addFunds')}
                 >
-                  {t('goals.addFunds')}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
                 </button>
               )}
               <button
@@ -285,6 +301,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
               <button
                 onClick={() => handleOpenForm(goal)}
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                title={t('common.edit')}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -293,6 +310,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
               <button
                 onClick={() => setConfirmDelete(goal.id)}
                 className="p-2 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition"
+                title={t('common.delete')}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -301,6 +319,32 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
             </div>
           </div>
         </div>
+
+        {/* Achieved confirmation */}
+        {confirmAchieved === goal.id && (
+          <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg border border-emerald-100 dark:border-emerald-800">
+            <p className="text-sm text-emerald-800 dark:text-emerald-200 font-medium">
+              {language === 'pt' ? 'Marcar meta como alcancada?' : 'Mark goal as achieved?'}
+            </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+              {language === 'pt' ? 'Voce pode reativar esta meta depois se precisar.' : 'You can reactivate this goal later if needed.'}
+            </p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => handleConfirmAchieved(goal.id)}
+                className="flex-1 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 transition"
+              >
+                {language === 'pt' ? 'Confirmar' : 'Confirm'}
+              </button>
+              <button
+                onClick={() => setConfirmAchieved(null)}
+                className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Delete confirmation */}
         {confirmDelete === goal.id && (
@@ -562,7 +606,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                 <div className="mt-3 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${getGoalColor(selectedGoalForFunds.color).bg} rounded-full`}
-                    style={{ width: `${getGoalProgress(selectedGoalForFunds)}%` }}
+                    style={{ width: `${getGoalProgress(selectedGoalForFunds, getGoalInvestmentValue(selectedGoalForFunds.id))}%` }}
                   />
                 </div>
               </div>
