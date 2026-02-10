@@ -1,14 +1,18 @@
 import { useState, useCallback, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { db, auth, storage } from '../firebase';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { ref, uploadBytes } from 'firebase/storage';
 import { parseFile } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
+import { useAccess } from '../contexts/AccessContext';
 import { generateTransactionHash } from '../services/installments';
+import { detectDuplicatesWithAI } from '../services/aiCategorizationService';
 import { useIsMobile } from '../hooks/useIsMobile';
 import CurrencyInput from './ui/CurrencyInput';
+import CategoryPicker from './ui/CategoryPicker';
 
 export default function ImportModal({ isOpen, onClose }) {
   const isMobile = useIsMobile();
@@ -18,16 +22,25 @@ export default function ImportModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState('upload'); // upload, preview, done
+  const [step, setStep] = useState('upload'); // upload, preview, done, uploading, processing
   const [existingHashes, setExistingHashes] = useState(new Set());
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [installmentCount, setInstallmentCount] = useState(0);
+  const [aiCount, setAiCount] = useState(0);
+  const [aiDuplicateCount, setAiDuplicateCount] = useState(0);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [showEditHint, setShowEditHint] = useState(true);
+  const [pickerIndex, setPickerIndex] = useState(null);
 
-  const { formatCurrency, categories, t, language } = useSettings();
+  // Background upload states
+  const [uploadMode, setUploadMode] = useState('local'); // 'local' or 'background'
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+
+  const { formatCurrency, categories, t, language, geminiApiKey } = useSettings();
   const { userBanks, getBankInfo, getBankDisplayName } = useCards();
   const { goals, getGoalColor } = useGoals();
+  const { ownerId } = useAccess();
   useInvestments(); // Used for context availability
 
   // Only show non-completed goals for linking
@@ -36,11 +49,12 @@ export default function ImportModal({ isOpen, onClose }) {
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
   // Load existing transaction hashes when modal opens
+  // Use ownerId for shared accounts support
   useEffect(() => {
-    if (isOpen && auth.currentUser) {
+    if (isOpen && (ownerId || auth.currentUser?.uid)) {
       loadExistingHashes();
     }
-  }, [isOpen]);
+  }, [isOpen, ownerId]);
 
   // Dismiss edit hint after 5 seconds
   useEffect(() => {
@@ -52,9 +66,13 @@ export default function ImportModal({ isOpen, onClose }) {
 
   const loadExistingHashes = async () => {
     try {
+      // Use ownerId for shared accounts, fallback to current user
+      const userId = ownerId || auth.currentUser?.uid;
+      if (!userId) return;
+
       const q = query(
         collection(db, 'transactions'),
-        where('userId', '==', auth.currentUser.uid)
+        where('userId', '==', userId)
       );
       const snapshot = await getDocs(q);
       const hashes = new Set();
@@ -64,6 +82,7 @@ export default function ImportModal({ isOpen, onClose }) {
         if (data.hash) {
           hashes.add(data.hash);
         } else {
+          // Generate hash for older transactions without hash field
           const hash = generateTransactionHash({
             date: data.date,
             description: data.description,
@@ -73,6 +92,7 @@ export default function ImportModal({ isOpen, onClose }) {
         }
       });
 
+      console.log(`Loaded ${hashes.size} existing transaction hashes`);
       setExistingHashes(hashes);
     } catch (err) {
       console.error('Error loading existing hashes:', err);
@@ -103,16 +123,27 @@ export default function ImportModal({ isOpen, onClose }) {
     setError('');
 
     try {
-      // Always auto-detect bank format
-      const parsed = await parseFile(file, 'auto');
+      // Always auto-detect bank format, pass userId for learning system
+      const userId = ownerId || auth.currentUser?.uid;
 
-      let duplicates = 0;
+      // Pass AI options if API key is available
+      const aiOptions = geminiApiKey ? {
+        apiKey: geminiApiKey,
+        categories: categories // { expense: [...], income: [...] }
+      } : {};
+
+      const parsed = await parseFile(file, 'auto', userId, aiOptions);
+
+      let hashDuplicates = 0;
       let installments = 0;
+      let aiCategorized = 0;
 
-      const processedTransactions = parsed.map(t => {
+      // First pass: hash-based duplicate detection
+      const afterHashFilter = parsed.map(t => {
         const isDuplicate = existingHashes.has(t.hash);
-        if (isDuplicate) duplicates++;
+        if (isDuplicate) hashDuplicates++;
         if (t.isInstallment) installments++;
+        if (t.aiCategorized) aiCategorized++;
 
         return {
           ...t,
@@ -121,9 +152,56 @@ export default function ImportModal({ isOpen, onClose }) {
         };
       });
 
-      setDuplicateCount(duplicates);
+      // Second pass: AI-powered duplicate detection (for non-hash duplicates)
+      let aiDuplicates = 0;
+      if (geminiApiKey && hashDuplicates < parsed.length) {
+        try {
+          // Get existing transactions for AI comparison
+          const existingQ = query(
+            collection(db, 'transactions'),
+            where('userId', '==', userId),
+            orderBy('date', 'desc'),
+            limit(200)
+          );
+          const existingSnapshot = await getDocs(existingQ);
+          const existingTransactions = existingSnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id
+          }));
+
+          // Only check non-duplicate transactions
+          const nonDuplicates = afterHashFilter
+            .map((t, idx) => ({ ...t, originalIndex: idx }))
+            .filter(t => !t.isDuplicate);
+
+          if (nonDuplicates.length > 0 && existingTransactions.length > 0) {
+            const aiDuplicateIndices = await detectDuplicatesWithAI(
+              nonDuplicates,
+              existingTransactions,
+              { apiKey: geminiApiKey, userId }
+            );
+
+            // Mark AI-detected duplicates
+            nonDuplicates.forEach((t, idx) => {
+              if (aiDuplicateIndices.has(idx)) {
+                afterHashFilter[t.originalIndex].isAiDuplicate = true;
+                afterHashFilter[t.originalIndex].isDuplicate = true;
+                afterHashFilter[t.originalIndex].selected = false;
+                aiDuplicates++;
+              }
+            });
+          }
+        } catch (aiErr) {
+          console.error('AI duplicate detection error:', aiErr);
+          // Continue without AI duplicates - not critical
+        }
+      }
+
+      setDuplicateCount(hashDuplicates + aiDuplicates);
+      setAiDuplicateCount(aiDuplicates);
       setInstallmentCount(installments);
-      setTransactions(processedTransactions);
+      setAiCount(aiCategorized);
+      setTransactions(afterHashFilter);
       setStep('preview');
     } catch (err) {
       setError(err.message || 'Failed to parse file');
@@ -170,6 +248,93 @@ export default function ImportModal({ isOpen, onClose }) {
     }
   };
 
+  // Background upload to Firebase Storage
+  const handleBackgroundUpload = async () => {
+    if (!file) return;
+
+    setStep('uploading');
+    setError('');
+    setUploadProgress({ status: 'uploading', message: language === 'pt' ? 'Enviando arquivo...' : 'Uploading file...' });
+
+    try {
+      const userId = ownerId || auth.currentUser?.uid;
+      if (!userId) throw new Error('User not authenticated');
+
+      // Determine bank folder from selected bank or default to 'other'
+      let bankFolder = 'other';
+      if (selectedBankId) {
+        const selectedBank = userBanks.find(b => b.id === selectedBankId);
+        if (selectedBank) {
+          const bankId = selectedBank.bankId.toLowerCase();
+          if (['nubank', 'itau', 'bradesco'].includes(bankId)) {
+            bankFolder = bankId;
+          }
+        }
+      }
+
+      // Upload to Firebase Storage
+      const timestamp = Date.now();
+      const filePath = `imports/${userId}/${bankFolder}/${timestamp}_${file.name}`;
+      const storageRef = ref(storage, filePath);
+
+      await uploadBytes(storageRef, file);
+
+      setUploadProgress({ status: 'processing', message: language === 'pt' ? 'Processando transações...' : 'Processing transactions...' });
+      setStep('processing');
+
+      // Listen for import completion
+      const importQuery = query(
+        collection(db, 'importHistory'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+
+      const unsubscribe = onSnapshot(importQuery, (snapshot) => {
+        if (!snapshot.empty) {
+          const latestImport = snapshot.docs[0].data();
+          // Check if this is our import (by matching filename)
+          if (latestImport.fileName && latestImport.fileName.includes(file.name.split('.')[0])) {
+            if (latestImport.status === 'completed') {
+              setImportResult({
+                success: true,
+                importedCount: latestImport.importedCount,
+                duplicateCount: latestImport.duplicateCount,
+                pendingCategoryCount: latestImport.pendingCategoryCount
+              });
+              setStep('done');
+              unsubscribe();
+            } else if (latestImport.status === 'failed') {
+              setError(latestImport.errorMessage || 'Import failed');
+              setStep('upload');
+              unsubscribe();
+            }
+          }
+        }
+      });
+
+      // Timeout after 2 minutes
+      setTimeout(() => {
+        if (step === 'processing') {
+          unsubscribe();
+          setImportResult({
+            success: true,
+            message: language === 'pt'
+              ? 'Arquivo enviado! As transações serão processadas em segundo plano.'
+              : 'File uploaded! Transactions will be processed in the background.'
+          });
+          setStep('done');
+        }
+      }, 120000);
+
+    } catch (err) {
+      console.error('Background upload error:', err);
+      setError(err.message || 'Failed to upload file');
+      setStep('upload');
+      setUploadProgress(null);
+    }
+  };
+
   const toggleTransactionSelection = (index) => {
     setTransactions(prev => prev.map((t, i) =>
       i === index ? { ...t, selected: !t.selected } : t
@@ -182,6 +347,21 @@ export default function ImportModal({ isOpen, onClose }) {
     ));
   };
 
+  // Open category picker for a transaction
+  const openCategoryPicker = (index, e) => {
+    e.stopPropagation();
+    setPickerIndex(index);
+  };
+
+  // Quick category change (from picker)
+  const handleQuickCategoryChange = (newCategory) => {
+    if (pickerIndex === null) return;
+    setTransactions(prev => prev.map((t, i) =>
+      i === pickerIndex ? { ...t, category: newCategory, autoCategory: false } : t
+    ));
+    setPickerIndex(null);
+  };
+
   const selectedCount = transactions.filter(t => t.selected).length;
 
   const handleClose = () => {
@@ -190,10 +370,16 @@ export default function ImportModal({ isOpen, onClose }) {
     setStep('upload');
     setError('');
     setDuplicateCount(0);
+    setAiDuplicateCount(0);
     setInstallmentCount(0);
+    setAiCount(0);
     setSelectedBankId(null);
     setEditingTransaction(null);
     setShowEditHint(true);
+    setPickerIndex(null);
+    setUploadMode('local');
+    setUploadProgress(null);
+    setImportResult(null);
     onClose();
   };
 
@@ -321,8 +507,49 @@ export default function ImportModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            {/* File Selection - At the bottom */}
+            {/* Upload Mode Toggle */}
             <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {language === 'pt' ? 'Modo de processamento' : 'Processing mode'}
+              </label>
+              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl mb-4">
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('local')}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    uploadMode === 'local'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {language === 'pt' ? '📱 Revisar aqui' : '📱 Review here'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('background')}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    uploadMode === 'background'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {language === 'pt' ? '☁️ Enviar e processar' : '☁️ Upload & process'}
+                </button>
+              </div>
+              {uploadMode === 'background' && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {language === 'pt'
+                    ? 'Transações serão processadas automaticamente. Revise depois em "Pendente de Revisão".'
+                    : 'Transactions will be auto-processed. Review later in "Pending Review".'}
+                </p>
+              )}
+            </div>
+
+            {/* File Selection */}
+            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {language === 'pt' ? 'Arquivo do extrato' : 'Statement file'}
               </label>
@@ -402,13 +629,24 @@ export default function ImportModal({ isOpen, onClose }) {
                   {transactions.length} {language === 'pt' ? 'encontradas' : 'found'}
                 </span>
                 {duplicateCount > 0 && (
-                  <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-full text-sm flex items-center gap-1">
                     {duplicateCount} {language === 'pt' ? 'duplicadas' : 'duplicates'}
+                    {aiDuplicateCount > 0 && (
+                      <span className="text-[10px] opacity-75">
+                        ({aiDuplicateCount} AI)
+                      </span>
+                    )}
                   </span>
                 )}
                 {installmentCount > 0 && (
                   <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full text-sm">
                     {installmentCount} {language === 'pt' ? 'parcelas' : 'installments'}
+                  </span>
+                )}
+                {aiCount > 0 && (
+                  <span className="px-3 py-1 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 rounded-full text-sm flex items-center gap-1">
+                    <span>🤖</span>
+                    {aiCount} {language === 'pt' ? 'por IA' : 'by AI'}
                   </span>
                 )}
               </div>
@@ -418,12 +656,12 @@ export default function ImportModal({ isOpen, onClose }) {
             {showEditHint && (
               <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-sm text-blue-700 dark:text-blue-300">
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
                 </svg>
                 <span>
                   {language === 'pt'
-                    ? 'Toque em uma transacao para editar'
-                    : 'Tap a transaction to edit'}
+                    ? 'Toque na categoria para alterar'
+                    : 'Tap category to change'}
                 </span>
                 <button onClick={() => setShowEditHint(false)} className="ml-auto p-1">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -447,12 +685,11 @@ export default function ImportModal({ isOpen, onClose }) {
                         : 'bg-gray-50 dark:bg-gray-800/50 opacity-50'
                   } p-3`}
                 >
-                  {/* Unified Layout - Works for both mobile and desktop */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-3">
                     {/* Checkbox */}
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleTransactionSelection(i); }}
-                      className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
+                      className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors mt-0.5
                         ${trans.selected
                           ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
                           : trans.isDuplicate
@@ -467,10 +704,10 @@ export default function ImportModal({ isOpen, onClose }) {
                       )}
                     </button>
 
-                    {/* Type Indicator */}
+                    {/* Type Indicator - Hidden on mobile to save space */}
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleTransactionType(i); }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors active:scale-95
+                      className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center flex-shrink-0 transition-colors active:scale-95
                       ${trans.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-rose-100 dark:bg-rose-900/40'}`}
                     >
                       <svg className={`w-4 h-4 ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
@@ -483,35 +720,96 @@ export default function ImportModal({ isOpen, onClose }) {
                       </svg>
                     </button>
 
-                    {/* Content */}
+                    {/* Content - Mobile-first layout */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1" title={trans.description}>
-                            {trans.description}
-                          </p>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                            <span>{new Date(trans.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
-                            <span className="text-gray-300 dark:text-gray-600">-</span>
-                            <span className="truncate">{trans.category}</span>
+                      {/* Mobile: Title on its own row for full visibility */}
+                      <div className="sm:hidden">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white" title={trans.description}>
+                          {trans.description}
+                        </p>
+                        {/* Second row: date, category badge, amount */}
+                        <div className="flex items-center justify-between mt-1.5 gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+                              {new Date(trans.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                            </span>
+                            {/* Tappable Category Badge */}
+                            <button
+                              onClick={(e) => openCategoryPicker(i, e)}
+                              className={`px-2 py-0.5 text-[11px] font-medium rounded-full transition-all flex-shrink-0 active:scale-95 ${
+                                trans.type === 'income'
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                  : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                              }`}
+                            >
+                              {trans.category}
+                              <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
                             {trans.isInstallment && (
-                              <>
-                                <span className="text-gray-300 dark:text-gray-600">-</span>
-                                <span className="text-blue-600 dark:text-blue-400">{trans.installmentCurrent}/{trans.installmentTotal}</span>
-                              </>
+                              <span className="text-[11px] text-blue-600 dark:text-blue-400 flex-shrink-0">
+                                {trans.installmentCurrent}/{trans.installmentTotal}
+                              </span>
                             )}
                           </div>
+                          {/* Amount */}
+                          <p className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
+                            ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans.amount)}
+                          </p>
                         </div>
-                        <p className={`text-sm font-semibold whitespace-nowrap flex-shrink-0
-                          ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans.amount)}
-                        </p>
                       </div>
+
+                      {/* Desktop: Horizontal layout */}
+                      <div className="hidden sm:block">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1" title={trans.description}>
+                              {trans.description}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              <span>{new Date(trans.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
+                              <span className="text-gray-300 dark:text-gray-600">•</span>
+                              {/* Tappable Category Badge - Desktop */}
+                              <button
+                                onClick={(e) => openCategoryPicker(i, e)}
+                                className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all hover:opacity-80 active:scale-95 ${
+                                  trans.type === 'income'
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                                }`}
+                              >
+                                {trans.category}
+                                <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                              {trans.isInstallment && (
+                                <>
+                                  <span className="text-gray-300 dark:text-gray-600">•</span>
+                                  <span className="text-blue-600 dark:text-blue-400">{trans.installmentCurrent}/{trans.installmentTotal}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <p className={`text-sm font-semibold whitespace-nowrap flex-shrink-0
+                            ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans.amount)}
+                          </p>
+                        </div>
+                      </div>
+
                       {/* Tags */}
-                      {(trans.isDuplicate || trans.autoGenerated) && (
+                      {(trans.isDuplicate || trans.autoGenerated || trans.aiCategorized) && (
                         <div className="flex items-center gap-1.5 mt-1.5">
                           {trans.isDuplicate && (
-                            <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] rounded">
+                            <span className={`px-1.5 py-0.5 text-[10px] rounded flex items-center gap-0.5 ${
+                              trans.isAiDuplicate
+                                ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
+                                : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                            }`}>
+                              {trans.isAiDuplicate && '🤖 '}
                               {language === 'pt' ? 'duplicada' : 'duplicate'}
                             </span>
                           )}
@@ -520,12 +818,17 @@ export default function ImportModal({ isOpen, onClose }) {
                               auto
                             </span>
                           )}
+                          {trans.aiCategorized && (
+                            <span className="px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[10px] rounded flex items-center gap-0.5">
+                              🤖 AI
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
 
                     {/* Edit Indicator */}
-                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
@@ -549,8 +852,59 @@ export default function ImportModal({ isOpen, onClose }) {
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('import.complete')}</h3>
+
+            {/* Show different messages based on upload mode */}
+            {importResult ? (
+              <div className="space-y-2">
+                {importResult.message ? (
+                  <p className="text-gray-500 dark:text-gray-400">{importResult.message}</p>
+                ) : (
+                  <>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {language === 'pt'
+                        ? `${importResult.importedCount} transações importadas`
+                        : `${importResult.importedCount} transactions imported`}
+                    </p>
+                    {importResult.duplicateCount > 0 && (
+                      <p className="text-sm text-amber-600 dark:text-amber-400">
+                        {language === 'pt'
+                          ? `${importResult.duplicateCount} duplicadas ignoradas`
+                          : `${importResult.duplicateCount} duplicates skipped`}
+                      </p>
+                    )}
+                    {importResult.pendingCategoryCount > 0 && (
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        {language === 'pt'
+                          ? `${importResult.pendingCategoryCount} precisam de categoria`
+                          : `${importResult.pendingCategoryCount} need categorization`}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">
+                {t('import.successMessage', { count: transactions.filter(t => t.selected).length })}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Processing/Uploading state content */}
+        {(step === 'uploading' || step === 'processing') && (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              {step === 'uploading'
+                ? (language === 'pt' ? 'Enviando...' : 'Uploading...')
+                : (language === 'pt' ? 'Processando...' : 'Processing...')}
+            </h3>
             <p className="text-gray-500 dark:text-gray-400">
-              {t('import.successMessage', { count: transactions.filter(t => t.selected).length })}
+              {uploadProgress?.message || (language === 'pt' ? 'Aguarde...' : 'Please wait...')}
             </p>
           </div>
         )}
@@ -560,7 +914,7 @@ export default function ImportModal({ isOpen, onClose }) {
       <div className={`px-4 sm:px-6 py-4 border-t border-gray-100 dark:border-gray-700 ${isMobile ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`}>
         {step === 'upload' && (
           <button
-            onClick={handleParse}
+            onClick={uploadMode === 'local' ? handleParse : handleBackgroundUpload}
             disabled={!file || loading}
             className="w-full py-3.5 bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 rounded-xl font-medium
               hover:bg-slate-800 dark:hover:bg-slate-200 hover:shadow-lg hover:shadow-slate-900/25 dark:hover:shadow-slate-50/25
@@ -574,8 +928,20 @@ export default function ImportModal({ isOpen, onClose }) {
                 </svg>
                 {t('import.processing')}
               </span>
-            ) : t('common.continue')}
+            ) : uploadMode === 'local' ? t('common.continue') : (language === 'pt' ? 'Enviar arquivo' : 'Upload file')}
           </button>
+        )}
+
+        {(step === 'uploading' || step === 'processing') && (
+          <div className="w-full py-3.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-center">
+            <span className="flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              {uploadProgress?.message || (language === 'pt' ? 'Processando...' : 'Processing...')}
+            </span>
+          </div>
         )}
 
         {step === 'preview' && (
@@ -834,6 +1200,15 @@ export default function ImportModal({ isOpen, onClose }) {
           </div>
         </div>
       )}
+
+      {/* Category Picker */}
+      <CategoryPicker
+        isOpen={pickerIndex !== null}
+        onClose={() => setPickerIndex(null)}
+        onSelect={handleQuickCategoryChange}
+        currentCategory={pickerIndex !== null ? transactions[pickerIndex]?.category : ''}
+        type={pickerIndex !== null ? transactions[pickerIndex]?.type || 'expense' : 'expense'}
+      />
     </Wrapper>
   );
 }

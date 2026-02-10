@@ -1,0 +1,585 @@
+/**
+ * Cloud Function for processing bank statement imports
+ * Triggers when a file is uploaded to Firebase Storage
+ *
+ * Features:
+ * - AI-powered duplicate detection (semantic matching)
+ * - AI categorization with batching for efficiency
+ * - WhatsApp notification after import completion
+ */
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+const crypto = require('crypto');
+const { parseFileFromBuffer, detectBankTypeFromPath } = require('./parsers');
+const { generateTransactionHash } = require('./parsers/installments');
+const {
+  getGeminiApiKey,
+  batchCategorizeTransactions,
+  detectPotentialDuplicates,
+  formatImportNotification
+} = require('./aiService');
+const whatsappService = require('./whatsapp-service');
+
+// Initialize if not already done (check for existing app)
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
+const storage = admin.storage();
+
+// Default categories for AI categorization
+const DEFAULT_EXPENSE_CATEGORIES = [
+  'Moradia', 'Contas', 'Veiculo', 'Alimentacao', 'Saude', 'Educacao',
+  'Lazer', 'Vestuario', 'Impostos', 'Assinaturas', 'Viagens', 'Diversos',
+  'Doacoes', 'Cuidados Pessoais'
+];
+
+const DEFAULT_INCOME_CATEGORIES = [
+  'Salario', 'Renda', 'Investimentos', 'Freelance', 'Reembolso', 'Outros'
+];
+
+/**
+ * Get user's categories from settings, or use defaults
+ */
+async function getUserCategories(userId) {
+  try {
+    const settingsDoc = await db.collection('settings').doc(userId).get();
+    if (settingsDoc.exists) {
+      const data = settingsDoc.data();
+      return {
+        expense: data.categories?.expense || DEFAULT_EXPENSE_CATEGORIES,
+        income: data.categories?.income || DEFAULT_INCOME_CATEGORIES,
+        language: data.language || 'pt'
+      };
+    }
+  } catch (error) {
+    console.error('Error getting user categories:', error);
+  }
+  return {
+    expense: DEFAULT_EXPENSE_CATEGORIES,
+    income: DEFAULT_INCOME_CATEGORIES,
+    language: 'pt'
+  };
+}
+
+/**
+ * Get recent existing transactions for AI duplicate detection
+ * Returns the most recent transactions (last 3 months or 200 transactions)
+ */
+async function getRecentTransactions(userId, limit = 200) {
+  try {
+    const snapshot = await db.collection('transactions')
+      .where('userId', '==', userId)
+      .orderBy('date', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        description: data.description,
+        amount: data.amount,
+        date: data.date,
+        hash: data.hash
+      };
+    });
+  } catch (error) {
+    console.error('Error getting recent transactions:', error);
+    return [];
+  }
+}
+
+/**
+ * Send WhatsApp notification after import
+ */
+async function sendImportNotification(userId, importResult) {
+  try {
+    // Get user's WhatsApp number
+    const whatsappNumber = await whatsappService.getUserWhatsAppNumber(db, userId);
+
+    if (!whatsappNumber) {
+      console.log('No WhatsApp number configured for user:', userId);
+      return;
+    }
+
+    // Get user's language preference
+    const { language } = await getUserCategories(userId);
+
+    // Format and send notification
+    const message = formatImportNotification(importResult, language);
+
+    await whatsappService.sendTextMessage(whatsappNumber, message);
+    console.log('Import notification sent via WhatsApp to:', whatsappNumber);
+
+  } catch (error) {
+    console.error('Error sending import notification:', error);
+    // Don't throw - notification failure shouldn't fail the import
+  }
+}
+
+/**
+ * Process import files uploaded to Firebase Storage
+ * Triggered on file upload to /imports/{userId}/{bankType}/{filename}
+ */
+exports.processImport = functions
+  .runWith({
+    memory: '1GB',
+    timeoutSeconds: 540 // 9 minutes max
+  })
+  .storage.object()
+  .onFinalize(async (object) => {
+    const filePath = object.name;
+    const contentType = object.contentType;
+    const bucket = storage.bucket(object.bucket);
+
+    console.log('Processing file:', filePath);
+
+    // Only process files in /imports/ directory
+    if (!filePath.startsWith('imports/')) {
+      console.log('Skipping file outside imports directory');
+      return null;
+    }
+
+    // Extract userId from path: imports/{userId}/{bankType}/{filename}
+    const pathParts = filePath.split('/');
+    if (pathParts.length < 4) {
+      console.error('Invalid file path structure:', filePath);
+      return null;
+    }
+
+    const userId = pathParts[1];
+    const fileName = pathParts[pathParts.length - 1];
+
+    // Validate file type
+    const validExtensions = ['csv', 'xlsx', 'xls'];
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+    if (!validExtensions.includes(fileExtension)) {
+      console.log('Skipping non-supported file type:', fileExtension);
+      return null;
+    }
+
+    console.log(`Processing import for user: ${userId}, file: ${fileName}`);
+
+    try {
+      // Download file
+      const file = bucket.file(filePath);
+      const [fileBuffer] = await file.download();
+
+      // Generate file hash for duplicate detection
+      const fileHash = crypto
+        .createHash('sha256')
+        .update(fileBuffer)
+        .digest('hex');
+
+      // Check if file was already processed
+      const existingImport = await db.collection('importHistory')
+        .where('userId', '==', userId)
+        .where('fileHash', '==', fileHash)
+        .limit(1)
+        .get();
+
+      if (!existingImport.empty) {
+        console.log('File already processed, skipping:', fileHash);
+        await moveToProcessed(bucket, filePath, userId);
+        return null;
+      }
+
+      // Detect bank type from folder path
+      const bankType = detectBankTypeFromPath(filePath);
+      console.log('Detected bank type:', bankType);
+
+      // Parse the file
+      const { transactions, detectedBankType } = parseFileFromBuffer(
+        fileBuffer,
+        fileName,
+        bankType
+      );
+
+      console.log(`Parsed ${transactions.length} transactions`);
+
+      if (transactions.length === 0) {
+        console.log('No transactions found in file');
+        await createImportHistory(userId, {
+          fileHash,
+          fileName,
+          bankType: detectedBankType,
+          totalTransactions: 0,
+          importedCount: 0,
+          duplicateCount: 0,
+          pendingCategoryCount: 0,
+          aiCategorizedCount: 0,
+          aiDuplicatesDetected: 0,
+          status: 'completed',
+          storagePath: filePath,
+          errorMessage: 'No transactions found in file'
+        });
+        await moveToProcessed(bucket, filePath, userId);
+        return null;
+      }
+
+      // Get existing transaction hashes for hash-based duplicate detection
+      const existingHashesSnapshot = await db.collection('transactions')
+        .where('userId', '==', userId)
+        .select('hash', 'date', 'description', 'amount')
+        .get();
+
+      const existingHashes = new Set();
+      existingHashesSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.hash) {
+          existingHashes.add(data.hash);
+        } else {
+          const hash = generateTransactionHash({
+            date: data.date,
+            description: data.description,
+            amount: data.amount
+          });
+          existingHashes.add(hash);
+        }
+      });
+
+      console.log(`Loaded ${existingHashes.size} existing transaction hashes`);
+
+      // Step 1: Hash-based duplicate filtering (fast, exact matches)
+      let hashDuplicateCount = 0;
+      const afterHashFilter = [];
+
+      for (const transaction of transactions) {
+        if (existingHashes.has(transaction.hash)) {
+          hashDuplicateCount++;
+          continue;
+        }
+        existingHashes.add(transaction.hash);
+        afterHashFilter.push(transaction);
+      }
+
+      console.log(`Hash-based duplicates: ${hashDuplicateCount}`);
+
+      // Step 2: AI-powered duplicate detection (semantic matching)
+      let aiDuplicatesDetected = 0;
+      const toImport = [];
+      const geminiApiKey = await getGeminiApiKey(db, userId);
+
+      if (geminiApiKey && afterHashFilter.length > 0) {
+        console.log('Running AI duplicate detection...');
+
+        // Get recent transactions for comparison
+        const recentTransactions = await getRecentTransactions(userId, 200);
+
+        if (recentTransactions.length > 0) {
+          const aiDuplicateIndices = await detectPotentialDuplicates(
+            afterHashFilter,
+            recentTransactions,
+            geminiApiKey
+          );
+
+          afterHashFilter.forEach((t, idx) => {
+            if (aiDuplicateIndices.has(idx)) {
+              aiDuplicatesDetected++;
+            } else {
+              toImport.push(t);
+            }
+          });
+
+          console.log(`AI-detected duplicates: ${aiDuplicatesDetected}`);
+        } else {
+          // No existing transactions, skip AI duplicate detection
+          toImport.push(...afterHashFilter);
+        }
+      } else {
+        // No API key, skip AI duplicate detection
+        toImport.push(...afterHashFilter);
+      }
+
+      const totalDuplicates = hashDuplicateCount + aiDuplicatesDetected;
+      console.log(`Total duplicates skipped: ${totalDuplicates}`);
+      console.log(`Transactions to import: ${toImport.length}`);
+
+      if (toImport.length === 0) {
+        console.log('All transactions were duplicates');
+        await createImportHistory(userId, {
+          fileHash,
+          fileName,
+          bankType: detectedBankType,
+          totalTransactions: transactions.length,
+          importedCount: 0,
+          duplicateCount: totalDuplicates,
+          aiDuplicatesDetected,
+          pendingCategoryCount: 0,
+          aiCategorizedCount: 0,
+          status: 'completed',
+          storagePath: filePath,
+          message: 'All transactions were duplicates'
+        });
+        await moveToProcessed(bucket, filePath, userId);
+
+        // Send notification even if all duplicates
+        await sendImportNotification(userId, {
+          fileName,
+          importedCount: 0,
+          duplicateCount: totalDuplicates,
+          pendingCategoryCount: 0,
+          aiCategorizedCount: 0
+        });
+
+        return null;
+      }
+
+      // Step 3: AI Categorization for uncategorized transactions
+      let aiCategorizedCount = 0;
+      const uncategorized = toImport.filter(t => t.needsReview);
+
+      if (geminiApiKey && uncategorized.length > 0) {
+        console.log(`Running AI categorization for ${uncategorized.length} transactions...`);
+
+        const { expense: expenseCategories, income: incomeCategories } = await getUserCategories(userId);
+
+        const aiResults = await batchCategorizeTransactions(uncategorized, {
+          apiKey: geminiApiKey,
+          expenseCategories,
+          incomeCategories
+        });
+
+        // Apply AI results
+        toImport.forEach(t => {
+          if (t.needsReview && aiResults.has(t.description)) {
+            const result = aiResults.get(t.description);
+            t.category = result.category;
+            t.type = result.type;
+            t.categoryConfidence = result.confidence;
+            t.aiCategorized = true;
+            t.needsReview = false;
+            aiCategorizedCount++;
+          }
+        });
+
+        console.log(`AI categorized ${aiCategorizedCount} transactions`);
+      }
+
+      // Create import history document
+      const importHistoryRef = await db.collection('importHistory').add({
+        userId,
+        fileHash,
+        fileName,
+        fileSize: fileBuffer.length,
+        bankType: detectedBankType,
+        totalTransactions: transactions.length,
+        importedCount: toImport.length,
+        duplicateCount: totalDuplicates,
+        aiDuplicatesDetected,
+        aiCategorizedCount,
+        pendingCategoryCount: 0, // Will update after import
+        transactionIds: [],
+        status: 'processing',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        processedAt: null,
+        storagePath: filePath,
+        source: 'storage_upload'
+      });
+
+      const importId = importHistoryRef.id;
+
+      // Import transactions in batches
+      const transactionIds = [];
+      let pendingCategoryCount = 0;
+      const batchSize = 500;
+
+      for (let i = 0; i < toImport.length; i += batchSize) {
+        const batch = db.batch();
+        const chunk = toImport.slice(i, i + batchSize);
+
+        for (const transaction of chunk) {
+          const transactionRef = db.collection('transactions').doc();
+          transactionIds.push(transactionRef.id);
+
+          if (transaction.needsReview) {
+            pendingCategoryCount++;
+          }
+
+          batch.set(transactionRef, {
+            userId,
+            type: transaction.type,
+            description: transaction.description,
+            amount: transaction.amount,
+            category: transaction.category || 'Diversos',
+            date: transaction.date,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            imported: true,
+            hash: transaction.hash,
+            bankId: null,
+            isInstallment: transaction.isInstallment || false,
+            installmentCurrent: transaction.installmentCurrent || null,
+            installmentTotal: transaction.installmentTotal || null,
+            installmentGroupId: transaction.installmentGroupId || null,
+            autoGenerated: transaction.autoGenerated || false,
+            goalId: null,
+            goalName: null,
+            investmentType: null,
+            // Import tracking fields
+            importId,
+            importedAt: admin.firestore.FieldValue.serverTimestamp(),
+            needsReview: transaction.needsReview || false,
+            categoryConfidence: transaction.categoryConfidence || 1.0,
+            aiCategorized: transaction.aiCategorized || false,
+            reviewedAt: null,
+            reviewedBy: null,
+            sourceFile: fileName
+          });
+        }
+
+        await batch.commit();
+        console.log(`Committed batch ${Math.floor(i / batchSize) + 1}`);
+      }
+
+      // Update import history with results
+      await importHistoryRef.update({
+        status: 'completed',
+        transactionIds,
+        pendingCategoryCount,
+        processedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Update or create import stats
+      await updateImportStats(userId, {
+        filesProcessed: 1,
+        transactionsImported: toImport.length,
+        duplicatesSkipped: totalDuplicates,
+        aiDuplicatesDetected,
+        aiCategorizedCount,
+        pendingReviewCount: pendingCategoryCount,
+        lastImportFileName: fileName
+      });
+
+      // Move file to processed folder
+      await moveToProcessed(bucket, filePath, userId);
+
+      console.log(`Import completed successfully: ${toImport.length} transactions`);
+
+      // Send WhatsApp notification
+      await sendImportNotification(userId, {
+        fileName,
+        importedCount: toImport.length,
+        duplicateCount: totalDuplicates,
+        pendingCategoryCount,
+        aiCategorizedCount
+      });
+
+      return null;
+
+    } catch (error) {
+      console.error('Error processing import:', error);
+
+      // Record the failed import
+      await createImportHistory(userId, {
+        fileHash: 'error',
+        fileName,
+        bankType: 'unknown',
+        totalTransactions: 0,
+        importedCount: 0,
+        duplicateCount: 0,
+        aiDuplicatesDetected: 0,
+        aiCategorizedCount: 0,
+        pendingCategoryCount: 0,
+        status: 'failed',
+        storagePath: filePath,
+        errorMessage: error.message
+      });
+
+      return null;
+    }
+  });
+
+/**
+ * Helper: Create import history document
+ */
+async function createImportHistory(userId, data) {
+  await db.collection('importHistory').add({
+    userId,
+    ...data,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    processedAt: admin.firestore.FieldValue.serverTimestamp(),
+    transactionIds: [],
+    source: 'storage_upload'
+  });
+}
+
+/**
+ * Helper: Update import stats
+ */
+async function updateImportStats(userId, increment) {
+  const statsRef = db.collection('importStats').doc(userId);
+
+  await db.runTransaction(async (transaction) => {
+    const statsDoc = await transaction.get(statsRef);
+
+    if (!statsDoc.exists) {
+      transaction.set(statsRef, {
+        userId,
+        totalFilesProcessed: increment.filesProcessed,
+        totalTransactionsImported: increment.transactionsImported,
+        totalDuplicatesSkipped: increment.duplicatesSkipped,
+        totalAiDuplicatesDetected: increment.aiDuplicatesDetected || 0,
+        totalAiCategorized: increment.aiCategorizedCount || 0,
+        pendingReviewCount: increment.pendingReviewCount,
+        lastImportAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastImportFileName: increment.lastImportFileName,
+        bankStats: {}
+      });
+    } else {
+      const currentStats = statsDoc.data();
+      transaction.update(statsRef, {
+        totalFilesProcessed: (currentStats.totalFilesProcessed || 0) + increment.filesProcessed,
+        totalTransactionsImported: (currentStats.totalTransactionsImported || 0) + increment.transactionsImported,
+        totalDuplicatesSkipped: (currentStats.totalDuplicatesSkipped || 0) + increment.duplicatesSkipped,
+        totalAiDuplicatesDetected: (currentStats.totalAiDuplicatesDetected || 0) + (increment.aiDuplicatesDetected || 0),
+        totalAiCategorized: (currentStats.totalAiCategorized || 0) + (increment.aiCategorizedCount || 0),
+        pendingReviewCount: (currentStats.pendingReviewCount || 0) + increment.pendingReviewCount,
+        lastImportAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastImportFileName: increment.lastImportFileName
+      });
+    }
+  });
+}
+
+/**
+ * Helper: Move file to processed folder
+ */
+async function moveToProcessed(bucket, sourcePath, userId) {
+  try {
+    const fileName = sourcePath.split('/').pop();
+    const timestamp = Date.now();
+    const destPath = `processed/${userId}/${timestamp}_${fileName}`;
+
+    await bucket.file(sourcePath).move(destPath);
+    console.log(`Moved file to: ${destPath}`);
+  } catch (error) {
+    console.error('Error moving file to processed:', error);
+  }
+}
+
+/**
+ * Decrement pending review count when a transaction is reviewed
+ */
+exports.onTransactionReviewed = functions.firestore
+  .document('transactions/{transactionId}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+
+    // Check if needsReview changed from true to false
+    if (before.needsReview === true && after.needsReview === false) {
+      const userId = after.userId;
+
+      const statsRef = db.collection('importStats').doc(userId);
+      await statsRef.update({
+        pendingReviewCount: admin.firestore.FieldValue.increment(-1)
+      });
+
+      console.log(`Decremented pending review count for user: ${userId}`);
+    }
+
+    return null;
+  });

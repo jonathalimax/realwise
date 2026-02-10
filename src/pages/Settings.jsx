@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
-import { OWNER_EMAIL } from '../contexts/AccessContext';
+import { OWNER_EMAIL, useAccess } from '../contexts/AccessContext';
 import { db, auth } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import InstallPWAButton from '../components/ui/InstallPWAButton';
+import { checkAIQuota } from '../services/aiCategorizationService';
 
 export default function SettingsPage() {
   const {
@@ -17,8 +18,11 @@ export default function SettingsPage() {
     addCategory,
     removeCategory,
     toggleCategory,
+    geminiApiKey,
+    updateGeminiApiKey,
     t
   } = useSettings();
+  const { ownerId } = useAccess();
 
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [newIncomeCategory, setNewIncomeCategory] = useState('');
@@ -26,19 +30,18 @@ export default function SettingsPage() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
 
+  // AI Settings
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [aiQuota, setAiQuota] = useState({ used: 0, remaining: 950 });
+  const [savingApiKey, setSavingApiKey] = useState(false);
+
   // Access control state
   const [allowedEmails, setAllowedEmails] = useState([]);
   const [newEmail, setNewEmail] = useState('');
-  const [newEmailRole, setNewEmailRole] = useState('write');
   const [emailError, setEmailError] = useState('');
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [savingEmails, setSavingEmails] = useState(false);
-
-  // WhatsApp notifications state
-  const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [whatsappError, setWhatsappError] = useState('');
-  const [loadingWhatsapp, setLoadingWhatsapp] = useState(false);
-  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
 
   // Load allowed emails when Access tab is opened
   useEffect(() => {
@@ -47,12 +50,15 @@ export default function SettingsPage() {
     }
   }, [activeTab]);
 
-  // Load WhatsApp number when General tab is opened
+  // Load AI quota and API key
   useEffect(() => {
-    if (activeTab === 'general') {
-      loadWhatsappNumber();
+    if (geminiApiKey) {
+      setApiKeyInput(geminiApiKey);
     }
-  }, [activeTab]);
+    if (ownerId) {
+      checkAIQuota(ownerId).then(setAiQuota);
+    }
+  }, [geminiApiKey, ownerId]);
 
   const loadAllowedEmails = async () => {
     setLoadingEmails(true);
@@ -61,16 +67,19 @@ export default function SettingsPage() {
       if (accessDoc.exists()) {
         const data = accessDoc.data();
         const emails = data.emails || [];
-        const hasOwnerId = !!data.ownerId;
+        const existingOwnerId = data.ownerId || null;
 
         if (emails.length > 0 && typeof emails[0] === 'string') {
+          // Convert old format (array of strings) to new format (array of objects)
           const converted = emails.map(email => ({ email, role: 'write' }));
-          await saveAllowedEmails(converted);
+          await saveAllowedEmails(converted, existingOwnerId);
           setAllowedEmails(converted);
         } else {
-          // If ownerId is missing, save it now (for existing documents)
-          if (!hasOwnerId && emails.length > 0) {
-            await saveAllowedEmails(emails);
+          // If ownerId is missing and current user is owner, save it now
+          const currentUserEmail = auth.currentUser?.email?.toLowerCase();
+          const isCurrentUserOwner = currentUserEmail === OWNER_EMAIL;
+          if (!existingOwnerId && emails.length > 0 && isCurrentUserOwner) {
+            await saveAllowedEmails(emails, null);
           }
           setAllowedEmails(emails);
         }
@@ -84,17 +93,22 @@ export default function SettingsPage() {
     }
   };
 
-  const saveAllowedEmails = async (emails) => {
+  const saveAllowedEmails = async (emails, existingOwnerId = null) => {
     setSavingEmails(true);
     try {
       // Create simplified lists for Firestore rules (lowercase for case-insensitive matching)
       const allowedEmailsList = emails.map(e => e.email.toLowerCase());
       const writeEmailsList = emails.filter(e => e.role === 'write').map(e => e.email.toLowerCase());
 
-      // Save the owner's UID along with the emails so shared users can access owner's data
+      // Preserve the original owner's UID - only set if not already set
+      // This prevents shared users from overwriting the ownerId when they modify the list
+      const currentUserEmail = auth.currentUser.email?.toLowerCase();
+      const isCurrentUserOwner = currentUserEmail === OWNER_EMAIL;
+      const ownerUid = isCurrentUserOwner ? auth.currentUser.uid : (existingOwnerId || ownerId);
+
       await setDoc(doc(db, 'access', 'allowed_emails'), {
         emails,
-        ownerId: auth.currentUser.uid,
+        ownerId: ownerUid,
         // Simplified lists for Firestore security rules
         allowedEmailsList,
         writeEmailsList
@@ -123,10 +137,10 @@ export default function SettingsPage() {
       return;
     }
 
-    const newEmails = [...allowedEmails, { email, role: newEmailRole }];
+    // Always add with write access by default - can be changed later
+    const newEmails = [...allowedEmails, { email, role: 'write' }];
     await saveAllowedEmails(newEmails);
     setNewEmail('');
-    setNewEmailRole('write');
     setEmailError('');
   };
 
@@ -142,67 +156,6 @@ export default function SettingsPage() {
       e.email === email ? { ...e, role: newRole } : e
     );
     await saveAllowedEmails(newEmails);
-  };
-
-  // WhatsApp functions
-  const loadWhatsappNumber = async () => {
-    setLoadingWhatsapp(true);
-    try {
-      const whatsappDoc = await getDoc(doc(db, 'settings', auth.currentUser.uid));
-      if (whatsappDoc.exists()) {
-        const data = whatsappDoc.data();
-        if (data.whatsappNumber) {
-          setWhatsappNumber(data.whatsappNumber);
-        } else if (data.whatsappNumbers && data.whatsappNumbers.length > 0) {
-          setWhatsappNumber(data.whatsappNumbers[0]);
-        } else {
-          setWhatsappNumber('');
-        }
-      } else {
-        setWhatsappNumber('');
-      }
-    } catch (err) {
-      console.error('Error loading WhatsApp number:', err);
-    } finally {
-      setLoadingWhatsapp(false);
-    }
-  };
-
-  const saveWhatsappNumber = async (number) => {
-    setSavingWhatsapp(true);
-    try {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { whatsappNumber: number }, { merge: true });
-      setWhatsappNumber(number);
-      setWhatsappError('');
-    } catch (err) {
-      console.error('Error saving WhatsApp number:', err);
-      setWhatsappError(language === 'pt' ? 'Erro ao salvar' : 'Error saving');
-    } finally {
-      setSavingWhatsapp(false);
-    }
-  };
-
-  const handleSaveWhatsappNumber = async () => {
-    let number = whatsappNumber.trim();
-
-    if (!number) {
-      await saveWhatsappNumber('');
-      return;
-    }
-
-    number = number.replace(/[\s\-()]/g, '');
-    if (!number.startsWith('+')) {
-      number = '+' + number;
-    }
-
-    const phoneRegex = /^\+[1-9]\d{1,14}$/;
-    if (!phoneRegex.test(number)) {
-      setWhatsappError(language === 'pt' ? 'Número inválido (use formato: +5585999999999)' : 'Invalid number (use format: +5585999999999)');
-      return;
-    }
-
-    await saveWhatsappNumber(number);
   };
 
   const handleAddCategory = async (type) => {
@@ -221,6 +174,29 @@ export default function SettingsPage() {
 
   const getCustomCategories = (type) => {
     return categories[type].filter(cat => !allCategories[type].includes(cat));
+  };
+
+  const handleSaveApiKey = async () => {
+    setSavingApiKey(true);
+    try {
+      await updateGeminiApiKey(apiKeyInput.trim());
+    } catch (err) {
+      console.error('Error saving API key:', err);
+    } finally {
+      setSavingApiKey(false);
+    }
+  };
+
+  const handleRemoveApiKey = async () => {
+    setSavingApiKey(true);
+    try {
+      await updateGeminiApiKey('');
+      setApiKeyInput('');
+    } catch (err) {
+      console.error('Error removing API key:', err);
+    } finally {
+      setSavingApiKey(false);
+    }
   };
 
   const isProtectedCategory = (cat) => cat === 'Other' || cat === 'Outros';
@@ -400,60 +376,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* WhatsApp */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'pt' ? 'Notificações WhatsApp' : 'WhatsApp Notifications'}
-              </h3>
-              {loadingWhatsapp ? (
-                <div className="flex items-center justify-center py-4">
-                  <svg className="animate-spin w-5 h-5 text-gray-400" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex gap-2">
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      value={whatsappNumber}
-                      onChange={(e) => {
-                        setWhatsappNumber(e.target.value);
-                        setWhatsappError('');
-                      }}
-                      placeholder="+5585992265544"
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl text-sm focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500 focus:outline-none"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveWhatsappNumber();
-                      }}
-                    />
-                    <button
-                      onClick={handleSaveWhatsappNumber}
-                      disabled={savingWhatsapp}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      {savingWhatsapp ? (
-                        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                      ) : (
-                        language === 'pt' ? 'Salvar' : 'Save'
-                      )}
-                    </button>
-                  </div>
-                  {whatsappError && (
-                    <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{whatsappError}</p>
-                  )}
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {language === 'pt' ? 'Formato: +55 85 99999-9999' : 'Format: +55 85 99999-9999'}
-                  </p>
-                </div>
-              )}
-            </div>
-
             {/* PWA Install */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -461,6 +383,100 @@ export default function SettingsPage() {
               </h3>
               <div className="flex justify-center py-2">
                 <InstallPWAButton />
+              </div>
+            </div>
+
+            {/* AI Categorization */}
+            <div className="pt-6 border-t border-gray-100 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <span className="text-lg">🤖</span>
+                {language === 'pt' ? 'Categorização com IA' : 'AI Categorization'}
+                <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-full">
+                  {language === 'pt' ? 'Grátis' : 'Free'}
+                </span>
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                {language === 'pt'
+                  ? 'Use IA do Google (Gemini) para categorizar automaticamente suas transações. Limite gratuito: 1.000 por dia.'
+                  : 'Use Google AI (Gemini) to automatically categorize your transactions. Free tier: 1,000/day.'}
+              </p>
+
+              {/* API Key Input */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    placeholder={language === 'pt' ? 'Cole sua chave da API Gemini' : 'Paste your Gemini API key'}
+                    className="w-full px-4 py-3 pr-20 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                      text-gray-900 dark:text-white placeholder-gray-400
+                      focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                      transition-all text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    {showApiKey ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveApiKey}
+                    disabled={!apiKeyInput.trim() || apiKeyInput === geminiApiKey || savingApiKey}
+                    className="flex-1 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-medium
+                      hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {savingApiKey
+                      ? (language === 'pt' ? 'Salvando...' : 'Saving...')
+                      : (language === 'pt' ? 'Salvar Chave' : 'Save Key')}
+                  </button>
+                  {geminiApiKey && (
+                    <button
+                      onClick={handleRemoveApiKey}
+                      disabled={savingApiKey}
+                      className="px-4 py-2.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl text-sm font-medium
+                        hover:bg-rose-200 dark:hover:bg-rose-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {language === 'pt' ? 'Remover' : 'Remove'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Status */}
+                {geminiApiKey ? (
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                        {language === 'pt' ? 'IA Ativada' : 'AI Enabled'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                      {language === 'pt' ? `${aiQuota.remaining} restantes hoje` : `${aiQuota.remaining} remaining today`}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {language === 'pt'
+                        ? '📝 Obtenha sua chave grátis em: ai.google.dev'
+                        : '📝 Get your free key at: ai.google.dev'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -643,7 +659,7 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {language === 'pt' ? 'Adicionar email autorizado' : 'Add authorized email'}
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="email"
                   inputMode="email"
@@ -653,23 +669,15 @@ export default function SettingsPage() {
                     setEmailError('');
                   }}
                   placeholder="email@example.com"
-                  className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl text-sm focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500 focus:outline-none"
+                  className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl text-sm focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500 focus:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddEmail();
                   }}
                 />
-                <select
-                  value={newEmailRole}
-                  onChange={(e) => setNewEmailRole(e.target.value)}
-                  className="px-3 py-2 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl text-sm focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500 focus:outline-none"
-                >
-                  <option value="write">{language === 'pt' ? 'Escrita' : 'Write'}</option>
-                  <option value="read">{language === 'pt' ? 'Leitura' : 'Read'}</option>
-                </select>
                 <button
                   onClick={handleAddEmail}
                   disabled={savingEmails || !newEmail.trim()}
-                  className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50"
+                  className="px-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl text-sm font-medium hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {savingEmails ? (
                     <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
@@ -677,10 +685,20 @@ export default function SettingsPage() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                   ) : (
-                    language === 'pt' ? 'Adicionar' : 'Add'
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      {language === 'pt' ? 'Adicionar' : 'Add'}
+                    </>
                   )}
                 </button>
               </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {language === 'pt'
+                  ? 'Novos usuários serão adicionados com acesso de escrita por padrão.'
+                  : 'New users will be added with write access by default.'}
+              </p>
               {emailError && (
                 <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{emailError}</p>
               )}
@@ -722,47 +740,62 @@ export default function SettingsPage() {
                     return (
                       <div
                         key={emailStr}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl group"
+                        className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl"
                       >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {/* Email and badges row */}
+                        <div className="flex items-center gap-2 min-w-0">
                           <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                           </svg>
-                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{emailStr}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">{emailStr}</span>
                           {isOwnerEmail && (
                             <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full flex-shrink-0">
                               {language === 'pt' ? 'Dono' : 'Owner'}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          {isOwnerEmail ? (
-                            <span className="px-2 py-1 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded">
-                              {language === 'pt' ? 'Escrita' : 'Write'}
-                            </span>
-                          ) : (
-                            <select
-                              value={role}
-                              onChange={(e) => handleChangeRole(emailStr, e.target.value)}
-                              disabled={savingEmails}
-                              className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500"
-                            >
-                              <option value="write">{language === 'pt' ? 'Escrita' : 'Write'}</option>
-                              <option value="read">{language === 'pt' ? 'Leitura' : 'Read'}</option>
-                            </select>
-                          )}
-                          {!isOwnerEmail && (
+
+                        {/* Actions row - only show for non-owner */}
+                        {!isOwnerEmail && (
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {language === 'pt' ? 'Permissão:' : 'Permission:'}
+                              </span>
+                              <select
+                                value={role}
+                                onChange={(e) => handleChangeRole(emailStr, e.target.value)}
+                                disabled={savingEmails}
+                                className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg focus:ring-0 focus:border-gray-900 dark:focus:border-gray-500"
+                              >
+                                <option value="write">{language === 'pt' ? 'Escrita' : 'Write'}</option>
+                                <option value="read">{language === 'pt' ? 'Leitura' : 'Read'}</option>
+                              </select>
+                            </div>
                             <button
                               onClick={() => handleRemoveEmail(emailStr)}
                               disabled={savingEmails}
-                              className="p-1 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors disabled:opacity-50"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
+                              {language === 'pt' ? 'Remover' : 'Remove'}
                             </button>
-                          )}
-                        </div>
+                          </div>
+                        )}
+
+                        {/* Owner always shows write badge */}
+                        {isOwnerEmail && (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {language === 'pt' ? 'Permissão:' : 'Permission:'}
+                            </span>
+                            <span className="px-3 py-1.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg">
+                              {language === 'pt' ? 'Escrita' : 'Write'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

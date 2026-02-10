@@ -100,6 +100,7 @@ export function SettingsProvider({ children }) {
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
   const [categories, setCategories] = useState(getDefaultCategories(DEFAULT_LANGUAGE));
   const [tutorialCompleted, setTutorialCompletedState] = useState(true); // Default true to avoid flash
+  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     if (saved !== null) return JSON.parse(saved);
@@ -139,6 +140,8 @@ export function SettingsProvider({ children }) {
         });
         // Tutorial: false means show tutorial, undefined means first user (show tutorial)
         setTutorialCompletedState(data.tutorialCompleted === true);
+        // Load Gemini API key if set
+        setGeminiApiKey(data.geminiApiKey || '');
       } else {
         // No settings doc = first time user, show tutorial
         setTutorialCompletedState(false);
@@ -186,6 +189,14 @@ export function SettingsProvider({ children }) {
     if (auth.currentUser) {
       const settingsRef = doc(db, 'settings', auth.currentUser.uid);
       await setDoc(settingsRef, { tutorialCompleted: completed }, { merge: true });
+    }
+  };
+
+  const updateGeminiApiKey = async (apiKey) => {
+    setGeminiApiKey(apiKey);
+    if (auth.currentUser) {
+      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
+      await setDoc(settingsRef, { geminiApiKey: apiKey }, { merge: true });
     }
   };
 
@@ -287,6 +298,8 @@ export function SettingsProvider({ children }) {
       toggleDarkMode,
       tutorialCompleted,
       setTutorialCompleted,
+      geminiApiKey,
+      updateGeminiApiKey,
       loading
     }}>
       {children}

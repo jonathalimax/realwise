@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function: Check if user owns the data
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Import files: Users can upload to their own import folders
+    // Path: /imports/{userId}/{bankType}/{filename}
+    match /imports/{userId}/{bankType}/{fileName} {
+      // Allow authenticated users to upload to their own folder
+      allow create: if isAuthenticated() && isOwner(userId);
+
+      // Allow read for owner (and Cloud Functions via Admin SDK)
+      allow read: if isAuthenticated() && isOwner(userId);
+
+      // Disallow updates and deletes from client (only Cloud Functions can move/delete)
+      allow update, delete: if false;
+    }
+
+    // Processed files: Only Cloud Functions can write, users can read their own
+    // Path: /processed/{userId}/{filename}
+    match /processed/{userId}/{fileName} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if false; // Only Cloud Functions (Admin SDK)
+    }
+
+    // Default: deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

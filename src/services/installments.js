@@ -3,10 +3,10 @@
 // Patterns to detect installments in transaction descriptions
 // Examples: "PARCELA 1/12", "1/6", "1 de 12", "Parcela 01/06", "(1/3)"
 const INSTALLMENT_PATTERNS = [
-  /parcela\s*(\d+)\s*[\/de]\s*(\d+)/i,           // "PARCELA 1/12" or "parcela 1 de 12"
-  /(\d+)\s*[\/]\s*(\d+)\s*(?:parcelas?)?/i,      // "1/12" or "1/12 parcelas"
+  /parcela\s*(\d+)\s*[/de]\s*(\d+)/i,           // "PARCELA 1/12" or "parcela 1 de 12"
+  /(\d+)\s*[/]\s*(\d+)\s*(?:parcelas?)?/i,      // "1/12" or "1/12 parcelas"
   /(\d+)\s*de\s*(\d+)\s*(?:parcelas?|x)?/i,      // "1 de 12" or "1 de 12x"
-  /\((\d+)[\/](\d+)\)/,                           // "(1/12)"
+  /\((\d+)[/](\d+)\)/,                           // "(1/12)"
   /(\d+)x\s*de\s*\d+/i,                           // "12x de R$50" - extract total only
 ];
 
@@ -47,9 +47,9 @@ export function generateInstallmentTransactions(baseTransaction, currentInstallm
 
   // Clean the description to remove installment info and add our own format
   let cleanDescription = baseTransaction.description
-    .replace(/\s*parcela\s*\d+\s*[\/de]\s*\d+/gi, '')
-    .replace(/\s*\(\d+[\/]\d+\)/g, '')
-    .replace(/\s*\d+\s*[\/]\s*\d+\s*(?:parcelas?)?/gi, '')
+    .replace(/\s*parcela\s*\d+\s*[/de]\s*\d+/gi, '')
+    .replace(/\s*\(\d+[/]\d+\)/g, '')
+    .replace(/\s*\d+\s*[/]\s*\d+\s*(?:parcelas?)?/gi, '')
     .replace(/\s*\d+\s*de\s*\d+\s*(?:parcelas?|x)?/gi, '')
     .trim();
 

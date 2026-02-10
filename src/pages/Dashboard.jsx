@@ -21,6 +21,7 @@ import InvestmentModal from '../components/InvestmentModal';
 import BillModal from '../components/BillModal';
 import GoalProgress from '../components/GoalProgress';
 import RuleComparison from '../components/RuleComparison';
+import PendingCategorizationCard from '../components/PendingCategorizationCard';
 import TrendChart from '../components/charts/TrendChart';
 import TutorialModal from '../components/TutorialModal';
 import MonthSelector from '../components/MonthSelector';
@@ -192,6 +193,9 @@ export default function DashboardPage() {
 
           {/* Right Column - Summary Cards */}
           <div className="space-y-4 md:space-y-6">
+            {/* Pending Categorization Alert */}
+            <PendingCategorizationCard />
+
             {/* My Goals Progress - Clickable Card */}
             <GoalProgress onManageGoals={handleOpenGoals} />
 

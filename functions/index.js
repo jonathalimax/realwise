@@ -7,6 +7,9 @@ const axios = require('axios');
 const whatsappService = require('./whatsapp-service');
 const { normalizeBrazilE164FixNine, assertBrazilE164 } = require('./phoneUtils');
 
+// Import processor functions
+const importProcessor = require('./importProcessor');
+
 admin.initializeApp();
 
 const db = admin.firestore();
@@ -937,3 +940,18 @@ exports.testWhatsApp = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+// ============================================================
+// IMPORT PROCESSOR FUNCTIONS
+// ============================================================
+
+/**
+ * Process import files uploaded to Firebase Storage
+ * Triggers on file upload to /imports/{userId}/{bankType}/{filename}
+ */
+exports.processImport = importProcessor.processImport;
+
+/**
+ * Firestore trigger to decrement pending review count when transaction is reviewed
+ */
+exports.onTransactionReviewed = importProcessor.onTransactionReviewed;

@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
+import { saveUserCategorizationRule } from '../services/categorizationService';
+import CategoryPicker from './ui/CategoryPicker';
 
 export default function TransactionList({ transactions = [], selectedMonth, compact = false, sortBy = 'date', sortOrder = 'desc', onSuccess, highlightId }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [pickerTransaction, setPickerTransaction] = useState(null);
+  const [savingId, setSavingId] = useState(null);
   const highlightRef = useRef(null);
 
   // Scroll to highlighted transaction when it changes
@@ -23,8 +27,8 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
     }
   }, [highlightId, transactions]);
 
-  const { formatCurrency, t, language } = useSettings();
-  const { canWrite } = useAccess();
+  const { formatCurrency, t, language, categories } = useSettings();
+  const { canWrite, ownerId } = useAccess();
   const { getBankInfo, findUserBank, getBankDisplayName } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -149,6 +153,42 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
   const isAllSelected = filteredTransactions.length > 0 && selectedIds.size === filteredTransactions.length;
   const hasSelection = selectedIds.size > 0;
 
+  // Quick category change handler (from picker)
+  const handleQuickCategoryChange = async (newCategory) => {
+    if (!canWrite || savingId || !pickerTransaction) return;
+
+    const transaction = pickerTransaction;
+    setSavingId(transaction.id);
+    setPickerTransaction(null);
+
+    try {
+      await updateDoc(doc(db, 'transactions', transaction.id), {
+        category: newCategory
+      });
+
+      // Save the categorization rule for learning (fire and forget)
+      if (ownerId) {
+        saveUserCategorizationRule(ownerId, {
+          description: transaction.description,
+          category: newCategory,
+          type: transaction.type
+        }).catch(err => console.error('Error saving categorization rule:', err));
+      }
+
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error updating category:', error);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  // Open category picker for a transaction
+  const openCategoryPicker = (transaction, e) => {
+    e.stopPropagation();
+    setPickerTransaction(transaction);
+  };
+
   return (
     <div className={compact ? '' : ''}>
       {/* Header - Hidden in compact mode */}
@@ -233,141 +273,207 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
             </p>
           </div>
         ) : (
-          filteredTransactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              ref={transaction.id === highlightId ? highlightRef : null}
-              onClick={() => canWrite && setEditingTransaction(transaction)}
-              className={`group rounded-xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
-                ${transaction.id === highlightId
-                  ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
-                  : selectedIds.has(transaction.id)
-                    ? 'bg-slate-100 dark:bg-slate-700/50'
-                    : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }
-                ${compact ? 'p-2' : 'p-2.5 sm:p-3'}
-                ${transaction.ignored ? 'opacity-60' : ''}`}
-            >
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Selection Checkbox - Hidden in compact mode and for read-only users */}
-                {!compact && canWrite && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
-                    className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
-                      ${selectedIds.has(transaction.id)
-                        ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white'
-                        : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600'
-                      }`}
+          filteredTransactions.map((transaction) => {
+            const userBank = findUserBank(transaction.bankId);
+            const bankInfo = userBank ? getBankInfo(userBank.bankId) : getBankInfo(transaction.bankId);
+
+            return (
+              <div
+                key={transaction.id}
+                ref={transaction.id === highlightId ? highlightRef : null}
+                onClick={() => canWrite && setEditingTransaction(transaction)}
+                className={`group rounded-xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
+                  ${transaction.id === highlightId
+                    ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                    : selectedIds.has(transaction.id)
+                      ? 'bg-slate-100 dark:bg-slate-700/50'
+                      : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }
+                  ${compact ? 'p-2' : 'p-2.5 sm:p-3'}
+                  ${transaction.ignored ? 'opacity-60' : ''}`}
+              >
+                <div className="flex items-start gap-2 sm:gap-3">
+                  {/* Selection Checkbox - Hidden in compact mode and for read-only users */}
+                  {!compact && canWrite && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
+                      className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors mt-0.5
+                        ${selectedIds.has(transaction.id)
+                          ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white'
+                          : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600'
+                        }`}
+                    >
+                      {selectedIds.has(transaction.id) && (
+                        <svg className="w-3 h-3 text-white dark:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Type Indicator with Category Icon - Hidden on mobile to save space */}
+                  <div
+                    className={`${compact ? 'hidden' : 'hidden sm:flex'} w-9 h-9 sm:w-10 sm:h-10 rounded-full items-center justify-center flex-shrink-0 text-base sm:text-lg
+                      ${transaction.type === 'income'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/40'
+                        : 'bg-rose-100 dark:bg-rose-900/40'}`}
                   >
-                    {selectedIds.has(transaction.id) && (
-                      <svg className="w-3 h-3 text-white dark:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                )}
+                    {getCategoryIcon(transaction.category, transaction.type)}
+                  </div>
 
-                {/* Type Indicator with Category Icon - Hidden on mobile to save space */}
-                <div
-                  className={`${compact ? 'hidden' : 'hidden sm:flex'} w-9 h-9 sm:w-10 sm:h-10 rounded-full items-center justify-center flex-shrink-0 text-base sm:text-lg
-                    ${transaction.type === 'income'
-                      ? 'bg-emerald-100 dark:bg-emerald-900/40'
-                      : 'bg-rose-100 dark:bg-rose-900/40'}`}
-                >
-                  {getCategoryIcon(transaction.category, transaction.type)}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      {/* Description */}
-                      <div className="flex items-center gap-1.5">
-                        <p
-                          className={`font-medium text-slate-900 dark:text-white line-clamp-1 ${compact ? 'text-sm' : 'text-sm'}`}
-                          title={transaction.description}
-                        >
-                          {transaction.description}
-                        </p>
+                  {/* Content - Mobile-first layout */}
+                  <div className="flex-1 min-w-0">
+                    {/* Mobile: Title on its own row for full visibility */}
+                    <div className="sm:hidden">
+                      <p
+                        className={`font-medium text-slate-900 dark:text-white ${compact ? 'text-sm truncate' : 'text-sm'}`}
+                        title={transaction.description}
+                      >
+                        {transaction.description}
                         {transaction.ignored && (
-                          <span className="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
+                          <span className="ml-1.5 inline-flex px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
                             {t('transactionForm.ignored')}
                           </span>
                         )}
+                      </p>
+                      {/* Second row: date, category badge, amount */}
+                      <div className="flex items-center justify-between mt-1.5 gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0">
+                            {new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                          </span>
+                          {/* Tappable Category Badge */}
+                          <button
+                            onClick={(e) => canWrite && openCategoryPicker(transaction, e)}
+                            className={`px-2 py-0.5 text-[11px] font-medium rounded-full transition-all flex-shrink-0 ${
+                              canWrite ? 'active:scale-95' : ''
+                            } ${
+                              transaction.type === 'income'
+                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                            }`}
+                          >
+                            {transaction.category}
+                            {canWrite && (
+                              <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            )}
+                          </button>
+                          {transaction.bankId && (
+                            <span className="text-[11px] flex-shrink-0" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
+                              {bankInfo?.icon || '🏦'}
+                            </span>
+                          )}
+                        </div>
+                        {/* Amount */}
+                        <p
+                          className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
+                            ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
+                        >
+                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </p>
                       </div>
-                      {/* Meta info: date - category - bank */}
-                      <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        <span className="flex-shrink-0">
-                          {new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
-                        </span>
-                        <span className="text-slate-300 dark:text-slate-600">-</span>
-                        <span className="truncate max-w-[80px] sm:max-w-none">{transaction.category}</span>
-                        {/* Bank indicator */}
-                        {(() => {
-                          // Use findUserBank for smart lookup (supports both document ID and bank type ID)
-                          const userBank = findUserBank(transaction.bankId);
-                          const bankInfo = userBank ? getBankInfo(userBank.bankId) : getBankInfo(transaction.bankId);
+                    </div>
 
-                          if (transaction.bankId) {
-                            const displayName = userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '');
-                            return (
+                    {/* Desktop: Original horizontal layout */}
+                    <div className="hidden sm:block">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p
+                              className="font-medium text-slate-900 dark:text-white text-sm line-clamp-1"
+                              title={transaction.description}
+                            >
+                              {transaction.description}
+                            </p>
+                            {transaction.ignored && (
+                              <span className="flex-shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded">
+                                {t('transactionForm.ignored')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            <span className="flex-shrink-0">
+                              {new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                            </span>
+                            <span className="text-slate-300 dark:text-slate-600">•</span>
+                            {/* Tappable Category Badge - Desktop */}
+                            <button
+                              onClick={(e) => canWrite && openCategoryPicker(transaction, e)}
+                              className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all ${
+                                canWrite ? 'hover:opacity-80 active:scale-95' : ''
+                              } ${
+                                transaction.type === 'income'
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                  : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                              }`}
+                            >
+                              {transaction.category}
+                              {canWrite && (
+                                <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              )}
+                            </button>
+                            {transaction.bankId && (
                               <>
-                                <span className="text-slate-300 dark:text-slate-600">-</span>
-                                <span className="flex-shrink-0" title={displayName}>
+                                <span className="text-slate-300 dark:text-slate-600">•</span>
+                                <span className="flex-shrink-0" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
                                   {bankInfo?.icon || '🏦'}
                                 </span>
                               </>
-                            );
-                          }
-                          return null;
-                        })()}
+                            )}
+                          </div>
+                        </div>
+                        {/* Amount */}
+                        <p
+                          className={`font-semibold whitespace-nowrap flex-shrink-0 text-base
+                            ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
+                        >
+                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </p>
                       </div>
                     </div>
-                    {/* Amount - Always visible, right-aligned */}
-                    <p
-                      className={`font-semibold whitespace-nowrap flex-shrink-0 ${compact ? 'text-sm' : 'text-sm sm:text-base'}
-                        ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
-                    >
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                    </p>
+
                   </div>
+
+                  {/* Edit indicator for mobile - shows chevron when tappable */}
+                  {canWrite && !compact && (
+                    <svg className="w-4 h-4 text-slate-400 flex-shrink-0 sm:hidden mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+
+                  {/* Edit & Delete Buttons - Desktop only */}
+                  {!compact && canWrite && (
+                    <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingTransaction(transaction); }}
+                        className="p-2 text-slate-400 hover:text-blue-500
+                          hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                        title={language === 'pt' ? 'Editar' : 'Edit'}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
+                        className="p-2 text-slate-400 hover:text-rose-500
+                          hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
+                        title={language === 'pt' ? 'Excluir' : 'Delete'}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
-
-                {/* Edit indicator for mobile - shows chevron when tappable */}
-                {canWrite && !compact && (
-                  <svg className="w-4 h-4 text-slate-400 flex-shrink-0 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-
-                {/* Edit & Delete Buttons - Desktop only */}
-                {!compact && canWrite && (
-                  <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setEditingTransaction(transaction); }}
-                      className="p-2 text-slate-400 hover:text-blue-500
-                        hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
-                      title={language === 'pt' ? 'Editar' : 'Edit'}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
-                      className="p-2 text-slate-400 hover:text-rose-500
-                        hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
-                      title={language === 'pt' ? 'Excluir' : 'Delete'}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -434,6 +540,15 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
           setEditingTransaction(null);
           onSuccess?.();
         }}
+      />
+
+      {/* Category Picker */}
+      <CategoryPicker
+        isOpen={!!pickerTransaction}
+        onClose={() => setPickerTransaction(null)}
+        onSelect={handleQuickCategoryChange}
+        currentCategory={pickerTransaction?.category}
+        type={pickerTransaction?.type || 'expense'}
       />
     </div>
   );

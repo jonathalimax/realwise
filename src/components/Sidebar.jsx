@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAccess } from '../contexts/AccessContext';
 import {
   HomeIcon,
   ClipboardDocumentListIcon,
@@ -20,6 +22,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   ArrowLeftIcon,
+  TagIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 
 const navItems = [
@@ -32,6 +36,8 @@ const navItems = [
   { path: '/bills', icon: DocumentTextIcon, labelKey: 'bills' },
   { path: '/cards', icon: CreditCardIcon, labelKey: 'cards' },
   { path: '/investments', icon: ChartBarIcon, labelKey: 'investments' },
+  { path: '/notifications', icon: BellIcon, labelKey: 'notifications' },
+  { path: '/pending-review', icon: TagIcon, labelKey: 'pendingReview', hasBadge: true },
 ];
 
 const bottomItems = [
@@ -53,17 +59,41 @@ const ROOT_ROUTES = [
   '/settings',
   '/budget',
   '/help',
-  '/whatsapp',
+  '/notifications',
+  '/pending-review',
 ];
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, language, darkMode, toggleDarkMode } = useSettings();
+  const { ownerId } = useAccess();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
 
   // Check if we're on a nested route (should show back button instead of hamburger)
   const isNestedRoute = !ROOT_ROUTES.includes(location.pathname);
+
+  // Listen for pending review count
+  useEffect(() => {
+    if (!ownerId) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'importStats', ownerId),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setPendingReviewCount(snapshot.data().pendingReviewCount || 0);
+        } else {
+          setPendingReviewCount(0);
+        }
+      },
+      (error) => {
+        console.error('Error loading pending review count:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [ownerId]);
 
   const labels = {
     dashboard: language === 'pt' ? 'Painel' : 'Dashboard',
@@ -74,6 +104,8 @@ export default function Sidebar() {
     bills: language === 'pt' ? 'Contas' : 'Bills',
     cards: language === 'pt' ? 'Cartões' : 'Cards',
     investments: language === 'pt' ? 'Investimentos' : 'Investments',
+    notifications: language === 'pt' ? 'Notificações' : 'Notifications',
+    pendingReview: language === 'pt' ? 'Revisão' : 'Review',
     help: language === 'pt' ? 'Ajuda' : 'Help',
     settings: language === 'pt' ? 'Configurações' : 'Settings',
     logout: language === 'pt' ? 'Sair' : 'Logout',
@@ -94,6 +126,14 @@ export default function Sidebar() {
       return <div className="my-2 border-t border-gray-200 dark:border-gray-700" />;
     }
 
+    // Check if this item should show a badge
+    const showBadge = item.hasBadge && pendingReviewCount > 0;
+
+    // Don't show pending review item if no pending items
+    if (item.labelKey === 'pendingReview' && pendingReviewCount === 0) {
+      return null;
+    }
+
     return (
       <NavLink
         to={item.path}
@@ -102,14 +142,21 @@ export default function Sidebar() {
           `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
             isActive
               ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/25'
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              : item.hasBadge && pendingReviewCount > 0
+                ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
           }`
         }
       >
         {({ isActive }) => (
           <>
-            <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:text-violet-500'}`} />
-            <span className="font-medium text-sm">{labels[item.labelKey]}</span>
+            <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : item.hasBadge && pendingReviewCount > 0 ? 'text-amber-600 dark:text-amber-400' : 'group-hover:text-violet-500'}`} />
+            <span className="font-medium text-sm flex-1">{labels[item.labelKey]}</span>
+            {showBadge && !isActive && (
+              <span className="px-2 py-0.5 text-xs font-bold bg-amber-500 text-white rounded-full min-w-[20px] text-center">
+                {pendingReviewCount > 99 ? '99+' : pendingReviewCount}
+              </span>
+            )}
           </>
         )}
       </NavLink>

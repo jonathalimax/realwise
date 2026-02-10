@@ -159,5 +159,33 @@ service cloud.firestore {
       // Only admin can read analytics data
       allow read: if request.auth != null && request.auth.token.email == 'jonathalimax@gmail.com';
     }
+
+    // Import History collection - tracks processed import files
+    match /importHistory/{importId} {
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
+    }
+
+    // Import Stats collection - aggregated import statistics per user
+    // Document ID is the userId, similar to settings collection
+    match /importStats/{userId} {
+      allow read: if request.auth != null && canReadData(userId);
+      allow write: if request.auth != null && canWriteData(userId);
+    }
+
+    // User Categorization Rules - learned patterns from user categorizations
+    match /userCategorizationRules/{ruleId} {
+      allow read: if request.auth != null && canReadData(resource.data.userId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.userId || (hasWriteAccess() && request.resource.data.userId == getOwnerId()));
+      allow update, delete: if request.auth != null && canWriteData(resource.data.userId);
+    }
+
+    // AI Quota tracking - tracks daily AI usage per user
+    // Document ID is the userId
+    match /aiQuota/{userId} {
+      allow read: if request.auth != null && canReadData(userId);
+      allow write: if request.auth != null && canWriteData(userId);
+    }
   }
 }
