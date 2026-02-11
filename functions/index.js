@@ -1,5 +1,9 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+
+// Initialize Firebase Admin BEFORE importing other modules that depend on it
+admin.initializeApp();
+
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
@@ -7,10 +11,8 @@ const axios = require('axios');
 const whatsappService = require('./whatsapp-service');
 const { normalizeBrazilE164FixNine, assertBrazilE164 } = require('./phoneUtils');
 
-// Import processor functions
+// Import processor functions (must come after admin.initializeApp())
 const importProcessor = require('./importProcessor');
-
-admin.initializeApp();
 
 const db = admin.firestore();
 

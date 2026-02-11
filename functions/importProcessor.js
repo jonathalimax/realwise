@@ -21,10 +21,7 @@ const {
 } = require('./aiService');
 const whatsappService = require('./whatsapp-service');
 
-// Initialize if not already done (check for existing app)
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+// Firebase Admin is initialized by the main index.js file
 
 const db = admin.firestore();
 const storage = admin.storage();
@@ -129,7 +126,8 @@ exports.processImport = functions
     memory: '1GB',
     timeoutSeconds: 540 // 9 minutes max
   })
-  .storage.object()
+  .storage.bucket('limas-finance.firebasestorage.app')
+  .object()
   .onFinalize(async (object) => {
     const filePath = object.name;
     const contentType = object.contentType;
