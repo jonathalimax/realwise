@@ -486,6 +486,17 @@ exports.processImport = functions
         errorMessage: error.message
       });
 
+      // Send WhatsApp notification about the failure
+      await sendImportNotification(userId, {
+        fileName,
+        importedCount: 0,
+        duplicateCount: 0,
+        pendingCategoryCount: 0,
+        aiCategorizedCount: 0,
+        error: true,
+        errorMessage: error.message
+      });
+
       return null;
     }
   });

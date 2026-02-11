@@ -272,8 +272,32 @@ Your response (comma-separated numbers or NONE):`;
  * @returns {string}
  */
 function formatImportNotification(importResult, language = 'pt') {
-  const { importedCount, duplicateCount, pendingCategoryCount, aiCategorizedCount, fileName } = importResult;
+  const { importedCount, duplicateCount, pendingCategoryCount, aiCategorizedCount, fileName, error, errorMessage } = importResult;
 
+  // Handle error case
+  if (error) {
+    if (language === 'pt') {
+      let message = `*Erro na Importacao*\n\n`;
+      message += `Arquivo: ${fileName || 'Extrato'}\n`;
+      message += `Nao foi possivel processar o arquivo.\n`;
+      if (errorMessage) {
+        message += `Erro: ${errorMessage}\n`;
+      }
+      message += `\nPor favor, tente novamente ou entre em contato com o suporte.`;
+      return message;
+    } else {
+      let message = `*Import Failed*\n\n`;
+      message += `File: ${fileName || 'Statement'}\n`;
+      message += `Could not process the file.\n`;
+      if (errorMessage) {
+        message += `Error: ${errorMessage}\n`;
+      }
+      message += `\nPlease try again or contact support.`;
+      return message;
+    }
+  }
+
+  // Handle success case
   if (language === 'pt') {
     let message = `*Importacao Concluida*\n\n`;
     message += `Arquivo: ${fileName || 'Extrato'}\n`;

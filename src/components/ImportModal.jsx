@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { db, auth, storage } from '../firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
 import { parseFile } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
@@ -279,53 +279,15 @@ export default function ImportModal({ isOpen, onClose }) {
 
       await uploadBytes(storageRef, file);
 
-      setUploadProgress({ status: 'processing', message: language === 'pt' ? 'Processando transações...' : 'Processing transactions...' });
-      setStep('processing');
-
-      // Listen for import completion
-      const importQuery = query(
-        collection(db, 'importHistory'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-
-      const unsubscribe = onSnapshot(importQuery, (snapshot) => {
-        if (!snapshot.empty) {
-          const latestImport = snapshot.docs[0].data();
-          // Check if this is our import (by matching filename)
-          if (latestImport.fileName && latestImport.fileName.includes(file.name.split('.')[0])) {
-            if (latestImport.status === 'completed') {
-              setImportResult({
-                success: true,
-                importedCount: latestImport.importedCount,
-                duplicateCount: latestImport.duplicateCount,
-                pendingCategoryCount: latestImport.pendingCategoryCount
-              });
-              setStep('done');
-              unsubscribe();
-            } else if (latestImport.status === 'failed') {
-              setError(latestImport.errorMessage || 'Import failed');
-              setStep('upload');
-              unsubscribe();
-            }
-          }
-        }
+      // File uploaded successfully - close modal immediately
+      // User will be notified via WhatsApp when processing completes
+      setImportResult({
+        success: true,
+        message: language === 'pt'
+          ? 'Arquivo enviado! Você receberá uma notificação quando o processamento terminar.'
+          : 'File uploaded! You\'ll receive a notification when processing completes.'
       });
-
-      // Timeout after 2 minutes
-      setTimeout(() => {
-        if (step === 'processing') {
-          unsubscribe();
-          setImportResult({
-            success: true,
-            message: language === 'pt'
-              ? 'Arquivo enviado! As transações serão processadas em segundo plano.'
-              : 'File uploaded! Transactions will be processed in the background.'
-          });
-          setStep('done');
-        }
-      }, 120000);
+      setStep('done');
 
     } catch (err) {
       console.error('Background upload error:', err);
