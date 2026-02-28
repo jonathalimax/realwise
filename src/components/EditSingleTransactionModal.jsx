@@ -18,6 +18,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [selectedGoalId, setSelectedGoalId] = useState('');
   const [selectedBankId, setSelectedBankId] = useState(null);
   const [isIgnored, setIsIgnored] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('credit');
   const [loading, setLoading] = useState(false);
   const [updateAllInstallments, setUpdateAllInstallments] = useState(true);
   const [investmentType, setInvestmentType] = useState('fixed_income');
@@ -26,6 +27,11 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [expectedReturn, setExpectedReturn] = useState(0);
   const [returnType, setReturnType] = useState('annual');
   const [maturityDate, setMaturityDate] = useState('');
+  const [ticker, setTicker] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [coinName, setCoinName] = useState('');
+  const [fundName, setFundName] = useState('');
+  const [propertyDescription, setPropertyDescription] = useState('');
 
   const { categories, t, language } = useSettings();
   const { goals, getGoalColor } = useGoals();
@@ -52,6 +58,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         setSelectedBankId(null);
       }
       setIsIgnored(transaction.ignored || false);
+      // Load paymentMethod; default to 'credit' for backward compat with old transactions
+      setPaymentMethod(transaction.paymentMethod || 'credit');
       setUpdateAllInstallments(transaction.isInstallment || false);
       setInvestmentType(transaction.investmentType || 'fixed_income');
 
@@ -62,12 +70,22 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
           setExpectedReturn((linkedInvestment.expectedReturn || 0) * 100); // Convert to percentage
           setReturnType(linkedInvestment.returnType || 'annual');
           setMaturityDate(linkedInvestment.maturityDate || '');
+          setTicker(linkedInvestment.ticker || '');
+          setPlatform(linkedInvestment.platform || '');
+          setCoinName(linkedInvestment.coinName || '');
+          setFundName(linkedInvestment.fundName || '');
+          setPropertyDescription(linkedInvestment.propertyDescription || '');
         }
       } else {
         // Reset investment fields
         setExpectedReturn(0);
         setReturnType('annual');
         setMaturityDate('');
+        setTicker('');
+        setPlatform('');
+        setCoinName('');
+        setFundName('');
+        setPropertyDescription('');
       }
     }
   }, [transaction, investments, findUserBank]);
@@ -103,25 +121,52 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         goalId: selectedGoalId || null,
         goalName: selectedGoal?.name || null,
         bankId: selectedBankId || null,
+        paymentMethod: selectedBankId ? paymentMethod : null,
         ignored: isIgnored,
         // Investment type (if category is Investments)
         investmentType: isInvestmentCategory ? investmentType : null
       };
 
+      // Build extra investment fields based on investmentType
+      const buildInvestmentExtraFields = () => {
+        switch (investmentType) {
+          case 'fixed_income':
+            return {
+              expectedReturn: parseFloat(expectedReturn) / 100 || 0,
+              returnType: returnType || 'annual',
+              maturityDate: maturityDate || null,
+            };
+          case 'stocks':
+            return { ticker: ticker || '', platform: platform || '' };
+          case 'crypto':
+            return { coinName: coinName || '', platform: platform || '' };
+          case 'funds':
+            return { fundName: fundName || '', platform: platform || '' };
+          case 'fii':
+            return { ticker: ticker || '', platform: platform || '' };
+          case 'real_estate':
+            return { propertyDescription: propertyDescription || '' };
+          default:
+            return {};
+        }
+      };
+
       // Handle investment record creation/update if category is Investments
       if (isInvestmentCategory) {
+        const extraFields = buildInvestmentExtraFields();
         const investmentData = {
           name: description,
           type: investmentType,
           bank: selectedBankId || '',
           initialAmount: parseFloat(amount),
           currentAmount: parseFloat(amount),
-          expectedReturn: parseFloat(expectedReturn) / 100, // Convert percentage to decimal
-          returnType: returnType,
+          expectedReturn: extraFields.expectedReturn ?? (parseFloat(expectedReturn) / 100 || 0),
+          returnType: extraFields.returnType ?? returnType,
           purchaseDate: transactionDate,
-          maturityDate: maturityDate || null,
+          maturityDate: extraFields.maturityDate ?? (maturityDate || null),
           goalId: selectedGoalId || null,
           notes: '',
+          ...extraFields,
         };
 
         if (transaction.investmentId) {
@@ -377,72 +422,249 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         </div>
                       </div>
 
-                      {/* Expected Return */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
-                          </label>
-                          <div className="relative">
+                      {/* Dynamic fields by investment type */}
+                      <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        {/* fixed_income fields */}
+                        {investmentType === 'fixed_income' && (
+                          <>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                  {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    value={expectedReturn}
+                                    onChange={(e) => setExpectedReturn(e.target.value)}
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    className="w-full px-4 py-3 pr-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                      text-gray-900 dark:text-white placeholder-gray-400
+                                      focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                      transition-all duration-200"
+                                  />
+                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">%</span>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                  {language === 'pt' ? 'Tipo de Retorno' : 'Return Type'}
+                                </label>
+                                <select
+                                  value={returnType}
+                                  onChange={(e) => setReturnType(e.target.value)}
+                                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                    text-gray-900 dark:text-white
+                                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                    transition-all duration-200 appearance-none cursor-pointer pr-10"
+                                  style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                                    backgroundPosition: 'right 12px center',
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundSize: '20px'
+                                  }}
+                                >
+                                  <option value={RETURN_TYPES.cdi}>CDI</option>
+                                  <option value={RETURN_TYPES.annual}>{language === 'pt' ? 'Anual' : 'Annual'}</option>
+                                  <option value={RETURN_TYPES.monthly}>{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
+                                  <option value={RETURN_TYPES.total}>Total</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
+                              </label>
+                              <input
+                                type="date"
+                                value={maturityDate}
+                                onChange={(e) => setMaturityDate(e.target.value)}
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* stocks fields */}
+                        {investmentType === 'stocks' && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ticker {language === 'pt' ? '(ex: PETR4, AAPL)' : '(e.g. PETR4, AAPL)'}
+                              </label>
+                              <input
+                                type="text"
+                                value={ticker}
+                                onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                                placeholder="PETR4"
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Corretora (ex: XP, Clear, Rico)' : 'Broker (e.g. XP, Clear, Rico)'}
+                              </label>
+                              <input
+                                type="text"
+                                value={platform}
+                                onChange={(e) => setPlatform(e.target.value)}
+                                placeholder={language === 'pt' ? 'XP Investimentos' : 'XP Investments'}
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* crypto fields */}
+                        {investmentType === 'crypto' && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
+                              </label>
+                              <input
+                                type="text"
+                                list="crypto-list-edit"
+                                value={coinName}
+                                onChange={(e) => setCoinName(e.target.value)}
+                                placeholder="Bitcoin (BTC)"
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                              <datalist id="crypto-list-edit">
+                                <option value="Bitcoin (BTC)" />
+                                <option value="Ethereum (ETH)" />
+                                <option value="BNB" />
+                                <option value="Solana (SOL)" />
+                                <option value="Cardano (ADA)" />
+                                <option value="XRP" />
+                                <option value="Dogecoin (DOGE)" />
+                                <option value="Polygon (MATIC)" />
+                                <option value="Avalanche (AVAX)" />
+                                <option value="Chainlink (LINK)" />
+                              </datalist>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Exchange (ex: Binance, Coinbase)' : 'Exchange (e.g. Binance, Coinbase)'}
+                              </label>
+                              <input
+                                type="text"
+                                value={platform}
+                                onChange={(e) => setPlatform(e.target.value)}
+                                placeholder="Binance"
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* funds fields */}
+                        {investmentType === 'funds' && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
+                              </label>
+                              <input
+                                type="text"
+                                value={fundName}
+                                onChange={(e) => setFundName(e.target.value)}
+                                placeholder={language === 'pt' ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund'}
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Plataforma' : 'Platform'}
+                              </label>
+                              <input
+                                type="text"
+                                value={platform}
+                                onChange={(e) => setPlatform(e.target.value)}
+                                placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* fii fields */}
+                        {investmentType === 'fii' && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ticker {language === 'pt' ? '(ex: HGLG11, XPML11)' : '(e.g. HGLG11, XPML11)'}
+                              </label>
+                              <input
+                                type="text"
+                                value={ticker}
+                                onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                                placeholder="HGLG11"
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Corretora' : 'Broker'}
+                              </label>
+                              <input
+                                type="text"
+                                value={platform}
+                                onChange={(e) => setPlatform(e.target.value)}
+                                placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
+                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                                  text-gray-900 dark:text-white placeholder-gray-400
+                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                                  transition-all duration-200"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* real_estate fields */}
+                        {investmentType === 'real_estate' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              {language === 'pt' ? 'Descrição do Imóvel' : 'Property Description'}
+                            </label>
                             <input
-                              type="number"
-                              value={expectedReturn}
-                              onChange={(e) => setExpectedReturn(e.target.value)}
-                              step="0.01"
-                              min="0"
-                              placeholder="0.00"
-                              className="w-full px-4 py-3 pr-10 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                              type="text"
+                              value={propertyDescription}
+                              onChange={(e) => setPropertyDescription(e.target.value)}
+                              placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
+                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                                 text-gray-900 dark:text-white placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                              %
-                            </span>
                           </div>
-                        </div>
-
-                        {/* Return Type */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {language === 'pt' ? 'Tipo de Retorno' : 'Return Type'}
-                          </label>
-                          <select
-                            value={returnType}
-                            onChange={(e) => setReturnType(e.target.value)}
-                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                              text-gray-900 dark:text-white
-                              focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                              transition-all duration-200 appearance-none cursor-pointer pr-10"
-                            style={{
-                              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                              backgroundPosition: 'right 12px center',
-                              backgroundRepeat: 'no-repeat',
-                              backgroundSize: '20px'
-                            }}
-                          >
-                            <option value={RETURN_TYPES.cdi}>CDI</option>
-                            <option value={RETURN_TYPES.annual}>{language === 'pt' ? 'Anual' : 'Annual'}</option>
-                            <option value={RETURN_TYPES.monthly}>{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
-                            <option value={RETURN_TYPES.total}>Total</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Maturity Date (optional) */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          {language === 'pt' ? 'Data de Vencimento' : 'Maturity Date'} ({language === 'pt' ? 'opcional' : 'optional'})
-                        </label>
-                        <input
-                          type="date"
-                          value={maturityDate}
-                          onChange={(e) => setMaturityDate(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                            text-gray-900 dark:text-white
-                            focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                            transition-all duration-200"
-                        />
+                        )}
                       </div>
                     </>
                   )}
@@ -454,7 +676,16 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </label>
                     <select
                       value={selectedBankId || 'cash'}
-                      onChange={(e) => setSelectedBankId(e.target.value === 'cash' ? null : e.target.value)}
+                      onChange={(e) => {
+                        const newBankId = e.target.value === 'cash' ? null : e.target.value;
+                        setSelectedBankId(newBankId);
+                        if (newBankId) {
+                          const bank = findUserBank(newBankId);
+                          setPaymentMethod(bank?.hasCredit ? 'credit' : 'debit');
+                        } else {
+                          setPaymentMethod('credit');
+                        }
+                      }}
                       className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                         text-gray-900 dark:text-white
                         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
@@ -478,6 +709,36 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       })}
                     </select>
                   </div>
+
+                  {/* Payment Method Selector */}
+                  {selectedBankId && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
+                      </label>
+                      <div className="flex gap-2">
+                        {[
+                          { value: 'credit', labelPt: 'Crédito', labelEn: 'Credit' },
+                          { value: 'debit', labelPt: 'Débito', labelEn: 'Debit' },
+                          { value: 'pix', labelPt: 'PIX', labelEn: 'PIX' },
+                          { value: 'transfer', labelPt: 'Transferência', labelEn: 'Transfer' },
+                        ].map((method) => (
+                          <button
+                            key={method.value}
+                            type="button"
+                            onClick={() => setPaymentMethod(method.value)}
+                            className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${
+                              paymentMethod === method.value
+                                ? 'border-gray-900 dark:border-gray-300 bg-gray-900 dark:bg-gray-300 text-white dark:text-gray-900'
+                                : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
+                            }`}
+                          >
+                            {language === 'pt' ? method.labelPt : method.labelEn}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Link to Goal */}
                   {availableGoals.length > 0 && (

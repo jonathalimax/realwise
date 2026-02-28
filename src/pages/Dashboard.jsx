@@ -13,7 +13,6 @@ import InvestmentsListModal from '../components/InvestmentsListModal';
 import ExpensesPieChart from '../components/charts/ExpensesPieChart';
 import BillsSummaryCard from '../components/BillsSummaryCard';
 import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
-import ImportModal from '../components/ImportModal';
 import CardsModal from '../components/CardsModal';
 import BudgetModal from '../components/BudgetModal';
 import TransactionModal from '../components/TransactionModal';
@@ -31,7 +30,6 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  const [showImport, setShowImport] = useState(false);
   const [showCards, setShowCards] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -129,7 +127,7 @@ export default function DashboardPage() {
         if (t.investmentId) {
           return transactionMonthKey === selectedMonth;
         }
-        const paymentKey = getPaymentMonthKey(t.date, t.bankId);
+        const paymentKey = getPaymentMonthKey(t.date, t.bankId, t.paymentMethod);
         return paymentKey === selectedMonth;
       }
     });
@@ -224,7 +222,7 @@ export default function DashboardPage() {
           {showFabMenu && (
             <>
               <button
-                onClick={() => { setShowImport(true); setShowFabMenu(false); }}
+                onClick={() => { navigate('/import'); setShowFabMenu(false); }}
                 className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
               >
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
@@ -319,7 +317,6 @@ export default function DashboardPage() {
       )}
 
       {/* Modals */}
-      <ImportModal isOpen={showImport} onClose={() => setShowImport(false)} />
       <CardsModal isOpen={showCards} onClose={() => setShowCards(false)} />
       <BudgetModal
         isOpen={showBudget}

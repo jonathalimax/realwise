@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Fragment } from 'react';
 import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
 import { parseFile } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
-import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
+import { useGoals } from '../contexts/GoalsContext';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
 import { generateTransactionHash } from '../services/installments';
@@ -14,10 +14,39 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import CurrencyInput from './ui/CurrencyInput';
 import CategoryPicker from './ui/CategoryPicker';
 
-export default function ImportModal({ isOpen, onClose }) {
+// Defined at module level so its reference is stable across renders.
+// If defined inside ImportModal, React sees a new component type on every render
+// and unmounts/remounts the entire subtree, destroying scroll position.
+function ModalWrapper({ embedded, isMobile, children }) {
+  if (embedded) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        {children}
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col">
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export default function ImportModal({ isOpen = true, onClose, embedded = false }) {
   const isMobile = useIsMobile();
   const [file, setFile] = useState(null);
   const [selectedBankId, setSelectedBankId] = useState(null);
+  const [importPaymentMethod, setImportPaymentMethod] = useState('debit');
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -30,7 +59,15 @@ export default function ImportModal({ isOpen, onClose }) {
   const [aiDuplicateCount, setAiDuplicateCount] = useState(0);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [showEditHint, setShowEditHint] = useState(true);
-  const [pickerIndex, setPickerIndex] = useState(null);
+  const [pickerTransactionId, setPickerTransactionId] = useState(null);
+  const [previewView, setPreviewView] = useState('list'); // list | edit
+  const [sortOrder, setSortOrder] = useState('desc'); // desc = most recent first
+  const contentScrollRef = useRef(null);
+  const transactionsListRef = useRef(null);
+  const previewScrollTopRef = useRef(0);
+  const previewOuterScrollTopRef = useRef(0);
+  const previewWindowScrollRef = useRef(0);
+  const shouldRestorePreviewScrollRef = useRef(false);
 
   // Background upload states
   const [uploadMode, setUploadMode] = useState('local'); // 'local' or 'background'
@@ -39,7 +76,7 @@ export default function ImportModal({ isOpen, onClose }) {
 
   const { formatCurrency, categories, t, language, geminiApiKey } = useSettings();
   const { userBanks, getBankInfo, getBankDisplayName } = useCards();
-  const { goals, getGoalColor } = useGoals();
+  const { goals } = useGoals();
   const { ownerId } = useAccess();
   useInvestments(); // Used for context availability
 
@@ -47,6 +84,18 @@ export default function ImportModal({ isOpen, onClose }) {
   const availableGoals = goals.filter(g => !g.completed);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
+
+  const handleBankSelect = (e) => {
+    const val = e.target.value;
+    if (!val) { setSelectedBankId(null); setImportPaymentMethod('debit'); return; }
+    if (val.endsWith(':credit')) {
+      setSelectedBankId(val.replace(':credit', ''));
+      setImportPaymentMethod('credit');
+    } else {
+      setSelectedBankId(val);
+      setImportPaymentMethod('debit');
+    }
+  };
 
   // Load existing transaction hashes when modal opens
   // Use ownerId for shared accounts support
@@ -63,6 +112,23 @@ export default function ImportModal({ isOpen, onClose }) {
       return () => clearTimeout(timer);
     }
   }, [step, showEditHint]);
+
+  // Restore list scroll after returning from edit flow.
+  // useLayoutEffect runs synchronously after the DOM has been updated but before
+  // the browser paints, ensuring the list element is already visible (no longer
+  // hidden) when we assign scrollTop — so the value actually sticks.
+  useLayoutEffect(() => {
+    if (step !== 'preview' || previewView !== 'list' || !shouldRestorePreviewScrollRef.current) return;
+    shouldRestorePreviewScrollRef.current = false;
+
+    if (transactionsListRef.current) {
+      transactionsListRef.current.scrollTop = previewScrollTopRef.current;
+    }
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = previewOuterScrollTopRef.current;
+    }
+    window.scrollTo(0, previewWindowScrollRef.current);
+  }, [step, previewView]);
 
   const loadExistingHashes = async () => {
     try {
@@ -139,13 +205,14 @@ export default function ImportModal({ isOpen, onClose }) {
       let aiCategorized = 0;
 
       // First pass: hash-based duplicate detection
-      const afterHashFilter = parsed.map(t => {
+      const afterHashFilter = parsed.map((t, index) => {
         const isDuplicate = existingHashes.has(t.hash);
         if (isDuplicate) hashDuplicates++;
         if (t.isInstallment) installments++;
         if (t.aiCategorized) aiCategorized++;
 
         return {
+          _localId: `${t.hash || 'tx'}-${index}-${Math.random().toString(36).slice(2, 9)}`,
           ...t,
           isDuplicate,
           selected: !isDuplicate
@@ -228,6 +295,7 @@ export default function ImportModal({ isOpen, onClose }) {
           imported: true,
           hash: t.hash,
           bankId: selectedBankId || null,
+          paymentMethod: selectedBankId ? importPaymentMethod : null,
           isInstallment: t.isInstallment || false,
           installmentCurrent: t.installmentCurrent || null,
           installmentTotal: t.installmentTotal || null,
@@ -236,7 +304,16 @@ export default function ImportModal({ isOpen, onClose }) {
           // New fields from edit form
           goalId: t.goalId || null,
           goalName: t.goalName || null,
-          investmentType: t.investmentType || null
+          investmentType: t.investmentType || null,
+          // Investment extra fields
+          ticker: t.ticker || null,
+          platform: t.platform || null,
+          coinName: t.coinName || null,
+          fundName: t.fundName || null,
+          propertyDescription: t.propertyDescription || null,
+          expectedReturn: t.expectedReturn != null ? parseFloat(t.expectedReturn) / 100 : null,
+          returnType: t.returnType || null,
+          maturityDate: t.maturityDate || null
         });
       }
 
@@ -297,34 +374,80 @@ export default function ImportModal({ isOpen, onClose }) {
     }
   };
 
-  const toggleTransactionSelection = (index) => {
-    setTransactions(prev => prev.map((t, i) =>
-      i === index ? { ...t, selected: !t.selected } : t
+  const toggleTransactionSelection = (transactionId) => {
+    const previousScrollTop = transactionsListRef.current?.scrollTop ?? 0;
+    setTransactions(prev => prev.map((t) =>
+      t._localId === transactionId ? { ...t, selected: !t.selected } : t
     ));
+    requestAnimationFrame(() => {
+      if (transactionsListRef.current) {
+        transactionsListRef.current.scrollTop = previousScrollTop;
+      }
+    });
   };
 
-  const toggleTransactionType = (index) => {
-    setTransactions(prev => prev.map((t, i) =>
-      i === index ? { ...t, type: t.type === 'income' ? 'expense' : 'income' } : t
+  const toggleTransactionType = (transactionId) => {
+    const previousScrollTop = transactionsListRef.current?.scrollTop ?? 0;
+    setTransactions(prev => prev.map((t) =>
+      t._localId === transactionId ? { ...t, type: t.type === 'income' ? 'expense' : 'income' } : t
     ));
+    requestAnimationFrame(() => {
+      if (transactionsListRef.current) {
+        transactionsListRef.current.scrollTop = previousScrollTop;
+      }
+    });
   };
 
-  // Open category picker for a transaction
-  const openCategoryPicker = (index, e) => {
+  // Open category picker popup for a transaction
+  const openCategoryPicker = (transactionId, e) => {
     e.stopPropagation();
-    setPickerIndex(index);
+    setPickerTransactionId(transactionId);
   };
 
   // Quick category change (from picker)
   const handleQuickCategoryChange = (newCategory) => {
-    if (pickerIndex === null) return;
-    setTransactions(prev => prev.map((t, i) =>
-      i === pickerIndex ? { ...t, category: newCategory, autoCategory: false } : t
+    if (pickerTransactionId === null) return;
+    setTransactions(prev => prev.map((t) =>
+      t._localId === pickerTransactionId ? { ...t, category: newCategory, autoCategory: false } : t
     ));
-    setPickerIndex(null);
+    setPickerTransactionId(null);
   };
 
   const selectedCount = transactions.filter(t => t.selected).length;
+  const hasSelectableTransactions = transactions.some(t => !t.isDuplicate);
+  const allSelectableSelected = hasSelectableTransactions && transactions.every(t => t.isDuplicate || t.selected);
+
+  const selectAllTransactions = () => {
+    const previousScrollTop = transactionsListRef.current?.scrollTop ?? 0;
+    setTransactions(prev => prev.map(t => (
+      t.isDuplicate ? t : { ...t, selected: true }
+    )));
+    requestAnimationFrame(() => {
+      if (transactionsListRef.current) {
+        transactionsListRef.current.scrollTop = previousScrollTop;
+      }
+    });
+  };
+
+  const deselectAllTransactions = () => {
+    const previousScrollTop = transactionsListRef.current?.scrollTop ?? 0;
+    setTransactions(prev => prev.map(t => ({ ...t, selected: false })));
+    requestAnimationFrame(() => {
+      if (transactionsListRef.current) {
+        transactionsListRef.current.scrollTop = previousScrollTop;
+      }
+    });
+  };
+
+  const sortedTransactions = useMemo(() => {
+    const ordered = [...transactions].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      if (dateA === dateB) return String(a._localId).localeCompare(String(b._localId));
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+    return ordered;
+  }, [transactions, sortOrder]);
 
   const handleClose = () => {
     setFile(null);
@@ -338,29 +461,43 @@ export default function ImportModal({ isOpen, onClose }) {
     setSelectedBankId(null);
     setEditingTransaction(null);
     setShowEditHint(true);
-    setPickerIndex(null);
+    setPickerTransactionId(null);
+    setPreviewView('list');
+    setSortOrder('desc');
     setUploadMode('local');
     setUploadProgress(null);
     setImportResult(null);
     onClose();
   };
 
-  const openEditTransaction = (index) => {
+  const activeCategoryTransaction = useMemo(
+    () => transactions.find(t => t._localId === pickerTransactionId) || null,
+    [transactions, pickerTransactionId]
+  );
+
+  const openEditTransaction = (transactionId) => {
+    previewOuterScrollTopRef.current = contentScrollRef.current?.scrollTop ?? 0;
+    previewScrollTopRef.current = transactionsListRef.current?.scrollTop ?? 0;
+    previewWindowScrollRef.current = window.scrollY;
+    const transaction = transactions.find(t => t._localId === transactionId);
+    if (!transaction) return;
+
     setEditingTransaction({
-      index,
-      ...transactions[index],
-      selectedGoalId: transactions[index].goalId || '',
-      investmentType: transactions[index].investmentType || 'fixed_income'
+      transactionId,
+      ...transaction,
+      selectedGoalId: transaction.goalId || '',
+      investmentType: transaction.investmentType || 'fixed_income'
     });
     setShowEditHint(false);
+    setPreviewView('edit');
   };
 
   const saveEditTransaction = () => {
     if (editingTransaction === null) return;
 
-    const { index, selectedGoalId, ...updates } = editingTransaction;
-    setTransactions(prev => prev.map((t, i) =>
-      i === index ? {
+    const { transactionId, selectedGoalId, ...updates } = editingTransaction;
+    setTransactions(prev => prev.map((t) =>
+      t._localId === transactionId ? {
         ...t,
         ...updates,
         goalId: selectedGoalId || null,
@@ -369,30 +506,20 @@ export default function ImportModal({ isOpen, onClose }) {
       } : t
     ));
     setEditingTransaction(null);
+    shouldRestorePreviewScrollRef.current = true;
+    setPreviewView('list');
   };
 
-  if (!isOpen) return null;
-
-  // Wrapper component - full screen on mobile, modal on desktop
-  const Wrapper = ({ children }) => {
-    if (isMobile) {
-      return (
-        <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col">
-          {children}
-        </div>
-      );
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-          {children}
-        </div>
-      </div>
-    );
+  const handleBackFromEdit = () => {
+    setEditingTransaction(null);
+    shouldRestorePreviewScrollRef.current = true;
+    setPreviewView('list');
   };
+
+  if (!embedded && !isOpen) return null;
 
   return (
-    <Wrapper>
+    <ModalWrapper embedded={embedded} isMobile={isMobile}>
       {/* Header */}
       <div className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700 ${isMobile ? 'bg-white dark:bg-gray-800' : ''}`}>
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{t('import.title')}</h2>
@@ -407,66 +534,47 @@ export default function ImportModal({ isOpen, onClose }) {
       </div>
 
       {/* Content */}
-      <div className={`flex-1 overflow-y-auto p-4 sm:p-6 ${isMobile ? 'bg-gray-50 dark:bg-gray-900' : ''}`}>
+      <div
+        ref={contentScrollRef}
+        className={`flex-1 p-4 sm:p-6 ${step === 'preview' ? 'overflow-hidden' : 'overflow-y-auto'} ${isMobile ? 'bg-gray-50 dark:bg-gray-900' : ''}`}
+      >
         {step === 'upload' && (
           <div className="flex flex-col h-full">
-            {/* Bank Selection - Compact Grid */}
+            {/* Bank Selection - Dropdown */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 {language === 'pt' ? 'Vincular ao Banco' : 'Link to Bank'}
               </label>
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                {/* Cash / No Bank option */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedBankId(null)}
-                  className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all ${
-                    selectedBankId === null
-                      ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-600 rounded-xl flex items-center justify-center text-xl">
-                    💵
-                  </div>
-                  <span className="text-[10px] text-gray-600 dark:text-gray-300 text-center leading-tight">
-                    {language === 'pt' ? 'Dinheiro' : 'Cash'}
-                  </span>
-                </button>
-
-                {/* Bank options from user's registered banks */}
+              <select
+                value={selectedBankId ? (importPaymentMethod === 'credit' ? `${selectedBankId}:credit` : selectedBankId) : ''}
+                onChange={handleBankSelect}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 12px center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '20px',
+                  paddingRight: '2.5rem',
+                }}
+              >
+                <option value="">💵 {language === 'pt' ? 'Dinheiro / Sem banco' : 'Cash / No bank'}</option>
                 {userBanks.map((userBank) => {
                   const bankInfo = getBankInfo(userBank.bankId);
                   const displayName = getBankDisplayName(userBank);
                   return (
-                    <button
-                      key={userBank.id}
-                      type="button"
-                      onClick={() => setSelectedBankId(userBank.id)}
-                      className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all relative ${
-                        selectedBankId === userBank.id
-                          ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                      }`}
-                    >
-                      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-600 rounded-xl flex items-center justify-center text-xl">
-                        {bankInfo.icon}
-                      </div>
-                      <span className="text-[10px] text-gray-600 dark:text-gray-300 text-center leading-tight truncate w-full">
-                        {displayName}
-                      </span>
+                    <Fragment key={userBank.id}>
+                      <option value={userBank.id}>
+                        {bankInfo.icon} {displayName} — {language === 'pt' ? 'Conta' : 'Account'}
+                      </option>
                       {userBank.hasCredit && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                            <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
-                          </svg>
-                        </span>
+                        <option value={`${userBank.id}:credit`}>
+                          💳 {displayName} — {language === 'pt' ? 'Cartão de Crédito' : 'Credit Card'}
+                        </option>
                       )}
-                    </button>
+                    </Fragment>
                   );
                 })}
-              </div>
+              </select>
             </div>
 
             {/* Upload Mode Toggle */}
@@ -571,7 +679,7 @@ export default function ImportModal({ isOpen, onClose }) {
         )}
 
         {step === 'preview' && (
-          <div className="space-y-4">
+          <div className={`h-full flex flex-col gap-4 ${previewView === 'list' ? '' : 'hidden'}`}>
             {/* Header with Back Button and Stats */}
             <div className="flex items-center gap-3">
               {/* Back Button */}
@@ -614,6 +722,35 @@ export default function ImportModal({ isOpen, onClose }) {
               </div>
             </div>
 
+            {/* Bulk selection actions */}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={selectAllTransactions}
+                disabled={!hasSelectableTransactions || allSelectableSelected}
+                className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {language === 'pt' ? 'Selecionar todos' : 'Select all'}
+              </button>
+              <button
+                type="button"
+                onClick={deselectAllTransactions}
+                disabled={selectedCount === 0}
+                className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {language === 'pt' ? 'Desmarcar todos' : 'Deselect all'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'))}
+                className="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {sortOrder === 'desc'
+                  ? (language === 'pt' ? 'Mais recentes' : 'Most recent')
+                  : (language === 'pt' ? 'Mais antigas' : 'Oldest')}
+              </button>
+            </div>
+
             {/* Edit hint - auto-dismisses */}
             {showEditHint && (
               <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-sm text-blue-700 dark:text-blue-300">
@@ -634,11 +771,11 @@ export default function ImportModal({ isOpen, onClose }) {
             )}
 
             {/* Transaction List */}
-            <div className={`space-y-2 ${isMobile ? '' : 'max-h-96'} overflow-y-auto`}>
-              {transactions.map((trans, i) => (
+            <div ref={transactionsListRef} className="space-y-2 overflow-y-auto flex-1 min-h-0">
+              {sortedTransactions.map((trans) => (
                 <div
-                  key={i}
-                  onClick={() => openEditTransaction(i)}
+                  key={trans._localId}
+                  onClick={() => openEditTransaction(trans._localId)}
                   className={`rounded-xl transition-all cursor-pointer active:scale-[0.99] ${
                     trans.isDuplicate
                       ? 'bg-amber-50 dark:bg-amber-900/20 opacity-60'
@@ -650,7 +787,7 @@ export default function ImportModal({ isOpen, onClose }) {
                   <div className="flex items-start gap-3">
                     {/* Checkbox */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleTransactionSelection(i); }}
+                      onClick={(e) => { e.stopPropagation(); toggleTransactionSelection(trans._localId); }}
                       className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors mt-0.5
                         ${trans.selected
                           ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
@@ -668,7 +805,7 @@ export default function ImportModal({ isOpen, onClose }) {
 
                     {/* Type Indicator - Hidden on mobile to save space */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleTransactionType(i); }}
+                      onClick={(e) => { e.stopPropagation(); toggleTransactionType(trans._localId); }}
                       className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center flex-shrink-0 transition-colors active:scale-95
                       ${trans.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-rose-100 dark:bg-rose-900/40'}`}
                     >
@@ -697,7 +834,7 @@ export default function ImportModal({ isOpen, onClose }) {
                             </span>
                             {/* Tappable Category Badge */}
                             <button
-                              onClick={(e) => openCategoryPicker(i, e)}
+                              onClick={(e) => openCategoryPicker(trans._localId, e)}
                               className={`px-2 py-0.5 text-[11px] font-medium rounded-full transition-all flex-shrink-0 active:scale-95 ${
                                 trans.type === 'income'
                                   ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
@@ -735,7 +872,7 @@ export default function ImportModal({ isOpen, onClose }) {
                               <span className="text-gray-300 dark:text-gray-600">•</span>
                               {/* Tappable Category Badge - Desktop */}
                               <button
-                                onClick={(e) => openCategoryPicker(i, e)}
+                                onClick={(e) => openCategoryPicker(trans._localId, e)}
                                 className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all hover:opacity-80 active:scale-95 ${
                                   trans.type === 'income'
                                     ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
@@ -802,6 +939,288 @@ export default function ImportModal({ isOpen, onClose }) {
               <div className="p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-xl">
                 <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
               </div>
+            )}
+          </div>
+        )}
+
+        {step === 'preview' && (
+          <div className={`space-y-4 ${previewView === 'edit' && editingTransaction !== null ? '' : 'hidden'}`}>
+            {editingTransaction !== null && (
+              <>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBackFromEdit}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                {t('common.back')}
+              </button>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {language === 'pt' ? 'Editar Transacao' : 'Edit Transaction'}
+              </h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                <button type="button" onClick={() => setEditingTransaction(prev => ({ ...prev, type: 'expense' }))}
+                  className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${editingTransaction.type === 'expense' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                  {t('transactionForm.expense')}
+                </button>
+                <button type="button" onClick={() => setEditingTransaction(prev => ({ ...prev, type: 'income' }))}
+                  className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${editingTransaction.type === 'income' ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
+                  {t('transactionForm.income')}
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactionForm.amount')}</label>
+                <CurrencyInput value={editingTransaction.amount} onChange={(val) => setEditingTransaction(prev => ({ ...prev, amount: val }))} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactionForm.description')}</label>
+                <textarea value={editingTransaction.description} onChange={(e) => setEditingTransaction(prev => ({ ...prev, description: e.target.value }))} rows={2}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 resize-none"
+                  placeholder={t('transactionForm.descriptionPlaceholder')} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactionForm.date')}</label>
+                <input type="date" value={editingTransaction.date ? editingTransaction.date.split('T')[0] : ''}
+                  onChange={(e) => setEditingTransaction(prev => ({ ...prev, date: new Date(e.target.value + 'T12:00:00').toISOString() }))}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('transactionForm.category')}</label>
+                <select value={editingTransaction.category} onChange={(e) => setEditingTransaction(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer">
+                  {categories[editingTransaction.type].map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Investment Type — shown only when category is Investments */}
+              {(editingTransaction.category === 'Investments' || editingTransaction.category === 'Investimentos') && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('investments.type')}
+                    </label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setEditingTransaction(prev => ({ ...prev, investmentType: key }))}
+                          className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
+                            editingTransaction.investmentType === key
+                              ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
+                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                          }`}
+                          title={t(`investments.types.${key}`)}
+                        >
+                          <span>{info.icon}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                            {t(`investments.types.${key}`)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dynamic Investment Fields */}
+                  <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    {editingTransaction.investmentType === 'fixed_income' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
+                            </label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                value={editingTransaction.expectedReturn ?? ''}
+                                onChange={(e) => setEditingTransaction(prev => ({ ...prev, expectedReturn: e.target.value }))}
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                className="w-full px-4 py-3 pr-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                              />
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">%</span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              {language === 'pt' ? 'Tipo de Retorno' : 'Return Type'}
+                            </label>
+                            <select
+                              value={editingTransaction.returnType ?? 'annual'}
+                              onChange={(e) => setEditingTransaction(prev => ({ ...prev, returnType: e.target.value }))}
+                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                            >
+                              <option value="cdi">CDI</option>
+                              <option value="annual">{language === 'pt' ? 'Anual' : 'Annual'}</option>
+                              <option value="monthly">{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
+                              <option value="total">Total</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
+                          </label>
+                          <input
+                            type="date"
+                            value={editingTransaction.maturityDate ?? ''}
+                            onChange={(e) => setEditingTransaction(prev => ({ ...prev, maturityDate: e.target.value }))}
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {(editingTransaction.investmentType === 'stocks' || editingTransaction.investmentType === 'fii') && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Ticker {editingTransaction.investmentType === 'fii'
+                              ? (language === 'pt' ? '(ex: HGLG11, XPML11)' : '(e.g. HGLG11, XPML11)')
+                              : (language === 'pt' ? '(ex: PETR4, AAPL)' : '(e.g. PETR4, AAPL)')}
+                          </label>
+                          <input
+                            type="text"
+                            value={editingTransaction.ticker ?? ''}
+                            onChange={(e) => setEditingTransaction(prev => ({ ...prev, ticker: e.target.value.toUpperCase() }))}
+                            placeholder={editingTransaction.investmentType === 'fii' ? 'HGLG11' : 'PETR4'}
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Corretora' : 'Broker'}
+                          </label>
+                          <input
+                            type="text"
+                            value={editingTransaction.platform ?? ''}
+                            onChange={(e) => setEditingTransaction(prev => ({ ...prev, platform: e.target.value }))}
+                            placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {editingTransaction.investmentType === 'crypto' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
+                          </label>
+                          <input
+                            type="text"
+                            list="import-crypto-list"
+                            value={editingTransaction.coinName ?? ''}
+                            onChange={(e) => setEditingTransaction(prev => ({ ...prev, coinName: e.target.value }))}
+                            placeholder="Bitcoin (BTC)"
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                          <datalist id="import-crypto-list">
+                            <option value="Bitcoin (BTC)" />
+                            <option value="Ethereum (ETH)" />
+                            <option value="BNB" />
+                            <option value="Solana (SOL)" />
+                            <option value="Cardano (ADA)" />
+                            <option value="XRP" />
+                            <option value="Dogecoin (DOGE)" />
+                          </datalist>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Exchange (ex: Binance, Coinbase)' : 'Exchange (e.g. Binance, Coinbase)'}
+                          </label>
+                          <input
+                            type="text"
+                            value={editingTransaction.platform ?? ''}
+                            onChange={(e) => setEditingTransaction(prev => ({ ...prev, platform: e.target.value }))}
+                            placeholder="Binance"
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {editingTransaction.investmentType === 'funds' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
+                          </label>
+                          <input
+                            type="text"
+                            value={editingTransaction.fundName ?? ''}
+                            onChange={(e) => setEditingTransaction(prev => ({ ...prev, fundName: e.target.value }))}
+                            placeholder={language === 'pt' ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund'}
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Plataforma' : 'Platform'}
+                          </label>
+                          <input
+                            type="text"
+                            value={editingTransaction.platform ?? ''}
+                            onChange={(e) => setEditingTransaction(prev => ({ ...prev, platform: e.target.value }))}
+                            placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {editingTransaction.investmentType === 'real_estate' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          {language === 'pt' ? 'Descrição do Imóvel' : 'Property Description'}
+                        </label>
+                        <input
+                          type="text"
+                          value={editingTransaction.propertyDescription ?? ''}
+                          onChange={(e) => setEditingTransaction(prev => ({ ...prev, propertyDescription: e.target.value }))}
+                          placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
+                          className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Goal Picker — shown when there are available goals */}
+              {availableGoals.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('goals.linkToGoal')}
+                  </label>
+                  <select
+                    value={editingTransaction.selectedGoalId || ''}
+                    onChange={(e) => setEditingTransaction(prev => ({ ...prev, selectedGoalId: e.target.value }))}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                  >
+                    <option value="">{t('goals.noGoalSelected')}</option>
+                    {availableGoals.map((goal) => (
+                      <option key={goal.id} value={goal.id}>{goal.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+              </>
             )}
           </div>
         )}
@@ -906,7 +1325,7 @@ export default function ImportModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {step === 'preview' && (
+        {step === 'preview' && previewView === 'list' && (
           <button
             onClick={handleImport}
             disabled={selectedCount === 0 || importing}
@@ -926,6 +1345,19 @@ export default function ImportModal({ isOpen, onClose }) {
           </button>
         )}
 
+        {step === 'preview' && previewView === 'edit' && (
+          <button
+            onClick={saveEditTransaction}
+            className={`w-full py-3.5 rounded-xl font-medium text-white transition-all duration-200
+              ${editingTransaction?.type === 'expense'
+                ? 'bg-rose-500 hover:bg-rose-600 active:bg-rose-700'
+                : 'bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700'
+              }`}
+          >
+            {t('common.save')}
+          </button>
+        )}
+
         {step === 'done' && (
           <button
             onClick={handleClose}
@@ -938,239 +1370,15 @@ export default function ImportModal({ isOpen, onClose }) {
         )}
       </div>
 
-      {/* Edit Transaction Bottom Sheet - Full form like manual entry */}
-      {editingTransaction !== null && (
-        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setEditingTransaction(null)}>
-          <div
-            className={`w-full bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl ${isMobile ? 'max-h-[90vh]' : 'max-w-lg max-h-[85vh]'} overflow-hidden flex flex-col`}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Handle (mobile) / Header */}
-            <div className="flex items-center justify-between px-4 pt-4 pb-2">
-              {isMobile && <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-2" />}
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {language === 'pt' ? 'Editar Transacao' : 'Edit Transaction'}
-              </h3>
-              <button
-                onClick={() => setEditingTransaction(null)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
-              {/* Type Toggle */}
-              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setEditingTransaction(prev => ({ ...prev, type: 'expense' }))}
-                  className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    editingTransaction.type === 'expense'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {t('transactionForm.expense')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingTransaction(prev => ({ ...prev, type: 'income' }))}
-                  className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    editingTransaction.type === 'income'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {t('transactionForm.income')}
-                </button>
-              </div>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.amount')}
-                </label>
-                <CurrencyInput
-                  value={editingTransaction.amount}
-                  onChange={(val) => setEditingTransaction(prev => ({ ...prev, amount: val }))}
-                />
-              </div>
-
-              {/* Description - Always expanded */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.description')}
-                </label>
-                <textarea
-                  value={editingTransaction.description}
-                  onChange={(e) => setEditingTransaction(prev => ({ ...prev, description: e.target.value }))}
-                  rows={2}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400
-                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                    transition-all duration-200 resize-none"
-                  placeholder={t('transactionForm.descriptionPlaceholder')}
-                />
-              </div>
-
-              {/* Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.date')}
-                </label>
-                <input
-                  type="date"
-                  value={editingTransaction.date ? editingTransaction.date.split('T')[0] : ''}
-                  onChange={(e) => setEditingTransaction(prev => ({ ...prev, date: new Date(e.target.value + 'T12:00:00').toISOString() }))}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                    text-gray-900 dark:text-white
-                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                    transition-all duration-200"
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.category')}
-                </label>
-                <select
-                  value={editingTransaction.category}
-                  onChange={(e) => setEditingTransaction(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                    text-gray-900 dark:text-white
-                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                    transition-all duration-200 appearance-none cursor-pointer"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 12px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '20px'
-                  }}
-                >
-                  {categories[editingTransaction.type].map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Investment Type (only shown when category is Investments) */}
-              {(editingTransaction.category === 'Investments' || editingTransaction.category === 'Investimentos') && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('investments.type')}
-                  </label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setEditingTransaction(prev => ({ ...prev, investmentType: key }))}
-                        className={`p-2 text-lg rounded-xl border-2 transition flex flex-col items-center gap-1 ${
-                          editingTransaction.investmentType === key
-                            ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
-                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                        }`}
-                        title={t(`investments.types.${key}`)}
-                      >
-                        <span>{info.icon}</span>
-                        <span className="text-[9px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
-                          {t(`investments.types.${key}`)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Link to Goal */}
-              {availableGoals.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('goals.linkToGoal')}
-                  </label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {/* No goal option */}
-                    <button
-                      type="button"
-                      onClick={() => setEditingTransaction(prev => ({ ...prev, selectedGoalId: '', goalId: null, goalName: null }))}
-                      className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
-                        !editingTransaction.selectedGoalId
-                          ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                      }`}
-                    >
-                      <div className="w-7 h-7 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-400">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-300">{t('goals.noGoalSelected')}</span>
-                    </button>
-
-                    {/* Goal options */}
-                    {availableGoals.map((goal) => {
-                      const color = getGoalColor(goal.color);
-                      const icon = GOAL_ICONS[goal.icon] || GOAL_ICONS.other;
-                      return (
-                        <button
-                          key={goal.id}
-                          type="button"
-                          onClick={() => setEditingTransaction(prev => ({ ...prev, selectedGoalId: goal.id, goalId: goal.id, goalName: goal.name }))}
-                          className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
-                            editingTransaction.selectedGoalId === goal.id
-                              ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                          }`}
-                        >
-                          <div className={`w-7 h-7 ${color.light} rounded-lg flex items-center justify-center text-sm`}>
-                            {icon}
-                          </div>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-3">
-              <button
-                onClick={() => setEditingTransaction(null)}
-                className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium
-                  hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={saveEditTransaction}
-                className={`flex-1 py-3 rounded-xl font-medium text-white transition-all duration-200
-                  ${editingTransaction.type === 'expense'
-                    ? 'bg-rose-500 hover:bg-rose-600 active:bg-rose-700'
-                    : 'bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700'
-                  }`}
-              >
-                {t('common.save')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Category Picker */}
       <CategoryPicker
-        isOpen={pickerIndex !== null}
-        onClose={() => setPickerIndex(null)}
+        isOpen={pickerTransactionId !== null}
+        onClose={() => setPickerTransactionId(null)}
         onSelect={handleQuickCategoryChange}
-        currentCategory={pickerIndex !== null ? transactions[pickerIndex]?.category : ''}
-        type={pickerIndex !== null ? transactions[pickerIndex]?.type || 'expense' : 'expense'}
+        currentCategory={activeCategoryTransaction?.category || ''}
+        type={activeCategoryTransaction?.type || 'expense'}
       />
-    </Wrapper>
+
+    </ModalWrapper>
   );
 }

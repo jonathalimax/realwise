@@ -40,6 +40,8 @@ import BillsPage from './pages/Bills';
 import HelpPage from './pages/Help';
 import NotificationsPage from './pages/Notifications';
 import PendingReviewPage from './pages/PendingReview';
+import ImportPage from './pages/Import';
+import TransactionEditPage from './pages/TransactionEdit';
 
 function AuthenticatedApp() {
   return (
@@ -71,6 +73,8 @@ function AuthenticatedApp() {
                       <Route path="help" element={<HelpPage />} />
                       <Route path="notifications" element={<NotificationsPage />} />
                       <Route path="pending-review" element={<PendingReviewPage />} />
+                      <Route path="import" element={<ImportPage />} />
+                      <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>

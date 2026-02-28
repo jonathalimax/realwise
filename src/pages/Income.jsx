@@ -16,11 +16,15 @@ export default function IncomePage() {
 
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(() => sessionStorage.getItem('income_categoryFilter') ?? 'all');
+  const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('income_sortBy') ?? 'date');
+  const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem('income_sortOrder') ?? 'desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleSetCategoryFilter = (v) => { sessionStorage.setItem('income_categoryFilter', v); setSelectedCategoryFilter(v); };
+  const handleSetSortBy = (v) => { sessionStorage.setItem('income_sortBy', v); setSortBy(v); };
+  const handleSetSortOrder = (v) => { sessionStorage.setItem('income_sortOrder', v); setSortOrder(v); };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -185,7 +189,7 @@ export default function IncomePage() {
                 <div className="flex gap-2">
                   <select
                     value={selectedCategoryFilter}
-                    onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                    onChange={(e) => handleSetCategoryFilter(e.target.value)}
                     className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
                       selectedCategoryFilter !== 'all'
                         ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
@@ -199,7 +203,7 @@ export default function IncomePage() {
                   </select>
                   {selectedCategoryFilter !== 'all' && (
                     <button
-                      onClick={() => setSelectedCategoryFilter('all')}
+                      onClick={() => handleSetCategoryFilter('all')}
                       className="p-2.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg"
                     >
                       <XMarkIcon className="w-5 h-5" />
@@ -215,7 +219,7 @@ export default function IncomePage() {
                 </label>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(e) => handleSetSortBy(e.target.value)}
                   className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 >
                   <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
@@ -231,7 +235,7 @@ export default function IncomePage() {
                 </label>
                 <select
                   value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
+                  onChange={(e) => handleSetSortOrder(e.target.value)}
                   className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 >
                   <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
@@ -243,7 +247,7 @@ export default function IncomePage() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={() => {
-                  setSelectedCategoryFilter('all');
+                  handleSetCategoryFilter('all');
                 }}
                 className="w-full py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
               >

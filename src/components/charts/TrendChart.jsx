@@ -43,7 +43,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
         const date = new Date(trans.date);
         monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       } else {
-        monthKey = getPaymentMonthKey(trans.date, trans.bankId);
+        monthKey = getPaymentMonthKey(trans.date, trans.bankId, trans.paymentMethod);
       }
     }
 

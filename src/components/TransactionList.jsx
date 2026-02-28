@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
@@ -10,6 +11,7 @@ import { saveUserCategorizationRule } from '../services/categorizationService';
 import CategoryPicker from './ui/CategoryPicker';
 
 export default function TransactionList({ transactions = [], selectedMonth, compact = false, sortBy = 'date', sortOrder = 'desc', onSuccess, highlightId }) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
@@ -281,7 +283,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
               <div
                 key={transaction.id}
                 ref={transaction.id === highlightId ? highlightRef : null}
-                onClick={() => canWrite && setEditingTransaction(transaction)}
+                onClick={() => canWrite && navigate(`/transactions/${transaction.id}/edit`)}
                 className={`group rounded-xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
                   ${transaction.id === highlightId
                     ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
@@ -449,7 +451,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                   {!compact && canWrite && (
                     <div className="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                       <button
-                        onClick={(e) => { e.stopPropagation(); setEditingTransaction(transaction); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/transactions/${transaction.id}/edit`); }}
                         className="p-2 text-slate-400 hover:text-blue-500
                           hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
                         title={language === 'pt' ? 'Editar' : 'Edit'}

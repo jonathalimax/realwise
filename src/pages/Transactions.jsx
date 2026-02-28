@@ -105,7 +105,7 @@ export default function TransactionsPage() {
         if (t.investmentId) {
           return transactionMonthKey === selectedMonth;
         }
-        const paymentKey = getPaymentMonthKey(t.date, t.bankId);
+        const paymentKey = getPaymentMonthKey(t.date, t.bankId, t.paymentMethod);
         return paymentKey === selectedMonth;
       }
     });

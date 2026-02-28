@@ -189,7 +189,7 @@ export default function Dashboard() {
           return transactionMonthKey === selectedMonth;
         }
         // For other expenses, use payment month calculation (considers credit card closing/payment dates)
-        const paymentKey = getPaymentMonthKey(t.date, t.bankId);
+        const paymentKey = getPaymentMonthKey(t.date, t.bankId, t.paymentMethod);
         return paymentKey === selectedMonth;
       }
     });

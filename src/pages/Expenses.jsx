@@ -18,13 +18,19 @@ export default function ExpensesPage() {
 
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [viewMode, setViewMode] = useState('payment');
-  const [selectedBankFilter, setSelectedBankFilter] = useState('all');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [viewMode, setViewMode] = useState(() => sessionStorage.getItem('expenses_viewMode') ?? 'payment');
+  const [selectedBankFilter, setSelectedBankFilter] = useState(() => sessionStorage.getItem('expenses_bankFilter') ?? 'all');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(() => sessionStorage.getItem('expenses_categoryFilter') ?? 'all');
+  const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('expenses_sortBy') ?? 'date');
+  const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem('expenses_sortOrder') ?? 'desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleSetViewMode = (v) => { sessionStorage.setItem('expenses_viewMode', v); setViewMode(v); };
+  const handleSetBankFilter = (v) => { sessionStorage.setItem('expenses_bankFilter', v); setSelectedBankFilter(v); };
+  const handleSetCategoryFilter = (v) => { sessionStorage.setItem('expenses_categoryFilter', v); setSelectedCategoryFilter(v); };
+  const handleSetSortBy = (v) => { sessionStorage.setItem('expenses_sortBy', v); setSortBy(v); };
+  const handleSetSortOrder = (v) => { sessionStorage.setItem('expenses_sortOrder', v); setSortOrder(v); };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -86,7 +92,7 @@ export default function ExpensesPage() {
         if (t.investmentId) {
           return transactionMonthKey === selectedMonth;
         }
-        const paymentKey = getPaymentMonthKey(t.date, t.bankId);
+        const paymentKey = getPaymentMonthKey(t.date, t.bankId, t.paymentMethod);
         return paymentKey === selectedMonth;
       }
     });
@@ -224,7 +230,7 @@ export default function ExpensesPage() {
               </label>
               <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 <button
-                  onClick={() => setViewMode('purchase')}
+                  onClick={() => handleSetViewMode('purchase')}
                   className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'purchase'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
@@ -234,7 +240,7 @@ export default function ExpensesPage() {
                   {t('cards.viewByPurchase')}
                 </button>
                 <button
-                  onClick={() => setViewMode('payment')}
+                  onClick={() => handleSetViewMode('payment')}
                   className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'payment'
                       ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
@@ -254,7 +260,7 @@ export default function ExpensesPage() {
                 </label>
                 <select
                   value={selectedBankFilter}
-                  onChange={(e) => setSelectedBankFilter(e.target.value)}
+                  onChange={(e) => handleSetBankFilter(e.target.value)}
                   className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'}</option>
@@ -275,7 +281,7 @@ export default function ExpensesPage() {
                 <div className="flex gap-2">
                   <select
                     value={selectedCategoryFilter}
-                    onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                    onChange={(e) => handleSetCategoryFilter(e.target.value)}
                     className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
                       selectedCategoryFilter !== 'all'
                         ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300'
@@ -289,7 +295,7 @@ export default function ExpensesPage() {
                   </select>
                   {selectedCategoryFilter !== 'all' && (
                     <button
-                      onClick={() => setSelectedCategoryFilter('all')}
+                      onClick={() => handleSetCategoryFilter('all')}
                       className="p-2.5 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg"
                     >
                       <XMarkIcon className="w-5 h-5" />
@@ -305,7 +311,7 @@ export default function ExpensesPage() {
                 </label>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(e) => handleSetSortBy(e.target.value)}
                   className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
@@ -321,7 +327,7 @@ export default function ExpensesPage() {
                 </label>
                 <select
                   value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
+                  onChange={(e) => handleSetSortOrder(e.target.value)}
                   className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
                   <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
@@ -333,9 +339,9 @@ export default function ExpensesPage() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={() => {
-                  setViewMode('payment');
-                  setSelectedBankFilter('all');
-                  setSelectedCategoryFilter('all');
+                  handleSetViewMode('payment');
+                  handleSetBankFilter('all');
+                  handleSetCategoryFilter('all');
                 }}
                 className="w-full py-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
               >

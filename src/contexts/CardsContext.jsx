@@ -411,14 +411,27 @@ export function CardsProvider({ children }) {
   /**
    * Get payment month key for grouping (YYYY-MM format)
    * Uses smart lookup to support both old (bankId) and new (document ID) formats
+   * @param {string} transactionDate - ISO date string of the transaction
+   * @param {string} bankIdOrDocId - Bank document ID or bank type ID
+   * @param {string|null|undefined} paymentMethod - 'credit', 'debit', 'pix', 'transfer', or undefined for old data
    */
-  const getPaymentMonthKey = (transactionDate, bankIdOrDocId) => {
+  const getPaymentMonthKey = (transactionDate, bankIdOrDocId, paymentMethod) => {
+    const currentMonthKey = (() => {
+      const date = new Date(transactionDate);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    })();
+
     const userBank = findUserBank(bankIdOrDocId);
 
     if (!userBank || !userBank.hasCredit || !userBank.closingDay || !userBank.paymentDay) {
       // For cash/debit or banks without credit settings, use transaction date
-      const date = new Date(transactionDate);
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      return currentMonthKey;
+    }
+
+    // Only apply credit card date shifting if paymentMethod is 'credit'
+    // Treat undefined/null as 'credit' for backward compatibility with old transactions
+    if (paymentMethod && paymentMethod !== 'credit') {
+      return currentMonthKey;
     }
 
     const paymentDate = getPaymentMonth(transactionDate, userBank.closingDay, userBank.paymentDay);

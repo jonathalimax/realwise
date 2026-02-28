@@ -23,6 +23,7 @@ export const INVESTMENT_TYPES = {
   stocks: { icon: '📊', color: 'emerald', label: 'stocks' },
   crypto: { icon: '₿', color: 'orange', label: 'crypto' },
   funds: { icon: '💼', color: 'purple', label: 'funds' },
+  fii: { icon: '🏢', color: 'teal', label: 'fii' },
   real_estate: { icon: '🏠', color: 'amber', label: 'real_estate' },
 };
 

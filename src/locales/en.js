@@ -414,6 +414,7 @@ export default {
       stocks: 'Stocks',
       crypto: 'Crypto',
       funds: 'Funds',
+      fii: 'FII',
       real_estate: 'Real Estate',
     },
     returnTypes: {
