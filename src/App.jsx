@@ -42,6 +42,7 @@ import NotificationsPage from './pages/Notifications';
 import PendingReviewPage from './pages/PendingReview';
 import ImportPage from './pages/Import';
 import TransactionEditPage from './pages/TransactionEdit';
+import PlannerPage from './pages/planner/PlannerPage';
 
 function AuthenticatedApp() {
   return (
@@ -58,6 +59,7 @@ function AuthenticatedApp() {
                       <Route index element={<Navigate to="/dashboard" replace />} />
                       <Route path="dashboard" element={<DashboardPage />} />
                       <Route path="planning" element={<PlanningPage />} />
+                      <Route path="planner" element={<PlannerPage />} />
                       <Route path="expenses" element={<ExpensesPage />} />
                       <Route path="income" element={<IncomePage />} />
                       <Route path="goals" element={<GoalsPage />} />
