@@ -21,7 +21,7 @@ function FieldInput({ label, value, onChange, suffix, decimalScale = 2, hint }) 
   );
 }
 
-export default function CarSimulatorTab({ state, update, carSimulationRows, currentPlanMonth }) {
+export default function CarSimulatorTab({ state, update, carSimulationRows, selectedMonthOffset, isPhase2ForSelectedMonth }) {
   const totalMonths = carSimulationRows.length;
   const totalBoletos = carSimulationRows.reduce((a, r) => a + r.boleto, 0);
   const totalParcelas = carSimulationRows.reduce((a, r) => a + r.parcela, 0);
@@ -69,6 +69,18 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, curr
         </div>
       </div>
 
+      {/* Phase banner */}
+      <div className={`rounded-xl p-3 border text-xs font-semibold ${
+        isPhase2ForSelectedMonth
+          ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
+          : 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+      }`}>
+        Mês {selectedMonthOffset} do plano —{' '}
+        {isPhase2ForSelectedMonth
+          ? 'FASE 2: carro já quitado'
+          : `FASE 1: ${carSimulationRows.length - selectedMonthOffset + 1} meses restantes`}
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-violet-50 dark:bg-violet-900/20 rounded-2xl p-3 border border-violet-100 dark:border-violet-800 text-center">
@@ -101,7 +113,7 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, curr
             </thead>
             <tbody>
               {carSimulationRows.map((row, i) => {
-                const isCurrent = row.month === currentPlanMonth;
+                const isCurrent = row.month === selectedMonthOffset;
                 return (
                 <tr
                   key={row.month}
@@ -113,7 +125,7 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, curr
                 >
                   <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-white">
                     {isCurrent && (
-                      <span className="text-xs font-bold text-violet-500 block">→ Mês atual</span>
+                      <span className="text-xs font-bold text-violet-500 block">→ Mês selecionado</span>
                     )}
                     Mês {row.month}
                   </td>

@@ -30,7 +30,6 @@ import SettingsPage from './pages/Settings';
 import GoalsPage from './pages/Goals';
 import CardsPage from './pages/Cards';
 import BudgetPage from './pages/Budget';
-import PlanningPage from './pages/Planning';
 import InvestmentsPage from './pages/Investments';
 import InvestmentForm from './pages/InvestmentForm';
 import TransactionsPage from './pages/Transactions';
@@ -58,7 +57,6 @@ function AuthenticatedApp() {
                     <Route element={<Layout />}>
                       <Route index element={<Navigate to="/dashboard" replace />} />
                       <Route path="dashboard" element={<DashboardPage />} />
-                      <Route path="planning" element={<PlanningPage />} />
                       <Route path="planner" element={<PlannerPage />} />
                       <Route path="expenses" element={<ExpensesPage />} />
                       <Route path="income" element={<IncomePage />} />

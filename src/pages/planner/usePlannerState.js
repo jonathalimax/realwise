@@ -2,9 +2,21 @@ import { useState, useEffect, useMemo } from 'react';
 
 const STORAGE_KEY = 'financialPlanner';
 
+export function countWeekdays(year, month) {
+  let count = 0;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dow = new Date(year, month - 1, day).getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return count;
+}
+
 const DEFAULT_STATE = {
   // Tab 1 - Dashboard
-  rendaBruta: 10000,
+  rendaBruta: 10000, // kept for localStorage migration safety
+  selectedPlannerMonth: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+  useMinScenario: true,
   simplesNacionalPct: 6,
   planoSaude: 300,
   contabilidade: 150,
@@ -15,6 +27,7 @@ const DEFAULT_STATE = {
   necessidades: 64,
   poupanca: 28,
   desejos: 8,
+  allocationOverrides: {}, // { 'YYYY-MM': { necessidades, poupanca, desejos } }
 
   // Tab 3 - USD Calculator
   hourlyRate: 25,
@@ -108,10 +121,54 @@ export default function usePlannerState() {
 
   const update = (key, value) => setState(prev => ({ ...prev, [key]: value }));
 
+  const updateMonthAllocation = (field, value) => {
+    const current = state.allocationOverrides?.[state.selectedPlannerMonth] ?? {
+      necessidades: state.necessidades,
+      poupanca: state.poupanca,
+      desejos: state.desejos,
+    };
+    update('allocationOverrides', {
+      ...state.allocationOverrides,
+      [state.selectedPlannerMonth]: { ...current, [field]: value },
+    });
+  };
+
+  const resetMonthAllocation = () => {
+    const overrides = { ...state.allocationOverrides };
+    delete overrides[state.selectedPlannerMonth];
+    update('allocationOverrides', overrides);
+  };
+
+  // ── Income from USD params for selected month ────────────────────────────
+  const selectedMonthIncome = useMemo(() => {
+    const [y, m] = state.selectedPlannerMonth.split('-').map(Number);
+    const bDays = countWeekdays(y, m);
+    const grossUSD = state.hourlyRate * state.hoursPerDay * bDays;
+    const netUSD = grossUSD * (1 - state.platformFeePct / 100);
+    return { grossUSD, netUSD, netBRL: netUSD * state.usdToBrl, bDays };
+  }, [state.selectedPlannerMonth, state.hourlyRate, state.hoursPerDay, state.usdToBrl, state.platformFeePct]);
+
+  // ── Year min/max income (current year, 12 months) ───────────────────────
+  const yearIncomeStats = useMemo(() => {
+    const year = new Date().getFullYear();
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const bDays = countWeekdays(year, i + 1);
+      const netBRL = state.hourlyRate * state.hoursPerDay * bDays * (1 - state.platformFeePct / 100) * state.usdToBrl;
+      return { month: i + 1, year, netBRL, bDays };
+    });
+    const sorted = [...months].sort((a, b) => a.netBRL - b.netBRL);
+    return { months, minMonth: sorted[0], maxMonth: sorted[sorted.length - 1] };
+  }, [state.hourlyRate, state.hoursPerDay, state.usdToBrl, state.platformFeePct]);
+
+  // ── Active income: minimum-scenario (default) or actual selected month ───
+  const computedRendaBruta = useMemo(() => {
+    return state.useMinScenario ? yearIncomeStats.minMonth.netBRL : selectedMonthIncome.netBRL;
+  }, [state.useMinScenario, yearIncomeStats, selectedMonthIncome]);
+
   // ── Dashboard computed ──────────────────────────────────────────────────
   const simplesValue = useMemo(
-    () => state.rendaBruta * state.simplesNacionalPct / 100,
-    [state.rendaBruta, state.simplesNacionalPct]
+    () => computedRendaBruta * state.simplesNacionalPct / 100,
+    [computedRendaBruta, state.simplesNacionalPct]
   );
 
   const despesasPJ = useMemo(
@@ -120,8 +177,8 @@ export default function usePlannerState() {
   );
 
   const dizimoBase = useMemo(
-    () => state.rendaBruta - simplesValue - despesasPJ,
-    [state.rendaBruta, simplesValue, despesasPJ]
+    () => computedRendaBruta - simplesValue - despesasPJ,
+    [computedRendaBruta, simplesValue, despesasPJ]
   );
 
   const dizimoValue = useMemo(
@@ -134,20 +191,30 @@ export default function usePlannerState() {
     [dizimoBase, dizimoValue]
   );
 
+  // ── Per-month allocation (overrides or global defaults) ─────────────────
+  const monthAllocation = useMemo(() => {
+    const override = state.allocationOverrides?.[state.selectedPlannerMonth];
+    return {
+      necessidades: override?.necessidades ?? state.necessidades,
+      poupanca: override?.poupanca ?? state.poupanca,
+      desejos: override?.desejos ?? state.desejos,
+    };
+  }, [state.allocationOverrides, state.selectedPlannerMonth, state.necessidades, state.poupanca, state.desejos]);
+
   // ── Allocation computed ─────────────────────────────────────────────────
   const necessidadesValue = useMemo(
-    () => liquidezFinal * state.necessidades / 100,
-    [liquidezFinal, state.necessidades]
+    () => liquidezFinal * monthAllocation.necessidades / 100,
+    [liquidezFinal, monthAllocation.necessidades]
   );
 
   const poupancaValue = useMemo(
-    () => liquidezFinal * state.poupanca / 100,
-    [liquidezFinal, state.poupanca]
+    () => liquidezFinal * monthAllocation.poupanca / 100,
+    [liquidezFinal, monthAllocation.poupanca]
   );
 
   const desejosValue = useMemo(
-    () => liquidezFinal * state.desejos / 100,
-    [liquidezFinal, state.desejos]
+    () => liquidezFinal * monthAllocation.desejos / 100,
+    [liquidezFinal, monthAllocation.desejos]
   );
 
   // ── Car simulation ──────────────────────────────────────────────────────
@@ -350,13 +417,25 @@ export default function usePlannerState() {
     houseSimulationRows.rows.length,
   ]);
 
-  // ── Current plan month (for markers) ───────────────────────────────────
+  // ── Current plan month (for legacy compatibility) ───────────────────────
   const currentPlanMonth = useMemo(() => {
     const [sy, sm] = state.plannerStartDate.split('-').map(Number);
     const now = new Date();
     const diff = (now.getFullYear() - sy) * 12 + (now.getMonth() + 1 - sm);
     return Math.max(1, diff + 1);
   }, [state.plannerStartDate]);
+
+  // ── Selected month offset (1-indexed position from plan start date) ──────
+  const selectedMonthOffset = useMemo(() => {
+    const [sy, sm] = state.plannerStartDate.split('-').map(Number);
+    const [ty, tm] = state.selectedPlannerMonth.split('-').map(Number);
+    return Math.max(1, (ty - sy) * 12 + (tm - sm) + 1);
+  }, [state.plannerStartDate, state.selectedPlannerMonth]);
+
+  // ── Phase detection for selected month ──────────────────────────────────
+  const isPhase2ForSelectedMonth = useMemo(() => {
+    return selectedMonthOffset > carSimulationRows.length;
+  }, [selectedMonthOffset, carSimulationRows.length]);
 
   return {
     state,
@@ -380,5 +459,14 @@ export default function usePlannerState() {
     savingsRowsFV,
     totalPatrimonio,
     currentPlanMonth,
+    // New month-centric exports
+    selectedMonthIncome,
+    yearIncomeStats,
+    computedRendaBruta,
+    selectedMonthOffset,
+    isPhase2ForSelectedMonth,
+    monthAllocation,
+    updateMonthAllocation,
+    resetMonthAllocation,
   };
 }

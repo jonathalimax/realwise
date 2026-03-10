@@ -29,7 +29,6 @@ import {
 
 const navItems = [
   { path: '/dashboard', icon: HomeIcon, labelKey: 'dashboard' },
-  { path: '/planning', icon: ClipboardDocumentListIcon, labelKey: 'planning' },
   { path: '/planner', icon: PresentationChartLineIcon, labelKey: 'planner' },
   { path: '/expenses', icon: ArrowTrendingDownIcon, labelKey: 'expenses' },
   { path: '/income', icon: ArrowTrendingUpIcon, labelKey: 'income' },
@@ -50,7 +49,6 @@ const bottomItems = [
 // Root routes that should show hamburger menu (not back button)
 const ROOT_ROUTES = [
   '/dashboard',
-  '/planning',
   '/expenses',
   '/income',
   '/goals',

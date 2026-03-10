@@ -20,7 +20,9 @@
       "Bash(ls:*)",
       "Bash(test:*)",
       "Bash(npm run lint:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(wc:*)",
+      "Bash(git push:*)"
     ]
   },
   "outputStyle": "Explanatory"

@@ -52,7 +52,7 @@ function computeMortgage(financedAmount, annualRatePct, termYears) {
   return { r, n, pricePMT, priceTotal, priceInterest, sacFirst, sacLast, sacTotal, sacInterest };
 }
 
-export default function HouseSimulatorTab({ state, update, houseSimulationRows, currentPlanMonth }) {
+export default function HouseSimulatorTab({ state, update, houseSimulationRows, selectedMonthOffset, isPhase2ForSelectedMonth }) {
   const { rows, downPaymentTarget } = houseSimulationRows;
   const lastRow = rows[rows.length - 1];
 
@@ -88,10 +88,28 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             hint="Rendimento CDB/mês sobre saldo"
           />
           <div className="col-span-2 sm:col-span-1 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 px-3 py-2 text-xs text-violet-600 dark:text-violet-400">
-            💡 Aporte mensal definido na aba <strong>Reservas</strong> (linha "Meta Entrada Casa")
+            💡 Aporte mensal definido na aba <strong>Investimentos</strong> (linha "Meta Entrada Casa")
           </div>
         </div>
       </div>
+
+      {/* Phase contribution callout */}
+      {(() => {
+        const casaRow = state.savingsRows?.find(r => r.id === 'casa');
+        if (!casaRow) return null;
+        const activeContribution = isPhase2ForSelectedMonth ? casaRow.phase2 : casaRow.phase1;
+        const phase = isPhase2ForSelectedMonth ? 2 : 1;
+        return (
+          <div className={`rounded-xl p-3 border text-xs font-semibold ${
+            isPhase2ForSelectedMonth
+              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
+              : 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+          }`}>
+            Contribuição ativa (Fase {phase}): {formatBRL.format(activeContribution)}/mês
+            {' '}— Mês {selectedMonthOffset} do plano
+          </div>
+        );
+      })()}
 
       {/* Target summary */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -131,7 +149,7 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             </thead>
             <tbody>
               {rows.map((row, i) => {
-                const isCurrent = row.month === currentPlanMonth;
+                const isCurrent = row.month === selectedMonthOffset;
                 return (
                 <tr
                   key={`${row.month}-${i}`}
@@ -145,7 +163,7 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
                 >
                   <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-white">
                     {isCurrent && (
-                      <span className="text-xs font-bold text-violet-500 block">→ Mês atual</span>
+                      <span className="text-xs font-bold text-violet-500 block">→ Mês selecionado</span>
                     )}
                     {row.isPhaseChange && (
                       <span className="text-xs text-emerald-600 dark:text-emerald-400 block">🚀 Carro quitado!</span>

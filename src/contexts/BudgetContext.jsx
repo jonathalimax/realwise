@@ -57,6 +57,7 @@ export const DEFAULT_RULE_PERCENTAGES = {
 
 export function BudgetProvider({ children }) {
   const [budgets, setBudgets] = useState([]);
+  const [templateBudget, setTemplateBudget] = useState(null);
   const [categoryRuleMapping, setCategoryRuleMappingState] = useState(DEFAULT_RULE_MAPPING);
   const [rulePercentages, setRulePercentagesState] = useState(DEFAULT_RULE_PERCENTAGES);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,8 @@ export function BudgetProvider({ children }) {
         ...doc.data()
       }));
       setBudgets(budgetData);
+      const tmpl = budgetData.find(b => b.id?.endsWith('_template'));
+      setTemplateBudget(tmpl ?? null);
       setLoading(false);
     });
 
@@ -89,6 +92,23 @@ export function BudgetProvider({ children }) {
   // Get budget for a specific month
   const getBudgetForMonth = (month) => {
     return budgets.find(b => b.month === month) || null;
+  };
+
+  // Get the recurring template budget
+  const getTemplateBudget = () => templateBudget;
+
+  // Set a category limit in the recurring template (applies to all future months)
+  const setTemplateCategoryBudget = async (category, amount) => {
+    if (!auth.currentUser) return;
+    const templateId = `${auth.currentUser.uid}_template`;
+    const budgetRef = doc(db, 'budgets', templateId);
+    const current = templateBudget?.categoryBudgets || {};
+    await setDoc(budgetRef, {
+      userId: auth.currentUser.uid,
+      month: 'template',
+      categoryBudgets: { ...current, [category]: amount },
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
   };
 
   // Set category budget for a month
@@ -365,8 +385,11 @@ export function BudgetProvider({ children }) {
   return (
     <BudgetContext.Provider value={{
       budgets,
+      templateBudget,
       loading,
       getBudgetForMonth,
+      getTemplateBudget,
+      setTemplateCategoryBudget,
       setCategoryBudget,
       setTotalBudget,
       setAllCategoryBudgets,
@@ -393,8 +416,11 @@ export const useBudget = () => {
   if (!context) {
     return {
       budgets: [],
+      templateBudget: null,
       loading: false,
       getBudgetForMonth: () => null,
+      getTemplateBudget: () => null,
+      setTemplateCategoryBudget: () => {},
       setCategoryBudget: () => {},
       setTotalBudget: () => {},
       setAllCategoryBudgets: () => {},

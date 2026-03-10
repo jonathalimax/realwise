@@ -2,24 +2,64 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import usePlannerState from './usePlannerState';
 import DashboardTab from './DashboardTab';
 import AllocationTab from './AllocationTab';
-import SavingsTab from './SavingsTab';
-import UsdCalculatorTab from './UsdCalculatorTab';
-import CarSimulatorTab from './CarSimulatorTab';
-import HouseSimulatorTab from './HouseSimulatorTab';
+import SimulacoesTab from './SimulacoesTab';
 import InvestmentTab from './InvestmentTab';
-import PatrimonioTab from './PatrimonioTab';
 import GastosTab from './GastosTab';
+
+function MonthNav({ value, onChange }) {
+  const [y, m] = value.split('-').map(Number);
+
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const isCurrentMonth = value === currentMonthKey;
+
+  const prev = () => {
+    const d = new Date(y, m - 2, 1);
+    onChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const next = () => {
+    const d = new Date(y, m, 1);
+    onChange(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const label = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={prev}
+        className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors text-sm"
+      >
+        ‹
+      </button>
+      <button
+        onClick={() => onChange(currentMonthKey)}
+        title="Ir para o mês atual"
+        className={`px-2 py-1 rounded-lg text-sm font-semibold min-w-[90px] text-center capitalize transition-colors ${
+          isCurrentMonth
+            ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20'
+            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+        }`}
+      >
+        {label}
+      </button>
+      <button
+        onClick={next}
+        className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors text-sm"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
 
 const TABS = [
   { value: 'dashboard',   label: 'Dashboard' },
   { value: 'allocation',  label: 'Alocação' },
   { value: 'gastos',      label: 'Gastos' },
-  { value: 'savings',     label: 'Reservas' },
-  { value: 'usd',         label: 'Câmbio USD' },
-  { value: 'car',         label: 'Carro' },
-  { value: 'house',       label: 'Imóvel' },
   { value: 'investments', label: 'Investimentos' },
-  { value: 'patrimonio',  label: 'Patrimônio' },
+  { value: 'simulacoes',  label: 'Simulações' },
 ];
 
 export default function PlannerPage() {
@@ -41,7 +81,14 @@ export default function PlannerPage() {
     savingsComputed,
     savingsRowsFV,
     totalPatrimonio,
-    currentPlanMonth,
+    selectedMonthIncome,
+    yearIncomeStats,
+    computedRendaBruta,
+    selectedMonthOffset,
+    isPhase2ForSelectedMonth,
+    monthAllocation,
+    updateMonthAllocation,
+    resetMonthAllocation,
   } = planner;
 
   return (
@@ -64,11 +111,19 @@ export default function PlannerPage() {
               className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
+          <div className="flex flex-col gap-0.5">
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Mês selecionado</label>
+            <div className="flex items-center h-[34px]">
+              <MonthNav
+                value={state.selectedPlannerMonth}
+                onChange={m => update('selectedPlannerMonth', m)}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="dashboard">
-          {/* Scrollable tab list for mobile */}
           <div className="overflow-x-auto pb-2">
             <TabsList className="w-max">
               {TABS.map(tab => (
@@ -88,52 +143,48 @@ export default function PlannerPage() {
               dizimoBase={dizimoBase}
               dizimoValue={dizimoValue}
               liquidezFinal={liquidezFinal}
+              computedRendaBruta={computedRendaBruta}
+              selectedMonthIncome={selectedMonthIncome}
+              yearIncomeStats={yearIncomeStats}
             />
           </TabsContent>
 
           <TabsContent value="allocation">
             <AllocationTab
               state={state}
-              update={update}
               liquidezFinal={liquidezFinal}
               necessidadesValue={necessidadesValue}
               poupancaValue={poupancaValue}
               desejosValue={desejosValue}
+              monthAllocation={monthAllocation}
+              updateMonthAllocation={updateMonthAllocation}
+              resetMonthAllocation={resetMonthAllocation}
+              selectedMonth={state.selectedPlannerMonth}
             />
           </TabsContent>
 
           <TabsContent value="gastos">
-            <GastosTab />
-          </TabsContent>
-
-          <TabsContent value="savings">
-            <SavingsTab
-              state={state}
-              update={update}
-              savingsComputed={savingsComputed}
+            <GastosTab
+              selectedMonth={state.selectedPlannerMonth}
+              liquidezFinal={liquidezFinal}
+              necessidadesValue={necessidadesValue}
+              desejosValue={desejosValue}
               poupancaValue={poupancaValue}
             />
           </TabsContent>
 
-          <TabsContent value="usd">
-            <UsdCalculatorTab state={state} update={update} />
-          </TabsContent>
-
-          <TabsContent value="car">
-            <CarSimulatorTab
+          <TabsContent value="simulacoes">
+            <SimulacoesTab
               state={state}
               update={update}
+              selectedMonthIncome={selectedMonthIncome}
+              yearIncomeStats={yearIncomeStats}
               carSimulationRows={carSimulationRows}
-              currentPlanMonth={currentPlanMonth}
-            />
-          </TabsContent>
-
-          <TabsContent value="house">
-            <HouseSimulatorTab
-              state={state}
-              update={update}
               houseSimulationRows={houseSimulationRows}
-              currentPlanMonth={currentPlanMonth}
+              selectedMonthOffset={selectedMonthOffset}
+              isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
+              totalPatrimonio={totalPatrimonio}
+              savingsComputed={savingsComputed}
             />
           </TabsContent>
 
@@ -142,20 +193,16 @@ export default function PlannerPage() {
               state={state}
               update={update}
               poupancaValue={poupancaValue}
+              savingsComputed={savingsComputed}
+              savingsRowsFV={savingsRowsFV}
+              isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
+              selectedMonthOffset={selectedMonthOffset}
               livresPhase2={savingsComputed.livresPhase2}
               investmentProjections={investmentProjections}
               liquidezFinal={liquidezFinal}
             />
           </TabsContent>
 
-          <TabsContent value="patrimonio">
-            <PatrimonioTab
-              state={state}
-              update={update}
-              totalPatrimonio={totalPatrimonio}
-              savingsComputed={savingsComputed}
-            />
-          </TabsContent>
         </Tabs>
       </div>
     </div>
