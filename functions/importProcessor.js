@@ -38,6 +38,89 @@ const DEFAULT_INCOME_CATEGORIES = [
 ];
 
 /**
+ * Extract a pattern from a transaction description
+ * Ported from src/services/categorizationService.js — pure JS, no imports
+ */
+function extractPattern(description) {
+  if (!description) return '';
+  let pattern = description
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  pattern = pattern.replace(/\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}/g, '');
+  pattern = pattern.replace(/\d{1,2}:\d{2}(:\d{2})?/g, '');
+  pattern = pattern.replace(/\s*PARCELA\s*\d+\s*[/DE]\s*\d+/gi, '');
+  pattern = pattern.replace(/\s*\(\d+[/]\d+\)/g, '');
+  pattern = pattern.replace(/\s*\d+\s*[/]\s*\d+\s*(?:PARCELAS?)?/gi, '');
+  pattern = pattern.replace(/\s+\d{6,}$/g, '');
+  pattern = pattern.replace(/\s*-\s*[A-Z]{2,}\s+[A-Z]{2}$/g, '');
+  pattern = pattern.replace(/\s+/g, ' ').trim();
+  if (pattern.length < 3 || pattern.length > 100) return pattern;
+  return pattern;
+}
+
+/**
+ * Load user's learned categorization rules from Firestore
+ */
+async function loadUserCategorizationRules(userId) {
+  if (!userId) return [];
+  try {
+    const snapshot = await db.collection('userCategorizationRules')
+      .where('userId', '==', userId)
+      .where('isActive', '==', true)
+      .orderBy('usedCount', 'desc')
+      .limit(500)
+      .get();
+    return snapshot.docs.map(doc => {
+      const d = doc.data();
+      return { pattern: d.pattern, category: d.category, type: d.type, usedCount: d.usedCount || 1 };
+    });
+  } catch (e) {
+    console.error('Error loading user categorization rules:', e);
+    return [];
+  }
+}
+
+/**
+ * Apply user learned rules to transactions before sending to AI
+ * Matching priority: exact (0.95) > partial/contains (0.75) > word-overlap ≥2 (0.50)
+ */
+function applyUserRulesToTransactions(transactions, userRules) {
+  if (!userRules || userRules.length === 0) return { categorized: [], remaining: transactions };
+  const categorized = [], remaining = [];
+  for (const t of transactions) {
+    const tp = extractPattern(t.description);
+    let best = null;
+    for (const rule of userRules) {
+      const rp = rule.pattern;
+      if (tp === rp) { best = { rule, confidence: 0.95 }; break; }
+      if (!best || best.confidence < 0.75) {
+        if (tp.includes(rp) || rp.includes(tp)) best = { rule, confidence: 0.75 };
+      }
+      if (!best || best.confidence < 0.50) {
+        const tw = tp.split(' ').filter(w => w.length > 3);
+        const rw = rp.split(' ').filter(w => w.length > 3);
+        if (tw.filter(w => rw.includes(w)).length >= 2) best = { rule, confidence: 0.50 };
+      }
+    }
+    if (best) {
+      categorized.push({
+        ...t,
+        category: best.rule.category,
+        type: best.rule.type,
+        categoryConfidence: best.confidence,
+        needsReview: false,
+        aiCategorized: false,
+        source: 'user_rule'
+      });
+    } else {
+      remaining.push(t);
+    }
+  }
+  return { categorized, remaining };
+}
+
+/**
  * Get user's categories from settings, or use defaults
  */
 async function getUserCategories(userId) {
@@ -326,35 +409,52 @@ exports.processImport = functions
         return null;
       }
 
-      // Step 3: AI Categorization for uncategorized transactions
+      // Step 3: Categorization — user rules first, then AI for unknowns
       let aiCategorizedCount = 0;
+      let userRuleCategorizedCount = 0;
       const uncategorized = toImport.filter(t => t.needsReview);
 
-      if (geminiApiKey && uncategorized.length > 0) {
-        console.log(`Running AI categorization for ${uncategorized.length} transactions...`);
-
+      if (uncategorized.length > 0) {
         const { expense: expenseCategories, income: incomeCategories } = await getUserCategories(userId);
 
-        const aiResults = await batchCategorizeTransactions(uncategorized, {
-          apiKey: geminiApiKey,
-          expenseCategories,
-          incomeCategories
+        // 3a: Apply learned user rules (no AI cost, highest accuracy for known merchants)
+        const userRules = await loadUserCategorizationRules(userId);
+        const { categorized: ruleMatched, remaining: stillUncategorized } =
+          applyUserRulesToTransactions(uncategorized, userRules);
+
+        userRuleCategorizedCount = ruleMatched.length;
+        console.log(`User rules categorized ${userRuleCategorizedCount} transactions`);
+
+        const ruleMatchedByHash = new Map(ruleMatched.map(t => [t.hash, t]));
+        toImport.forEach((t, idx) => {
+          if (ruleMatchedByHash.has(t.hash)) Object.assign(toImport[idx], ruleMatchedByHash.get(t.hash));
         });
 
-        // Apply AI results
-        toImport.forEach(t => {
-          if (t.needsReview && aiResults.has(t.description)) {
-            const result = aiResults.get(t.description);
-            t.category = result.category;
-            t.type = result.type;
-            t.categoryConfidence = result.confidence;
-            t.aiCategorized = true;
-            t.needsReview = false;
-            aiCategorizedCount++;
-          }
-        });
-
-        console.log(`AI categorized ${aiCategorizedCount} transactions`);
+        // 3b: AI for genuinely unknown transactions
+        if (geminiApiKey && stillUncategorized.length > 0) {
+          console.log(`Running AI categorization for ${stillUncategorized.length} transactions...`);
+          const userRuleHints = userRules.slice(0, 20).map(r => ({
+            pattern: r.pattern, category: r.category, type: r.type
+          }));
+          const aiResults = await batchCategorizeTransactions(stillUncategorized, {
+            apiKey: geminiApiKey,
+            expenseCategories,
+            incomeCategories,
+            userRuleHints
+          });
+          toImport.forEach(t => {
+            if (t.needsReview && aiResults.has(t.description)) {
+              const result = aiResults.get(t.description);
+              t.category = result.category;
+              t.type = result.type;
+              t.categoryConfidence = result.confidence;
+              t.aiCategorized = true;
+              t.needsReview = false;
+              aiCategorizedCount++;
+            }
+          });
+          console.log(`AI categorized ${aiCategorizedCount} transactions`);
+        }
       }
 
       // Create import history document
@@ -437,6 +537,7 @@ exports.processImport = functions
         status: 'completed',
         transactionIds,
         pendingCategoryCount,
+        userRuleCategorizedCount,
         processedAt: admin.firestore.FieldValue.serverTimestamp()
       });
 

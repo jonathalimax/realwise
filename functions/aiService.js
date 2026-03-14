@@ -82,7 +82,7 @@ async function callGeminiAPI(apiKey, prompt) {
  * @returns {Promise<Map<string, Object>>} - Map of description -> { category, type, confidence }
  */
 async function batchCategorizeTransactions(transactions, options) {
-  const { apiKey, expenseCategories, incomeCategories } = options;
+  const { apiKey, expenseCategories, incomeCategories, userRuleHints = [] } = options;
   const results = new Map();
 
   if (!apiKey || transactions.length === 0) {
@@ -99,11 +99,16 @@ async function batchCategorizeTransactions(transactions, options) {
   for (let i = 0; i < descriptionsToProcess.length; i += MAX_BATCH_SIZE) {
     const batch = descriptionsToProcess.slice(i, i + MAX_BATCH_SIZE);
 
+    const learnedMappingsSection = userRuleHints.length > 0
+      ? `\nLEARNED MAPPINGS (this user's corrections — prefer when description matches):\n` +
+        userRuleHints.map(h => `- "${h.pattern}" → ${h.category} (${h.type})`).join('\n') + `\n`
+      : '';
+
     const prompt = `You are categorizing Brazilian bank transactions. For each transaction, determine the category and type (income/expense).
 
 Available EXPENSE categories: ${expenseCategories.join(', ')}
 Available INCOME categories: ${incomeCategories.join(', ')}
-
+${learnedMappingsSection}
 Transactions to categorize (numbered list):
 ${batch.map((desc, idx) => `${idx + 1}. "${desc}"`).join('\n')}
 
