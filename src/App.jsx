@@ -43,6 +43,59 @@ import ImportPage from './pages/Import';
 import TransactionEditPage from './pages/TransactionEdit';
 import PlannerPage from './pages/planner/PlannerPage';
 
+// Handles the case where our SPA is loaded inside Firebase's auth popup window.
+// Firebase opens /__/auth/handler?apiKey=...&authType=signInViaPopup in a popup.
+// If our SPA is served there (instead of Firebase's own handler), this component
+// uses Firebase's createAuthUri REST API to get the Google OAuth URL, redirects
+// to it, then sends the result back to the opener window via postMessage so that
+// signInWithPopup resolves normally.
+// Handles /__/auth/handler in popup context.
+// Phase 1 (initial open): receives apiKey, calls createAuthUri, redirects to Google.
+// Phase 2 (Google callback): receives id_token in hash, postMessages it to opener.
+function FirebaseAuthHandler() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    const apiKey = params.get('apiKey');
+
+    // Phase 2 — returning from Google with id_token in hash fragment
+    if (hash.includes('id_token')) {
+      if (!window.opener) return;
+      const hashParams = new URLSearchParams(hash.slice(1));
+      const idToken = hashParams.get('id_token');
+      // Use '*' — opener may be on web.app while popup is on firebaseapp.com
+      window.opener.postMessage({ type: 'lf-google-auth', idToken }, '*');
+      window.close();
+      return;
+    }
+
+    // Phase 1 — initial popup open, get Google OAuth URL and redirect
+    if (!apiKey || !window.opener) return;
+
+    fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // Must use authDomain (firebaseapp.com), not window.location.origin —
+          // Firebase redirects firebaseapp.com → web.app, so window.location.origin
+          // ends up as web.app which is not registered in Google OAuth.
+          continueUri: `https://${auth.app.options.authDomain}/__/auth/handler`,
+          providerId: 'google.com',
+          oauthScopes: 'profile email',
+        }),
+      }
+    )
+      .then((r) => r.json())
+      .then(({ authUri }) => {
+        if (authUri) window.location.href = authUri;
+      });
+  }, []);
+
+  return null;
+}
+
 function AuthenticatedApp() {
   return (
     <AccessProvider>
@@ -132,6 +185,9 @@ function AppRouter() {
 
       {/* Authenticated App routes */}
       {user && <Route path="/*" element={<AuthenticatedApp />} />}
+
+      {/* Firebase auth popup handler */}
+      <Route path="/__/auth/*" element={<FirebaseAuthHandler />} />
 
       {/* Fallback - redirect to login if not authenticated */}
       <Route path="*" element={<Navigate to="/login" replace />} />

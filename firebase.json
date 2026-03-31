@@ -30,7 +30,15 @@
         "function": "checkPaymentStatus"
       },
       {
-        "source": "**",
+        "source": "/__/auth/handler",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/[!_]**",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/",
         "destination": "/index.html"
       }
     ],
