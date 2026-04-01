@@ -111,11 +111,21 @@ export const formatBRL = new Intl.NumberFormat('pt-BR', {
 });
 
 export default function usePlannerState() {
-  const { ownerId } = useAccess();
+  const { ownerId, loading: accessLoading } = useAccess();
   const [state, setState] = useState(DEFAULT_STATE);
   const [isLoading, setIsLoading] = useState(true);
   const hasLoadedRef = useRef(false);
   const debounceRef = useRef(null);
+
+  // ── Resolve loading when AccessContext finishes but ownerId is still null ─
+  useEffect(() => {
+    if (!accessLoading && !ownerId) {
+      Promise.resolve().then(() => {
+        hasLoadedRef.current = true;
+        setIsLoading(false);
+      });
+    }
+  }, [accessLoading, ownerId]);
 
   // ── Load from Firestore on mount ──────────────────────────────────────────
   useEffect(() => {
