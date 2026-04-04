@@ -1,5 +1,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Shimmer } from '@/components/ui/shimmer';
 import usePlannerState from './usePlannerState';
+import SistemaTab from './SistemaTab';
 import DashboardTab from './DashboardTab';
 import AllocationTab from './AllocationTab';
 import SimulacoesTab from './SimulacoesTab';
@@ -8,7 +10,6 @@ import GastosTab from './GastosTab';
 
 function MonthNav({ value, onChange }) {
   const [y, m] = value.split('-').map(Number);
-
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const isCurrentMonth = value === currentMonthKey;
@@ -55,6 +56,7 @@ function MonthNav({ value, onChange }) {
 }
 
 const TABS = [
+  { value: 'sistema',     label: 'Sistema' },
   { value: 'dashboard',   label: 'Dashboard' },
   { value: 'allocation',  label: 'Alocação' },
   { value: 'gastos',      label: 'Gastos' },
@@ -62,11 +64,27 @@ const TABS = [
   { value: 'simulacoes',  label: 'Simulações' },
 ];
 
+function PlannerSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {[...Array(6)].map((_, i) => (
+          <Shimmer key={i} className="h-9 w-24 rounded-xl" />
+        ))}
+      </div>
+      <Shimmer className="w-full h-48 rounded-2xl" />
+      <Shimmer className="w-full h-32 rounded-2xl" />
+      <Shimmer className="w-full h-32 rounded-2xl" />
+    </div>
+  );
+}
+
 export default function PlannerPage() {
   const planner = usePlannerState();
   const {
     state,
     update,
+    isLoading,
     simplesValue,
     despesasPJ,
     dizimoBase,
@@ -123,7 +141,7 @@ export default function PlannerPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="dashboard">
+        <Tabs defaultValue="sistema">
           <div className="overflow-x-auto pb-2">
             <TabsList className="w-max">
               {TABS.map(tab => (
@@ -134,75 +152,94 @@ export default function PlannerPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="dashboard">
-            <DashboardTab
-              state={state}
-              update={update}
-              simplesValue={simplesValue}
-              despesasPJ={despesasPJ}
-              dizimoBase={dizimoBase}
-              dizimoValue={dizimoValue}
-              liquidezFinal={liquidezFinal}
-              computedRendaBruta={computedRendaBruta}
-              selectedMonthIncome={selectedMonthIncome}
-              yearIncomeStats={yearIncomeStats}
-            />
-          </TabsContent>
+          {isLoading ? (
+            <PlannerSkeleton />
+          ) : (
+            <>
+              <TabsContent value="sistema">
+                <SistemaTab
+                  state={state}
+                  computedRendaBruta={computedRendaBruta}
+                  simplesValue={simplesValue}
+                  despesasPJ={despesasPJ}
+                  dizimoValue={dizimoValue}
+                  liquidezFinal={liquidezFinal}
+                  necessidadesValue={necessidadesValue}
+                  poupancaValue={poupancaValue}
+                  desejosValue={desejosValue}
+                />
+              </TabsContent>
 
-          <TabsContent value="allocation">
-            <AllocationTab
-              state={state}
-              liquidezFinal={liquidezFinal}
-              necessidadesValue={necessidadesValue}
-              poupancaValue={poupancaValue}
-              desejosValue={desejosValue}
-              monthAllocation={monthAllocation}
-              updateMonthAllocation={updateMonthAllocation}
-              resetMonthAllocation={resetMonthAllocation}
-              selectedMonth={state.selectedPlannerMonth}
-            />
-          </TabsContent>
+              <TabsContent value="dashboard">
+                <DashboardTab
+                  state={state}
+                  update={update}
+                  simplesValue={simplesValue}
+                  despesasPJ={despesasPJ}
+                  dizimoBase={dizimoBase}
+                  dizimoValue={dizimoValue}
+                  liquidezFinal={liquidezFinal}
+                  computedRendaBruta={computedRendaBruta}
+                  selectedMonthIncome={selectedMonthIncome}
+                  yearIncomeStats={yearIncomeStats}
+                />
+              </TabsContent>
 
-          <TabsContent value="gastos">
-            <GastosTab
-              selectedMonth={state.selectedPlannerMonth}
-              liquidezFinal={liquidezFinal}
-              necessidadesValue={necessidadesValue}
-              desejosValue={desejosValue}
-              poupancaValue={poupancaValue}
-            />
-          </TabsContent>
+              <TabsContent value="allocation">
+                <AllocationTab
+                  state={state}
+                  liquidezFinal={liquidezFinal}
+                  necessidadesValue={necessidadesValue}
+                  poupancaValue={poupancaValue}
+                  desejosValue={desejosValue}
+                  monthAllocation={monthAllocation}
+                  updateMonthAllocation={updateMonthAllocation}
+                  resetMonthAllocation={resetMonthAllocation}
+                  selectedMonth={state.selectedPlannerMonth}
+                />
+              </TabsContent>
 
-          <TabsContent value="simulacoes">
-            <SimulacoesTab
-              state={state}
-              update={update}
-              selectedMonthIncome={selectedMonthIncome}
-              yearIncomeStats={yearIncomeStats}
-              carSimulationRows={carSimulationRows}
-              houseSimulationRows={houseSimulationRows}
-              selectedMonthOffset={selectedMonthOffset}
-              isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
-              totalPatrimonio={totalPatrimonio}
-              savingsComputed={savingsComputed}
-            />
-          </TabsContent>
+              <TabsContent value="gastos">
+                <GastosTab
+                  selectedMonth={state.selectedPlannerMonth}
+                  liquidezFinal={liquidezFinal}
+                  necessidadesValue={necessidadesValue}
+                  desejosValue={desejosValue}
+                  poupancaValue={poupancaValue}
+                />
+              </TabsContent>
 
-          <TabsContent value="investments">
-            <InvestmentTab
-              state={state}
-              update={update}
-              poupancaValue={poupancaValue}
-              savingsComputed={savingsComputed}
-              savingsRowsFV={savingsRowsFV}
-              isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
-              selectedMonthOffset={selectedMonthOffset}
-              livresPhase2={savingsComputed.livresPhase2}
-              investmentProjections={investmentProjections}
-              liquidezFinal={liquidezFinal}
-            />
-          </TabsContent>
+              <TabsContent value="simulacoes">
+                <SimulacoesTab
+                  state={state}
+                  update={update}
+                  selectedMonthIncome={selectedMonthIncome}
+                  yearIncomeStats={yearIncomeStats}
+                  carSimulationRows={carSimulationRows}
+                  houseSimulationRows={houseSimulationRows}
+                  selectedMonthOffset={selectedMonthOffset}
+                  isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
+                  totalPatrimonio={totalPatrimonio}
+                  savingsComputed={savingsComputed}
+                />
+              </TabsContent>
 
+              <TabsContent value="investments">
+                <InvestmentTab
+                  state={state}
+                  update={update}
+                  poupancaValue={poupancaValue}
+                  savingsComputed={savingsComputed}
+                  savingsRowsFV={savingsRowsFV}
+                  isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
+                  selectedMonthOffset={selectedMonthOffset}
+                  livresPhase2={savingsComputed.livresPhase2}
+                  investmentProjections={investmentProjections}
+                  liquidezFinal={liquidezFinal}
+                />
+              </TabsContent>
+            </>
+          )}
         </Tabs>
       </div>
     </div>
