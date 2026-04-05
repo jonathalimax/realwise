@@ -3,8 +3,12 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useInvestments } from '@/contexts/InvestmentContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { formatBRL } from './usePlannerState';
 import { Shimmer } from '@/components/ui/shimmer';
+
+const GEMINI_ENDPOINT =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // Priority within each layer section
 const PRIORITY_ORDER = [
@@ -264,18 +268,174 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
 
 function LayerSection({ layerKey, rows, isPhase2, onUpdateRow, investments, getCurrentValue, invLoading, taggedTransactions }) {
   const config = LAYER_CONFIG[layerKey];
+  const { geminiApiKey } = useSettings();
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState(null); // { layerInsight, goalRecommendations }
+  const [aiError, setAiError] = useState('');
+  const [aiRaw, setAiRaw] = useState('');
+
   if (!rows.length) return null;
+
+  const handleResearch = async () => {
+    if (!geminiApiKey) return;
+    setAiLoading(true);
+    setAiError('');
+    setAiResult(null);
+    setAiRaw('');
+
+    const prompt = `Você é um consultor financeiro brasileiro especializado em investimentos para pessoa física PJ em 2026.
+
+Analise a camada "${config.label}" e retorne SOMENTE JSON válido, sem markdown, sem explicações fora do JSON.
+
+CAMADA: ${config.label}
+PROPÓSITO: ${config.desc}
+
+OBJETIVOS NESTA CAMADA:
+${rows.map(r => `- id: "${r.id}" | label: "${r.label}" | meta: R$ ${r.goalTarget ?? 0} | aporte mensal: R$ ${isPhase2 ? r.phase2 : r.phase1}`).join('\n')}
+
+Considere:
+- Instrumentos reais disponíveis no Brasil em 2026 (tickers B3, Tesouro Direto, CDBs de bancos sólidos)
+- Tesouro IPCA+ 2035 foi descontinuado — use 2040 ou 2050
+- Tesouro IPCA+ 2045 foi descontinuado — use 2050
+- Para reservas líquidas: Tesouro Selic 2027, CDB liq. diária 110-115% CDI (BMG, Sofisa, Inter)
+- Para crescimento longo prazo: IVVB11 (S&P500), BOVA11 (Ibovespa), MXRF11, HGLG11, XPML11, KNRI11
+- A alocação de cada objetivo deve somar exatamente 100%
+
+Retorne este schema:
+{
+  "layerInsight": "análise da camada em 1-2 frases, foco prático",
+  "goalRecommendations": [
+    {
+      "goalId": "id do objetivo",
+      "goalLabel": "nome do objetivo",
+      "instruments": [
+        { "name": "nome do instrumento", "type": "Renda Fixa|FII|ETF|Ações|Cripto", "alloc": 0, "reason": "motivo curto" }
+      ]
+    }
+  ]
+}`;
+
+    try {
+      const res = await fetch(`${GEMINI_ENDPOINT}?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1200 },
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `Erro HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      if (!raw) throw new Error('Resposta vazia do Gemini');
+
+      const cleaned = raw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
+      try {
+        setAiResult(JSON.parse(cleaned));
+      } catch {
+        setAiRaw(raw);
+      }
+    } catch (e) {
+      setAiError(e.message || 'Erro desconhecido');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleApplyGoal = (goalId, instruments) => {
+    onUpdateRow(goalId, { instruments });
+    // Remove that goal from aiResult so the apply button disappears
+    setAiResult(prev => prev ? {
+      ...prev,
+      goalRecommendations: prev.goalRecommendations.filter(g => g.goalId !== goalId),
+    } : null);
+  };
 
   return (
     <div className="space-y-3">
       {/* Layer header */}
-      <div className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border ${config.header}`}>
-        <span className="text-base">{config.icon}</span>
-        <div>
-          <p className={`text-xs font-bold uppercase tracking-wide ${config.title}`}>{config.label}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{config.desc}</p>
+      <div className={`flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl border ${config.header}`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-base shrink-0">{config.icon}</span>
+          <div className="min-w-0">
+            <p className={`text-xs font-bold uppercase tracking-wide ${config.title}`}>{config.label}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{config.desc}</p>
+          </div>
         </div>
+        {geminiApiKey ? (
+          <button
+            onClick={handleResearch}
+            disabled={aiLoading}
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors shadow-sm"
+          >
+            {aiLoading ? (
+              <>
+                <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Pesquisando...
+              </>
+            ) : (
+              <>✨ Pesquisar</>
+            )}
+          </button>
+        ) : null}
       </div>
+
+      {/* AI result panel */}
+      {(aiResult || aiError || aiRaw) && (
+        <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-3 space-y-3">
+          {aiError && (
+            <p className="text-xs text-rose-600 dark:text-rose-400">{aiError}</p>
+          )}
+          {aiRaw && (
+            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{aiRaw}</pre>
+          )}
+          {aiResult && (
+            <>
+              {aiResult.layerInsight && (
+                <p className="text-xs text-violet-700 dark:text-violet-300 font-medium">{aiResult.layerInsight}</p>
+              )}
+              {aiResult.goalRecommendations?.map(rec => (
+                <div key={rec.goalId} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{rec.goalLabel}</p>
+                    <button
+                      onClick={() => handleApplyGoal(rec.goalId, rec.instruments)}
+                      className="text-xs px-2 py-0.5 bg-violet-600 hover:bg-violet-700 text-white rounded-md font-semibold transition-colors"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                  {rec.instruments?.map((inst, i) => {
+                    const typeColor = INSTRUMENT_TYPE_COLORS[inst.type] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+                    return (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${typeColor}`}>{inst.type}</span>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-xs text-gray-700 dark:text-gray-300">{inst.name}</span>
+                          {inst.reason && <span className="text-xs text-gray-400 ml-1">— {inst.reason}</span>}
+                        </div>
+                        <span className="text-xs tabular-nums text-gray-400 shrink-0">{inst.alloc}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              {aiResult.goalRecommendations?.length === 0 && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Todas as sugestões aplicadas ✓</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
