@@ -2,6 +2,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Shimmer } from '@/components/ui/shimmer';
 import usePlannerState from './usePlannerState';
 import SistemaTab from './SistemaTab';
+import CarteiraTab from './CarteiraTab';
 import DashboardTab from './DashboardTab';
 import AllocationTab from './AllocationTab';
 import SimulacoesTab from './SimulacoesTab';
@@ -57,6 +58,7 @@ function MonthNav({ value, onChange }) {
 
 const TABS = [
   { value: 'sistema',     label: 'Sistema' },
+  { value: 'carteira',    label: 'Carteira' },
   { value: 'dashboard',   label: 'Dashboard' },
   { value: 'allocation',  label: 'Alocação' },
   { value: 'gastos',      label: 'Gastos' },
@@ -167,6 +169,13 @@ export default function PlannerPage() {
                   necessidadesValue={necessidadesValue}
                   poupancaValue={poupancaValue}
                   desejosValue={desejosValue}
+                />
+              </TabsContent>
+
+              <TabsContent value="carteira">
+                <CarteiraTab
+                  state={state}
+                  livresPhase2={savingsComputed.livresPhase2}
                 />
               </TabsContent>
 
