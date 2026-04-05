@@ -140,14 +140,14 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
   const monthlyContrib = isPhase2 ? row.phase2 : row.phase1;
 
   const taggedInvs = investments.filter(inv => inv.plannerGoalId === row.id && inv.status !== 'closed');
-  const invTotal = taggedInvs.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
   const taggedTxs = taggedTransactions[row.id] ?? [];
+  const invTotal = taggedInvs.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
   const txTotal = taggedTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
   const autoTotal = invTotal + txTotal;
   const hasAutoData = autoTotal > 0;
   const recordCount = taggedInvs.length + taggedTxs.length;
 
-  const currentBalance = hasAutoData ? autoTotal : (row.manualBalance ?? 0);
+  const currentBalance = getRowBalance(row, investments, getCurrentValue, taggedTransactions);
   const isOngoing = goalTarget === 0;
   const progressPct = (!isOngoing && goalTarget > 0)
     ? Math.min(100, (currentBalance / goalTarget) * 100)
@@ -556,6 +556,253 @@ Schema:
   );
 }
 
+// ── Shared balance helper ────────────────────────────────────────────────────
+
+function getRowBalance(row, investments, getCurrentValue, taggedTransactions) {
+  const invs = investments.filter(inv => inv.plannerGoalId === row.id && inv.status !== 'closed');
+  const invTotal = invs.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
+  const txTotal = (taggedTransactions[row.id] ?? []).reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  const auto = invTotal + txTotal;
+  return auto > 0 ? auto : (row.manualBalance ?? 0);
+}
+
+
+// ── CarteiraDashboard ────────────────────────────────────────────────────────
+
+const LAYER_META = {
+  liquidez:    { label: 'Liquidez',    icon: '💧', bar: 'bg-blue-500',    bg: 'bg-blue-50 dark:bg-blue-900/20',    text: 'text-blue-700 dark:text-blue-300' },
+  crescimento: { label: 'Crescimento', icon: '📈', bar: 'bg-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300' },
+  patrimonio:  { label: 'Patrimônio',  icon: '🏠', bar: 'bg-violet-500',  bg: 'bg-violet-50 dark:bg-violet-900/20', text: 'text-violet-700 dark:text-violet-300' },
+  legado:      { label: 'Legado',      icon: '👨‍👩‍👧‍👦', bar: 'bg-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-700 dark:text-orange-300' },
+};
+
+function CarteiraDashboard({ savingsRows, investmentClasses, investments, getCurrentValue, invLoading, taggedTransactions, isPhase2 }) {
+  // ── Computed values ──────────────────────────────────────────────────────
+  const rowBalances = {};
+  savingsRows.forEach(row => {
+    rowBalances[row.id] = getRowBalance(row, investments, getCurrentValue, taggedTransactions);
+  });
+
+  // Total patrimônio = all unique investment values + manual balances for rows with no investments
+  const totalInvested = investments
+    .filter(inv => inv.status !== 'closed')
+    .reduce((sum, inv) => sum + getCurrentValue(inv), 0);
+
+  const totalManualOnly = savingsRows
+    .filter(row => {
+      const hasInv = investments.some(inv => inv.plannerGoalId === row.id && inv.status !== 'closed');
+      const hasTx = (taggedTransactions[row.id] ?? []).length > 0;
+      return !hasInv && !hasTx && (row.manualBalance ?? 0) > 0;
+    })
+    .reduce((sum, row) => sum + (row.manualBalance ?? 0), 0);
+
+  const totalPatrimonio = totalInvested + totalManualOnly;
+
+  // Monthly commitment
+  const monthlyRows = savingsRows.reduce((sum, r) => sum + (isPhase2 ? (r.phase2 ?? 0) : (r.phase1 ?? 0)), 0);
+  const monthlyClasses = investmentClasses.reduce((sum, c) => sum + (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)), 0);
+  const monthlyTotal = monthlyRows + monthlyClasses;
+
+  // Emergency fund
+  const emergRow = savingsRows.find(r => r.id === 'emergencia');
+  const emergBalance = rowBalances['emergencia'] ?? 0;
+  const emergTarget = emergRow?.goalTarget ?? 120000;
+  const emergMonthly = isPhase2 ? (emergRow?.phase2 ?? 0) : (emergRow?.phase1 ?? 0);
+  // months covered = balance / (monthlyExpenses estimate = emergTarget/6)
+  const monthlyExpenses = emergTarget / 6;
+  const mesesCobertos = monthlyExpenses > 0 ? Math.floor(emergBalance / monthlyExpenses) : 0;
+  const emergPct = emergTarget > 0 ? Math.min(100, (emergBalance / emergTarget) * 100) : 0;
+
+  // Independence (aposentadoria)
+  const apoRow = savingsRows.find(r => r.id === 'aposentadoria');
+  const apoBalance = rowBalances['aposentadoria'] ?? 0;
+  const apoTarget = apoRow?.goalTarget ?? 6000000;
+  const apoPct = apoTarget > 0 ? Math.min(100, (apoBalance / apoTarget) * 100) : 0;
+
+  // Layer progress
+  const layerData = ['liquidez', 'crescimento', 'patrimonio', 'legado'].map(key => {
+    const rows = savingsRows.filter(r => (r.layer ?? 'liquidez') === key);
+    const balance = rows.reduce((sum, r) => sum + (rowBalances[r.id] ?? 0), 0);
+    const target = rows.reduce((sum, r) => sum + (r.goalTarget > 0 ? r.goalTarget : 0), 0);
+    const monthly = rows.reduce((sum, r) => sum + (isPhase2 ? (r.phase2 ?? 0) : (r.phase1 ?? 0)), 0);
+    // Add investment class monthly for crescimento
+    const classMonthly = key === 'crescimento'
+      ? investmentClasses.reduce((sum, c) => sum + (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)), 0)
+      : 0;
+    const pct = target > 0 ? Math.min(100, (balance / target) * 100) : null;
+    return { key, balance, target, monthly: monthly + classMonthly, pct };
+  });
+
+  // Monthly flow breakdown for stacked bar
+  const flowItems = [
+    ...savingsRows
+      .filter(r => (isPhase2 ? r.phase2 : r.phase1) > 0)
+      .map(r => ({ label: r.label, value: isPhase2 ? r.phase2 : r.phase1, layer: r.layer ?? 'liquidez' })),
+    ...investmentClasses
+      .filter(c => (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)) > 0)
+      .map(c => ({ label: c.name, value: isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0), layer: 'crescimento' })),
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* ── Hero metrics ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Patrimônio total */}
+        <div className="bg-gray-900 dark:bg-gray-950 rounded-2xl p-4 col-span-2 sm:col-span-1">
+          <p className="text-xs text-gray-400 mb-1">Patrimônio total</p>
+          {invLoading ? (
+            <Shimmer className="h-7 w-3/4 rounded-lg" />
+          ) : (
+            <p className="text-xl font-bold text-white tabular-nums">{formatBRL.format(totalPatrimonio)}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">investimentos + reservas</p>
+        </div>
+
+        {/* Aporte mensal */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Aporte mensal</p>
+          <p className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{formatBRL.format(monthlyTotal)}</p>
+          <p className="text-xs text-gray-400 mt-1">{isPhase2 ? 'Fase 2' : 'Fase 1'}</p>
+        </div>
+
+        {/* Emergência */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Fundo emergência</p>
+          {invLoading ? (
+            <Shimmer className="h-6 w-2/3 rounded" />
+          ) : (
+            <div className="flex items-end gap-1">
+              <p className="text-lg font-bold tabular-nums" style={{ color: emergPct >= 100 ? '#10b981' : emergPct >= 50 ? '#f59e0b' : '#ef4444' }}>
+                {mesesCobertos}
+              </p>
+              <p className="text-xs text-gray-400 mb-0.5">/ 6 meses</p>
+            </div>
+          )}
+          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-2">
+            <div
+              className="h-1.5 rounded-full transition-all"
+              style={{ width: `${emergPct}%`, backgroundColor: emergPct >= 100 ? '#10b981' : emergPct >= 50 ? '#f59e0b' : '#ef4444' }}
+            />
+          </div>
+        </div>
+
+        {/* Independência financeira */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Independência</p>
+          {invLoading ? (
+            <Shimmer className="h-6 w-2/3 rounded" />
+          ) : (
+            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              {apoPct.toFixed(1)}%
+            </p>
+          )}
+          <p className="text-xs text-gray-400 mt-0.5 tabular-nums truncate">{formatBRL.format(apoBalance)} / {formatBRL.format(apoTarget)}</p>
+          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-1.5">
+            <div className="h-1.5 rounded-full bg-emerald-500 transition-all" style={{ width: `${apoPct}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Layer progress ── */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 space-y-3">
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Progresso por camada</p>
+        {layerData.map(({ key, balance, target, monthly, pct }) => {
+          const m = LAYER_META[key];
+          return (
+            <div key={key} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span>{m.icon}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{m.label}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${m.bg} ${m.text}`}>
+                    {formatBRL.format(monthly)}/mês
+                  </span>
+                </div>
+                <div className="text-right text-gray-500 dark:text-gray-400 tabular-nums">
+                  {invLoading ? '...' : (
+                    pct !== null
+                      ? `${formatBRL.format(balance)} / ${formatBRL.format(target)}`
+                      : formatBRL.format(balance)
+                  )}
+                </div>
+              </div>
+              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                {invLoading ? (
+                  <Shimmer className="h-2 w-full rounded-full" />
+                ) : (
+                  <div
+                    className={`h-2 rounded-full transition-all ${m.bar}`}
+                    style={{ width: pct !== null ? `${pct}%` : '0%' }}
+                  />
+                )}
+              </div>
+              {pct !== null && !invLoading && (
+                <p className="text-xs text-gray-400 text-right">{pct.toFixed(1)}% atingido</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Monthly flow ── */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Fluxo mensal</p>
+          <p className="text-xs text-gray-400 tabular-nums">{formatBRL.format(monthlyTotal)}/mês</p>
+        </div>
+
+        {/* Stacked bar */}
+        {monthlyTotal > 0 && (
+          <div className="flex h-3 rounded-full overflow-hidden gap-px">
+            {flowItems.map((item, i) => {
+              const pct = (item.value / monthlyTotal) * 100;
+              const barColor = {
+                liquidez: 'bg-blue-400',
+                crescimento: 'bg-emerald-400',
+                patrimonio: 'bg-violet-400',
+                legado: 'bg-orange-400',
+              }[item.layer] ?? 'bg-gray-400';
+              return (
+                <div
+                  key={i}
+                  className={`${barColor} transition-all`}
+                  style={{ width: `${pct}%` }}
+                  title={`${item.label}: ${formatBRL.format(item.value)}`}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Legend */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          {flowItems
+            .sort((a, b) => b.value - a.value)
+            .map((item, i) => {
+              const dotColor = {
+                liquidez: 'bg-blue-400',
+                crescimento: 'bg-emerald-400',
+                patrimonio: 'bg-violet-400',
+                legado: 'bg-orange-400',
+              }[item.layer] ?? 'bg-gray-400';
+              return (
+                <div key={i} className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{item.label}</span>
+                  </div>
+                  <span className="text-xs tabular-nums font-semibold text-gray-700 dark:text-gray-300 shrink-0">
+                    {formatBRL.format(item.value)}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── CarteiraTab ──────────────────────────────────────────────────────────────
 
 const LAYER_ORDER = ['liquidez', 'crescimento', 'patrimonio', 'legado'];
@@ -620,6 +867,16 @@ export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth, s
 
   return (
     <div className="space-y-6">
+      <CarteiraDashboard
+        savingsRows={state.savingsRows ?? []}
+        investmentClasses={state.investmentClasses ?? []}
+        investments={investments}
+        getCurrentValue={getCurrentValue}
+        invLoading={invLoading}
+        taggedTransactions={taggedTransactions}
+        isPhase2={isPhase2ForSelectedMonth}
+      />
+
       {LAYER_ORDER.map(layerKey => (
         <LayerSection
           key={layerKey}
