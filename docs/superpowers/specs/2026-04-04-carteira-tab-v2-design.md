@@ -48,7 +48,7 @@ For each savings row:
 | Row ID | Default `goalTarget` | Notes |
 |--------|---------------------|-------|
 | `emergencia` | `liquidezFinal × 6` | Auto-computed, editable override |
-| `aposentadoria` | `6000000` | From §8 (R$ 6M) |
+| `aposentadoria` | `6000000` | From §8 (R$ 6M) — label changed to "Independência Financeira" |
 | `casa` | `300000` | From §6 |
 | `filhos` | `800000` | From §6 |
 | `mae` | `0` | Ongoing — no progress bar shown |
