@@ -281,22 +281,14 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
 
 // ── InvestmentClassCard ──────────────────────────────────────────────────────
 
-function InvestmentClassCard({ cls, index, monthlyAporte, investments, getCurrentValue, invLoading, onUpdateClass }) {
-  const [editingPct, setEditingPct] = useState(false);
-  const [tempPct, setTempPct] = useState('');
-  const [editingAporte, setEditingAporte] = useState(false);
-  const [tempAporte, setTempAporte] = useState('');
-
+function InvestmentClassCard({ cls, index, isPhase2, totalMonthly, investments, getCurrentValue, invLoading, onUpdateClass }) {
   const types = CLASS_TYPE_MAP[cls.name] ?? [];
   const balance = investments
     .filter(inv => types.includes(inv.type) && inv.status !== 'closed')
     .reduce((sum, inv) => sum + getCurrentValue(inv), 0);
 
-  const handlePctSave = () => {
-    const parsed = parseFloat(tempPct);
-    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) onUpdateClass(index, 'pct', parsed);
-    setEditingPct(false);
-  };
+  const monthlyAporte = isPhase2 ? (cls.phase2 ?? 0) : (cls.phase1 ?? 0);
+  const allocPct = totalMonthly > 0 ? Math.round((monthlyAporte / totalMonthly) * 100) : 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
@@ -306,30 +298,9 @@ function InvestmentClassCard({ cls, index, monthlyAporte, investments, getCurren
           <span className="text-lg">{CLASS_ICONS[cls.name] ?? '📊'}</span>
           <span className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{cls.name}</span>
         </div>
-        {/* Editable allocation % */}
-        {editingPct ? (
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min="0" max="100"
-              className="w-14 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-right"
-              value={tempPct}
-              onChange={e => setTempPct(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handlePctSave(); if (e.key === 'Escape') setEditingPct(false); }}
-              autoFocus
-            />
-            <span className="text-xs text-gray-400">%</span>
-            <button onClick={handlePctSave} className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">OK</button>
-          </div>
-        ) : (
-          <button
-            onClick={() => { setTempPct(String(cls.pct)); setEditingPct(true); }}
-            className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
-            title="Clique para editar alocação"
-          >
-            {cls.pct}%
-          </button>
-        )}
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+          {allocPct}%
+        </span>
       </div>
 
       {/* Vehicle */}
@@ -347,10 +318,14 @@ function InvestmentClassCard({ cls, index, monthlyAporte, investments, getCurren
         )}
       </div>
 
-      {/* Footer — editable monthly aporte */}
+      {/* Footer — editable fixed monthly aporte (phase1/phase2) */}
       <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700">
         <span>Aporte este mês</span>
-        <span className="tabular-nums font-semibold">{formatBRL.format(monthlyAporte)}</span>
+        <EditableValue
+          value={monthlyAporte}
+          onSave={v => onUpdateClass(index, isPhase2 ? 'phase2' : 'phase1', v)}
+          className="font-semibold"
+        />
       </div>
     </div>
   );
@@ -543,28 +518,38 @@ Schema:
       {/* Investment class distribution — only in Crescimento */}
       {layerKey === 'crescimento' && investmentClasses?.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Distribuição dos aportes livres
-            </p>
-            <p className="text-xs text-gray-400">
-              Total livre: <span className="font-semibold tabular-nums">{formatBRL.format(livresValue)}</span>/mês
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {investmentClasses.map((cls, i) => (
-              <InvestmentClassCard
-                key={cls.name}
-                cls={cls}
-                index={i}
-                monthlyAporte={livresValue * cls.pct / 100}
-                investments={investments}
-                getCurrentValue={getCurrentValue}
-                invLoading={invLoading}
-                onUpdateClass={onUpdateClass}
-              />
-            ))}
-          </div>
+          {(() => {
+            const totalMonthly = investmentClasses.reduce(
+              (sum, c) => sum + (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)), 0
+            );
+            return (
+              <>
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    Distribuição dos aportes
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Total: <span className="font-semibold tabular-nums">{formatBRL.format(totalMonthly)}</span>/mês
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {investmentClasses.map((cls, i) => (
+                    <InvestmentClassCard
+                      key={cls.name}
+                      cls={cls}
+                      index={i}
+                      isPhase2={isPhase2}
+                      totalMonthly={totalMonthly}
+                      investments={investments}
+                      getCurrentValue={getCurrentValue}
+                      invLoading={invLoading}
+                      onUpdateClass={onUpdateClass}
+                    />
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

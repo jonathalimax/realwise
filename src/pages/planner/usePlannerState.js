@@ -137,13 +137,13 @@ const DEFAULT_STATE = {
   carCurrentValue: 60000,
   propertyAppreciationPct: 0.5,
 
-  // Investment classes — aligned with financial plan (35/30/15/15/5)
+  // Investment classes — fixed monthly amounts per phase + allocation pct for projections
   investmentClasses: [
-    { name: 'Renda Fixa (CDB/Tesouro)', pct: 35, returnPct: 1.0, vehicle: 'Tesouro Selic / CDB 115% CDI' },
-    { name: 'Exterior ETFs',            pct: 30, returnPct: 1.0, vehicle: 'IVVB11 (S&P 500)' },
-    { name: 'FIIs',                     pct: 15, returnPct: 0.8, vehicle: 'MXRF11, HGLG11' },
-    { name: 'Ações Dividendos',         pct: 15, returnPct: 0.7, vehicle: 'ITUB4, BBAS3' },
-    { name: 'Cripto',                   pct:  5, returnPct: 1.5, vehicle: 'BTC 70% + ETH' },
+    { name: 'Renda Fixa (CDB/Tesouro)', pct: 44, phase1: 455,  phase2: 2000, returnPct: 1.0, vehicle: 'Tesouro IPCA+ 2040 / CDB 110% CDI' },
+    { name: 'Exterior ETFs',            pct: 30, phase1: 390,  phase2: 1350, returnPct: 1.0, vehicle: 'IVVB11 (S&P 500)' },
+    { name: 'FIIs',                     pct: 16, phase1: 195,  phase2: 700,  returnPct: 0.8, vehicle: 'MXRF11, HGLG11, XPML11' },
+    { name: 'Ações Dividendos',         pct: 10, phase1: 195,  phase2: 450,  returnPct: 0.7, vehicle: 'BOVA11 / ITUB4, BBAS3' },
+    { name: 'Cripto',                   pct:  0, phase1: 65,   phase2: 0,    returnPct: 1.5, vehicle: 'BTC 70% + ETH' },
   ],
 };
 
@@ -171,6 +171,18 @@ function migrateState(saved) {
       ...row,
     };
   });
+
+  // Ensure phase1/phase2 are present on all investmentClasses
+  if (merged.investmentClasses) {
+    merged.investmentClasses = merged.investmentClasses.map(cls => {
+      const def = DEFAULT_STATE.investmentClasses.find(d => d.name === cls.name);
+      return {
+        phase1: def?.phase1 ?? 0,
+        phase2: def?.phase2 ?? 0,
+        ...cls,
+      };
+    });
+  }
 
   return merged;
 }
