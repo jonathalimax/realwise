@@ -49,7 +49,7 @@ For each savings row:
 |--------|---------------------|-------|
 | `emergencia` | `liquidezFinal × 6` | Auto-computed, editable override |
 | `aposentadoria` | `6000000` | From §8 (R$ 6M) — label changed to "Independência Financeira" |
-| `casa` | `300000` | From §6 |
+| `casa` | `400000` | User-confirmed |
 | `filhos` | `800000` | From §6 |
 | `mae` | `0` | Ongoing — no progress bar shown |
 | `manutencao` | `3000` | Annual budget R$ 3.000 |
