@@ -6,46 +6,82 @@ import { useInvestments } from '@/contexts/InvestmentContext';
 import { formatBRL } from './usePlannerState';
 import { Shimmer } from '@/components/ui/shimmer';
 
+// Priority within each layer section
 const PRIORITY_ORDER = [
-  'emergencia', 'aposentadoria', 'filhos', 'casa', 'mae', 'manutencao', 'ipva', 'matricula',
+  'emergencia', 'mae', 'manutencao', 'ipva', 'matricula', // liquidez
+  'aposentadoria',                                          // crescimento
+  'casa',                                                   // patrimonio
+  'filhos',                                                 // legado
 ];
 
-const ROW_META = {
-  emergencia:    { icon: '💧', color: 'blue' },
-  aposentadoria: { icon: '🌱', color: 'emerald' },
-  filhos:        { icon: '👶', color: 'violet' },
-  casa:          { icon: '🏠', color: 'amber' },
-  mae:           { icon: '❤️', color: 'rose' },
-  manutencao:    { icon: '🔧', color: 'slate' },
-  ipva:          { icon: '🚗', color: 'orange' },
-  matricula:     { icon: '📚', color: 'teal' },
+const LAYER_CONFIG = {
+  liquidez:   { label: 'Liquidez',             icon: '💧', header: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',   title: 'text-blue-700 dark:text-blue-300',    desc: 'Reservas líquidas e de emergência — acesso imediato.' },
+  crescimento:{ label: 'Crescimento',           icon: '📈', header: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800', title: 'text-emerald-700 dark:text-emerald-300', desc: 'Composição de longo prazo — consistência acima de timing.' },
+  patrimonio: { label: 'Patrimônio',            icon: '🏠', header: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800',   title: 'text-violet-700 dark:text-violet-300',  desc: 'Ativos reais — casa e carro com apreciação de longo prazo.' },
+  legado:     { label: 'Legado',                icon: '👨‍👩‍👧‍👦', header: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800', title: 'text-orange-700 dark:text-orange-300',  desc: 'Impacto intergeracional — educação dos filhos e holding familiar.' },
 };
 
-const COLOR_CLASSES = {
-  blue:    { badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',         bar: 'bg-blue-500',    chip: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' },
-  emerald: { badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', bar: 'bg-emerald-500', chip: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' },
-  violet:  { badge: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300',   bar: 'bg-violet-500',  chip: 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' },
-  amber:   { badge: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',     bar: 'bg-amber-500',   chip: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' },
-  rose:    { badge: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300',         bar: 'bg-rose-500',    chip: 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400' },
-  slate:   { badge: 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',         bar: 'bg-slate-400',   chip: 'bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400' },
-  orange:  { badge: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300', bar: 'bg-orange-500',  chip: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' },
-  teal:    { badge: 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300',         bar: 'bg-teal-500',    chip: 'bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400' },
+const INSTRUMENT_TYPE_COLORS = {
+  'Renda Fixa': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+  'FII':        'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300',
+  'ETF':        'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+  'Ações':      'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+  'Cripto':     'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300',
 };
+
+const ROW_META = {
+  emergencia:    { icon: '🛡️' },
+  aposentadoria: { icon: '🌱' },
+  filhos:        { icon: '👶' },
+  casa:          { icon: '🏠' },
+  mae:           { icon: '❤️' },
+  manutencao:    { icon: '🔧' },
+  ipva:          { icon: '🚗' },
+  matricula:     { icon: '📚' },
+};
+
+const LAYER_CARD_COLORS = {
+  liquidez:    { badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',         bar: 'bg-blue-500',    chip: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' },
+  crescimento: { badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', bar: 'bg-emerald-500', chip: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' },
+  patrimonio:  { badge: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300',   bar: 'bg-violet-500',  chip: 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' },
+  legado:      { badge: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300',   bar: 'bg-orange-500',  chip: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' },
+};
+
+function InstrumentList({ instruments }) {
+  if (!instruments?.length) return null;
+  return (
+    <div className="space-y-1">
+      {instruments.map((inst, i) => {
+        const typeColor = INSTRUMENT_TYPE_COLORS[inst.type] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+        return (
+          <div key={i} className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${typeColor}`}>
+                {inst.type}
+              </span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{inst.name}</span>
+            </div>
+            <span className="text-xs tabular-nums text-gray-400 shrink-0">{inst.alloc}%</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurrentValue, invLoading, taggedTransactions }) {
   const [editingTarget, setEditingTarget] = useState(false);
   const [editingManual, setEditingManual] = useState(false);
   const [tempTarget, setTempTarget] = useState('');
   const [tempManual, setTempManual] = useState('');
+  const [showInstruments, setShowInstruments] = useState(false);
 
-  const meta = ROW_META[row.id] ?? { icon: '💰', color: 'slate' };
-  const colors = COLOR_CLASSES[meta.color] ?? COLOR_CLASSES.slate;
+  const meta = ROW_META[row.id] ?? { icon: '💰' };
+  const colors = LAYER_CARD_COLORS[row.layer] ?? LAYER_CARD_COLORS.liquidez;
   const monthlyContrib = isPhase2 ? row.phase2 : row.phase1;
 
-  // Auto-sum: tagged investments + tagged transactions for this row
-  const taggedInvs = investments.filter(
-    inv => inv.plannerGoalId === row.id && inv.status !== 'closed'
-  );
+  // Auto-sum: tagged investments + tagged transactions
+  const taggedInvs = investments.filter(inv => inv.plannerGoalId === row.id && inv.status !== 'closed');
   const invTotal = taggedInvs.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
   const taggedTxs = taggedTransactions[row.id] ?? [];
   const txTotal = taggedTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
@@ -86,10 +122,25 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
         </span>
       </div>
 
-      {/* Instrument */}
-      <p className="text-xs text-gray-400">{row.onde}</p>
+      {/* Instruments toggle */}
+      {row.instruments?.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowInstruments(v => !v)}
+            className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1 transition-colors"
+          >
+            <span>{showInstruments ? '▾' : '▸'}</span>
+            <span>Onde investir</span>
+          </button>
+          {showInstruments && (
+            <div className="mt-1.5">
+              <InstrumentList instruments={row.instruments} />
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Linked records / manual balance input */}
+      {/* Linked records / manual balance */}
       <div className="space-y-1.5">
         {invLoading ? (
           <>
@@ -211,12 +262,48 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
   );
 }
 
-export default function CarteiraTab({ state, update, liquidezFinal, isPhase2ForSelectedMonth }) {
+function LayerSection({ layerKey, rows, isPhase2, onUpdateRow, investments, getCurrentValue, invLoading, taggedTransactions }) {
+  const config = LAYER_CONFIG[layerKey];
+  if (!rows.length) return null;
+
+  return (
+    <div className="space-y-3">
+      {/* Layer header */}
+      <div className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border ${config.header}`}>
+        <span className="text-base">{config.icon}</span>
+        <div>
+          <p className={`text-xs font-bold uppercase tracking-wide ${config.title}`}>{config.label}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{config.desc}</p>
+        </div>
+      </div>
+
+      {/* Cards grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {rows.map(row => (
+          <GoalCard
+            key={row.id}
+            row={row}
+            goalTarget={row.goalTarget ?? 0}
+            isPhase2={isPhase2}
+            onUpdateRow={onUpdateRow}
+            investments={investments}
+            getCurrentValue={getCurrentValue}
+            invLoading={invLoading}
+            taggedTransactions={taggedTransactions}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const LAYER_ORDER = ['liquidez', 'crescimento', 'patrimonio', 'legado'];
+
+export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth }) {
   const { ownerId } = useAccess();
   const { investments, getCurrentValue, loading: invLoading } = useInvestments();
   const [taggedTransactions, setTaggedTransactions] = useState({});
 
-  // Fetch all user transactions that have a plannerGoalId set
   useEffect(() => {
     if (!ownerId) return;
     const fetchTagged = async () => {
@@ -243,11 +330,20 @@ export default function CarteiraTab({ state, update, liquidezFinal, isPhase2ForS
     fetchTagged();
   }, [ownerId]);
 
-  // Sort rows by priority order
+  // Sort rows within each layer by PRIORITY_ORDER
   const sortedRows = [...(state.savingsRows ?? [])].sort((a, b) => {
     const ia = PRIORITY_ORDER.indexOf(a.id);
     const ib = PRIORITY_ORDER.indexOf(b.id);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+
+  // Group by layer
+  const grouped = {};
+  LAYER_ORDER.forEach(l => { grouped[l] = []; });
+  sortedRows.forEach(row => {
+    const l = row.layer ?? 'liquidez';
+    if (grouped[l]) grouped[l].push(row);
+    else grouped.liquidez.push(row);
   });
 
   const handleUpdateRow = (rowId, patch) => {
@@ -255,29 +351,21 @@ export default function CarteiraTab({ state, update, liquidezFinal, isPhase2ForS
     update('savingsRows', updated);
   };
 
-  // Emergencia goal is dynamic: 6× monthly liquidity
-  const emergenciaTarget = Math.round((liquidezFinal ?? 0) * 6);
-
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {sortedRows.map(row => {
-          const goalTarget = row.id === 'emergencia' ? emergenciaTarget : (row.goalTarget ?? 0);
-          return (
-            <GoalCard
-              key={row.id}
-              row={row}
-              goalTarget={goalTarget}
-              isPhase2={isPhase2ForSelectedMonth}
-              onUpdateRow={handleUpdateRow}
-              investments={investments}
-              getCurrentValue={getCurrentValue}
-              invLoading={invLoading}
-              taggedTransactions={taggedTransactions}
-            />
-          );
-        })}
-      </div>
+    <div className="space-y-6">
+      {LAYER_ORDER.map(layerKey => (
+        <LayerSection
+          key={layerKey}
+          layerKey={layerKey}
+          rows={grouped[layerKey]}
+          isPhase2={isPhase2ForSelectedMonth}
+          onUpdateRow={handleUpdateRow}
+          investments={investments}
+          getCurrentValue={getCurrentValue}
+          invLoading={invLoading}
+          taggedTransactions={taggedTransactions}
+        />
+      ))}
     </div>
   );
 }

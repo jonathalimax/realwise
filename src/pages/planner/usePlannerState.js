@@ -56,14 +56,77 @@ const DEFAULT_STATE = {
 
   // Savings & Reserves
   savingsRows: [
-    { id: 'emergencia',    label: 'Fundo de Emergência',      phase1: 2070.84, phase2: 2070.84, tipo: 'Prioridade máxima',        onde: 'Tesouro Selic / CDB liq. diária',  returnPct: 1.0, goalTarget: 120000,  manualBalance: 0 },
-    { id: 'aposentadoria', label: 'Independência Financeira', phase1: 500,     phase2: 800,     tipo: 'Não pausar — renda futura', onde: 'Tesouro IPCA+ / FIIs',             returnPct: 0.9, goalTarget: 6000000, manualBalance: 0 },
-    { id: 'casa',          label: 'Meta Entrada Casa',        phase1: 1757.58, phase2: 3000,    tipo: 'Meta 3 anos',               onde: 'CDB separado 115% CDI',            returnPct: 1.0, goalTarget: 400000,  manualBalance: 0 },
-    { id: 'filhos',        label: 'Filhos (Educação)',        phase1: 1500,    phase2: 2000,    tipo: 'Meta R$ 800k',              onde: 'ETFs 70% / Renda Fixa 30%',        returnPct: 0.9, goalTarget: 800000,  manualBalance: 0 },
-    { id: 'mae',           label: 'Reserva Mãe',              phase1: 500,     phase2: 500,     tipo: 'Fixo mensal',               onde: 'AstroPay / CDB liq. diária',       returnPct: 1.0, goalTarget: 0,        manualBalance: 0 },
-    { id: 'manutencao',    label: 'Reserva Manutenção Carro', phase1: 250,     phase2: 250,     tipo: '÷12 do orçamento anual',    onde: 'CDB liquidez diária',              returnPct: 1.0, goalTarget: 3000,    manualBalance: 0 },
-    { id: 'ipva',          label: 'Reserva IPVA',             phase1: 166.67,  phase2: 166.67,  tipo: '÷12',                       onde: 'CDB liquidez diária',              returnPct: 1.0, goalTarget: 2000,    manualBalance: 0 },
-    { id: 'matricula',     label: 'Reserva Matrícula',        phase1: 125,     phase2: 125,     tipo: '÷12',                       onde: 'CDB liquidez diária',              returnPct: 1.0, goalTarget: 1500,    manualBalance: 0 },
+    {
+      id: 'emergencia', label: 'Fundo de Emergência', layer: 'liquidez',
+      phase1: 2070.84, phase2: 2070.84, tipo: 'Prioridade máxima', returnPct: 1.0,
+      goalTarget: 120000, manualBalance: 0,
+      instruments: [
+        { name: 'Tesouro Selic 2027',          type: 'Renda Fixa', alloc: 40 },
+        { name: 'CDB liq. diária 115% CDI',    type: 'Renda Fixa', alloc: 60 },
+      ],
+    },
+    {
+      id: 'aposentadoria', label: 'Independência Financeira', layer: 'crescimento',
+      phase1: 500, phase2: 800, tipo: 'Não pausar — renda futura', returnPct: 0.9,
+      goalTarget: 6000000, manualBalance: 0,
+      instruments: [
+        { name: 'Tesouro IPCA+ 2035',   type: 'Renda Fixa', alloc: 40 },
+        { name: 'MXRF11',               type: 'FII',        alloc: 15 },
+        { name: 'HGLG11',               type: 'FII',        alloc: 15 },
+        { name: 'XPML11',               type: 'FII',        alloc: 10 },
+        { name: 'IVVB11 (S&P 500)',     type: 'ETF',        alloc: 20 },
+      ],
+    },
+    {
+      id: 'casa', label: 'Meta Entrada Casa', layer: 'patrimonio',
+      phase1: 1757.58, phase2: 3000, tipo: 'Meta ~3 anos', returnPct: 1.0,
+      goalTarget: 400000, manualBalance: 0,
+      instruments: [
+        { name: 'CDB 115% CDI liq. diária', type: 'Renda Fixa', alloc: 100 },
+      ],
+    },
+    {
+      id: 'filhos', label: 'Filhos (Educação)', layer: 'legado',
+      phase1: 1500, phase2: 2000, tipo: 'Meta R$ 800k', returnPct: 0.9,
+      goalTarget: 800000, manualBalance: 0,
+      instruments: [
+        { name: 'IVVB11 (S&P 500)',     type: 'ETF',        alloc: 50 },
+        { name: 'BOVA11',               type: 'ETF',        alloc: 20 },
+        { name: 'Tesouro IPCA+ 2040',   type: 'Renda Fixa', alloc: 30 },
+      ],
+    },
+    {
+      id: 'mae', label: 'Reserva Mãe', layer: 'liquidez',
+      phase1: 500, phase2: 500, tipo: 'Fixo mensal', returnPct: 1.0,
+      goalTarget: 0, manualBalance: 0,
+      instruments: [
+        { name: 'AstroPay / CDB liq. diária', type: 'Renda Fixa', alloc: 100 },
+      ],
+    },
+    {
+      id: 'manutencao', label: 'Reserva Manutenção Carro', layer: 'liquidez',
+      phase1: 250, phase2: 250, tipo: '÷12 do orçamento anual', returnPct: 1.0,
+      goalTarget: 3000, manualBalance: 0,
+      instruments: [
+        { name: 'CDB liq. diária 100% CDI', type: 'Renda Fixa', alloc: 100 },
+      ],
+    },
+    {
+      id: 'ipva', label: 'Reserva IPVA', layer: 'liquidez',
+      phase1: 166.67, phase2: 166.67, tipo: '÷12', returnPct: 1.0,
+      goalTarget: 2000, manualBalance: 0,
+      instruments: [
+        { name: 'CDB liq. diária 100% CDI', type: 'Renda Fixa', alloc: 100 },
+      ],
+    },
+    {
+      id: 'matricula', label: 'Reserva Matrícula', layer: 'liquidez',
+      phase1: 125, phase2: 125, tipo: '÷12', returnPct: 1.0,
+      goalTarget: 1500, manualBalance: 0,
+      instruments: [
+        { name: 'CDB liq. diária 100% CDI', type: 'Renda Fixa', alloc: 100 },
+      ],
+    },
   ],
 
   // Planner start date (for month markers)
@@ -94,14 +157,16 @@ function migrateState(saved) {
     }
   });
 
-  // Ensure returnPct, goalTarget, manualBalance, and label are present on all rows
+  // Ensure all default fields are present on each row (handles schema migrations)
   merged.savingsRows = merged.savingsRows.map(row => {
     const def = DEFAULT_STATE.savingsRows.find(d => d.id === row.id);
     return {
-      returnPct: def?.returnPct ?? 1.0,
-      goalTarget: def?.goalTarget ?? 0,
+      returnPct:   def?.returnPct   ?? 1.0,
+      goalTarget:  def?.goalTarget  ?? 0,
       manualBalance: def?.manualBalance ?? 0,
-      label: def?.label ?? row.label,
+      label:       def?.label       ?? row.label,
+      layer:       def?.layer       ?? 'liquidez',
+      instruments: def?.instruments ?? [],
       ...row,
     };
   });

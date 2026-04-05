@@ -176,7 +176,6 @@ export default function PlannerPage() {
                 <CarteiraTab
                   state={state}
                   update={update}
-                  liquidezFinal={liquidezFinal}
                   isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
                 />
               </TabsContent>
