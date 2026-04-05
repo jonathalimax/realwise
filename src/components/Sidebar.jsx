@@ -36,7 +36,6 @@ const navItems = [
   { path: '/goals', icon: FlagIcon, labelKey: 'goals' },
   { path: '/bills', icon: DocumentTextIcon, labelKey: 'bills' },
   { path: '/cards', icon: CreditCardIcon, labelKey: 'cards' },
-  { path: '/investments', icon: ChartBarIcon, labelKey: 'investments' },
   { path: '/notifications', icon: BellIcon, labelKey: 'notifications' },
   { path: '/pending-review', icon: TagIcon, labelKey: 'pendingReview', hasBadge: true },
 ];
@@ -54,7 +53,6 @@ const ROOT_ROUTES = [
   '/goals',
   '/bills',
   '/cards',
-  '/investments',
   '/transactions',
   '/settings',
   '/budget',
