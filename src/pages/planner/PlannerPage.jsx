@@ -177,6 +177,7 @@ export default function PlannerPage() {
                   state={state}
                   update={update}
                   isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
+                  savingsComputed={savingsComputed}
                 />
               </TabsContent>
 

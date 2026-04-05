@@ -10,19 +10,27 @@ import { Shimmer } from '@/components/ui/shimmer';
 const GEMINI_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
-// Priority within each layer section
+// ── Constants ───────────────────────────────────────────────────────────────
+
 const PRIORITY_ORDER = [
-  'emergencia', 'mae', 'manutencao', 'ipva', 'matricula', // liquidez
-  'aposentadoria',                                          // crescimento
-  'casa',                                                   // patrimonio
-  'filhos',                                                 // legado
+  'emergencia', 'mae', 'manutencao', 'ipva', 'matricula',
+  'aposentadoria',
+  'casa',
+  'filhos',
 ];
 
 const LAYER_CONFIG = {
-  liquidez:   { label: 'Liquidez',             icon: '💧', header: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',   title: 'text-blue-700 dark:text-blue-300',    desc: 'Reservas líquidas e de emergência — acesso imediato.' },
-  crescimento:{ label: 'Crescimento',           icon: '📈', header: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800', title: 'text-emerald-700 dark:text-emerald-300', desc: 'Composição de longo prazo — consistência acima de timing.' },
-  patrimonio: { label: 'Patrimônio',            icon: '🏠', header: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800',   title: 'text-violet-700 dark:text-violet-300',  desc: 'Ativos reais — casa e carro com apreciação de longo prazo.' },
-  legado:     { label: 'Legado',                icon: '👨‍👩‍👧‍👦', header: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800', title: 'text-orange-700 dark:text-orange-300',  desc: 'Impacto intergeracional — educação dos filhos e holding familiar.' },
+  liquidez:    { label: 'Liquidez',    icon: '💧', header: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',         title: 'text-blue-700 dark:text-blue-300',     desc: 'Reservas líquidas e de emergência — acesso imediato.' },
+  crescimento: { label: 'Crescimento', icon: '📈', header: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800', title: 'text-emerald-700 dark:text-emerald-300', desc: 'Composição de longo prazo — consistência acima de timing.' },
+  patrimonio:  { label: 'Patrimônio',  icon: '🏠', header: 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800',   title: 'text-violet-700 dark:text-violet-300',  desc: 'Ativos reais — casa e carro com apreciação de longo prazo.' },
+  legado:      { label: 'Legado',      icon: '👨‍👩‍👧‍👦', header: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800', title: 'text-orange-700 dark:text-orange-300',  desc: 'Impacto intergeracional — educação dos filhos e holding familiar.' },
+};
+
+const LAYER_CARD_COLORS = {
+  liquidez:    { badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',         bar: 'bg-blue-500',    chip: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' },
+  crescimento: { badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', bar: 'bg-emerald-500', chip: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' },
+  patrimonio:  { badge: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300',   bar: 'bg-violet-500',  chip: 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' },
+  legado:      { badge: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300',   bar: 'bg-orange-500',  chip: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' },
 };
 
 const INSTRUMENT_TYPE_COLORS = {
@@ -44,12 +52,24 @@ const ROW_META = {
   matricula:     { icon: '📚' },
 };
 
-const LAYER_CARD_COLORS = {
-  liquidez:    { badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',         bar: 'bg-blue-500',    chip: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' },
-  crescimento: { badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', bar: 'bg-emerald-500', chip: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400' },
-  patrimonio:  { badge: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300',   bar: 'bg-violet-500',  chip: 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400' },
-  legado:      { badge: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300',   bar: 'bg-orange-500',  chip: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' },
+// Maps investment class names to InvestmentContext types
+const CLASS_TYPE_MAP = {
+  'Renda Fixa (CDB/Tesouro)': ['fixed_income'],
+  'Exterior ETFs':             ['funds'],
+  'FIIs':                      ['fii'],
+  'Ações Dividendos':          ['stocks'],
+  'Cripto':                    ['crypto'],
 };
+
+const CLASS_ICONS = {
+  'Renda Fixa (CDB/Tesouro)': '📈',
+  'Exterior ETFs':             '🌍',
+  'FIIs':                      '🏢',
+  'Ações Dividendos':          '💹',
+  'Cripto':                    '₿',
+};
+
+// ── InstrumentList ───────────────────────────────────────────────────────────
 
 function InstrumentList({ instruments }) {
   if (!instruments?.length) return null;
@@ -60,9 +80,7 @@ function InstrumentList({ instruments }) {
         return (
           <div key={i} className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${typeColor}`}>
-                {inst.type}
-              </span>
+              <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${typeColor}`}>{inst.type}</span>
               <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{inst.name}</span>
             </div>
             <span className="text-xs tabular-nums text-gray-400 shrink-0">{inst.alloc}%</span>
@@ -73,18 +91,54 @@ function InstrumentList({ instruments }) {
   );
 }
 
+// ── EditableValue ────────────────────────────────────────────────────────────
+
+function EditableValue({ value, onSave, className = '' }) {
+  const [editing, setEditing] = useState(false);
+  const [temp, setTemp] = useState('');
+
+  const handleSave = () => {
+    const parsed = parseFloat(temp.replace(/\./g, '').replace(',', '.'));
+    if (!isNaN(parsed) && parsed >= 0) onSave(parsed);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          type="text"
+          className="w-24 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-violet-500 text-right"
+          value={temp}
+          onChange={e => setTemp(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+          autoFocus
+        />
+        <button onClick={handleSave} className="text-xs text-violet-600 dark:text-violet-400 font-semibold">OK</button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setTemp(String(value)); setEditing(true); }}
+      className={`tabular-nums hover:text-violet-500 transition-colors ${className}`}
+      title="Clique para editar"
+    >
+      {formatBRL.format(value)}
+    </button>
+  );
+}
+
+// ── GoalCard ─────────────────────────────────────────────────────────────────
+
 function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurrentValue, invLoading, taggedTransactions }) {
-  const [editingTarget, setEditingTarget] = useState(false);
-  const [editingManual, setEditingManual] = useState(false);
-  const [tempTarget, setTempTarget] = useState('');
-  const [tempManual, setTempManual] = useState('');
   const [showInstruments, setShowInstruments] = useState(false);
 
   const meta = ROW_META[row.id] ?? { icon: '💰' };
   const colors = LAYER_CARD_COLORS[row.layer] ?? LAYER_CARD_COLORS.liquidez;
   const monthlyContrib = isPhase2 ? row.phase2 : row.phase1;
 
-  // Auto-sum: tagged investments + tagged transactions
   const taggedInvs = investments.filter(inv => inv.plannerGoalId === row.id && inv.status !== 'closed');
   const invTotal = taggedInvs.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
   const taggedTxs = taggedTransactions[row.id] ?? [];
@@ -100,18 +154,6 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
     : 0;
   const remaining = Math.max(0, goalTarget - currentBalance);
   const goalReached = !isOngoing && currentBalance >= goalTarget && goalTarget > 0;
-
-  const handleTargetSave = () => {
-    const parsed = parseFloat(tempTarget.replace(/\./g, '').replace(',', '.'));
-    if (!isNaN(parsed) && parsed >= 0) onUpdateRow(row.id, { goalTarget: parsed });
-    setEditingTarget(false);
-  };
-
-  const handleManualSave = () => {
-    const parsed = parseFloat(tempManual.replace(/\./g, '').replace(',', '.'));
-    if (!isNaN(parsed) && parsed >= 0) onUpdateRow(row.id, { manualBalance: parsed });
-    setEditingManual(false);
-  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
@@ -180,28 +222,11 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
           </>
         ) : (
           <div>
-            {editingManual ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  className="flex-1 px-2 py-1 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-violet-500"
-                  value={tempManual}
-                  onChange={e => setTempManual(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleManualSave(); if (e.key === 'Escape') setEditingManual(false); }}
-                  autoFocus
-                />
-                <button onClick={handleManualSave} className="text-xs text-violet-600 dark:text-violet-400 font-semibold">OK</button>
-              </div>
-            ) : (
-              <button
-                onClick={() => { setTempManual(String(row.manualBalance ?? 0)); setEditingManual(true); }}
-                className="text-xs text-gray-400 italic hover:text-violet-500 transition-colors text-left"
-              >
-                {(row.manualBalance ?? 0) > 0
-                  ? `Saldo manual: ${formatBRL.format(row.manualBalance)}`
-                  : 'Sem registros — clique para inserir saldo'}
-              </button>
-            )}
+            <EditableValue
+              value={row.manualBalance ?? 0}
+              onSave={v => onUpdateRow(row.id, { manualBalance: v })}
+              className="text-xs text-gray-400 italic"
+            />
           </div>
         )}
       </div>
@@ -217,26 +242,10 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
           <>
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 items-center">
               <span>Meta</span>
-              {editingTarget ? (
-                <div className="flex items-center gap-1">
-                  <input
-                    type="text"
-                    className="w-28 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-violet-500 text-right"
-                    value={tempTarget}
-                    onChange={e => setTempTarget(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleTargetSave(); if (e.key === 'Escape') setEditingTarget(false); }}
-                    autoFocus
-                  />
-                  <button onClick={handleTargetSave} className="text-xs text-violet-600 dark:text-violet-400 font-semibold">OK</button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setTempTarget(String(goalTarget)); setEditingTarget(true); }}
-                  className="tabular-nums hover:text-violet-500 transition-colors"
-                >
-                  {formatBRL.format(goalTarget)}
-                </button>
-              )}
+              <EditableValue
+                value={goalTarget}
+                onSave={v => onUpdateRow(row.id, { goalTarget: v })}
+              />
             </div>
             <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
               <div className={`h-2 rounded-full transition-all ${colors.bar}`} style={{ width: `${progressPct}%` }} />
@@ -257,25 +266,108 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
         )}
       </div>
 
-      {/* Footer — monthly contribution */}
+      {/* Footer — editable monthly contribution */}
       <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700">
         <span>Aporte este mês</span>
-        <span className="tabular-nums font-semibold">{formatBRL.format(monthlyContrib)}</span>
+        <EditableValue
+          value={monthlyContrib}
+          onSave={v => onUpdateRow(row.id, isPhase2 ? { phase2: v } : { phase1: v })}
+          className="font-semibold"
+        />
       </div>
     </div>
   );
 }
 
-function LayerSection({ layerKey, rows, isPhase2, onUpdateRow, investments, getCurrentValue, invLoading, taggedTransactions }) {
+// ── InvestmentClassCard ──────────────────────────────────────────────────────
+
+function InvestmentClassCard({ cls, index, monthlyAporte, investments, getCurrentValue, invLoading, onUpdateClass }) {
+  const [editingPct, setEditingPct] = useState(false);
+  const [tempPct, setTempPct] = useState('');
+  const [editingAporte, setEditingAporte] = useState(false);
+  const [tempAporte, setTempAporte] = useState('');
+
+  const types = CLASS_TYPE_MAP[cls.name] ?? [];
+  const balance = investments
+    .filter(inv => types.includes(inv.type) && inv.status !== 'closed')
+    .reduce((sum, inv) => sum + getCurrentValue(inv), 0);
+
+  const handlePctSave = () => {
+    const parsed = parseFloat(tempPct);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) onUpdateClass(index, 'pct', parsed);
+    setEditingPct(false);
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{CLASS_ICONS[cls.name] ?? '📊'}</span>
+          <span className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{cls.name}</span>
+        </div>
+        {/* Editable allocation % */}
+        {editingPct ? (
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min="0" max="100"
+              className="w-14 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-right"
+              value={tempPct}
+              onChange={e => setTempPct(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handlePctSave(); if (e.key === 'Escape') setEditingPct(false); }}
+              autoFocus
+            />
+            <span className="text-xs text-gray-400">%</span>
+            <button onClick={handlePctSave} className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">OK</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setTempPct(String(cls.pct)); setEditingPct(true); }}
+            className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+            title="Clique para editar alocação"
+          >
+            {cls.pct}%
+          </button>
+        )}
+      </div>
+
+      {/* Vehicle */}
+      <p className="text-xs text-gray-400">{cls.vehicle}</p>
+
+      {/* Balance */}
+      <div className="space-y-2 pt-1 border-t border-gray-100 dark:border-gray-700">
+        {invLoading ? (
+          <Shimmer className="h-5 w-3/4 rounded" />
+        ) : (
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-500 dark:text-gray-400">Saldo atual</span>
+            <span className="tabular-nums font-semibold text-gray-900 dark:text-white">{formatBRL.format(balance)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Footer — editable monthly aporte */}
+      <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700">
+        <span>Aporte este mês</span>
+        <span className="tabular-nums font-semibold">{formatBRL.format(monthlyAporte)}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── LayerSection ─────────────────────────────────────────────────────────────
+
+function LayerSection({ layerKey, rows, isPhase2, onUpdateRow, onUpdateClass, investments, getCurrentValue, invLoading, taggedTransactions, investmentClasses, livresValue }) {
   const config = LAYER_CONFIG[layerKey];
   const { geminiApiKey } = useSettings();
 
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState(null); // { layerInsight, goalRecommendations }
+  const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState('');
   const [aiRaw, setAiRaw] = useState('');
 
-  if (!rows.length) return null;
+  if (!rows.length && (layerKey !== 'crescimento' || !investmentClasses?.length)) return null;
 
   const handleResearch = async () => {
     if (!geminiApiKey) return;
@@ -284,33 +376,33 @@ function LayerSection({ layerKey, rows, isPhase2, onUpdateRow, investments, getC
     setAiResult(null);
     setAiRaw('');
 
-    const prompt = `Você é um consultor financeiro brasileiro especializado em investimentos para pessoa física PJ em 2026.
+    const allGoals = [
+      ...rows.map(r => `- id: "${r.id}" | label: "${r.label}" | meta: R$ ${r.goalTarget ?? 0} | aporte: R$ ${isPhase2 ? r.phase2 : r.phase1}/mês`),
+      ...(layerKey === 'crescimento' && investmentClasses?.length
+        ? investmentClasses.map(c => `- classe: "${c.name}" | alocação: ${c.pct}% | aporte: R$ ${(livresValue * c.pct / 100).toFixed(2)}/mês`)
+        : []),
+    ].join('\n');
 
-Analise a camada "${config.label}" e retorne SOMENTE JSON válido, sem markdown, sem explicações fora do JSON.
+    const prompt = `Você é um consultor financeiro brasileiro especializado em investimentos PJ em 2026.
 
-CAMADA: ${config.label}
-PROPÓSITO: ${config.desc}
+Analise a camada "${config.label}" e retorne SOMENTE JSON válido, sem markdown.
 
-OBJETIVOS NESTA CAMADA:
-${rows.map(r => `- id: "${r.id}" | label: "${r.label}" | meta: R$ ${r.goalTarget ?? 0} | aporte mensal: R$ ${isPhase2 ? r.phase2 : r.phase1}`).join('\n')}
+CAMADA: ${config.label} — ${config.desc}
 
-Considere:
-- Instrumentos reais disponíveis no Brasil em 2026 (tickers B3, Tesouro Direto, CDBs de bancos sólidos)
-- Tesouro IPCA+ 2035 foi descontinuado — use 2040 ou 2050
-- Tesouro IPCA+ 2045 foi descontinuado — use 2050
-- Para reservas líquidas: Tesouro Selic 2027, CDB liq. diária 110-115% CDI (BMG, Sofisa, Inter)
-- Para crescimento longo prazo: IVVB11 (S&P500), BOVA11 (Ibovespa), MXRF11, HGLG11, XPML11, KNRI11
-- A alocação de cada objetivo deve somar exatamente 100%
+OBJETIVOS/CLASSES:
+${allGoals}
 
-Retorne este schema:
+Regras: Tesouro IPCA+ 2035 → use 2040; IPCA+ 2045 → use 2050. Instrumentos reais disponíveis em 2026 no Brasil. Alocação por objetivo deve somar 100%.
+
+Schema:
 {
-  "layerInsight": "análise da camada em 1-2 frases, foco prático",
+  "layerInsight": "análise prática em 1-2 frases",
   "goalRecommendations": [
     {
-      "goalId": "id do objetivo",
-      "goalLabel": "nome do objetivo",
+      "goalId": "id ou nome da classe",
+      "goalLabel": "nome",
       "instruments": [
-        { "name": "nome do instrumento", "type": "Renda Fixa|FII|ETF|Ações|Cripto", "alloc": 0, "reason": "motivo curto" }
+        { "name": "...", "type": "Renda Fixa|FII|ETF|Ações|Cripto", "alloc": 0, "reason": "..." }
       ]
     }
   ]
@@ -322,19 +414,16 @@ Retorne este schema:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1200 },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 1400 },
         }),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error?.message || `Erro HTTP ${res.status}`);
       }
-
       const data = await res.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
       if (!raw) throw new Error('Resposta vazia do Gemini');
-
       const cleaned = raw.replace(/```json\n?/g, '').replace(/```/g, '').trim();
       try {
         setAiResult(JSON.parse(cleaned));
@@ -349,8 +438,9 @@ Retorne este schema:
   };
 
   const handleApplyGoal = (goalId, instruments) => {
-    onUpdateRow(goalId, { instruments });
-    // Remove that goal from aiResult so the apply button disappears
+    // Try to match a savings row first, then investment class
+    const matchingRow = rows.find(r => r.id === goalId);
+    if (matchingRow) onUpdateRow(goalId, { instruments });
     setAiResult(prev => prev ? {
       ...prev,
       goalRecommendations: prev.goalRecommendations.filter(g => g.goalId !== goalId),
@@ -368,7 +458,7 @@ Retorne este schema:
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{config.desc}</p>
           </div>
         </div>
-        {geminiApiKey ? (
+        {geminiApiKey && (
           <button
             onClick={handleResearch}
             disabled={aiLoading}
@@ -382,22 +472,16 @@ Retorne este schema:
                 </svg>
                 Pesquisando...
               </>
-            ) : (
-              <>✨ Pesquisar</>
-            )}
+            ) : <>✨ Pesquisar</>}
           </button>
-        ) : null}
+        )}
       </div>
 
       {/* AI result panel */}
       {(aiResult || aiError || aiRaw) && (
         <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-3 space-y-3">
-          {aiError && (
-            <p className="text-xs text-rose-600 dark:text-rose-400">{aiError}</p>
-          )}
-          {aiRaw && (
-            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{aiRaw}</pre>
-          )}
+          {aiError && <p className="text-xs text-rose-600 dark:text-rose-400">{aiError}</p>}
+          {aiRaw && <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{aiRaw}</pre>}
           {aiResult && (
             <>
               {aiResult.layerInsight && (
@@ -437,29 +521,61 @@ Retorne este schema:
         </div>
       )}
 
-      {/* Cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {rows.map(row => (
-          <GoalCard
-            key={row.id}
-            row={row}
-            goalTarget={row.goalTarget ?? 0}
-            isPhase2={isPhase2}
-            onUpdateRow={onUpdateRow}
-            investments={investments}
-            getCurrentValue={getCurrentValue}
-            invLoading={invLoading}
-            taggedTransactions={taggedTransactions}
-          />
-        ))}
-      </div>
+      {/* Goal cards */}
+      {rows.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {rows.map(row => (
+            <GoalCard
+              key={row.id}
+              row={row}
+              goalTarget={row.goalTarget ?? 0}
+              isPhase2={isPhase2}
+              onUpdateRow={onUpdateRow}
+              investments={investments}
+              getCurrentValue={getCurrentValue}
+              invLoading={invLoading}
+              taggedTransactions={taggedTransactions}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Investment class distribution — only in Crescimento */}
+      {layerKey === 'crescimento' && investmentClasses?.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Distribuição dos aportes livres
+            </p>
+            <p className="text-xs text-gray-400">
+              Total livre: <span className="font-semibold tabular-nums">{formatBRL.format(livresValue)}</span>/mês
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {investmentClasses.map((cls, i) => (
+              <InvestmentClassCard
+                key={cls.name}
+                cls={cls}
+                index={i}
+                monthlyAporte={livresValue * cls.pct / 100}
+                investments={investments}
+                getCurrentValue={getCurrentValue}
+                invLoading={invLoading}
+                onUpdateClass={onUpdateClass}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+// ── CarteiraTab ──────────────────────────────────────────────────────────────
+
 const LAYER_ORDER = ['liquidez', 'crescimento', 'patrimonio', 'legado'];
 
-export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth }) {
+export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth, savingsComputed }) {
   const { ownerId } = useAccess();
   const { investments, getCurrentValue, loading: invLoading } = useInvestments();
   const [taggedTransactions, setTaggedTransactions] = useState({});
@@ -490,14 +606,12 @@ export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth })
     fetchTagged();
   }, [ownerId]);
 
-  // Sort rows within each layer by PRIORITY_ORDER
   const sortedRows = [...(state.savingsRows ?? [])].sort((a, b) => {
     const ia = PRIORITY_ORDER.indexOf(a.id);
     const ib = PRIORITY_ORDER.indexOf(b.id);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
   });
 
-  // Group by layer
   const grouped = {};
   LAYER_ORDER.forEach(l => { grouped[l] = []; });
   sortedRows.forEach(row => {
@@ -507,9 +621,17 @@ export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth })
   });
 
   const handleUpdateRow = (rowId, patch) => {
-    const updated = state.savingsRows.map(r => r.id === rowId ? { ...r, ...patch } : r);
-    update('savingsRows', updated);
+    update('savingsRows', state.savingsRows.map(r => r.id === rowId ? { ...r, ...patch } : r));
   };
+
+  const handleUpdateClass = (index, field, value) => {
+    const updated = state.investmentClasses.map((c, i) => i === index ? { ...c, [field]: value } : c);
+    update('investmentClasses', updated);
+  };
+
+  const livresValue = isPhase2ForSelectedMonth
+    ? (savingsComputed?.livresPhase2 ?? 0)
+    : (savingsComputed?.livresPhase1 ?? 0);
 
   return (
     <div className="space-y-6">
@@ -520,10 +642,13 @@ export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth })
           rows={grouped[layerKey]}
           isPhase2={isPhase2ForSelectedMonth}
           onUpdateRow={handleUpdateRow}
+          onUpdateClass={handleUpdateClass}
           investments={investments}
           getCurrentValue={getCurrentValue}
           invLoading={invLoading}
           taggedTransactions={taggedTransactions}
+          investmentClasses={layerKey === 'crescimento' ? state.investmentClasses : null}
+          livresValue={livresValue}
         />
       ))}
     </div>
