@@ -51,12 +51,12 @@ For each savings row:
 | `aposentadoria` | `6000000` | From §8 (R$ 6M) |
 | `casa` | `300000` | From §6 |
 | `filhos` | `800000` | From §6 |
-| `mae` | `0` | Ongoing reserve — no progress bar shown |
-| `manutencao` | `phase1 × 12` | Annual budget |
-| `ipva` | `phase1 × 12` | Annual budget |
-| `matricula` | `phase1 × 12` | Annual budget |
+| `mae` | `0` | Ongoing — no progress bar shown |
+| `manutencao` | `3000` | Annual budget R$ 3.000 |
+| `ipva` | `2000` | Annual budget R$ 2.000 |
+| `matricula` | `1500` | Annual budget R$ 1.500 (monthly: R$ 125) |
 
-Rows with `goalTarget === 0` show as "reserva contínua" — no progress bar, just current balance + monthly contribution.
+Rows with `goalTarget === 0` show as "reserva contínua" — no progress bar, just current balance + monthly contribution. Only `mae` qualifies.
 
 ### Card Order (Priority from §6)
 
@@ -103,7 +103,7 @@ Elements:
 - **Stats**: Meta (editable inline) / Atual (with "de N registros" badge if auto-summed) / progress bar / Faltam
 - **Footer**: "Aporte este mês: R$ X" using `isPhase2ForSelectedMonth ? row.phase2 : row.phase1`
 
-### Ongoing Reserve Card (goalTarget === 0)
+### Ongoing Reserve Card (goalTarget === 0 — only `mae`)
 
 Same card but without Meta / progress bar / Faltam. Shows only:
 - Header + instrument
