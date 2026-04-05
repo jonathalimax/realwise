@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from '../components/ui/CurrencyInput';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import usePlannerGoals from './planner/usePlannerGoals';
 
 export default function InvestmentForm() {
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ export default function InvestmentForm() {
     purchaseDate: new Date().toISOString().split('T')[0],
     maturityDate: '',
     goalId: '',
+    plannerGoalId: '',
     notes: '',
   });
 
@@ -61,6 +63,7 @@ export default function InvestmentForm() {
 
   // Non-completed goals for linking
   const availableGoals = goals.filter(g => !g.completed);
+  const plannerGoals = usePlannerGoals();
 
   // Load investment data if editing or withdrawing
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function InvestmentForm() {
             purchaseDate: inv.purchaseDate || new Date().toISOString().split('T')[0],
             maturityDate: inv.maturityDate || '',
             goalId: inv.goalId || '',
+            plannerGoalId: inv.plannerGoalId || '',
             notes: inv.notes || '',
           });
         } else if (mode === 'withdraw') {
@@ -110,6 +114,7 @@ export default function InvestmentForm() {
         purchaseDate: formData.purchaseDate || null,
         maturityDate: formData.maturityDate || null,
         goalId: formData.goalId || null,
+        plannerGoalId: formData.plannerGoalId || null,
         notes: formData.notes.trim(),
       };
 
@@ -565,6 +570,25 @@ export default function InvestmentForm() {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Planner goal link */}
+            {plannerGoals.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Objetivo do planner
+                </label>
+                <select
+                  value={formData.plannerGoalId}
+                  onChange={e => setFormData(prev => ({ ...prev, plannerGoalId: e.target.value }))}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                >
+                  <option value="">Nenhum</option>
+                  {plannerGoals.map(g => (
+                    <option key={g.id} value={g.id}>{g.label}</option>
+                  ))}
+                </select>
               </div>
             )}
 

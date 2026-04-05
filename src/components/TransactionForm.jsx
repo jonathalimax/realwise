@@ -5,15 +5,19 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards, CARD_ICONS } from '../contexts/CardsContext';
 import { INVESTMENT_TYPES, useInvestments } from '../contexts/InvestmentContext';
+import { useAccess } from '../contexts/AccessContext';
 import CurrencyInput from './ui/CurrencyInput';
 import { generateTransactionHash, generateInstallmentGroupId } from '../services/installments';
+import usePlannerGoals from '../pages/planner/usePlannerGoals';
 
 export default function TransactionForm() {
+  const { ownerId } = useAccess();
   const [type, setType] = useState('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState('');
   const [selectedGoalId, setSelectedGoalId] = useState('');
+  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState('');
   const [selectedCardId, setSelectedCardId] = useState(null); // null = Cash/No Card
   const [loading, setLoading] = useState(false);
   // Date state - default to today
@@ -32,6 +36,7 @@ export default function TransactionForm() {
 
   // Only show non-completed goals for linking
   const availableGoals = goals.filter(g => !g.completed);
+  const plannerGoals = usePlannerGoals();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,7 +67,7 @@ export default function TransactionForm() {
 
           const installmentDescription = `${description} (${i}/${totalInstallments})`;
           const transactionData = {
-            userId: auth.currentUser.uid,
+            userId: ownerId || auth.currentUser.uid,
             type,
             description: installmentDescription,
             amount: parseFloat(amount),
@@ -71,6 +76,7 @@ export default function TransactionForm() {
             date: installmentDate.toISOString(),
             goalId: selectedGoalId || null,
             goalName: selectedGoal?.name || null,
+            plannerGoalId: selectedPlannerGoalId || null,
             cardId: selectedCardId || null,
             // Installment fields
             isInstallment: true,
@@ -118,7 +124,7 @@ export default function TransactionForm() {
       } else {
         // Single transaction
         const transactionData = {
-          userId: auth.currentUser.uid,
+          userId: ownerId || auth.currentUser.uid,
           type,
           description,
           amount: parseFloat(amount),
@@ -127,6 +133,7 @@ export default function TransactionForm() {
           date: baseDate.toISOString(),
           goalId: selectedGoalId || null,
           goalName: selectedGoal?.name || null,
+          plannerGoalId: selectedPlannerGoalId || null,
           cardId: selectedCardId || null,
           // Investment type (if category is Investments)
           investmentType: baseCategory === 'Investments' ? investmentType : null
@@ -176,6 +183,7 @@ export default function TransactionForm() {
       setAmount(0);
       setCategory('');
       setSelectedGoalId('');
+      setSelectedPlannerGoalId('');
       setSelectedCardId(null);
       setTransactionDate(new Date().toISOString().split('T')[0]);
       setIsInstallment(false);
@@ -508,6 +516,25 @@ export default function TransactionForm() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Planner goal link */}
+        {plannerGoals.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Objetivo do planner
+            </label>
+            <select
+              value={selectedPlannerGoalId}
+              onChange={e => setSelectedPlannerGoalId(e.target.value)}
+              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition text-sm"
+            >
+              <option value="">Nenhum</option>
+              {plannerGoals.map(g => (
+                <option key={g.id} value={g.id}>{g.label}</option>
+              ))}
+            </select>
           </div>
         )}
 

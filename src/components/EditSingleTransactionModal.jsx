@@ -7,15 +7,19 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
+import { useAccess } from '../contexts/AccessContext';
 import CurrencyInput from './ui/CurrencyInput';
+import usePlannerGoals from '../pages/planner/usePlannerGoals';
 
 export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess }) {
+  const { ownerId } = useAccess();
   const [type, setType] = useState('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState('');
   const [transactionDate, setTransactionDate] = useState('');
   const [selectedGoalId, setSelectedGoalId] = useState('');
+  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState('');
   const [selectedBankId, setSelectedBankId] = useState(null);
   const [isIgnored, setIsIgnored] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('credit');
@@ -39,6 +43,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const { addInvestment, updateInvestment, investments } = useInvestments();
 
   const availableGoals = goals.filter(g => !g.completed);
+  const plannerGoals = usePlannerGoals();
 
   // Populate form when transaction changes
   useEffect(() => {
@@ -49,6 +54,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       setCategory(transaction.category || '');
       setTransactionDate(transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0]);
       setSelectedGoalId(transaction.goalId || '');
+      setSelectedPlannerGoalId(transaction.plannerGoalId || '');
       // Handle both old (bank type) and new (document ID) formats
       // Convert old format to new format by finding the user bank
       if (transaction.bankId) {
@@ -112,7 +118,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       const isInvestmentCategory = (finalCategory === 'Investments' || finalCategory === 'Investimentos');
 
       const updates = {
-        userId: auth.currentUser.uid,
+        userId: transaction.userId || ownerId || auth.currentUser.uid,
         type,
         description,
         amount: parseFloat(amount),
@@ -120,6 +126,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         date: baseDate.toISOString(),
         goalId: selectedGoalId || null,
         goalName: selectedGoal?.name || null,
+        plannerGoalId: selectedPlannerGoalId || null,
         bankId: selectedBankId || null,
         paymentMethod: selectedBankId ? paymentMethod : null,
         ignored: isIgnored,
@@ -185,7 +192,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       if (transaction.isInstallment && transaction.installmentGroupId && updateAllInstallments) {
         const q = query(
           collection(db, 'transactions'),
-          where('installmentGroupId', '==', transaction.installmentGroupId)
+          where('installmentGroupId', '==', transaction.installmentGroupId),
+          where('userId', '==', transaction.userId || ownerId || auth.currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
         const batch = writeBatch(db);
@@ -763,6 +771,25 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         <option value="">{t('goals.noGoalSelected')}</option>
                         {availableGoals.map((goal) => (
                           <option key={goal.id} value={goal.id}>{goal.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Planner goal link */}
+                  {plannerGoals.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Objetivo do planner
+                      </label>
+                      <select
+                        value={selectedPlannerGoalId}
+                        onChange={e => setSelectedPlannerGoalId(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                      >
+                        <option value="">Nenhum</option>
+                        {plannerGoals.map(g => (
+                          <option key={g.id} value={g.id}>{g.label}</option>
                         ))}
                       </select>
                     </div>
