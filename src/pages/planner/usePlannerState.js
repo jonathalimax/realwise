@@ -61,8 +61,8 @@ const DEFAULT_STATE = {
       phase1: 2070.84, phase2: 2070.84, tipo: 'Prioridade máxima', returnPct: 1.0,
       goalTarget: 120000, manualBalance: 0,
       instruments: [
-        { name: 'Tesouro Selic 2027',          type: 'Renda Fixa', alloc: 40 },
-        { name: 'CDB liq. diária 115% CDI',    type: 'Renda Fixa', alloc: 60 },
+        { name: 'Tesouro Selic 2027',            type: 'Renda Fixa', alloc: 50 },
+        { name: 'CDB liq. diária 110% CDI',      type: 'Renda Fixa', alloc: 50 },
       ],
     },
     {
@@ -70,11 +70,11 @@ const DEFAULT_STATE = {
       phase1: 500, phase2: 800, tipo: 'Não pausar — renda futura', returnPct: 0.9,
       goalTarget: 6000000, manualBalance: 0,
       instruments: [
-        { name: 'Tesouro IPCA+ 2035',   type: 'Renda Fixa', alloc: 40 },
-        { name: 'MXRF11',               type: 'FII',        alloc: 15 },
-        { name: 'HGLG11',               type: 'FII',        alloc: 15 },
-        { name: 'XPML11',               type: 'FII',        alloc: 10 },
-        { name: 'IVVB11 (S&P 500)',     type: 'ETF',        alloc: 20 },
+        { name: 'Tesouro IPCA+ 2040',    type: 'Renda Fixa', alloc: 35 },
+        { name: 'IVVB11 (S&P 500 ETF)',  type: 'ETF',        alloc: 25 },
+        { name: 'MXRF11 (Maxi Renda)',   type: 'FII',        alloc: 15 },
+        { name: 'HGLG11 (Patria Log)',   type: 'FII',        alloc: 15 },
+        { name: 'XPML11 (XP Malls)',     type: 'FII',        alloc: 10 },
       ],
     },
     {
@@ -82,7 +82,8 @@ const DEFAULT_STATE = {
       phase1: 1757.58, phase2: 3000, tipo: 'Meta ~3 anos', returnPct: 1.0,
       goalTarget: 400000, manualBalance: 0,
       instruments: [
-        { name: 'CDB 115% CDI liq. diária', type: 'Renda Fixa', alloc: 100 },
+        { name: 'CDB 110% CDI liq. diária', type: 'Renda Fixa', alloc: 70 },
+        { name: 'Tesouro Selic 2027',        type: 'Renda Fixa', alloc: 30 },
       ],
     },
     {
@@ -90,9 +91,9 @@ const DEFAULT_STATE = {
       phase1: 1500, phase2: 2000, tipo: 'Meta R$ 800k', returnPct: 0.9,
       goalTarget: 800000, manualBalance: 0,
       instruments: [
-        { name: 'IVVB11 (S&P 500)',     type: 'ETF',        alloc: 50 },
-        { name: 'BOVA11',               type: 'ETF',        alloc: 20 },
-        { name: 'Tesouro IPCA+ 2040',   type: 'Renda Fixa', alloc: 30 },
+        { name: 'IVVB11 (S&P 500 ETF)',  type: 'ETF',        alloc: 50 },
+        { name: 'BOVA11 (Ibovespa ETF)', type: 'ETF',        alloc: 20 },
+        { name: 'Tesouro IPCA+ 2050',    type: 'Renda Fixa', alloc: 30 },
       ],
     },
     {
@@ -108,7 +109,7 @@ const DEFAULT_STATE = {
       phase1: 250, phase2: 250, tipo: '÷12 do orçamento anual', returnPct: 1.0,
       goalTarget: 3000, manualBalance: 0,
       instruments: [
-        { name: 'CDB liq. diária 100% CDI', type: 'Renda Fixa', alloc: 100 },
+        { name: 'CDB liq. diária 110% CDI', type: 'Renda Fixa', alloc: 100 },
       ],
     },
     {
@@ -116,7 +117,7 @@ const DEFAULT_STATE = {
       phase1: 166.67, phase2: 166.67, tipo: '÷12', returnPct: 1.0,
       goalTarget: 2000, manualBalance: 0,
       instruments: [
-        { name: 'CDB liq. diária 100% CDI', type: 'Renda Fixa', alloc: 100 },
+        { name: 'CDB liq. diária 110% CDI', type: 'Renda Fixa', alloc: 100 },
       ],
     },
     {
@@ -124,7 +125,7 @@ const DEFAULT_STATE = {
       phase1: 125, phase2: 125, tipo: '÷12', returnPct: 1.0,
       goalTarget: 1500, manualBalance: 0,
       instruments: [
-        { name: 'CDB liq. diária 100% CDI', type: 'Renda Fixa', alloc: 100 },
+        { name: 'CDB liq. diária 110% CDI', type: 'Renda Fixa', alloc: 100 },
       ],
     },
   ],
