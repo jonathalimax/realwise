@@ -14,8 +14,7 @@ const GEMINI_ENDPOINT =
 
 const PRIORITY_ORDER = [
   'emergencia', 'mae', 'manutencao', 'ipva', 'matricula',
-  'aposentadoria',
-  'casa',
+  'casa', 'carAntecipacao',
   'filhos',
 ];
 
@@ -42,14 +41,14 @@ const INSTRUMENT_TYPE_COLORS = {
 };
 
 const ROW_META = {
-  emergencia:    { icon: '🛡️' },
-  aposentadoria: { icon: '🌱' },
-  filhos:        { icon: '👶' },
-  casa:          { icon: '🏠' },
-  mae:           { icon: '❤️' },
-  manutencao:    { icon: '🔧' },
-  ipva:          { icon: '🚗' },
-  matricula:     { icon: '📚' },
+  emergencia:     { icon: '🛡️' },
+  filhos:         { icon: '👶' },
+  casa:           { icon: '🏠' },
+  mae:            { icon: '❤️' },
+  manutencao:     { icon: '🔧' },
+  ipva:           { icon: '🚗' },
+  matricula:      { icon: '📚' },
+  carAntecipacao: { icon: '⏭️' },
 };
 
 // Maps investment class names to InvestmentContext types
@@ -132,7 +131,7 @@ function EditableValue({ value, onSave, className = '' }) {
 
 // ── GoalCard ─────────────────────────────────────────────────────────────────
 
-function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurrentValue, invLoading, taggedTransactions }) {
+function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurrentValue, invLoading, taggedTransactions, quickTargets }) {
   const [showInstruments, setShowInstruments] = useState(false);
 
   const meta = ROW_META[row.id] ?? { icon: '💰' };
@@ -238,6 +237,24 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
           <span className="tabular-nums font-semibold text-gray-900 dark:text-white">{formatBRL.format(currentBalance)}</span>
         </div>
 
+        {quickTargets && (
+          <div className="flex flex-wrap gap-1">
+            {quickTargets.map(t => (
+              <button
+                key={t}
+                onClick={() => onUpdateRow(row.id, { goalTarget: t })}
+                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                  goalTarget === t
+                    ? 'bg-violet-600 text-white border-violet-600'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                {t === 0 ? 'Sem meta' : formatBRL.format(t)}
+              </button>
+            ))}
+          </div>
+        )}
+
         {!isOngoing && (
           <>
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 items-center">
@@ -279,16 +296,133 @@ function GoalCard({ row, goalTarget, isPhase2, onUpdateRow, investments, getCurr
   );
 }
 
+// ── PositionsList ────────────────────────────────────────────────────────────
+
+function PositionsList({ positions, onUpdate }) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editValue, setEditValue] = useState('');
+
+  const handleAdd = () => {
+    const v = parseFloat(newValue.replace(/\./g, '').replace(',', '.'));
+    if (!newName.trim() || isNaN(v)) return;
+    onUpdate([...positions, { name: newName.trim(), value: v }]);
+    setNewName('');
+    setNewValue('');
+    setAdding(false);
+  };
+
+  const handleEditSave = (i) => {
+    const v = parseFloat(editValue.replace(/\./g, '').replace(',', '.'));
+    if (!editName.trim() || isNaN(v)) return;
+    const updated = positions.map((p, idx) => idx === i ? { name: editName.trim(), value: v } : p);
+    onUpdate(updated);
+    setEditingIndex(null);
+  };
+
+  const handleRemove = (i) => {
+    onUpdate(positions.filter((_, idx) => idx !== i));
+  };
+
+  return (
+    <div className="space-y-1.5 mt-1.5">
+      {positions.map((pos, i) => (
+        editingIndex === i ? (
+          <div key={i} className="flex items-center gap-1.5">
+            <input
+              className="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleEditSave(i); if (e.key === 'Escape') setEditingIndex(null); }}
+              placeholder="Nome"
+              autoFocus
+            />
+            <input
+              className="w-24 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-right"
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleEditSave(i); if (e.key === 'Escape') setEditingIndex(null); }}
+              placeholder="Valor"
+            />
+            <button onClick={() => handleEditSave(i)} className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">OK</button>
+            <button onClick={() => setEditingIndex(null)} className="text-xs text-gray-400 shrink-0">✕</button>
+          </div>
+        ) : (
+          <div key={i} className="flex items-center justify-between rounded-lg px-2 py-1 bg-gray-50 dark:bg-gray-700/50 group">
+            <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">{pos.name}</span>
+            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+              <span className="text-xs tabular-nums font-semibold text-gray-700 dark:text-gray-300">{formatBRL.format(pos.value)}</span>
+              <button
+                onClick={() => { setEditingIndex(i); setEditName(pos.name); setEditValue(String(pos.value)); }}
+                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-opacity text-xs"
+                title="Editar"
+              >✏️</button>
+              <button
+                onClick={() => handleRemove(i)}
+                className="opacity-0 group-hover:opacity-100 text-rose-400 hover:text-rose-600 transition-opacity text-xs"
+                title="Remover"
+              >✕</button>
+            </div>
+          </div>
+        )
+      ))}
+
+      {adding ? (
+        <div className="flex items-center gap-1.5">
+          <input
+            className="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAdding(false); }}
+            placeholder="Ativo (ex: IVVB11)"
+            autoFocus
+          />
+          <input
+            className="w-24 px-1.5 py-0.5 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-right"
+            value={newValue}
+            onChange={e => setNewValue(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAdding(false); }}
+            placeholder="Valor"
+          />
+          <button onClick={handleAdd} className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">OK</button>
+          <button onClick={() => setAdding(false)} className="text-xs text-gray-400 shrink-0">✕</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium flex items-center gap-1 transition-colors"
+        >
+          <span>+</span> Adicionar ativo
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── InvestmentClassCard ──────────────────────────────────────────────────────
 
-function InvestmentClassCard({ cls, index, isPhase2, totalMonthly, investments, getCurrentValue, invLoading, onUpdateClass }) {
+function InvestmentClassCard({ cls, index, isPhase2, livresValue, investments, getCurrentValue, invLoading, onUpdateClass }) {
+  const [showPositions, setShowPositions] = useState(false);
+
+  const mode = cls.mode ?? 'pct';
+  const positions = cls.positions ?? [];
+
+  // Monthly aporte: pct-mode = dynamic (livresValue × pct%), value-mode = fixed phase amount
+  const monthlyAporte = mode === 'pct'
+    ? livresValue * ((cls.pct ?? 0) / 100)
+    : (isPhase2 ? (cls.phase2 ?? 0) : (cls.phase1 ?? 0));
+
+  // Balance: sum of manual positions if present, else InvestmentContext by type
   const types = CLASS_TYPE_MAP[cls.name] ?? [];
-  const balance = investments
+  const contextBalance = investments
     .filter(inv => types.includes(inv.type) && inv.status !== 'closed')
     .reduce((sum, inv) => sum + getCurrentValue(inv), 0);
-
-  const monthlyAporte = isPhase2 ? (cls.phase2 ?? 0) : (cls.phase1 ?? 0);
-  const allocPct = totalMonthly > 0 ? Math.round((monthlyAporte / totalMonthly) * 100) : 0;
+  const positionsBalance = positions.reduce((sum, p) => sum + (p.value ?? 0), 0);
+  const balance = positionsBalance > 0 ? positionsBalance : contextBalance;
+  const hasPositions = positions.length > 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col gap-3">
@@ -298,34 +432,80 @@ function InvestmentClassCard({ cls, index, isPhase2, totalMonthly, investments, 
           <span className="text-lg">{CLASS_ICONS[cls.name] ?? '📊'}</span>
           <span className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{cls.name}</span>
         </div>
-        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
-          {allocPct}%
-        </span>
+        {/* Mode toggle: % ↔ R$ */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onUpdateClass(index, 'mode', mode === 'pct' ? 'value' : 'pct')}
+            title={mode === 'pct' ? 'Mudar para valor fixo' : 'Mudar para percentual'}
+            className="text-xs px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-mono font-semibold"
+          >
+            {mode === 'pct' ? '%' : 'R$'}
+          </button>
+        </div>
       </div>
 
       {/* Vehicle */}
       <p className="text-xs text-gray-400">{cls.vehicle}</p>
 
+      {/* Positions toggle */}
+      <div>
+        <button
+          onClick={() => setShowPositions(v => !v)}
+          className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1 transition-colors"
+        >
+          <span>{showPositions ? '▾' : '▸'}</span>
+          <span>Carteira {hasPositions ? `(${positions.length} ativos)` : ''}</span>
+        </button>
+        {showPositions && (
+          <PositionsList
+            positions={positions}
+            onUpdate={newPositions => onUpdateClass(index, 'positions', newPositions)}
+          />
+        )}
+      </div>
+
       {/* Balance */}
-      <div className="space-y-2 pt-1 border-t border-gray-100 dark:border-gray-700">
+      <div className="space-y-1 pt-1 border-t border-gray-100 dark:border-gray-700">
         {invLoading ? (
           <Shimmer className="h-5 w-3/4 rounded" />
         ) : (
           <div className="flex justify-between text-xs">
-            <span className="text-gray-500 dark:text-gray-400">Saldo atual</span>
+            <span className="text-gray-500 dark:text-gray-400">
+              Saldo atual {hasPositions ? '(manual)' : ''}
+            </span>
             <span className="tabular-nums font-semibold text-gray-900 dark:text-white">{formatBRL.format(balance)}</span>
           </div>
         )}
       </div>
 
-      {/* Footer — editable fixed monthly aporte (phase1/phase2) */}
-      <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700">
-        <span>Aporte este mês</span>
-        <EditableValue
-          value={monthlyAporte}
-          onSave={v => onUpdateClass(index, isPhase2 ? 'phase2' : 'phase1', v)}
-          className="font-semibold"
-        />
+      {/* Footer — editable aporte (pct or fixed value) */}
+      <div className="pt-1 border-t border-gray-100 dark:border-gray-700 space-y-1">
+        {mode === 'pct' ? (
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>Alocação</span>
+            <div className="flex items-center gap-1">
+              <EditableValue
+                value={cls.pct ?? 0}
+                onSave={v => onUpdateClass(index, 'pct', v)}
+                className="font-semibold"
+              />
+              <span className="text-gray-400">%</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>Aporte fixo</span>
+            <EditableValue
+              value={isPhase2 ? (cls.phase2 ?? 0) : (cls.phase1 ?? 0)}
+              onSave={v => onUpdateClass(index, isPhase2 ? 'phase2' : 'phase1', v)}
+              className="font-semibold"
+            />
+          </div>
+        )}
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-400">Aporte este mês</span>
+          <span className="tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{formatBRL.format(monthlyAporte)}</span>
+        </div>
       </div>
     </div>
   );
@@ -333,7 +513,7 @@ function InvestmentClassCard({ cls, index, isPhase2, totalMonthly, investments, 
 
 // ── LayerSection ─────────────────────────────────────────────────────────────
 
-function LayerSection({ layerKey, rows, isPhase2, onUpdateRow, onUpdateClass, investments, getCurrentValue, invLoading, taggedTransactions, investmentClasses, livresValue }) {
+function LayerSection({ layerKey, rows, isPhase2, onUpdateRow, onUpdateClass, investments, getCurrentValue, invLoading, taggedTransactions, investmentClasses, livresValue, rowQuickTargets }) {
   const config = LAYER_CONFIG[layerKey];
   const { geminiApiKey } = useSettings();
 
@@ -510,6 +690,7 @@ Schema:
               getCurrentValue={getCurrentValue}
               invLoading={invLoading}
               taggedTransactions={taggedTransactions}
+              quickTargets={rowQuickTargets?.[row.id]}
             />
           ))}
         </div>
@@ -519,9 +700,12 @@ Schema:
       {layerKey === 'crescimento' && investmentClasses?.length > 0 && (
         <div className="space-y-2">
           {(() => {
-            const totalMonthly = investmentClasses.reduce(
-              (sum, c) => sum + (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)), 0
-            );
+            const totalMonthly = investmentClasses.reduce((sum, c) => {
+              const m = (c.mode ?? 'pct') === 'pct'
+                ? livresValue * ((c.pct ?? 0) / 100)
+                : (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0));
+              return sum + m;
+            }, 0);
             return (
               <>
                 <div className="flex items-center justify-between px-1">
@@ -539,7 +723,7 @@ Schema:
                       cls={cls}
                       index={i}
                       isPhase2={isPhase2}
-                      totalMonthly={totalMonthly}
+                      livresValue={livresValue}
                       investments={investments}
                       getCurrentValue={getCurrentValue}
                       invLoading={invLoading}
@@ -576,7 +760,14 @@ const LAYER_META = {
   legado:      { label: 'Legado',      icon: '👨‍👩‍👧‍👦', bar: 'bg-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-700 dark:text-orange-300' },
 };
 
-function CarteiraDashboard({ savingsRows, investmentClasses, investments, getCurrentValue, invLoading, taggedTransactions, isPhase2 }) {
+function CarteiraDashboard({ savingsRows, investmentClasses, investments, getCurrentValue, invLoading, taggedTransactions, isPhase2, savingsComputed }) {
+  const [expandedLayers, setExpandedLayers] = useState(new Set());
+  const toggleLayer = (key) => setExpandedLayers(prev => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
+
   // ── Computed values ──────────────────────────────────────────────────────
   const rowBalances = {};
   savingsRows.forEach(row => {
@@ -598,50 +789,68 @@ function CarteiraDashboard({ savingsRows, investmentClasses, investments, getCur
 
   const totalPatrimonio = totalInvested + totalManualOnly;
 
-  // Monthly commitment
-  const monthlyRows = savingsRows.reduce((sum, r) => sum + (isPhase2 ? (r.phase2 ?? 0) : (r.phase1 ?? 0)), 0);
-  const monthlyClasses = investmentClasses.reduce((sum, c) => sum + (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)), 0);
-  const monthlyTotal = monthlyRows + monthlyClasses;
+  // Monthly commitment — always the live poupança allocation (income × poupança%)
+  // poupancaPhase1 === poupancaValue; we never use poupancaPhase2 here because
+  // the freed car payment is a simulation concept, not the current allocation reality.
+  const monthlyTotal = savingsComputed?.poupancaPhase1 ?? 0;
+
+  // Priority focus — first incomplete goal by PRIORITY_ORDER
+  const focusRow = (() => {
+    const sorted = [...savingsRows].sort((a, b) => {
+      const ia = PRIORITY_ORDER.indexOf(a.id);
+      const ib = PRIORITY_ORDER.indexOf(b.id);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+    return sorted.find(row => {
+      const target = row.goalTarget ?? 0;
+      const balance = rowBalances[row.id] ?? 0;
+      return target > 0 && balance < target;
+    }) ?? null;
+  })();
+  const focusBalance = focusRow ? (rowBalances[focusRow.id] ?? 0) : 0;
+  const focusTarget = focusRow?.goalTarget ?? 0;
+  const focusPct = focusTarget > 0 ? Math.min(100, (focusBalance / focusTarget) * 100) : 0;
+  const focusMeta = focusRow ? (ROW_META[focusRow.id] ?? { icon: '🎯' }) : null;
+  const focusColors = focusRow ? (LAYER_CARD_COLORS[focusRow.layer ?? 'liquidez'] ?? LAYER_CARD_COLORS.liquidez) : null;
 
   // Emergency fund
   const emergRow = savingsRows.find(r => r.id === 'emergencia');
   const emergBalance = rowBalances['emergencia'] ?? 0;
   const emergTarget = emergRow?.goalTarget ?? 120000;
-  const emergMonthly = isPhase2 ? (emergRow?.phase2 ?? 0) : (emergRow?.phase1 ?? 0);
   // months covered = balance / (monthlyExpenses estimate = emergTarget/6)
   const monthlyExpenses = emergTarget / 6;
   const mesesCobertos = monthlyExpenses > 0 ? Math.floor(emergBalance / monthlyExpenses) : 0;
   const emergPct = emergTarget > 0 ? Math.min(100, (emergBalance / emergTarget) * 100) : 0;
 
-  // Independence (aposentadoria)
-  const apoRow = savingsRows.find(r => r.id === 'aposentadoria');
-  const apoBalance = rowBalances['aposentadoria'] ?? 0;
-  const apoTarget = apoRow?.goalTarget ?? 6000000;
-  const apoPct = apoTarget > 0 ? Math.min(100, (apoBalance / apoTarget) * 100) : 0;
+  // livresValue for investment class pct-mode amounts — always Phase 1 to match poupança allocation
+  const livresValueDash = savingsComputed?.livresPhase1 ?? 0;
 
-  // Layer progress
-  const layerData = ['liquidez', 'crescimento', 'patrimonio', 'legado'].map(key => {
+  const getClassMonthly = (c) => (c.mode ?? 'pct') === 'pct'
+    ? livresValueDash * ((c.pct ?? 0) / 100)
+    : (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0));
+
+  // Layer allocation — groups savings rows + investment classes by layer
+  const layerAlloc = ['liquidez', 'crescimento', 'patrimonio', 'legado'].map(key => {
     const rows = savingsRows.filter(r => (r.layer ?? 'liquidez') === key);
-    const balance = rows.reduce((sum, r) => sum + (rowBalances[r.id] ?? 0), 0);
-    const target = rows.reduce((sum, r) => sum + (r.goalTarget > 0 ? r.goalTarget : 0), 0);
-    const monthly = rows.reduce((sum, r) => sum + (isPhase2 ? (r.phase2 ?? 0) : (r.phase1 ?? 0)), 0);
-    // Add investment class monthly for crescimento
-    const classMonthly = key === 'crescimento'
-      ? investmentClasses.reduce((sum, c) => sum + (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)), 0)
-      : 0;
-    const pct = target > 0 ? Math.min(100, (balance / target) * 100) : null;
-    return { key, balance, target, monthly: monthly + classMonthly, pct };
+    const rowItems = rows.map(r => ({
+      id: r.id, label: r.label,
+      icon: ROW_META[r.id]?.icon ?? '💰',
+      value: isPhase2 ? (r.phase2 ?? 0) : (r.phase1 ?? 0),
+    }));
+    const classItems = key === 'crescimento'
+      ? investmentClasses.map(c => ({
+          id: c.name, label: c.name,
+          icon: CLASS_ICONS[c.name] ?? '📊',
+          value: getClassMonthly(c),
+        }))
+      : [];
+    const items = [...rowItems, ...classItems];
+    const total = items.reduce((sum, item) => sum + item.value, 0);
+    return { key, items, total };
   });
 
-  // Monthly flow breakdown for stacked bar
-  const flowItems = [
-    ...savingsRows
-      .filter(r => (isPhase2 ? r.phase2 : r.phase1) > 0)
-      .map(r => ({ label: r.label, value: isPhase2 ? r.phase2 : r.phase1, layer: r.layer ?? 'liquidez' })),
-    ...investmentClasses
-      .filter(c => (isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0)) > 0)
-      .map(c => ({ label: c.name, value: isPhase2 ? (c.phase2 ?? 0) : (c.phase1 ?? 0), layer: 'crescimento' })),
-  ];
+  const grandTotal = layerAlloc.reduce((sum, l) => sum + l.total, 0);
+  const notAllocated = monthlyTotal - grandTotal;
 
   return (
     <div className="space-y-4">
@@ -686,117 +895,112 @@ function CarteiraDashboard({ savingsRows, investmentClasses, investments, getCur
           </div>
         </div>
 
-        {/* Independência financeira */}
+        {/* Foco atual — highest-priority incomplete goal */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Independência</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Foco atual</p>
+            {focusRow && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${focusColors?.badge ?? ''}`}>
+                {focusMeta?.icon}
+              </span>
+            )}
+          </div>
           {invLoading ? (
             <Shimmer className="h-6 w-2/3 rounded" />
+          ) : focusRow ? (
+            <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">{focusRow.label}</p>
           ) : (
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {apoPct.toFixed(1)}%
-            </p>
+            <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Todas as metas atingidas 🎉</p>
           )}
-          <p className="text-xs text-gray-400 mt-0.5 tabular-nums truncate">{formatBRL.format(apoBalance)} / {formatBRL.format(apoTarget)}</p>
-          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-1.5">
-            <div className="h-1.5 rounded-full bg-emerald-500 transition-all" style={{ width: `${apoPct}%` }} />
-          </div>
+          {focusRow && !invLoading && (
+            <>
+              <p className="text-xs text-gray-400 mt-0.5 tabular-nums truncate">
+                {formatBRL.format(focusBalance)} / {formatBRL.format(focusTarget)}
+              </p>
+              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-1.5">
+                <div className={`h-1.5 rounded-full transition-all ${focusColors?.bar ?? 'bg-gray-400'}`} style={{ width: `${focusPct}%` }} />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── Layer progress ── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 space-y-3">
-        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Progresso por camada</p>
-        {layerData.map(({ key, balance, target, monthly, pct }) => {
-          const m = LAYER_META[key];
-          return (
-            <div key={key} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5">
+      {/* ── Allocation by layer ── */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Alocação mensal
+          </p>
+          <span className="text-xs text-gray-400 tabular-nums">{formatBRL.format(monthlyTotal)}/mês</span>
+        </div>
+
+        <div className="space-y-1">
+          {layerAlloc.map(({ key, items, total }) => {
+            const m = LAYER_META[key];
+            const layerPct = monthlyTotal > 0 ? (total / monthlyTotal) * 100 : 0;
+            const isExpanded = expandedLayers.has(key);
+            return (
+              <div key={key}>
+                {/* Layer header row */}
+                <button
+                  onClick={() => toggleLayer(key)}
+                  className="w-full flex items-center gap-2 text-xs py-1.5 px-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                >
                   <span>{m.icon}</span>
-                  <span className="font-medium text-gray-700 dark:text-gray-300">{m.label}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${m.bg} ${m.text}`}>
-                    {formatBRL.format(monthly)}/mês
-                  </span>
+                  <span className={`font-semibold flex-1 text-left ${m.text}`}>{m.label}</span>
+                  <span className="text-gray-400">{isExpanded ? '▾' : '▸'}</span>
+                  <span className="text-gray-500 dark:text-gray-400 tabular-nums font-medium w-8 text-right">{layerPct.toFixed(0)}%</span>
+                  <span className="text-gray-700 dark:text-gray-300 tabular-nums font-semibold w-20 text-right">{formatBRL.format(total)}</span>
+                </button>
+
+                {/* Layer bar */}
+                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 mx-1 mb-0.5">
+                  <div className={`h-1 rounded-full transition-all ${m.bar}`} style={{ width: `${Math.min(100, layerPct)}%` }} />
                 </div>
-                <div className="text-right text-gray-500 dark:text-gray-400 tabular-nums">
-                  {invLoading ? '...' : (
-                    pct !== null
-                      ? `${formatBRL.format(balance)} / ${formatBRL.format(target)}`
-                      : formatBRL.format(balance)
-                  )}
-                </div>
-              </div>
-              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                {invLoading ? (
-                  <Shimmer className="h-2 w-full rounded-full" />
-                ) : (
-                  <div
-                    className={`h-2 rounded-full transition-all ${m.bar}`}
-                    style={{ width: pct !== null ? `${pct}%` : '0%' }}
-                  />
+
+                {/* Expanded items */}
+                {isExpanded && items.length > 0 && (
+                  <div className="ml-5 mb-1 space-y-px">
+                    {items.map(item => {
+                      const itemPct = monthlyTotal > 0 ? (item.value / monthlyTotal) * 100 : 0;
+                      return (
+                        <div key={item.id} className="flex items-center gap-2 text-xs py-0.5 px-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                          <span className="w-4 text-center">{item.icon}</span>
+                          <span className="text-gray-600 dark:text-gray-400 flex-1 truncate">{item.label}</span>
+                          <span className="text-gray-400 tabular-nums w-8 text-right">{itemPct.toFixed(0)}%</span>
+                          <span className="text-gray-700 dark:text-gray-300 tabular-nums font-medium w-20 text-right">{formatBRL.format(item.value)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-              {pct !== null && !invLoading && (
-                <p className="text-xs text-gray-400 text-right">{pct.toFixed(1)}% atingido</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Monthly flow ── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Fluxo mensal</p>
-          <p className="text-xs text-gray-400 tabular-nums">{formatBRL.format(monthlyTotal)}/mês</p>
+            );
+          })}
         </div>
 
-        {/* Stacked bar */}
-        {monthlyTotal > 0 && (
-          <div className="flex h-3 rounded-full overflow-hidden gap-px">
-            {flowItems.map((item, i) => {
-              const pct = (item.value / monthlyTotal) * 100;
-              const barColor = {
-                liquidez: 'bg-blue-400',
-                crescimento: 'bg-emerald-400',
-                patrimonio: 'bg-violet-400',
-                legado: 'bg-orange-400',
-              }[item.layer] ?? 'bg-gray-400';
-              return (
-                <div
-                  key={i}
-                  className={`${barColor} transition-all`}
-                  style={{ width: `${pct}%` }}
-                  title={`${item.label}: ${formatBRL.format(item.value)}`}
-                />
-              );
-            })}
+        {/* Footer totals */}
+        <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700 space-y-1">
+          <div className="flex items-center gap-2 text-xs px-1">
+            <span className="text-gray-500 dark:text-gray-400 flex-1">Total alocado</span>
+            <span className="text-gray-500 dark:text-gray-400 tabular-nums font-medium w-8 text-right">
+              {monthlyTotal > 0 ? ((grandTotal / monthlyTotal) * 100).toFixed(0) : 0}%
+            </span>
+            <span className="text-gray-700 dark:text-gray-300 tabular-nums font-semibold w-20 text-right">{formatBRL.format(grandTotal)}</span>
           </div>
-        )}
-
-        {/* Legend */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-          {flowItems
-            .sort((a, b) => b.value - a.value)
-            .map((item, i) => {
-              const dotColor = {
-                liquidez: 'bg-blue-400',
-                crescimento: 'bg-emerald-400',
-                patrimonio: 'bg-violet-400',
-                legado: 'bg-orange-400',
-              }[item.layer] ?? 'bg-gray-400';
-              return (
-                <div key={i} className="flex items-center justify-between gap-2 px-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{item.label}</span>
-                  </div>
-                  <span className="text-xs tabular-nums font-semibold text-gray-700 dark:text-gray-300 shrink-0">
-                    {formatBRL.format(item.value)}
-                  </span>
-                </div>
-              );
-            })}
+          {Math.abs(notAllocated) > 0.5 && (
+            <div className="flex items-center gap-2 text-xs px-1">
+              <span className={`flex-1 font-medium ${notAllocated < 0 ? 'text-rose-500' : 'text-amber-600 dark:text-amber-400'}`}>
+                {notAllocated < 0 ? 'Excesso alocado' : 'Não alocado'}
+              </span>
+              <span className={`tabular-nums font-semibold w-8 text-right ${notAllocated < 0 ? 'text-rose-500' : 'text-amber-600 dark:text-amber-400'}`}>
+                {monthlyTotal > 0 ? (Math.abs(notAllocated) / monthlyTotal * 100).toFixed(0) : 0}%
+              </span>
+              <span className={`tabular-nums font-semibold w-20 text-right ${notAllocated < 0 ? 'text-rose-500' : 'text-amber-600 dark:text-amber-400'}`}>
+                {formatBRL.format(Math.abs(notAllocated))}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -807,7 +1011,7 @@ function CarteiraDashboard({ savingsRows, investmentClasses, investments, getCur
 
 const LAYER_ORDER = ['liquidez', 'crescimento', 'patrimonio', 'legado'];
 
-export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth, savingsComputed }) {
+export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth, savingsComputed, carSimulationRows }) {
   const { ownerId } = useAccess();
   const { investments, getCurrentValue, loading: invLoading } = useInvestments();
   const [taggedTransactions, setTaggedTransactions] = useState({});
@@ -861,9 +1065,14 @@ export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth, s
     update('investmentClasses', updated);
   };
 
-  const livresValue = isPhase2ForSelectedMonth
-    ? (savingsComputed?.livresPhase2 ?? 0)
-    : (savingsComputed?.livresPhase1 ?? 0);
+  // Always use Phase 1 livres so investment class amounts match the poupança allocation shown in Sistema tab
+  const livresValue = savingsComputed?.livresPhase1 ?? 0;
+
+  // Last parcel value from car simulation — used as a quick-select target for carAntecipacao
+  const lastCarParcelValue = carSimulationRows?.at(-1)?.total ?? 0;
+  const rowQuickTargets = lastCarParcelValue > 0
+    ? { carAntecipacao: [0, Math.round(lastCarParcelValue)] }
+    : {};
 
   return (
     <div className="space-y-6">
@@ -875,6 +1084,7 @@ export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth, s
         invLoading={invLoading}
         taggedTransactions={taggedTransactions}
         isPhase2={isPhase2ForSelectedMonth}
+        savingsComputed={savingsComputed}
       />
 
       {LAYER_ORDER.map(layerKey => (
@@ -891,6 +1101,7 @@ export default function CarteiraTab({ state, update, isPhase2ForSelectedMonth, s
           taggedTransactions={taggedTransactions}
           investmentClasses={layerKey === 'crescimento' ? state.investmentClasses : null}
           livresValue={livresValue}
+          rowQuickTargets={rowQuickTargets}
         />
       ))}
     </div>

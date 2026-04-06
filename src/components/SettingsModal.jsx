@@ -85,7 +85,13 @@ export default function SettingsModal({ isOpen, onClose }) {
   const saveAllowedEmails = async (emails) => {
     setSavingEmails(true);
     try {
-      await setDoc(doc(db, 'access', 'allowed_emails'), { emails });
+      const accessDoc = await getDoc(doc(db, 'access', 'allowed_emails'));
+      const existingData = accessDoc.exists() ? accessDoc.data() : {};
+      
+      await setDoc(doc(db, 'access', 'allowed_emails'), { 
+        ...existingData,
+        emails 
+      });
       setAllowedEmails(emails);
     } catch (err) {
       console.error('Error saving allowed emails:', err);

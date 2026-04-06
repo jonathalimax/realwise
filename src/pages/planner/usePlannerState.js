@@ -40,7 +40,7 @@ const DEFAULT_STATE = {
   carMonthlyPayment: 2111.30,
   carRemainingMonths: 52,
   carMonthlyRate: 3.9,
-  carLastParcelasCount: 2,
+  carLastParcelasCount: 1,
   carInitialBoleto: 1600.28,
 
   // House Simulator
@@ -63,18 +63,6 @@ const DEFAULT_STATE = {
       instruments: [
         { name: 'Tesouro Selic 2027',            type: 'Renda Fixa', alloc: 50 },
         { name: 'CDB liq. diária 110% CDI',      type: 'Renda Fixa', alloc: 50 },
-      ],
-    },
-    {
-      id: 'aposentadoria', label: 'Independência Financeira', layer: 'crescimento',
-      phase1: 500, phase2: 800, tipo: 'Não pausar — renda futura', returnPct: 0.9,
-      goalTarget: 6000000, manualBalance: 0,
-      instruments: [
-        { name: 'Tesouro IPCA+ 2040',    type: 'Renda Fixa', alloc: 35 },
-        { name: 'IVVB11 (S&P 500 ETF)',  type: 'ETF',        alloc: 25 },
-        { name: 'MXRF11 (Maxi Renda)',   type: 'FII',        alloc: 15 },
-        { name: 'HGLG11 (Patria Log)',   type: 'FII',        alloc: 15 },
-        { name: 'XPML11 (XP Malls)',     type: 'FII',        alloc: 10 },
       ],
     },
     {
@@ -128,6 +116,14 @@ const DEFAULT_STATE = {
         { name: 'CDB liq. diária 110% CDI', type: 'Renda Fixa', alloc: 100 },
       ],
     },
+    {
+      id: 'carAntecipacao', label: 'Antecipar Carro', layer: 'patrimonio',
+      phase1: 0, phase2: 500, tipo: 'Quitar financiamento antecipado', returnPct: 1.0,
+      goalTarget: 0, manualBalance: 0,
+      instruments: [
+        { name: 'CDB liq. diária 110% CDI', type: 'Renda Fixa', alloc: 100 },
+      ],
+    },
   ],
 
   // Planner start date (for month markers)
@@ -137,13 +133,13 @@ const DEFAULT_STATE = {
   carCurrentValue: 60000,
   propertyAppreciationPct: 0.5,
 
-  // Investment classes — fixed monthly amounts per phase + allocation pct for projections
+  // Investment classes — mode:'pct' = dynamic (livresValue × pct/100), mode:'value' = fixed phase amounts
   investmentClasses: [
-    { name: 'Renda Fixa (CDB/Tesouro)', pct: 44, phase1: 455,  phase2: 2000, returnPct: 1.0, vehicle: 'Tesouro IPCA+ 2040 / CDB 110% CDI' },
-    { name: 'Exterior ETFs',            pct: 30, phase1: 390,  phase2: 1350, returnPct: 1.0, vehicle: 'IVVB11 (S&P 500)' },
-    { name: 'FIIs',                     pct: 16, phase1: 195,  phase2: 700,  returnPct: 0.8, vehicle: 'MXRF11, HGLG11, XPML11' },
-    { name: 'Ações Dividendos',         pct: 10, phase1: 195,  phase2: 450,  returnPct: 0.7, vehicle: 'BOVA11 / ITUB4, BBAS3' },
-    { name: 'Cripto',                   pct:  0, phase1: 65,   phase2: 0,    returnPct: 1.5, vehicle: 'BTC 70% + ETH' },
+    { name: 'Renda Fixa (CDB/Tesouro)', pct: 44, phase1: 455,  phase2: 2000, returnPct: 1.0, vehicle: 'Tesouro IPCA+ 2040 / CDB 110% CDI', mode: 'pct', positions: [] },
+    { name: 'Exterior ETFs',            pct: 30, phase1: 390,  phase2: 1350, returnPct: 1.0, vehicle: 'IVVB11 (S&P 500)',                   mode: 'pct', positions: [] },
+    { name: 'FIIs',                     pct: 16, phase1: 195,  phase2: 700,  returnPct: 0.8, vehicle: 'MXRF11, HGLG11, XPML11',             mode: 'pct', positions: [] },
+    { name: 'Ações Dividendos',         pct: 10, phase1: 195,  phase2: 450,  returnPct: 0.7, vehicle: 'BOVA11 / ITUB4, BBAS3',              mode: 'pct', positions: [] },
+    { name: 'Cripto',                   pct:  0, phase1: 65,   phase2: 0,    returnPct: 1.5, vehicle: 'BTC 70% + ETH',                      mode: 'pct', positions: [] },
   ],
 };
 
@@ -157,6 +153,9 @@ function migrateState(saved) {
       merged.savingsRows.push({ ...defRow });
     }
   });
+
+  // Remove deprecated rows (aposentadoria replaced by investment classes in Crescimento layer)
+  merged.savingsRows = merged.savingsRows.filter(r => r.id !== 'aposentadoria');
 
   // Ensure all default fields are present on each row (handles schema migrations)
   merged.savingsRows = merged.savingsRows.map(row => {
@@ -172,13 +171,15 @@ function migrateState(saved) {
     };
   });
 
-  // Ensure phase1/phase2 are present on all investmentClasses
+  // Ensure phase1/phase2/mode/positions are present on all investmentClasses
   if (merged.investmentClasses) {
     merged.investmentClasses = merged.investmentClasses.map(cls => {
       const def = DEFAULT_STATE.investmentClasses.find(d => d.name === cls.name);
       return {
-        phase1: def?.phase1 ?? 0,
-        phase2: def?.phase2 ?? 0,
+        phase1:    def?.phase1    ?? 0,
+        phase2:    def?.phase2    ?? 0,
+        mode:      def?.mode      ?? 'pct',
+        positions: def?.positions ?? [],
         ...cls,
       };
     });

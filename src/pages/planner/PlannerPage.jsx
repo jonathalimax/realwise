@@ -178,6 +178,7 @@ export default function PlannerPage() {
                   update={update}
                   isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
                   savingsComputed={savingsComputed}
+                  carSimulationRows={carSimulationRows}
                 />
               </TabsContent>
 

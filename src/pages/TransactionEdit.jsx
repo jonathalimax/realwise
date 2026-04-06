@@ -6,10 +6,12 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useGoals } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
+import { useAccess } from '../contexts/AccessContext';
 import CurrencyInput from '../components/ui/CurrencyInput';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function TransactionEditPage() {
+  const { ownerId } = useAccess();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -151,7 +153,7 @@ export default function TransactionEditPage() {
         finalCategory === 'Investments' || finalCategory === 'Investimentos';
 
       const updates = {
-        userId: auth.currentUser.uid,
+        userId: transaction.userId || ownerId || auth.currentUser.uid,
         type,
         description,
         amount: parseFloat(amount),
@@ -213,7 +215,8 @@ export default function TransactionEditPage() {
       if (transaction.isInstallment && transaction.installmentGroupId && updateAllInstallments) {
         const q = query(
           collection(db, 'transactions'),
-          where('installmentGroupId', '==', transaction.installmentGroupId)
+          where('installmentGroupId', '==', transaction.installmentGroupId),
+          where('userId', '==', transaction.userId || ownerId || auth.currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
         const batch = writeBatch(db);

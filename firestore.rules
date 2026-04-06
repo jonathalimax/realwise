@@ -13,11 +13,17 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Helper function: Check if user has shared access (email in allowedEmailsList)
+    // Helper function: Check if user has shared access (email in emails list)
     function hasSharedAccess() {
       return request.auth != null &&
              exists(/databases/$(database)/documents/access/allowed_emails) &&
-             request.auth.token.email.lower() in getAccessDoc().data.allowedEmailsList;
+             (
+               request.auth.token.email.lower() in getAccessDoc().data.allowedEmailsList ||
+               getAccessDoc().data.emails.hasAny([
+                 {'email': request.auth.token.email.lower(), 'role': 'read'},
+                 {'email': request.auth.token.email.lower(), 'role': 'write'}
+               ])
+             );
     }
 
     // Helper function: Get the owner's UID from access document
@@ -25,11 +31,16 @@ service cloud.firestore {
       return getAccessDoc().data.ownerId;
     }
 
-    // Helper function: Check if user has write access (email in writeEmailsList)
+    // Helper function: Check if user has write access (email in writeEmailsList or emails list with write role)
     function hasWriteAccess() {
       return request.auth != null &&
              exists(/databases/$(database)/documents/access/allowed_emails) &&
-             request.auth.token.email.lower() in getAccessDoc().data.writeEmailsList;
+             (
+               request.auth.token.email.lower() in getAccessDoc().data.writeEmailsList ||
+               getAccessDoc().data.emails.hasAny([
+                 {'email': request.auth.token.email.lower(), 'role': 'write'}
+               ])
+             );
     }
 
     // Helper function: Check if user can read this data (owner or shared user viewing owner's data)
