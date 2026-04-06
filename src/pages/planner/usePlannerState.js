@@ -141,6 +141,9 @@ const DEFAULT_STATE = {
     { name: 'Ações Dividendos',         pct: 10, phase1: 195,  phase2: 450,  returnPct: 0.7, vehicle: 'BOVA11 / ITUB4, BBAS3',              mode: 'pct', positions: [] },
     { name: 'Cripto',                   pct:  0, phase1: 65,   phase2: 0,    returnPct: 1.5, vehicle: 'BTC 70% + ETH',                      mode: 'pct', positions: [] },
   ],
+
+  // Wallet versions — used by CarteiraTab only. Other tabs keep using savingsRows/investmentClasses.
+  walletVersions: [],
 };
 
 function migrateState(saved) {
@@ -183,6 +186,78 @@ function migrateState(saved) {
         ...cls,
       };
     });
+  }
+
+  // Migrate savingsRows + investmentClasses → walletVersions if absent
+  if (!merged.walletVersions?.length) {
+    const startMonth = merged.plannerStartDate ||
+      `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+    // Group savingsRows by layer
+    const byLayer = {};
+    (merged.savingsRows ?? []).forEach(row => {
+      const layerId = row.layer ?? 'liquidez';
+      if (!byLayer[layerId]) byLayer[layerId] = [];
+      const ICONS = { emergencia: '🛡️', filhos: '👶', casa: '🏠', mae: '❤️', manutencao: '🔧', ipva: '🚗', matricula: '📚', carAntecipacao: '⏭️' };
+      byLayer[layerId].push({
+        id: row.id,
+        label: row.label,
+        icon: ICONS[row.id] ?? '💰',
+        type: 'Renda Fixa',
+        bank: '',
+        description: (row.instruments ?? []).map(i => i.name).join(' / '),
+        mode: 'value',
+        pct: 0,
+        value: row.phase1 ?? 0,
+        goalTarget: row.goalTarget ?? 0,
+        manualBalance: row.manualBalance ?? 0,
+        returnPct: row.returnPct ?? 1.0,
+        taxRate: 15,
+        instruments: row.instruments ?? [],
+      });
+    });
+
+    // Build crescimento sublayers from investmentClasses
+    const CLASS_ICONS = { 'Renda Fixa (CDB/Tesouro)': '📈', 'Exterior ETFs': '🌍', 'FIIs': '🏢', 'Ações Dividendos': '💹', 'Cripto': '₿' };
+    const CLASS_TYPES = { 'Renda Fixa (CDB/Tesouro)': 'Renda Fixa', 'Exterior ETFs': 'ETF', 'FIIs': 'FII', 'Ações Dividendos': 'Ações', 'Cripto': 'Cripto' };
+    const crescimentoSublayers = (merged.investmentClasses ?? []).map(cls => ({
+      id: `cls-${cls.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      label: cls.name,
+      icon: CLASS_ICONS[cls.name] ?? '📊',
+      type: CLASS_TYPES[cls.name] ?? 'Misto',
+      bank: '',
+      description: cls.vehicle ?? '',
+      mode: cls.mode ?? 'pct',
+      pct: cls.pct ?? 0,
+      value: cls.phase1 ?? 0,
+      goalTarget: 0,
+      manualBalance: 0,
+      returnPct: cls.returnPct ?? 1.0,
+      taxRate: 15,
+      instruments: [],
+    }));
+
+    const LAYER_DEFS = [
+      { id: 'liquidez',    label: 'Liquidez',    icon: '💧', colorKey: 'blue',    pct: 30, description: 'Reservas líquidas e de emergência — acesso imediato.' },
+      { id: 'crescimento', label: 'Crescimento', icon: '📈', colorKey: 'emerald', pct: 40, description: 'Composição de longo prazo — consistência acima de timing.' },
+      { id: 'patrimonio',  label: 'Patrimônio',  icon: '🏠', colorKey: 'violet',  pct: 20, description: 'Ativos reais — casa e carro com apreciação de longo prazo.' },
+      { id: 'legado',      label: 'Legado',      icon: '👨‍👩‍👧‍👦', colorKey: 'orange',  pct: 10, description: 'Impacto intergeracional — educação dos filhos e holding familiar.' },
+    ];
+
+    merged.walletVersions = [{
+      from: startMonth,
+      layers: LAYER_DEFS.map(def => ({
+        id: def.id,
+        label: def.label,
+        icon: def.icon,
+        colorKey: def.colorKey,
+        description: def.description,
+        pct: def.pct,
+        sublayers: def.id === 'crescimento'
+          ? crescimentoSublayers
+          : (byLayer[def.id] ?? []),
+      })),
+    }];
   }
 
   return merged;
