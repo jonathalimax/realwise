@@ -2,7 +2,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Shimmer } from '@/components/ui/shimmer';
 import usePlannerState from './usePlannerState';
 import SistemaTab from './SistemaTab';
-import CarteiraTab from './CarteiraTab';
+import CarteiraTab from './carteira';
 import DashboardTab from './DashboardTab';
 import AllocationTab from './AllocationTab';
 import SimulacoesTab from './SimulacoesTab';
@@ -176,9 +176,8 @@ export default function PlannerPage() {
                 <CarteiraTab
                   state={state}
                   update={update}
-                  isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
-                  savingsComputed={savingsComputed}
-                  carSimulationRows={carSimulationRows}
+                  poupancaValue={poupancaValue}
+                  selectedMonth={state.selectedPlannerMonth}
                 />
               </TabsContent>
 
