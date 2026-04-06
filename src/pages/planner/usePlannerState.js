@@ -234,7 +234,7 @@ function migrateState(saved) {
       manualBalance: 0,
       returnPct: cls.returnPct ?? 1.0,
       taxRate: 15,
-      instruments: [],
+      instruments: (cls.positions ?? []).map(p => ({ name: p.name, type: p.type ?? 'Outro', alloc: p.alloc ?? 0 })),
     }));
 
     const LAYER_DEFS = [
