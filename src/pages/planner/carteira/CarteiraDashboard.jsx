@@ -1,14 +1,7 @@
 // src/pages/planner/carteira/CarteiraDashboard.jsx
 import { Shimmer } from '@/components/ui/shimmer';
 import { formatBRL, PRIORITY_ORDER, resolveLayerColors } from './constants';
-import { getActiveVersion } from './walletVersion';
-
-function getSubBalance(sublayer, investments, getCurrentValue, taggedTransactions) {
-  const invs = investments.filter(inv => inv.plannerGoalId === sublayer.id && inv.status !== 'closed');
-  const txs = (taggedTransactions[sublayer.id] ?? []);
-  const auto = invs.reduce((s, i) => s + getCurrentValue(i), 0) + txs.reduce((s, t) => s + (t.amount || 0), 0);
-  return auto > 0 ? auto : (sublayer.manualBalance ?? 0);
-}
+import { getActiveVersion, getSubBalance } from './walletVersion';
 
 export default function CarteiraDashboard({
   walletVersions,
@@ -113,6 +106,8 @@ export default function CarteiraDashboard({
           <Shimmer className="h-6 w-2/3 rounded" />
         ) : focusSub ? (
           <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">{focusSub.label}</p>
+        ) : allSublayers.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-500">Nenhuma meta configurada</p>
         ) : (
           <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Todas as metas atingidas 🎉</p>
         )}

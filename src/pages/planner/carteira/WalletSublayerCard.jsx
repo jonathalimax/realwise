@@ -1,15 +1,8 @@
 // src/pages/planner/carteira/WalletSublayerCard.jsx
 import { Shimmer } from '@/components/ui/shimmer';
 import { formatBRL, resolveLayerColors, INSTRUMENT_TYPE_COLORS } from './constants';
-import { sublayerMonthlyAmount, netReturn } from './walletVersion';
+import { sublayerMonthlyAmount, netReturn, getSubBalance } from './walletVersion';
 import { useState } from 'react';
-
-function getSubBalance(sublayer, investments, getCurrentValue, taggedTransactions) {
-  const invs = investments.filter(inv => inv.plannerGoalId === sublayer.id && inv.status !== 'closed');
-  const txs = taggedTransactions[sublayer.id] ?? [];
-  const auto = invs.reduce((s, i) => s + getCurrentValue(i), 0) + txs.reduce((s, t) => s + (t.amount || 0), 0);
-  return auto > 0 ? auto : (sublayer.manualBalance ?? 0);
-}
 
 export default function WalletSublayerCard({
   sublayer,

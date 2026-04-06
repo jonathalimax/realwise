@@ -74,3 +74,18 @@ export function sublayerMonthlyAmount(sublayer, layerMonthlyAmount) {
 export function netReturn(returnPct, taxRate) {
   return returnPct * (1 - taxRate / 100);
 }
+
+/**
+ * Computes the current balance of a sublayer, preferring live data over manualBalance.
+ * @param {object} sublayer
+ * @param {Array} investments
+ * @param {function} getCurrentValue
+ * @param {object} taggedTransactions - { [sublayerId]: Transaction[] }
+ * @returns {number}
+ */
+export function getSubBalance(sublayer, investments, getCurrentValue, taggedTransactions) {
+  const invs = investments.filter(inv => inv.plannerGoalId === sublayer.id && inv.status !== 'closed');
+  const txs = taggedTransactions[sublayer.id] ?? [];
+  const auto = invs.reduce((s, i) => s + getCurrentValue(i), 0) + txs.reduce((s, t) => s + (t.amount || 0), 0);
+  return auto > 0 ? auto : (sublayer.manualBalance ?? 0);
+}

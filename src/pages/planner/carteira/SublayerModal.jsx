@@ -45,7 +45,7 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
       bank,
       description: description.trim(),
       mode,
-      pct: parseFloat(pct) || 0,
+      pct: Math.max(0, Math.min(100, parseFloat(pct) || 0)),
       value: parseFloat(value) || 0,
       goalTarget: hasGoal ? (parseFloat(goalTarget) || 0) : 0,
       returnPct: parseFloat(returnPct) || 1.0,

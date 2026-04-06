@@ -20,7 +20,7 @@ export default function CarteiraTab({ state, update, poupancaValue, selectedMont
     if (!ownerId) return;
     const fetchTagged = async () => {
       try {
-        const q = query(collection(db, 'transactions'), where('userId', '==', ownerId), where('plannerGoalId', '!=', null));
+        const q = query(collection(db, 'transactions'), where('userId', '==', ownerId));
         const snap = await getDocs(q);
         const byGoal = {};
         snap.forEach(d => {
