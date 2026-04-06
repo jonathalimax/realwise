@@ -8,8 +8,8 @@
  */
 export function getActiveVersion(walletVersions, month) {
   if (!walletVersions?.length) return null;
-  const sorted = [...walletVersions].sort((a, b) => (a.from > b.from ? 1 : -1));
-  let active = sorted[0];
+  const sorted = [...walletVersions].sort((a, b) => a.from.localeCompare(b.from));
+  let active = null;
   for (const v of sorted) {
     if (v.from <= month) active = v;
   }
@@ -25,15 +25,22 @@ export function getActiveVersion(walletVersions, month) {
  * @returns {Array} new walletVersions array
  */
 export function updateWalletForMonth(walletVersions, month, patchFn) {
-  const sorted = [...walletVersions].sort((a, b) => (a.from > b.from ? 1 : -1));
+  const sorted = [...walletVersions].sort((a, b) => a.from.localeCompare(b.from));
 
-  // Find index of the active version
-  let activeIdx = 0;
+  // Find the active version index (most recent with from <= month)
+  let activeIdx = -1;
   sorted.forEach((v, i) => { if (v.from <= month) activeIdx = i; });
+
+  if (activeIdx === -1) {
+    // No version exists for this month — create a new one from scratch with empty layers
+    return [...sorted, { from: month, layers: patchFn([]) }]
+      .sort((a, b) => a.from.localeCompare(b.from));
+  }
+
   const active = sorted[activeIdx];
 
   if (active.from === month) {
-    // Mutate the existing snapshot for this month
+    // Update the existing snapshot for this month
     return sorted.map((v, i) =>
       i === activeIdx ? { ...v, layers: patchFn(v.layers) } : v
     );
@@ -44,7 +51,7 @@ export function updateWalletForMonth(walletVersions, month, patchFn) {
     from: month,
     layers: patchFn(JSON.parse(JSON.stringify(active.layers))),
   };
-  return [...sorted, newVersion].sort((a, b) => (a.from > b.from ? 1 : -1));
+  return [...sorted, newVersion].sort((a, b) => a.from.localeCompare(b.from));
 }
 
 /**
