@@ -84,7 +84,7 @@ export default function PlannerPage() {
     simplesValue,
     despesasPJ,
     liquidezFinal,
-    updateCategoryBudget,
+    updateCategoryBudgetPct,
     necessidadesValue,
     poupancaValue,
     desejosValue,
@@ -189,7 +189,7 @@ export default function PlannerPage() {
                   updateMonthAllocation={updateMonthAllocation}
                   resetMonthAllocation={resetMonthAllocation}
                   selectedMonth={state.selectedPlannerMonth}
-                  updateCategoryBudget={updateCategoryBudget}
+                  updateCategoryBudgetPct={updateCategoryBudgetPct}
                 />
               </TabsContent>
 

@@ -23,17 +23,8 @@ const DEFAULT_STATE = {
   contabilidade: 150,
   internet: 50,
 
-  // Category budgets — used in Allocation tab
-  categoryBudgets: [
-    { id: 'igreja',      label: 'Igreja',       emoji: '⛪', mode: 'pct', pct: 10, value: 0 },
-    { id: 'moradia',     label: 'Moradia',       emoji: '🏠', mode: 'pct', pct: 30, value: 0 },
-    { id: 'alimentacao', label: 'Alimentação',   emoji: '🍽️', mode: 'pct', pct: 15, value: 0 },
-    { id: 'saude',       label: 'Saúde',         emoji: '❤️', mode: 'pct', pct: 5,  value: 0 },
-    { id: 'transporte',  label: 'Transporte',    emoji: '🚗', mode: 'pct', pct: 5,  value: 0 },
-    { id: 'lazer',       label: 'Lazer',         emoji: '🎯', mode: 'pct', pct: 8,  value: 0 },
-    { id: 'investimentos', label: 'Investimentos', emoji: '💰', mode: 'pct', pct: 20, value: 0 },
-    { id: 'outros',      label: 'Outros',         emoji: '📦', mode: 'pct', pct: 0,  value: 0 },
-  ],
+  // Category budget percentages — { [categoryName]: pct (% of liquidezFinal) }
+  categoryBudgetsPct: {},
 
   // Tab 2 - Allocation (64/28/8)
   necessidades: 64,
@@ -168,19 +159,8 @@ function migrateState(saved) {
     }
   });
 
-  // Migrate categoryBudgets — seed from defaults if absent, migrate Igreja from dizimoPct
-  if (!merged.categoryBudgets?.length) {
-    const dizimoPct = merged.dizimoPct ?? 10;
-    merged.categoryBudgets = DEFAULT_STATE.categoryBudgets.map(cat =>
-      cat.id === 'igreja' ? { ...cat, pct: dizimoPct } : { ...cat }
-    );
-  } else {
-    // Ensure all default categories exist (handles new categories added to DEFAULT_STATE)
-    const existingIds = new Set(merged.categoryBudgets.map(c => c.id));
-    DEFAULT_STATE.categoryBudgets.forEach(defCat => {
-      if (!existingIds.has(defCat.id)) merged.categoryBudgets.push({ ...defCat });
-    });
-  }
+  // Ensure categoryBudgetsPct exists
+  if (!merged.categoryBudgetsPct) merged.categoryBudgetsPct = {};
 
   // Remove deprecated rows (aposentadoria replaced by investment classes in Crescimento layer)
   merged.savingsRows = merged.savingsRows.filter(r => r.id !== 'aposentadoria');
@@ -405,10 +385,10 @@ export default function usePlannerState() {
     [computedRendaBruta, simplesValue, despesasPJ]
   );
 
-  const updateCategoryBudget = (id, field, val) =>
+  const updateCategoryBudgetPct = (category, pct) =>
     setState(prev => ({
       ...prev,
-      categoryBudgets: prev.categoryBudgets.map(c => c.id === id ? { ...c, [field]: val } : c),
+      categoryBudgetsPct: { ...prev.categoryBudgetsPct, [category]: pct },
     }));
 
   // ── Per-month allocation (overrides or global defaults) ─────────────────
@@ -589,7 +569,7 @@ export default function usePlannerState() {
     despesasPJ,
     liquidezFinal,
     // Category budgets
-    updateCategoryBudget,
+    updateCategoryBudgetPct,
     // Allocation
     necessidadesValue,
     poupancaValue,
