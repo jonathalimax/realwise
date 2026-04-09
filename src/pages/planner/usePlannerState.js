@@ -22,7 +22,18 @@ const DEFAULT_STATE = {
   planoSaude: 300,
   contabilidade: 150,
   internet: 50,
-  dizimoPct: 11,
+
+  // Category budgets — used in Allocation tab
+  categoryBudgets: [
+    { id: 'igreja',      label: 'Igreja',       emoji: '⛪', mode: 'pct', pct: 10, value: 0 },
+    { id: 'moradia',     label: 'Moradia',       emoji: '🏠', mode: 'pct', pct: 30, value: 0 },
+    { id: 'alimentacao', label: 'Alimentação',   emoji: '🍽️', mode: 'pct', pct: 15, value: 0 },
+    { id: 'saude',       label: 'Saúde',         emoji: '❤️', mode: 'pct', pct: 5,  value: 0 },
+    { id: 'transporte',  label: 'Transporte',    emoji: '🚗', mode: 'pct', pct: 5,  value: 0 },
+    { id: 'lazer',       label: 'Lazer',         emoji: '🎯', mode: 'pct', pct: 8,  value: 0 },
+    { id: 'investimentos', label: 'Investimentos', emoji: '💰', mode: 'pct', pct: 20, value: 0 },
+    { id: 'outros',      label: 'Outros',         emoji: '📦', mode: 'pct', pct: 0,  value: 0 },
+  ],
 
   // Tab 2 - Allocation (64/28/8)
   necessidades: 64,
@@ -156,6 +167,20 @@ function migrateState(saved) {
       merged.savingsRows.push({ ...defRow });
     }
   });
+
+  // Migrate categoryBudgets — seed from defaults if absent, migrate Igreja from dizimoPct
+  if (!merged.categoryBudgets?.length) {
+    const dizimoPct = merged.dizimoPct ?? 10;
+    merged.categoryBudgets = DEFAULT_STATE.categoryBudgets.map(cat =>
+      cat.id === 'igreja' ? { ...cat, pct: dizimoPct } : { ...cat }
+    );
+  } else {
+    // Ensure all default categories exist (handles new categories added to DEFAULT_STATE)
+    const existingIds = new Set(merged.categoryBudgets.map(c => c.id));
+    DEFAULT_STATE.categoryBudgets.forEach(defCat => {
+      if (!existingIds.has(defCat.id)) merged.categoryBudgets.push({ ...defCat });
+    });
+  }
 
   // Remove deprecated rows (aposentadoria replaced by investment classes in Crescimento layer)
   merged.savingsRows = merged.savingsRows.filter(r => r.id !== 'aposentadoria');
@@ -375,20 +400,16 @@ export default function usePlannerState() {
     [state.planoSaude, state.contabilidade, state.internet]
   );
 
-  const dizimoBase = useMemo(
+  const liquidezFinal = useMemo(
     () => computedRendaBruta - simplesValue - despesasPJ,
     [computedRendaBruta, simplesValue, despesasPJ]
   );
 
-  const dizimoValue = useMemo(
-    () => dizimoBase * state.dizimoPct / 100,
-    [dizimoBase, state.dizimoPct]
-  );
-
-  const liquidezFinal = useMemo(
-    () => dizimoBase - dizimoValue,
-    [dizimoBase, dizimoValue]
-  );
+  const updateCategoryBudget = (id, field, val) =>
+    setState(prev => ({
+      ...prev,
+      categoryBudgets: prev.categoryBudgets.map(c => c.id === id ? { ...c, [field]: val } : c),
+    }));
 
   // ── Per-month allocation (overrides or global defaults) ─────────────────
   const monthAllocation = useMemo(() => {
@@ -566,9 +587,9 @@ export default function usePlannerState() {
     // Dashboard
     simplesValue,
     despesasPJ,
-    dizimoBase,
-    dizimoValue,
     liquidezFinal,
+    // Category budgets
+    updateCategoryBudget,
     // Allocation
     necessidadesValue,
     poupancaValue,

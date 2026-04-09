@@ -30,8 +30,6 @@ export default function DashboardTab({
   update,
   simplesValue,
   despesasPJ,
-  dizimoBase,
-  dizimoValue,
   liquidezFinal,
   computedRendaBruta,
   selectedMonthIncome,
@@ -198,32 +196,6 @@ export default function DashboardTab({
         </div>
       </div>
 
-      {/* Section D — Dízimo */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-          E — Dízimo
-        </h3>
-        <div className="max-w-xs">
-          <label htmlFor="dizimoPct" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Percentual do dízimo (%)
-          </label>
-          <NumericFormat
-            id="dizimoPct"
-            value={state.dizimoPct}
-            onValueChange={vals => update('dizimoPct', vals.floatValue ?? 0)}
-            decimalSeparator=","
-            suffix=" %"
-            decimalScale={1}
-            allowNegative={false}
-            placeholder="10 %"
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Base: Renda – Simples – Despesas PJ = {formatBRL.format(dizimoBase)}
-          </p>
-        </div>
-      </div>
-
       {/* Section E — Summary */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
@@ -233,7 +205,6 @@ export default function DashboardTab({
           <SummaryRow label="Renda Bruta (computada)" value={computedRendaBruta} />
           <SummaryRow label={`Simples Nacional (${state.simplesNacionalPct}%)`} value={simplesValue} negative />
           <SummaryRow label="Despesas PJ (saúde + contab. + internet)" value={despesasPJ} negative />
-          <SummaryRow label={`Dízimo (${state.dizimoPct}% sobre ${formatBRL.format(dizimoBase)})`} value={dizimoValue} negative />
           <SummaryRow label="Liquidez Final" value={liquidezFinal} highlight />
         </div>
       </div>

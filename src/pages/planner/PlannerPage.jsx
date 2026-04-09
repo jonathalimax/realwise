@@ -5,9 +5,6 @@ import SistemaTab from './SistemaTab';
 import CarteiraTab from './carteira';
 import DashboardTab from './DashboardTab';
 import AllocationTab from './AllocationTab';
-import SimulacoesTab from './SimulacoesTab';
-import InvestmentTab from './InvestmentTab';
-import GastosTab from './GastosTab';
 
 function MonthNav({ value, onChange }) {
   const [y, m] = value.split('-').map(Number);
@@ -57,13 +54,10 @@ function MonthNav({ value, onChange }) {
 }
 
 const TABS = [
-  { value: 'sistema',     label: 'Sistema' },
-  { value: 'carteira',    label: 'Carteira' },
-  { value: 'dashboard',   label: 'Dashboard' },
-  { value: 'allocation',  label: 'Alocação' },
-  { value: 'gastos',      label: 'Gastos' },
-  { value: 'investments', label: 'Investimentos' },
-  { value: 'simulacoes',  label: 'Simulações' },
+  { value: 'sistema',    label: 'Sistema' },
+  { value: 'carteira',   label: 'Carteira' },
+  { value: 'dashboard',  label: 'Dashboard' },
+  { value: 'allocation', label: 'Alocação' },
 ];
 
 function PlannerSkeleton() {
@@ -89,23 +83,14 @@ export default function PlannerPage() {
     isLoading,
     simplesValue,
     despesasPJ,
-    dizimoBase,
-    dizimoValue,
     liquidezFinal,
+    updateCategoryBudget,
     necessidadesValue,
     poupancaValue,
     desejosValue,
-    carSimulationRows,
-    houseSimulationRows,
-    investmentProjections,
-    savingsComputed,
-    savingsRowsFV,
-    totalPatrimonio,
     selectedMonthIncome,
     yearIncomeStats,
     computedRendaBruta,
-    selectedMonthOffset,
-    isPhase2ForSelectedMonth,
     monthAllocation,
     updateMonthAllocation,
     resetMonthAllocation,
@@ -164,7 +149,6 @@ export default function PlannerPage() {
                   computedRendaBruta={computedRendaBruta}
                   simplesValue={simplesValue}
                   despesasPJ={despesasPJ}
-                  dizimoValue={dizimoValue}
                   liquidezFinal={liquidezFinal}
                   necessidadesValue={necessidadesValue}
                   poupancaValue={poupancaValue}
@@ -187,8 +171,6 @@ export default function PlannerPage() {
                   update={update}
                   simplesValue={simplesValue}
                   despesasPJ={despesasPJ}
-                  dizimoBase={dizimoBase}
-                  dizimoValue={dizimoValue}
                   liquidezFinal={liquidezFinal}
                   computedRendaBruta={computedRendaBruta}
                   selectedMonthIncome={selectedMonthIncome}
@@ -207,48 +189,10 @@ export default function PlannerPage() {
                   updateMonthAllocation={updateMonthAllocation}
                   resetMonthAllocation={resetMonthAllocation}
                   selectedMonth={state.selectedPlannerMonth}
+                  updateCategoryBudget={updateCategoryBudget}
                 />
               </TabsContent>
 
-              <TabsContent value="gastos">
-                <GastosTab
-                  selectedMonth={state.selectedPlannerMonth}
-                  liquidezFinal={liquidezFinal}
-                  necessidadesValue={necessidadesValue}
-                  desejosValue={desejosValue}
-                  poupancaValue={poupancaValue}
-                />
-              </TabsContent>
-
-              <TabsContent value="simulacoes">
-                <SimulacoesTab
-                  state={state}
-                  update={update}
-                  selectedMonthIncome={selectedMonthIncome}
-                  yearIncomeStats={yearIncomeStats}
-                  carSimulationRows={carSimulationRows}
-                  houseSimulationRows={houseSimulationRows}
-                  selectedMonthOffset={selectedMonthOffset}
-                  isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
-                  totalPatrimonio={totalPatrimonio}
-                  savingsComputed={savingsComputed}
-                />
-              </TabsContent>
-
-              <TabsContent value="investments">
-                <InvestmentTab
-                  state={state}
-                  update={update}
-                  poupancaValue={poupancaValue}
-                  savingsComputed={savingsComputed}
-                  savingsRowsFV={savingsRowsFV}
-                  isPhase2ForSelectedMonth={isPhase2ForSelectedMonth}
-                  selectedMonthOffset={selectedMonthOffset}
-                  livresPhase2={savingsComputed.livresPhase2}
-                  investmentProjections={investmentProjections}
-                  liquidezFinal={liquidezFinal}
-                />
-              </TabsContent>
             </>
           )}
         </Tabs>

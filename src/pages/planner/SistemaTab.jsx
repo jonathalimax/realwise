@@ -89,7 +89,6 @@ export default function SistemaTab({
   computedRendaBruta,
   simplesValue,
   despesasPJ,
-  dizimoValue,
   liquidezFinal,
   necessidadesValue,
   poupancaValue,
@@ -154,7 +153,6 @@ export default function SistemaTab({
           <CashFlowRow label="Renda Bruta (computada)" value={computedRendaBruta} type="income" />
           <CashFlowRow label={`Simples Nacional (${state.simplesNacionalPct}%)`} value={simplesValue} type="deduction" />
           <CashFlowRow label="Despesas PJ" value={despesasPJ} type="deduction" />
-          <CashFlowRow label={`Dízimo (${state.dizimoPct}%)`} value={dizimoValue} type="deduction" />
           <CashFlowRow label="Liquidez Final" value={liquidezFinal} type="total" />
           <CashFlowRow label={`Necessidades (${state.necessidades}%)`} value={necessidadesValue} type="allocation" indent />
           <CashFlowRow label={`Poupança (${state.poupanca}%)`} value={poupancaValue} type="allocation" indent />
