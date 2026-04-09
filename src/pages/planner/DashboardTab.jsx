@@ -50,7 +50,7 @@ export default function DashboardTab({
           {[
             { label: 'Taxa horária (USD)', key: 'hourlyRate', decimalScale: 2 },
             { label: 'Horas/dia', key: 'hoursPerDay', decimalScale: 0 },
-            { label: 'USD → BRL', key: 'usdToBrl', decimalScale: 2 },
+            { label: 'USD → BRL', key: 'usdToBrl', decimalScale: 6 },
             { label: 'Taxa plataforma (%)', key: 'platformFeePct', decimalScale: 2, suffix: ' %' },
           ].map(({ label, key, decimalScale, suffix }) => (
             <div key={key}>
