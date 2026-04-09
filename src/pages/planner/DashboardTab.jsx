@@ -154,7 +154,7 @@ export default function DashboardTab({
           <NumericFormat
             id="simplesNacionalPct"
             value={state.simplesNacionalPct}
-            onValueChange={vals => update('simplesNacionalPct', Math.min(33, Math.max(6, vals.floatValue ?? 6)))}
+            onValueChange={vals => update('simplesNacionalPct', vals.floatValue ?? 0)}
             decimalSeparator=","
             suffix=" %"
             decimalScale={2}
@@ -162,7 +162,7 @@ export default function DashboardTab({
             placeholder="6 %"
             className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
           />
-          <p className="text-xs text-gray-400 mt-1">Faixa: 6% – 33%</p>
+          <p className="text-xs text-gray-400 mt-1">Alíquota Simples Nacional</p>
         </div>
       </div>
 
