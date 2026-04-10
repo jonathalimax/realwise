@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useCards } from '../../contexts/CardsContext';
 import {
-  ResponsiveChartContainer,
+  ChartContainer,
   BarPlot,
   LinePlot,
   ChartsXAxis,
@@ -176,7 +176,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
         className="h-64 sm:h-72 md:h-80 w-full overflow-x-auto scroll-smooth"
       >
         <div className="min-w-[800px] w-full h-full">
-          <ResponsiveChartContainer
+          <ChartContainer
             series={series}
             xAxis={[{
               scaleType: 'band',
@@ -201,7 +201,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
             <ChartsXAxis />
             <ChartsYAxis />
             <ChartsTooltip />
-          </ResponsiveChartContainer>
+          </ChartContainer>
         </div>
       </div>
     </div>
