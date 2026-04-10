@@ -151,7 +151,7 @@ export default function PlannerPage() {
         {/* ── Settings bottom sheet (mobile only) ────────────────────── */}
         {showSettings && (
           <div
-            className="fixed inset-0 z-50 flex items-end sm:hidden"
+            className="fixed inset-0 z-50 flex items-end sm:hidden bg-black/40"
             onClick={() => setShowSettings(false)}
           >
             <div
