@@ -1,9 +1,16 @@
 import { useRef, useEffect } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useCards } from '../../contexts/CardsContext';
-import { BarChart } from '@mui/x-charts/BarChart';
+import {
+  ResponsiveChartContainer,
+  BarPlot,
+  LinePlot,
+  ChartsXAxis,
+  ChartsYAxis,
+  ChartsTooltip,
+} from '@mui/x-charts';
 
-export default function TrendChart({ transactions, selectedMonth, viewMode }) {
+export default function TrendChart({ transactions, selectedMonth, viewMode, cumulativeByMonth = {} }) {
   const scrollContainerRef = useRef(null);
   const { formatCurrency, t, language, darkMode } = useSettings();
   const { getPaymentMonthKey } = useCards();
@@ -29,6 +36,18 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
   };
 
   const monthsRange = getMonthsRange();
+
+  // Running balance data for the line series. null beyond last data month (no extrapolation).
+  const lastDataMonth = Object.keys(cumulativeByMonth).sort().at(-1) ?? null;
+  const balanceData = lastDataMonth
+    ? (() => {
+        let last = null;
+        return monthsRange.map(({ key }) => {
+          if (cumulativeByMonth[key] !== undefined) last = cumulativeByMonth[key];
+          return key > lastDataMonth ? null : last;
+        });
+      })()
+    : null;
 
   // Group transactions by month
   const monthlyData = transactions.reduce((acc, trans) => {
@@ -64,6 +83,31 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
   const monthLabels = monthsRange.map(({ label }) => label);
   const incomeData = monthsRange.map(({ key }) => monthlyData[key]?.income || 0);
   const expenseData = monthsRange.map(({ key }) => monthlyData[key]?.expense || 0);
+
+  const series = [
+    {
+      type: 'bar',
+      data: incomeData,
+      color: '#10B981',
+      valueFormatter: (value) => formatCurrency(value),
+      id: 'income',
+    },
+    {
+      type: 'bar',
+      data: expenseData,
+      color: '#EF4444',
+      valueFormatter: (value) => formatCurrency(value),
+      id: 'expenses',
+    },
+    ...(balanceData ? [{
+      type: 'line',
+      data: balanceData,
+      color: '#6366f1',
+      valueFormatter: (value) => value !== null ? formatCurrency(value) : '',
+      id: 'balance',
+      showMark: false,
+    }] : []),
+  ];
 
   const hasData = incomeData.some(d => d > 0) || expenseData.some(d => d > 0);
 
@@ -110,7 +154,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
   return (
     <div className="w-full">
       {/* Custom Legend */}
-      <div className="flex items-center justify-center gap-6 mb-2">
+      <div className="flex items-center justify-center gap-6 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-sm bg-emerald-500" />
           <span className="text-sm text-gray-700 dark:text-gray-200">{t('balance.income')}</span>
@@ -119,6 +163,14 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
           <div className="w-3 h-3 rounded-sm bg-red-500" />
           <span className="text-sm text-gray-700 dark:text-gray-200">{t('balance.expenses')}</span>
         </div>
+        {balanceData && (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-indigo-500 rounded-full" />
+            <span className="text-sm text-gray-700 dark:text-gray-200">
+              {language === 'pt' ? 'Saldo acumulado' : 'Cumulative balance'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Chart */}
@@ -127,52 +179,32 @@ export default function TrendChart({ transactions, selectedMonth, viewMode }) {
         className="h-64 sm:h-72 md:h-80 w-full overflow-x-auto scroll-smooth"
       >
         <div className="min-w-[800px] w-full h-full">
-          <BarChart
+          <ResponsiveChartContainer
+            series={series}
             xAxis={[{
               scaleType: 'band',
               data: monthLabels,
-              tickLabelStyle: {
-                fontSize: 12,
-                fill: textColor,
-              },
+              id: 'x',
+              tickLabelStyle: { fontSize: 12, fill: textColor },
             }]}
             yAxis={[{
-              tickLabelStyle: {
-                fontSize: 12,
-                fill: textColor,
-              },
+              id: 'y',
+              tickLabelStyle: { fontSize: 12, fill: textColor },
               valueFormatter: formatCompactValue,
             }]}
-            series={[
-              {
-                data: incomeData,
-                color: '#10B981',
-                valueFormatter: (value) => formatCurrency(value),
-              },
-              {
-                data: expenseData,
-                color: '#EF4444',
-                valueFormatter: (value) => formatCurrency(value),
-              },
-            ]}
-            slotProps={{
-              legend: {
-                hidden: true,
-              },
-            }}
             sx={{
-              '& .MuiChartsAxis-tickLabel': {
-                fill: textColor,
-              },
-              '& .MuiChartsAxis-line': {
-                stroke: textColor,
-              },
-              '& .MuiChartsAxis-tick': {
-                stroke: textColor,
-              },
+              '& .MuiChartsAxis-tickLabel': { fill: textColor },
+              '& .MuiChartsAxis-line': { stroke: textColor },
+              '& .MuiChartsAxis-tick': { stroke: textColor },
             }}
             margin={{ top: 10, right: 20, bottom: 30, left: 50 }}
-          />
+          >
+            <BarPlot />
+            <LinePlot />
+            <ChartsXAxis />
+            <ChartsYAxis />
+            <ChartsTooltip />
+          </ResponsiveChartContainer>
         </div>
       </div>
     </div>
