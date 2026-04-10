@@ -142,12 +142,9 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
 
   // Format compact currency for Y-axis (e.g., "1k", "10k")
   const formatCompactValue = (value) => {
-    if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(0)}M`;
-    }
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(0)}k`;
-    }
+    const abs = Math.abs(value);
+    if (abs >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+    if (abs >= 1000) return `${(value / 1000).toFixed(0)}k`;
     return value.toString();
   };
 
