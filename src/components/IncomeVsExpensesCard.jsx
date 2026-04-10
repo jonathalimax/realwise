@@ -3,7 +3,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline';
 
-export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick }) {
+export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick, carryoverSaldo = 0 }) {
   const { language, formatCurrency } = useSettings();
   const { investments, getTotalCurrentValue, getTotalGrowth } = useInvestments();
 
@@ -16,7 +16,7 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick 
       .filter(t => t.type === 'expense' && !t.ignored)
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const bal = income - expenses;
+    const bal = income - expenses + carryoverSaldo;
     const pctDiff = income > 0 ? ((expenses / income) * 100) : 0;
 
     return {
@@ -25,7 +25,7 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick 
       balance: bal,
       percentageDiff: pctDiff
     };
-  }, [transactions]);
+  }, [transactions, carryoverSaldo]);
 
   const isPositive = balance >= 0;
   const expensesRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0;
@@ -85,6 +85,25 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick 
             </div>
           )}
         </div>
+
+        {/* Saldo anterior — only when there is a non-zero carryover */}
+        {carryoverSaldo !== 0 && (
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  {language === 'pt' ? 'Saldo anterior' : 'Previous balance'}
+                </span>
+              </div>
+              <span className={`text-xl font-bold ${carryoverSaldo >= 0 ? 'text-indigo-500' : 'text-rose-500'}`}>
+                {carryoverSaldo >= 0 ? '+' : ''}{formatCurrency(carryoverSaldo)}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Balance */}
         <div className={`rounded-xl p-4 ${
