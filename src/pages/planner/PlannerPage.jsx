@@ -100,7 +100,7 @@ export default function PlannerPage() {
   } = planner;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6 pb-24 sm:pb-6">
       <div className="max-w-5xl mx-auto space-y-4">
         {/* ── Mobile header (hidden on sm+) ────────────────────────── */}
         <div className="flex items-center gap-2 sm:hidden">
@@ -182,7 +182,7 @@ export default function PlannerPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="overflow-x-auto pb-2">
+          <div className="hidden sm:block overflow-x-auto pb-2">
             <TabsList className="w-max">
               {TABS.map(tab => (
                 <TabsTrigger key={tab.value} value={tab.value}>
@@ -250,6 +250,24 @@ export default function PlannerPage() {
           )}
         </Tabs>
       </div>
+
+      {/* ── Mobile bottom nav (hidden on sm+) ──────────────────── */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex safe-area-inset-bottom">
+        {TABS.map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveTab(tab.value)}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold transition-colors ${
+              activeTab === tab.value
+                ? 'text-violet-600 dark:text-violet-400'
+                : 'text-gray-500 dark:text-gray-400'
+            }`}
+          >
+            <span className="text-xl leading-none">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
