@@ -68,6 +68,7 @@ export default {
     income: 'Income',
     expenses: 'Expenses',
     thisMonth: 'this month',
+    previousBalance: 'Previous balance',
   },
 
   // Transaction Form

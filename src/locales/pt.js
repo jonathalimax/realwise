@@ -68,6 +68,7 @@ export default {
     income: 'Entrada',
     expenses: 'Saída',
     thisMonth: 'este mês',
+    previousBalance: 'Saldo anterior',
   },
 
   // Transaction Form
