@@ -63,5 +63,8 @@ export default defineConfig(({ mode }) => {
         '@landing': path.resolve(__dirname, './landing_page'),
       },
     },
+    test: {
+      environment: 'node',
+    },
   }
 })
