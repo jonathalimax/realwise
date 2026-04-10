@@ -308,36 +308,38 @@ export default function AllocationTab({
                         </div>
                       </div>
 
-                      {/* Row 2: % input + R$ limit + spent + progress */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 shrink-0">
-                          <NumericFormat
-                            value={pct === 0 ? '' : pct}
-                            onValueChange={vals => updateCategoryBudgetPct(category, vals.floatValue ?? 0)}
-                            decimalSeparator="," suffix=" %" decimalScale={1} allowNegative={false} placeholder="0 %"
-                            className="w-full px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-violet-500"
-                          />
-                        </div>
+                      {/* Row 2a: % input + computed R$ */}
+                      <div className="flex items-center gap-2 mt-1">
+                        <NumericFormat
+                          value={pct === 0 ? '' : pct}
+                          onValueChange={vals => updateCategoryBudgetPct(category, vals.floatValue ?? 0)}
+                          decimalSeparator="," suffix=" %" decimalScale={1} allowNegative={false} placeholder="0 %"
+                          className="w-20 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-violet-500"
+                        />
                         {pct > 0 && (
-                          <span className="text-xs text-gray-400 tabular-nums shrink-0">
+                          <span className="text-xs text-gray-400 tabular-nums">
                             = {formatBRL.format(limit)}
                           </span>
                         )}
-                        <div className="flex-1" />
-                        <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400 shrink-0">
-                          {formatBRL.format(spent)} gasto
-                        </span>
-                        {pct > 0 && (
-                          <>
-                            <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 shrink-0">
-                              <div className={`h-1.5 rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(pctUsed, 100)}%` }} />
-                            </div>
-                            <span className={`text-xs font-semibold tabular-nums w-8 text-right shrink-0 ${textColor}`}>
-                              {pctUsed.toFixed(0)}%
-                            </span>
-                          </>
-                        )}
                       </div>
+
+                      {/* Row 2b: spent + progress bar + % used */}
+                      {pct > 0 && (
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400 shrink-0">
+                            {formatBRL.format(spent)} gasto
+                          </span>
+                          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full transition-all ${barColor}`}
+                              style={{ width: `${Math.min(pctUsed, 100)}%` }}
+                            />
+                          </div>
+                          <span className={`text-xs font-semibold tabular-nums w-8 text-right shrink-0 ${textColor}`}>
+                            {pctUsed.toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
