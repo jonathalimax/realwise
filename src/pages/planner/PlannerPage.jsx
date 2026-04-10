@@ -79,6 +79,7 @@ function PlannerSkeleton() {
 export default function PlannerPage() {
   const planner = usePlannerState();
   const [activeTab, setActiveTab] = useState('sistema');
+  const [showSettings, setShowSettings] = useState(false);
   const {
     state,
     update,
@@ -101,8 +102,26 @@ export default function PlannerPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-4">
-        {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        {/* ── Mobile header (hidden on sm+) ────────────────────────── */}
+        <div className="flex items-center gap-2 sm:hidden">
+          <h1 className="flex-1 text-lg font-bold text-gray-900 dark:text-white truncate">
+            Planejador
+          </h1>
+          <MonthNav
+            value={state.selectedPlannerMonth}
+            onChange={m => update('selectedPlannerMonth', m)}
+          />
+          <button
+            onClick={() => setShowSettings(true)}
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-base"
+            aria-label="Configurações do plano"
+          >
+            ⚙️
+          </button>
+        </div>
+
+        {/* ── Desktop header (hidden on mobile) ──────────────────────── */}
+        <div className="hidden sm:flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Planejador Financeiro</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
@@ -128,6 +147,38 @@ export default function PlannerPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Settings bottom sheet (mobile only) ────────────────────── */}
+        {showSettings && (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:hidden"
+            onClick={() => setShowSettings(false)}
+          >
+            <div
+              className="w-full bg-white dark:bg-gray-800 rounded-t-2xl p-6 shadow-2xl border-t border-gray-200 dark:border-gray-700"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">Configurações</h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                Início do plano
+              </label>
+              <input
+                type="month"
+                value={state.plannerStartDate}
+                onChange={e => update('plannerStartDate', e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
