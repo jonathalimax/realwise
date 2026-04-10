@@ -8,6 +8,7 @@ import { useAccess } from '../contexts/AccessContext';
 import { useBills } from '../contexts/BillsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
 import BalanceSummary from './BalanceSummary';
 import InvestmentsListModal from './InvestmentsListModal';
 import WalletCards from './WalletCards';
@@ -62,6 +63,9 @@ export default function Dashboard() {
   const { t, language, darkMode, toggleDarkMode, categories, tutorialCompleted, loading: settingsLoading } = useSettings();
   const { canWrite, ownerId } = useAccess();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
+  const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
+    transactions, selectedMonth, viewMode, getPaymentMonthKey
+  );
   const { bills, loading: billsLoading } = useBills();
 
   // Navigation handlers for mobile
@@ -533,7 +537,11 @@ export default function Dashboard() {
 
         {/* Balance Cards - Always visible on desktop, inside tabs on mobile */}
         <div className="hidden md:block mb-4 sm:mb-6">
-          <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={handleOpenInvestmentsList} />
+          <BalanceSummary
+            transactions={monthlyTransactions}
+            onInvestmentsClick={handleOpenInvestmentsList}
+            carryoverSaldo={carryoverSaldo}
+          />
         </div>
 
         {/* Tabs Navigation */}
@@ -565,7 +573,11 @@ export default function Dashboard() {
           <>
             {/* Balance Cards - Mobile only */}
             <div className="md:hidden mb-4">
-              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={handleOpenInvestmentsList} />
+              <BalanceSummary
+                transactions={monthlyTransactions}
+                onInvestmentsClick={handleOpenInvestmentsList}
+                carryoverSaldo={carryoverSaldo}
+              />
             </div>
 
             {/* Expenses by Category + 50/30/20 Rule Comparison - Side by side on desktop */}
@@ -586,7 +598,12 @@ export default function Dashboard() {
             {/* Income vs Expenses Trend Chart */}
             <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
-              <TrendChart transactions={transactions} selectedMonth={selectedMonth} viewMode={viewMode} />
+              <TrendChart
+                transactions={transactions}
+                selectedMonth={selectedMonth}
+                viewMode={viewMode}
+                cumulativeByMonth={cumulativeByMonth}
+              />
             </div>
           </>
         )}
@@ -596,7 +613,11 @@ export default function Dashboard() {
           <>
             {/* Balance Cards - Mobile only */}
             <div className="md:hidden mb-4">
-              <BalanceSummary transactions={monthlyTransactions} onInvestmentsClick={handleOpenInvestmentsList} />
+              <BalanceSummary
+                transactions={monthlyTransactions}
+                onInvestmentsClick={handleOpenInvestmentsList}
+                carryoverSaldo={carryoverSaldo}
+              />
             </div>
 
             {/* 1. Transactions List */}
