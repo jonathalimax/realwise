@@ -9,7 +9,7 @@ const CAT_COLORS = [
   '#8B5CF6', '#EC4899', '#06B6D4', '#F59E0B', '#10B981', '#EF4444',
 ];
 
-export default function CategoryTrendChart({ allTx, last6Months }) {
+export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) {
   const { darkMode, formatCurrency } = useSettings();
   const textColor = darkMode ? '#e5e7eb' : '#374151';
 
@@ -20,8 +20,9 @@ export default function CategoryTrendChart({ allTx, last6Months }) {
   }
   for (const tx of allTx) {
     if (tx.type !== 'expense' || tx.ignored) continue;
-    const d = new Date(tx.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const key = getMonthKey
+      ? getMonthKey(tx.date, tx.bankId, tx.paymentMethod)
+      : `${new Date(tx.date).getFullYear()}-${String(new Date(tx.date).getMonth() + 1).padStart(2, '0')}`;
     if (!grouped[key]) continue;
     grouped[key][tx.category] = (grouped[key][tx.category] || 0) + tx.amount;
   }

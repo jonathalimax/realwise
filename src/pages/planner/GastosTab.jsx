@@ -4,6 +4,7 @@ import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useCards } from '@/contexts/CardsContext';
 import { NumericFormat } from 'react-number-format';
 import { formatBRL } from './usePlannerState';
 import SpendingChart from '@/components/charts/SpendingChart';
@@ -35,6 +36,7 @@ export default function GastosTab({
 }) {
   const { ownerId } = useAccess();
   const { categories } = useSettings();
+  const { getPaymentMonthKey } = useCards();
   const {
     getTemplateBudget,
     setTemplateCategoryBudget,
@@ -61,10 +63,9 @@ export default function GastosTab({
 
   const monthTx = useMemo(() => allTx.filter(tx => {
     if (tx.type !== 'expense' || tx.ignored) return false;
-    const d = new Date(tx.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const key = getPaymentMonthKey(tx.date, tx.bankId, tx.paymentMethod);
     return key === selectedMonth;
-  }), [allTx, selectedMonth]);
+  }), [allTx, selectedMonth, getPaymentMonthKey]);
 
   const last6Months = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => {
@@ -134,7 +135,7 @@ export default function GastosTab({
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
               Tendência — últimos 6 meses por categoria
             </h3>
-            <CategoryTrendChart allTx={allTx} last6Months={last6Months} />
+            <CategoryTrendChart allTx={allTx} last6Months={last6Months} getMonthKey={getPaymentMonthKey} />
           </div>
         </div>
       )}

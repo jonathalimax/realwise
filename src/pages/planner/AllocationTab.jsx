@@ -4,6 +4,7 @@ import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useCards } from '@/contexts/CardsContext';
 import { NumericFormat } from 'react-number-format';
 import { Badge } from '@/components/ui/badge';
 import { formatBRL } from './usePlannerState';
@@ -67,6 +68,7 @@ export default function AllocationTab({
   const { ownerId } = useAccess();
   const { categories } = useSettings();
   const { calculateCategorySpending, getCategoryRule, setCategoryRule } = useBudget();
+  const { getPaymentMonthKey } = useCards();
 
   const [activeTab, setActiveTab] = useState('regra');
   const [allTx, setAllTx] = useState([]);
@@ -84,10 +86,9 @@ export default function AllocationTab({
 
   const monthTx = useMemo(() => allTx.filter(tx => {
     if (tx.type !== 'expense' || tx.ignored) return false;
-    const d = new Date(tx.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const key = getPaymentMonthKey(tx.date, tx.bankId, tx.paymentMethod);
     return key === selectedMonth;
-  }), [allTx, selectedMonth]);
+  }), [allTx, selectedMonth, getPaymentMonthKey]);
 
   const last6Months = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d = new Date(`${selectedMonth}-01`);
@@ -223,7 +224,7 @@ export default function AllocationTab({
                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
                   Tendência — últimos 6 meses por categoria
                 </h3>
-                <CategoryTrendChart allTx={allTx} last6Months={last6Months} />
+                <CategoryTrendChart allTx={allTx} last6Months={last6Months} getMonthKey={getPaymentMonthKey} />
               </div>
             </>
           )}
