@@ -17,12 +17,18 @@ import { createInterface } from 'readline';
 
 const require = createRequire(import.meta.url);
 
-// Parse CLI flags
-const args = Object.fromEntries(
-  process.argv.slice(2)
-    .filter(a => a.startsWith('--'))
-    .map(a => a.slice(2).split('='))
-);
+// Parse CLI flags (handles values that contain '=')
+const args = {};
+for (const arg of process.argv.slice(2)) {
+  if (!arg.startsWith('--')) continue;
+  const eqIdx = arg.indexOf('=');
+  if (eqIdx === -1) {
+    // Flag without value (e.g. --dry-run) — set to true
+    args[arg.slice(2)] = true;
+  } else {
+    args[arg.slice(2, eqIdx)] = arg.slice(eqIdx + 1);
+  }
+}
 
 const env = args.env ?? 'local';
 const uid = args.uid;
@@ -89,7 +95,21 @@ async function main() {
     process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
     console.log('Target: Firebase Emulator (localhost:8080)');
   } else {
+    // Explicitly clear in case it was set in the shell environment
+    delete process.env.FIRESTORE_EMULATOR_HOST;
     console.log('Target: PRODUCTION Firestore (limas-finance)');
+  }
+
+  // Pre-flight: verify service-account.json exists before asking for confirmation
+  if (env === 'prod') {
+    try {
+      require('./service-account.json');
+    } catch {
+      console.error('Error: scripts/service-account.json not found.');
+      console.error('Download it from Firebase Console → Project Settings → Service Accounts → Generate new private key');
+      console.error('Save it to: scripts/service-account.json');
+      process.exit(1);
+    }
   }
 
   // Production requires explicit confirmation
@@ -109,18 +129,25 @@ async function main() {
   try {
     admin = require('firebase-admin');
   } catch {
-    // Try loading from functions/node_modules if not installed at root
-    admin = require('../functions/node_modules/firebase-admin');
+    try {
+      admin = require('../functions/node_modules/firebase-admin');
+    } catch {
+      console.error('Error: firebase-admin not found.');
+      console.error('Fix: cd functions && npm install');
+      process.exit(1);
+    }
   }
 
-  if (env === 'prod') {
-    const serviceAccount = require('./service-account.json');
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      projectId: 'limas-finance',
-    });
-  } else {
-    admin.initializeApp({ projectId: 'limas-finance' });
+  if (admin.apps.length === 0) {
+    if (env === 'prod') {
+      const serviceAccount = require('./service-account.json');
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: 'limas-finance',
+      });
+    } else {
+      admin.initializeApp({ projectId: 'limas-finance' });
+    }
   }
 
   const db = admin.firestore();
@@ -144,6 +171,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('Script failed:', err.message);
+  console.error('Script failed:', err);
   process.exit(1);
 });
