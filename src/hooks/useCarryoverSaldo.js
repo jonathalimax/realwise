@@ -1,20 +1,6 @@
 import { useMemo } from 'react';
 
 /**
- * Extracts the YYYY-MM month key from an ISO date string (YYYY-MM-DD...)
- * without UTC timezone conversion issues.
- */
-function getMonthKeyFromDateString(dateStr) {
-  const match = dateStr.match(/^(\d{4})-(\d{2})/);
-  if (match) {
-    return `${match[1]}-${match[2]}`;
-  }
-  // Fallback to Date object parsing if format doesn't match
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-/**
  * Pure computation — exported for unit testing.
  *
  * Groups all non-ignored transactions by their effective month key,
@@ -35,11 +21,13 @@ export function computeCarryoverSaldo(allTransactions, selectedMonth, viewMode, 
 
     let monthKey;
     if (viewMode === 'purchase') {
-      monthKey = getMonthKeyFromDateString(t.date);
+      const d = new Date(t.date);
+      monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     } else {
       // payment mode
       if (t.type === 'income' || t.investmentId) {
-        monthKey = getMonthKeyFromDateString(t.date);
+        const d = new Date(t.date);
+        monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       } else {
         monthKey = getPaymentMonthKey(t.date, t.bankId, t.paymentMethod);
       }
