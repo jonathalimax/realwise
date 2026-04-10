@@ -23,7 +23,7 @@ for (const arg of process.argv.slice(2)) {
   if (!arg.startsWith('--')) continue;
   const eqIdx = arg.indexOf('=');
   if (eqIdx === -1) {
-    // Flag without value (e.g. --dry-run) — set to true
+    // Flag without value — set to true
     args[arg.slice(2)] = true;
   } else {
     args[arg.slice(2, eqIdx)] = arg.slice(eqIdx + 1);
@@ -42,6 +42,19 @@ if (!uid) {
 if (!['local', 'prod'].includes(env)) {
   console.error('Error: --env must be "local" or "prod"');
   process.exit(1);
+}
+
+// Pre-flight: verify service-account.json exists before asking for confirmation
+let serviceAccount;
+if (env === 'prod') {
+  try {
+    serviceAccount = require('./service-account.json');
+  } catch {
+    console.error('Error: scripts/service-account.json not found.');
+    console.error('Download it from Firebase Console → Project Settings → Service Accounts → Generate new private key');
+    console.error('Save it to: scripts/service-account.json');
+    process.exit(1);
+  }
 }
 
 // Collections to clear (all filtered by userId == uid)
@@ -100,18 +113,6 @@ async function main() {
     console.log('Target: PRODUCTION Firestore (limas-finance)');
   }
 
-  // Pre-flight: verify service-account.json exists before asking for confirmation
-  if (env === 'prod') {
-    try {
-      require('./service-account.json');
-    } catch {
-      console.error('Error: scripts/service-account.json not found.');
-      console.error('Download it from Firebase Console → Project Settings → Service Accounts → Generate new private key');
-      console.error('Save it to: scripts/service-account.json');
-      process.exit(1);
-    }
-  }
-
   // Production requires explicit confirmation
   if (env === 'prod') {
     console.log('\n⚠️  WARNING: This will permanently delete all Firestore documents');
@@ -140,7 +141,6 @@ async function main() {
 
   if (admin.apps.length === 0) {
     if (env === 'prod') {
-      const serviceAccount = require('./service-account.json');
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: 'limas-finance',
