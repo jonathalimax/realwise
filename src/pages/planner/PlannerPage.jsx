@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Shimmer } from '@/components/ui/shimmer';
 import usePlannerState from './usePlannerState';
@@ -54,10 +55,10 @@ function MonthNav({ value, onChange }) {
 }
 
 const TABS = [
-  { value: 'sistema',    label: 'Sistema' },
-  { value: 'carteira',   label: 'Carteira' },
-  { value: 'dashboard',  label: 'Dashboard' },
-  { value: 'allocation', label: 'Alocação' },
+  { value: 'sistema',    label: 'Sistema',   icon: '🧭' },
+  { value: 'carteira',   label: 'Carteira',  icon: '💼' },
+  { value: 'dashboard',  label: 'Dashboard', icon: '📊' },
+  { value: 'allocation', label: 'Alocação',  icon: '📐' },
 ];
 
 function PlannerSkeleton() {
@@ -77,6 +78,7 @@ function PlannerSkeleton() {
 
 export default function PlannerPage() {
   const planner = usePlannerState();
+  const [activeTab, setActiveTab] = useState('sistema');
   const {
     state,
     update,
@@ -128,7 +130,7 @@ export default function PlannerPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="sistema">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="overflow-x-auto pb-2">
             <TabsList className="w-max">
               {TABS.map(tab => (
