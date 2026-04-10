@@ -9,6 +9,7 @@ import { useCards } from '../contexts/CardsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
 import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
 import InvestmentsListModal from '../components/InvestmentsListModal';
 import ExpensesPieChart from '../components/charts/ExpensesPieChart';
 import BillsSummaryCard from '../components/BillsSummaryCard';
@@ -46,6 +47,9 @@ export default function DashboardPage() {
   const { t, language, categories, tutorialCompleted, loading: settingsLoading } = useSettings();
   const { canWrite, ownerId } = useAccess();
   const { getPaymentMonthKey } = useCards();
+  const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
+    transactions, selectedMonth, viewMode, getPaymentMonthKey
+  );
   const { getTotalCurrentValue } = useInvestments();
 
   const handleOpenGoals = () => {
@@ -177,6 +181,7 @@ export default function DashboardPage() {
             <IncomeVsExpensesCard
               transactions={monthlyTransactions}
               onInvestmentsClick={handleOpenInvestmentsList}
+              carryoverSaldo={carryoverSaldo}
             />
 
             {/* Expenses Pie Chart */}
@@ -185,7 +190,12 @@ export default function DashboardPage() {
             {/* Trend Chart - Expenses vs Income Over Time */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
-              <TrendChart transactions={transactions} selectedMonth={selectedMonth} viewMode={viewMode} />
+              <TrendChart
+                transactions={transactions}
+                selectedMonth={selectedMonth}
+                viewMode={viewMode}
+                cumulativeByMonth={cumulativeByMonth}
+              />
             </div>
           </div>
 
