@@ -1,11 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getFunctions } from 'firebase/functions';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 // Firebase configuration
-// Replace these with your own Firebase project credentials
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -29,15 +28,22 @@ const missingFirebaseEnvVars = Object.entries({
 if (missingFirebaseEnvVars.length > 0) {
   throw new Error(
     `Missing Firebase environment variables: ${missingFirebaseEnvVars.join(', ')}. ` +
-    'Check your .env file and restart the Vite dev server.'
+    'Check your .env.development or .env.production file and restart the Vite dev server.'
   );
 }
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication, Firestore, Storage, and Functions
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// Connect to Firebase Emulator Suite when running locally
+// import.meta.env.DEV is true during `npm run dev`, false in production builds
+if (import.meta.env.DEV) {
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, 'localhost', 8080);
+  connectFunctionsEmulator(functions, 'localhost', 5001);
+  console.log('[Firebase] Connected to Emulator Suite (localhost)');
+}
