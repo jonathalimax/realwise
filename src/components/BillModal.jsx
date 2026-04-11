@@ -271,7 +271,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
             <div className="border border-gray-200 dark:border-gray-600 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {language === 'pt' ? 'Notificações WhatsApp' : 'WhatsApp Notifications'}
+                  {language === 'pt' ? 'Notificações' : 'Notifications'}
                 </label>
                 <button
                   type="button"
