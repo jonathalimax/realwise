@@ -150,7 +150,6 @@ export default {
     generic: 'Other / Generic',
     aiDuplicates: 'AI detected duplicates',
     aiCategorized: 'AI categorized',
-    whatsappNotification: 'WhatsApp notification sent',
   },
 
   // Pending Review

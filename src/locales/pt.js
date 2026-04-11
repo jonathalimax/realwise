@@ -150,7 +150,6 @@ export default {
     generic: 'Outro / Genérico',
     aiDuplicates: 'Duplicadas detectadas por IA',
     aiCategorized: 'Categorizadas por IA',
-    whatsappNotification: 'Notificação WhatsApp enviada',
   },
 
   // Pending Review
