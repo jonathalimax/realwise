@@ -789,7 +789,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       >
                         <option value="">Nenhum</option>
                         {plannerGoals.map(g => (
-                          <option key={g.id} value={g.id}>{g.label}</option>
+                          <option key={g.id} value={g.id}>
+                            {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
+                          </option>
                         ))}
                       </select>
                     </div>
