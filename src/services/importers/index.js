@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 import { parseNubankStatement, detectNubank } from './bankParsers/nubank';
 import { parseItauStatement, detectItau } from './bankParsers/itau';
 import { parseBradescoStatement, detectBradesco } from './bankParsers/bradesco';
+import { parseMercadopagoStatement, detectMercadopago } from './bankParsers/mercadopago';
 import { parseGenericStatement } from './bankParsers/generic';
 import { categorizeTransaction } from '../../constants/defaultCategorizationRules';
 import { loadUserCategorizationRules } from '../categorizationService';
@@ -52,6 +53,8 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
       transactions = parseItauStatement(data);
     } else if (detectBradesco(headers)) {
       transactions = parseBradescoStatement(data);
+    } else if (detectMercadopago(headers)) {
+      transactions = parseMercadopagoStatement(data);
     } else {
       transactions = parseGenericStatement(data);
     }
@@ -65,6 +68,9 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
         break;
       case 'bradesco':
         transactions = parseBradescoStatement(data);
+        break;
+      case 'mercadopago':
+        transactions = parseMercadopagoStatement(data);
         break;
       default:
         transactions = parseGenericStatement(data);
@@ -191,7 +197,15 @@ function parseCSV(file) {
     // First, read file content to detect delimiter
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target.result;
+      let content = e.target.result;
+
+      // Mercado Pago files have a summary section before the transaction rows.
+      // Find the real transaction header and discard everything before it.
+      const mpTransactionHeader = 'RELEASE_DATE';
+      const mpHeaderIndex = content.indexOf(mpTransactionHeader);
+      if (mpHeaderIndex > 0) {
+        content = content.substring(mpHeaderIndex);
+      }
 
       // Detect delimiter: Brazilian CSVs often use semicolon
       const firstLine = content.split('\n')[0];
@@ -249,5 +263,6 @@ export const BANK_OPTIONS = [
   { value: 'nubank', label: 'Nubank' },
   { value: 'itau', label: 'Itaú' },
   { value: 'bradesco', label: 'Bradesco' },
+  { value: 'mercadopago', label: 'Mercado Pago' },
   { value: 'generic', label: 'Other / Generic' }
 ];
