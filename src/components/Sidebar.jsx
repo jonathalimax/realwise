@@ -25,11 +25,13 @@ import {
   TagIcon,
   BellIcon,
   PresentationChartLineIcon,
+  BriefcaseIcon,
 } from '@heroicons/react/24/outline';
 
 const navItems = [
   { path: '/dashboard', icon: HomeIcon, labelKey: 'dashboard' },
   { path: '/planner', icon: PresentationChartLineIcon, labelKey: 'planner' },
+  { path: '/portfolio', icon: BriefcaseIcon, labelKey: 'portfolio' },
   { path: '/expenses', icon: ArrowTrendingDownIcon, labelKey: 'expenses' },
   { path: '/income', icon: ArrowTrendingUpIcon, labelKey: 'income' },
   { divider: true },
@@ -60,6 +62,7 @@ const ROOT_ROUTES = [
   '/notifications',
   '/pending-review',
   '/planner',
+  '/portfolio',
 ];
 
 export default function Sidebar() {
@@ -109,6 +112,7 @@ export default function Sidebar() {
     settings: language === 'pt' ? 'Configurações' : 'Settings',
     logout: language === 'pt' ? 'Sair' : 'Logout',
     planner: language === 'pt' ? 'Planejador' : 'Financial Planner',
+    portfolio: language === 'pt' ? 'Portfólio' : 'Portfolio',
     darkMode: language === 'pt' ? 'Modo escuro' : 'Dark mode',
   };
 

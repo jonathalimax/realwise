@@ -42,6 +42,7 @@ import PendingReviewPage from './pages/PendingReview';
 import ImportPage from './pages/Import';
 import TransactionEditPage from './pages/TransactionEdit';
 import PlannerPage from './pages/planner/PlannerPage';
+import PortfolioPage from './pages/Portfolio';
 
 // Handles the case where our SPA is loaded inside Firebase's auth popup window.
 // Firebase opens /__/auth/handler?apiKey=...&authType=signInViaPopup in a popup.
@@ -111,6 +112,7 @@ function AuthenticatedApp() {
                       <Route index element={<Navigate to="/dashboard" replace />} />
                       <Route path="dashboard" element={<DashboardPage />} />
                       <Route path="planner" element={<PlannerPage />} />
+                      <Route path="portfolio" element={<PortfolioPage />} />
                       <Route path="expenses" element={<ExpensesPage />} />
                       <Route path="income" element={<IncomePage />} />
                       <Route path="goals" element={<GoalsPage />} />
