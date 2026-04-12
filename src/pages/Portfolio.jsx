@@ -5,7 +5,7 @@ import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useInvestments } from '../contexts/InvestmentContext';
 import usePlannerLayers from './planner/usePlannerLayers';
-import { resolveLayerColors } from './planner/carteira/constants';
+import { resolveLayerColors, formatBRL } from './planner/carteira/constants';
 import { Shimmer } from '@/components/ui/shimmer';
 
 // Maps investment type keys → display badge label
@@ -35,7 +35,6 @@ const BADGE_COLORS = {
   'Cripto':     'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300',
 };
 
-const formatBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
 
 function TypeBadge({ type }) {
   const label = INV_TYPE_BADGE[type] ?? type ?? null;
@@ -78,8 +77,8 @@ function LayerGroup({ layer, layerIndex, items }) {
       </div>
       {/* Items */}
       <div className="bg-white dark:bg-gray-800">
-        {items.map((item, i) => (
-          <ItemRow key={`${item.sourceId}-${i}`} name={item.name} type={item.type} amount={item.amount} />
+        {items.map((item) => (
+          <ItemRow key={item.sourceId} name={item.name} type={item.type} amount={item.amount} />
         ))}
       </div>
     </div>
@@ -147,13 +146,16 @@ export default function PortfolioPage() {
   useEffect(() => {
     if (!ownerId) { setTxLoading(false); return; }
     setTxLoading(true);
-    const q = query(collection(db, 'transactions'), where('userId', '==', ownerId));
+    const q = query(
+      collection(db, 'transactions'),
+      where('userId', '==', ownerId),
+      where('plannerGoalId', '!=', null)
+    );
     getDocs(q)
       .then(snap => {
         const tagged = [];
         snap.forEach(d => {
-          const tx = { id: d.id, ...d.data() };
-          if (tx.plannerGoalId) tagged.push(tx);
+          tagged.push({ id: d.id, ...d.data() });
         });
         setTaggedTxs(tagged);
       })
@@ -176,7 +178,7 @@ export default function PortfolioPage() {
   const activeInvestments = investments.filter(inv => inv.status !== 'closed');
 
   const invItems = activeInvestments.map(inv => ({
-    sourceId: inv.id,
+    sourceId: `inv-${inv.id}`,
     name: inv.name,
     type: inv.type,
     amount: inv.initialAmount ?? 0,
@@ -184,7 +186,7 @@ export default function PortfolioPage() {
   }));
 
   const txItems = taggedTxs.map(tx => ({
-    sourceId: tx.id,
+    sourceId: `tx-${tx.id}`,
     name: tx.description,
     type: tx.investmentType ?? null,
     amount: tx.amount ?? 0,
@@ -270,8 +272,8 @@ export default function PortfolioPage() {
                 </span>
               </div>
               <div className="bg-white dark:bg-gray-800">
-                {unlinked.map((item, i) => (
-                  <ItemRow key={`${item.sourceId}-${i}`} name={item.name} type={item.type} amount={item.amount} />
+                {unlinked.map((item) => (
+                  <ItemRow key={item.sourceId} name={item.name} type={item.type} amount={item.amount} />
                 ))}
               </div>
             </div>

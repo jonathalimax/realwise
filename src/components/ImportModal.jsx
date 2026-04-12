@@ -357,7 +357,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       await uploadBytes(storageRef, file);
 
       // File uploaded successfully - close modal immediately
-      // User will be notified via WhatsApp when processing completes
+      // User will be notified via push notification when processing completes
       setImportResult({
         success: true,
         message: language === 'pt'

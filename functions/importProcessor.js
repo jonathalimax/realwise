@@ -535,7 +535,7 @@ exports.processImport = functions
 
       console.log(`Import completed successfully: ${toImport.length} transactions`);
 
-      // Send WhatsApp notification
+      // Send notification
       await sendImportNotification(userId, {
         fileName,
         importedCount: toImport.length,
@@ -565,7 +565,7 @@ exports.processImport = functions
         errorMessage: error.message
       });
 
-      // Send WhatsApp notification about the failure
+      // Send notification about the failure
       await sendImportNotification(userId, {
         fileName,
         importedCount: 0,

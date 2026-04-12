@@ -271,7 +271,7 @@ Your response (comma-separated numbers or NONE):`;
 }
 
 /**
- * Format import summary for WhatsApp notification
+ * Format import summary for push notification
  * @param {Object} importResult - Import results
  * @param {string} language - User's language preference ('pt' or 'en')
  * @returns {string}
