@@ -8,8 +8,6 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
 const axios = require('axios');
-const whatsappService = require('./whatsapp-service');
-const { normalizeBrazilE164FixNine, assertBrazilE164 } = require('./phoneUtils');
 
 // Import processor functions (must come after admin.initializeApp())
 const importProcessor = require('./importProcessor');
@@ -487,461 +485,99 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
 });
 
 /**
- * WhatsApp Cloud API Webhook
- * Handles webhook verification and incoming messages from WhatsApp
- */
-exports.whatsappWebhook = functions.https.onRequest(async (req, res) => {
-  try {
-    if (req.method === 'GET') {
-      const mode = req.query['hub.mode'];
-      const token = req.query['hub.verify_token'];
-      const challenge = req.query['hub.challenge'];
-      const config = whatsappService.getWhatsAppConfig();
-
-      if (mode === 'subscribe' && token === config.verifyToken) {
-        console.log('Webhook verified successfully');
-        res.status(200).send(challenge);
-        return;
-      } else {
-        console.log('Webhook verification failed');
-        res.status(403).send('Forbidden');
-        return;
-      }
-    }
-
-    if (req.method === 'POST') {
-      const body = req.body;
-
-      if (body.object === 'whatsapp_business_account') {
-        const entry = body.entry?.[0];
-        const changes = entry?.changes?.[0];
-        const value = changes?.value;
-
-        const waId = value?.contacts?.[0]?.wa_id;           // canonical when correct
-        const msgFrom = value?.messages?.[0]?.from;         // sometimes missing the 9
-        const ctxFrom = value?.messages?.[0]?.context?.from;
-
-        console.log('Identifiers received:', { waId, msgFrom, ctxFrom });
-
-        // Prefer wa_id, fallback to message.from
-        const rawSender = waId ?? msgFrom;
-        if (!rawSender) {
-          console.error('Missing sender identifiers', JSON.stringify(body, null, 2));
-          res.status(400).send('Missing sender');
-          return;
-        }
-
-        // Normalize and fix missing 9 when applicable
-        const sender = assertBrazilE164(normalizeBrazilE164FixNine(rawSender));
-
-        // Proceed with message handling
-        if (value?.messages && value.messages.length > 0) {
-          const message = value.messages[0];
-          const messageId = message.id;
-          const messageType = message.type;
-
-          console.log('Received WhatsApp message:', {
-            sender,
-            waId,
-            from: msgFrom,
-            messageId,
-            type: messageType,
-          });
-
-          await whatsappService.markMessageAsRead(messageId);
-
-          if (messageType === 'text') {
-            const text = message.text.body.trim().toUpperCase();
-            await handleIncomingMessage(sender, text, messageId);
-          }
-
-          if (messageType === 'interactive') {
-            const buttonReply = message.interactive?.button_reply;
-            if (buttonReply) {
-              await handleButtonReply(sender, buttonReply.id);
-            }
-          }
-        }
-
-        res.status(200).send('OK');
-        return;
-      }
-    }
-
-    res.status(200).send('OK');
-  } catch (error) {
-    console.error('WhatsApp webhook error:', error);
-    res.status(500).send('Error processing webhook');
-  }
-});
-
-/**
- * Handle incoming text messages from WhatsApp
- */
-async function handleIncomingMessage(from, text, messageId) {
-  try {
-    const phoneNumber = whatsappService.formatPhoneNumber(from);
-
-    // Find user by phone number
-    const userQuery = await db.collection('users')
-      .where('phoneNumber', '==', `+${phoneNumber}`)
-      .limit(1)
-      .get();
-
-    if (userQuery.empty) {
-      // User not found - send help message
-      await whatsappService.sendTextMessage(from,
-        '👋 Olá! Para usar este serviço, primeiro configure seu número no app Limas Finance.\n\n🔗 https://limas-finance.web.app'
-      );
-      return;
-    }
-
-    const userId = userQuery.docs[0].id;
-
-    // Handle different commands
-    if (text.includes('PAGO') || text === '1') {
-      await handleMarkAsPaid(from, userId);
-    } else if (text.includes('ADIAR') || text === '2') {
-      await handlePostpone(from, userId);
-    } else if (text.includes('VER') || text === '3') {
-      await whatsappService.sendTextMessage(from,
-        '🔗 Acesse seu painel: https://limas-finance.web.app'
-      );
-    } else if (text.includes('AJUDA') || text.includes('HELP')) {
-      await whatsappService.sendTextMessage(from,
-        `📱 *Comandos disponíveis:*
-
-*PAGO* ou *1* - Marcar conta como paga
-*ADIAR* ou *2* - Adiar lembrete por 2 horas
-*VER* ou *3* - Ver site
-
-🔗 https://limas-finance.web.app`
-      );
-    } else {
-      // Unknown command
-      await whatsappService.sendTextMessage(from,
-        '❓ Comando não reconhecido.\n\nEnvie *AJUDA* para ver os comandos disponíveis.'
-      );
-    }
-  } catch (error) {
-    console.error('Error handling incoming message:', error);
-  }
-}
-
-/**
- * Handle button replies from interactive messages
- */
-async function handleButtonReply(from, buttonId) {
-  try {
-    const phoneNumber = whatsappService.formatPhoneNumber(from);
-
-    // Find user by WhatsApp number in settings collection
-    const settingsSnapshot = await db.collection('settings').get();
-    let userId = null;
-
-    for (const doc of settingsSnapshot.docs) {
-      const data = doc.data();
-      const userWhatsApp = data.whatsappNumber || (data.whatsappNumbers && data.whatsappNumbers[0]);
-      if (userWhatsApp && whatsappService.formatPhoneNumber(userWhatsApp) === phoneNumber) {
-        userId = doc.id;
-        break;
-      }
-    }
-
-    if (!userId) {
-      console.log('No user found with WhatsApp number:', phoneNumber);
-      return;
-    }
-
-    // Extract bill ID from button ID (format: "paid_billId" or "view_billId")
-    const parts = buttonId.split('_');
-    const action = parts[0];
-    const billId = parts.slice(1).join('_'); // Handle IDs with underscores
-
-    if (action === 'paid' && billId) {
-      await handleMarkBillAsPaid(from, userId, billId);
-    } else if (action === 'view') {
-      await whatsappService.sendTextMessage(from,
-        '🔗 Acesse: https://limas-finance.web.app'
-      );
-    }
-  } catch (error) {
-    console.error('Error handling button reply:', error);
-  }
-}
-
-/**
- * Mark a specific bill as paid by ID
- */
-async function handleMarkBillAsPaid(phoneNumber, userId, billId) {
-  try {
-    // Get the specific bill from top-level bills collection
-    const billRef = db.collection('bills').doc(billId);
-    const billDoc = await billRef.get();
-
-    if (!billDoc.exists) {
-      await whatsappService.sendTextMessage(phoneNumber,
-        '❌ Conta não encontrada.'
-      );
-      return;
-    }
-
-    const billData = billDoc.data();
-
-    // Verify the bill belongs to this user
-    if (billData.userId !== userId) {
-      await whatsappService.sendTextMessage(phoneNumber,
-        '❌ Você não tem permissão para marcar esta conta.'
-      );
-      return;
-    }
-
-    // Check if already paid
-    if (billData.status === 'paid') {
-      await whatsappService.sendTextMessage(phoneNumber,
-        '✅ Esta conta já está marcada como paga!'
-      );
-      return;
-    }
-
-    // Update bill status to paid
-    await billRef.update({
-      status: 'paid',
-      paidAt: admin.firestore.FieldValue.serverTimestamp(),
-      paidVia: 'whatsapp',
-    });
-
-    const billName = billData.name || billData.description || 'Conta';
-    const billValue = billData.value || billData.amount || 0;
-
-    await whatsappService.sendTextMessage(phoneNumber,
-      `✅ *Conta marcada como paga!*
-
-📋 ${billName}
-💰 R$ ${billValue.toFixed(2)}
-
-🎉 Parabéns por manter suas finanças em dia!`
-    );
-  } catch (error) {
-    console.error('Error marking bill as paid:', error);
-    await whatsappService.sendTextMessage(phoneNumber,
-      '❌ Erro ao marcar conta como paga. Tente novamente.'
-    );
-  }
-}
-
-/**
- * Postpone reminder for 2 hours
- */
-async function handlePostpone(phoneNumber, userId) {
-  try {
-    // Store postponement in Firestore
-    await db.collection(`users/${userId}/postponed_reminders`).add({
-      phoneNumber: phoneNumber,
-      postponedAt: admin.firestore.FieldValue.serverTimestamp(),
-      postponedUntil: admin.firestore.Timestamp.fromDate(
-        new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours from now
-      ),
-    });
-
-    await whatsappService.sendTextMessage(phoneNumber,
-      '⏰ Lembrete adiado por 2 horas.\n\nVocê receberá uma nova notificação em breve.'
-    );
-  } catch (error) {
-    console.error('Error postponing reminder:', error);
-    await whatsappService.sendTextMessage(phoneNumber,
-      '❌ Erro ao adiar lembrete. Tente novamente.'
-    );
-  }
-}
-
-/**
- * Scheduled function to send WhatsApp bill reminders
+ * Scheduled function to send FCM push bill reminders
  * Runs daily at 9 AM Brazil time
- * Sends reminders to ALL users who have WhatsApp configured
  */
 exports.scheduledBillReminders = functions.pubsub
   .schedule('0 9 * * *')
   .timeZone('America/Sao_Paulo')
-  .onRun(async (context) => {
+  .onRun(async () => {
     try {
-      console.log('Starting scheduled bill reminders for all users...');
+      console.log('Starting scheduled FCM bill reminders...');
 
-      // Get all users with WhatsApp numbers configured
-      const usersWithWhatsApp = await whatsappService.getAllUsersWithWhatsApp(db);
-      console.log(`Found ${usersWithWhatsApp.length} user(s) with WhatsApp configured`);
+      // Get all settings docs that have an FCM token
+      const settingsSnap = await db.collection('settings').where('fcmToken', '!=', null).get();
+      console.log(`Found ${settingsSnap.size} user(s) with FCM token`);
 
       let totalRemindersSent = 0;
 
-      // Send reminders to each user
-      for (const { userId, whatsappNumber } of usersWithWhatsApp) {
+      for (const settingsDoc of settingsSnap.docs) {
+        const userId = settingsDoc.id;
+        const { fcmToken } = settingsDoc.data();
         try {
-          const remindersSent = await sendBillRemindersForUser(userId, whatsappNumber);
-          totalRemindersSent += remindersSent;
-          console.log(`Sent ${remindersSent} reminder(s) to user ${userId}`);
-
-          // Wait 1 second between users to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (error) {
-          console.error(`Error sending reminders to user ${userId}:`, error);
+          const sent = await sendFcmRemindersForUser(userId, fcmToken);
+          totalRemindersSent += sent;
+        } catch (err) {
+          console.error(`Error sending FCM reminders to user ${userId}:`, err);
         }
       }
 
-      console.log(`Scheduled reminders completed. Sent ${totalRemindersSent} total reminder(s) to ${usersWithWhatsApp.length} user(s).`);
+      console.log(`Scheduled FCM reminders done. Sent ${totalRemindersSent} notification(s).`);
       return null;
-    } catch (error) {
-      console.error('Error in scheduled reminders:', error);
+    } catch (err) {
+      console.error('Error in scheduledBillReminders:', err);
       return null;
     }
   });
 
 /**
- * Send bill reminders for a specific user
+ * Send FCM push reminders for a specific user
+ * @returns {number} number of notifications sent
  */
-async function sendBillRemindersForUser(userId, whatsappNumber) {
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+async function sendFcmRemindersForUser(userId, fcmToken) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(today);
+  endOfToday.setHours(23, 59, 59, 999);
 
-    const endOfToday = new Date(today);
-    endOfToday.setHours(23, 59, 59, 999);
+  const billsSnap = await db.collection('bills')
+    .where('userId', '==', userId)
+    .where('status', '==', 'pending')
+    .get();
 
-    // Get bills from top-level collection that are due today or overdue
-    const billsQuery = await db.collection('bills')
-      .where('userId', '==', userId)
-      .where('status', '==', 'pending')
-      .get();
+  const dueBills = billsSnap.docs
+    .filter((d) => {
+      const { dueDate } = d.data();
+      if (!dueDate) return false;
+      const due = dueDate.toDate ? dueDate.toDate() : new Date(dueDate);
+      return due <= endOfToday;
+    })
+    .slice(0, 5);
 
-    // Filter bills that are due today or overdue (since we can't compound query on dueDate)
-    const pendingBills = billsQuery.docs.filter((doc) => {
-      const billData = doc.data();
-      if (!billData.dueDate) return false;
-      const dueDate = billData.dueDate.toDate ? billData.dueDate.toDate() : new Date(billData.dueDate);
-      return dueDate <= endOfToday;
-    }).slice(0, 5); // Limit to 5 reminders per day
+  if (dueBills.length === 0) return 0;
 
-    if (pendingBills.length === 0) {
-      console.log('No pending bills found for user:', userId);
-      return 0;
+  let sent = 0;
+
+  for (const billDoc of dueBills) {
+    const { name, description, amount } = billDoc.data();
+    const billName = name || description || 'Conta';
+    const amountStr = amount != null ? ` - R$ ${Number(amount).toFixed(2)}` : '';
+
+    try {
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: 'Limas Finance',
+          body: `${billName}${amountStr} vence hoje ou está atrasada`,
+        },
+      });
+
+      await db.collection('reminder_logs').add({
+        userId,
+        billId: billDoc.id,
+        billName,
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        sentVia: 'fcm',
+      });
+
+      sent++;
+    } catch (err) {
+      console.error('Error sending FCM for bill:', billDoc.id, err);
     }
-
-    let remindersSent = 0;
-
-    // Send reminder for each bill with interactive buttons
-    for (const billDoc of pendingBills) {
-      const billData = billDoc.data();
-      const message = whatsappService.formatBillReminderMessage(billData, whatsappNumber);
-
-      // Define interactive buttons
-      const buttons = [
-        { id: `paid_${billDoc.id}`, title: 'Marcar como pago' },
-        { id: `view_${billDoc.id}`, title: 'Ver detalhes' },
-      ];
-
-      try {
-        await whatsappService.sendInteractiveMessage(whatsappNumber, message, buttons);
-        remindersSent++;
-
-        // Log the reminder in Firestore
-        await db.collection('reminder_logs').add({
-          userId: userId,
-          billId: billDoc.id,
-          billName: billData.name || billData.description,
-          sentAt: admin.firestore.FieldValue.serverTimestamp(),
-          sentVia: 'whatsapp',
-          whatsappNumber: whatsappNumber,
-        });
-
-        // Wait 2 seconds between messages to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (error) {
-        console.error('Error sending reminder for bill:', billDoc.id, error);
-      }
-    }
-
-    return remindersSent;
-  } catch (error) {
-    console.error('Error sending bill reminders for user:', userId, error);
-    throw error;
   }
+
+  return sent;
 }
-
-/**
- * Manual trigger for WhatsApp reminders (for testing)
- * Sends reminders to ALL users with WhatsApp configured
- */
-exports.sendWhatsAppReminder = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      console.log('Manual WhatsApp reminder triggered for all users');
-
-      // Get all users with WhatsApp numbers configured
-      const usersWithWhatsApp = await whatsappService.getAllUsersWithWhatsApp(db);
-      console.log(`Found ${usersWithWhatsApp.length} user(s) with WhatsApp configured`);
-
-      const results = [];
-      let totalRemindersSent = 0;
-
-      // Send reminders to each user
-      for (const { userId, whatsappNumber } of usersWithWhatsApp) {
-        try {
-          const remindersSent = await sendBillRemindersForUser(userId, whatsappNumber);
-          totalRemindersSent += remindersSent;
-          results.push({ userId, whatsappNumber, remindersSent, success: true });
-
-          // Wait 1 second between users
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (error) {
-          results.push({ userId, whatsappNumber, error: error.message, success: false });
-        }
-      }
-
-      res.json({
-        success: true,
-        message: `Sent ${totalRemindersSent} reminder(s) to ${usersWithWhatsApp.length} user(s)`,
-        totalRemindersSent,
-        usersProcessed: usersWithWhatsApp.length,
-        results,
-      });
-    } catch (error) {
-      console.error('Error in manual reminder trigger:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-      });
-    }
-  });
-});
-
-/**
- * Test WhatsApp connection
- * Sends a simple test message to verify API configuration
- */
-exports.testWhatsApp = functions.https.onRequest((req, res) => {
-  cors(req, res, async () => {
-    try {
-      const { phoneNumber, message } = req.body || {};
-      const targetPhone = phoneNumber || '+5585992265544';
-      const testMessage = message || '👋 Teste de conexão WhatsApp Cloud API - Limas Finance';
-
-      const result = await whatsappService.sendTextMessage(targetPhone, testMessage);
-
-      res.json({
-        success: true,
-        message: 'WhatsApp test message sent successfully',
-        messageId: result.messages?.[0]?.id,
-        to: targetPhone,
-      });
-    } catch (error) {
-      console.error('WhatsApp test failed:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        details: error.response?.data,
-      });
-    }
-  });
-});
 
 // ============================================================
 // IMPORT PROCESSOR FUNCTIONS
