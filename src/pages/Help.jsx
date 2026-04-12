@@ -68,8 +68,8 @@ export default function HelpPage() {
     {
       question: language === 'pt' ? 'Como funcionam as notificações de contas?' : 'How do bill notifications work?',
       answer: language === 'pt'
-        ? 'Você pode configurar seu número de WhatsApp nas Configurações. O sistema enviará lembretes diários às 9h sobre contas próximas do vencimento.'
-        : 'You can set up your WhatsApp number in Settings. The system will send daily reminders at 9 AM about bills that are due soon.',
+        ? 'O aplicativo enviará notificações push diariamente às 9h sobre contas próximas do vencimento. Permita as notificações quando solicitado.'
+        : 'The app sends push notifications daily at 9 AM about bills that are due soon. Allow notifications when prompted.',
     },
     {
       question: language === 'pt' ? 'Posso compartilhar minha conta com outra pessoa?' : 'Can I share my account with someone else?',

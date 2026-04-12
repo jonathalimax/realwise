@@ -5,7 +5,7 @@
  * Features:
  * - AI-powered duplicate detection (semantic matching)
  * - AI categorization with batching for efficiency
- * - WhatsApp notification after import completion
+ * - Push notification after import completion
  */
 
 const functions = require('firebase-functions');
@@ -19,7 +19,6 @@ const {
   detectPotentialDuplicates,
   formatImportNotification
 } = require('./aiService');
-const whatsappService = require('./whatsapp-service');
 
 // Firebase Admin is initialized by the main index.js file
 
@@ -173,31 +172,10 @@ async function getRecentTransactions(userId, limit = 200) {
 }
 
 /**
- * Send WhatsApp notification after import
+ * Placeholder for future push notification after import
  */
 async function sendImportNotification(userId, importResult) {
-  try {
-    // Get user's WhatsApp number
-    const whatsappNumber = await whatsappService.getUserWhatsAppNumber(db, userId);
-
-    if (!whatsappNumber) {
-      console.log('No WhatsApp number configured for user:', userId);
-      return;
-    }
-
-    // Get user's language preference
-    const { language } = await getUserCategories(userId);
-
-    // Format and send notification
-    const message = formatImportNotification(importResult, language);
-
-    await whatsappService.sendTextMessage(whatsappNumber, message);
-    console.log('Import notification sent via WhatsApp to:', whatsappNumber);
-
-  } catch (error) {
-    console.error('Error sending import notification:', error);
-    // Don't throw - notification failure shouldn't fail the import
-  }
+  console.log(`Import completed for user ${userId}: ${importResult.importedCount ?? 0} transactions`);
 }
 
 /**

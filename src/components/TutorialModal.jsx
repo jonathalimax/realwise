@@ -40,7 +40,7 @@ const TUTORIAL_TOPICS = [
       pt: {
         subtitle: 'Tudo que você precisa saber',
         points: [
-          '📋 Contas a Pagar - Cadastre e receba notificações no WhatsApp',
+          '📋 Contas a Pagar - Cadastre e receba notificações push sobre vencimentos',
           '🎯 Metas - Crie objetivos e acompanhe seu progresso',
           '📈 Investimentos - Registre e monitore rendimentos',
           '🌙 Modo Escuro - Toque no ícone sol/lua para alternar'
@@ -49,7 +49,7 @@ const TUTORIAL_TOPICS = [
       en: {
         subtitle: 'Everything you need to know',
         points: [
-          '📋 Bills to Pay - Register and get WhatsApp notifications',
+          '📋 Bills to Pay - Register and get push notifications for due dates',
           '🎯 Goals - Create objectives and track progress',
           '📈 Investments - Record and monitor returns',
           '🌙 Dark Mode - Tap sun/moon icon to toggle'
