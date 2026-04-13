@@ -119,11 +119,16 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
   };
 
   const handleSkip = async () => {
-    if (isFirstTime) {
-      await setTutorialCompleted(true);
+    try {
+      if (isFirstTime) {
+        await setTutorialCompleted(true);
+      }
+    } catch (err) {
+      console.error('Error marking tutorial completed:', err);
+    } finally {
+      onClose();
+      resetState();
     }
-    onClose();
-    resetState();
   };
 
   const handleNext = () => {
@@ -164,11 +169,13 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
       if (isFirstTime) {
         await setTutorialCompleted(true);
       }
+    } catch (err) {
+      console.error('Error finishing tutorial:', err);
     } finally {
       setIsSaving(false);
+      onClose();
+      resetState();
     }
-    onClose();
-    resetState();
   };
 
   const resetState = () => {
