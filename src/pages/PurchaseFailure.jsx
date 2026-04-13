@@ -36,7 +36,7 @@ function FailureContent() {
         </p>
 
         <div className="space-y-3">
-          <Link to="/purchase">
+          <Link to="/checkout">
             <Button className="w-full h-12 text-lg rounded-xl bg-emerald-600 hover:bg-emerald-700">
               <RefreshCcw className="w-5 h-5 mr-2" />
               {language === 'pt' ? 'Tentar novamente' : 'Try again'}

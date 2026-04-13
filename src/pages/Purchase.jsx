@@ -307,7 +307,7 @@ function PurchaseContent() {
                 if (result.status === 'approved') {
                   analytics.purchaseComplete(priceRef.current, couponRef.current, contributionRef.current || 0);
                   resolve();
-                  setTimeout(() => navigate('/purchase/success'), 100);
+                  setTimeout(() => navigate('/checkout/success'), 100);
                 } else if (result.status === 'pending' || result.status === 'in_process') {
                   // For PIX: pending_waiting_transfer - don't navigate, let user see QR code
                   // For card: pending_contingency/in_process - payment under review
@@ -324,7 +324,7 @@ function PurchaseContent() {
                   } else {
                     // Other pending payments (like boleto) - go to success with pending message
                     resolve();
-                    setTimeout(() => navigate('/purchase/success'), 100);
+                    setTimeout(() => navigate('/checkout/success'), 100);
                   }
                 } else if (result.status === 'rejected') {
                   // Payment was rejected - show error and don't navigate
@@ -395,7 +395,7 @@ function PurchaseContent() {
         if (data.approved) {
           clearInterval(pollInterval);
           analytics.purchaseComplete(finalPrice, appliedCoupon?.code, contributionAmount || 0);
-          navigate('/purchase/success');
+          navigate('/checkout/success');
         } else if (data.rejected) {
           clearInterval(pollInterval);
           setPaymentPending(false);

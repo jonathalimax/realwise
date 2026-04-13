@@ -38,7 +38,6 @@ import IncomePage from './pages/Income';
 import BillsPage from './pages/Bills';
 import HelpPage from './pages/Help';
 import NotificationsPage from './pages/Notifications';
-import PendingReviewPage from './pages/PendingReview';
 import ImportPage from './pages/Import';
 import TransactionEditPage from './pages/TransactionEdit';
 import PlannerPage from './pages/planner/PlannerPage';
@@ -127,7 +126,6 @@ function AuthenticatedApp() {
                       <Route path="budget" element={<BudgetPage />} />
                       <Route path="help" element={<HelpPage />} />
                       <Route path="notifications" element={<NotificationsPage />} />
-                      <Route path="pending-review" element={<PendingReviewPage />} />
                       <Route path="import" element={<ImportPage />} />
                       <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
                     </Route>
@@ -171,16 +169,16 @@ function AppRouter() {
   return (
     <Routes>
       {/* Public routes - Landing page and related pages (always accessible) */}
-      <Route path="/" element={<Home />} />
+      <Route path="/purchase" element={<Home />} />
       <Route path="/selling" element={<Home />} />
       <Route path="/donations" element={<Donations />} />
       <Route path="/feedback" element={<FeatureRequest />} />
       <Route path="/support" element={<Support />} />
       <Route path="/admin" element={<Admin />} />
-      <Route path="/purchase" element={<Purchase />} />
-      <Route path="/purchase/success" element={<PurchaseSuccess />} />
-      <Route path="/purchase/failure" element={<PurchaseFailure />} />
-      <Route path="/purchase/pending" element={<PurchaseSuccess />} />
+      <Route path="/checkout" element={<Purchase />} />
+      <Route path="/checkout/success" element={<PurchaseSuccess />} />
+      <Route path="/checkout/failure" element={<PurchaseFailure />} />
+      <Route path="/checkout/pending" element={<PurchaseSuccess />} />
 
       {/* Auth route - redirect to dashboard if already logged in */}
       <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
