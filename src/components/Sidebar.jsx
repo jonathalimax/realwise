@@ -5,13 +5,11 @@ import { signOut } from 'firebase/auth';
 import { useSettings } from '../contexts/SettingsContext';
 import {
   HomeIcon,
-  ClipboardDocumentListIcon,
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
   FlagIcon,
   DocumentTextIcon,
   CreditCardIcon,
-  ChartBarIcon,
   QuestionMarkCircleIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
@@ -75,7 +73,6 @@ export default function Sidebar() {
     goals: language === 'pt' ? 'Metas' : 'Goals',
     bills: language === 'pt' ? 'Contas' : 'Bills',
     cards: language === 'pt' ? 'Cartões' : 'Cards',
-    investments: language === 'pt' ? 'Investimentos' : 'Investments',
     notifications: language === 'pt' ? 'Notificações' : 'Notifications',
     help: language === 'pt' ? 'Ajuda' : 'Help',
     settings: language === 'pt' ? 'Configurações' : 'Settings',
