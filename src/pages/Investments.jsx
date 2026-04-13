@@ -1,9 +1,135 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards } from '../contexts/CardsContext';
+import { useAccess } from '../contexts/AccessContext';
 import { AdjustmentsHorizontalIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { db } from '../firebase';
+import usePlannerLayers from './planner/usePlannerLayers';
+import { resolveLayerColors, formatBRL } from './planner/carteira/constants';
+import { Shimmer } from '../components/ui/shimmer';
+
+// --- Portfolio tab helpers ---
+
+const INV_TYPE_BADGE = {
+  fixed_income: 'Renda Fixa',
+  stocks: 'Ações',
+  crypto: 'Cripto',
+  funds: 'Misto',
+  fii: 'FII',
+  real_estate: 'Outro',
+};
+
+const DONUT_COLORS = {
+  liquidez:    '#3b82f6',
+  crescimento: '#10b981',
+  patrimonio:  '#8b5cf6',
+  legado:      '#f97316',
+};
+
+const BADGE_COLORS = {
+  'Renda Fixa': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+  'FII':        'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300',
+  'ETF':        'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+  'Ações':      'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+  'Cripto':     'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300',
+};
+
+function PortfolioTypeBadge({ type }) {
+  const label = INV_TYPE_BADGE[type] ?? type ?? null;
+  if (!label) return null;
+  const cls = BADGE_COLORS[label] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+  return <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${cls}`}>{label}</span>;
+}
+
+function PortfolioItemRow({ name, type, amount }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate">{name}</span>
+        <PortfolioTypeBadge type={type} />
+      </div>
+      <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white shrink-0">
+        {formatBRL.format(amount)}
+      </span>
+    </div>
+  );
+}
+
+function PortfolioLayerGroup({ layer, layerIndex, items }) {
+  const colors = resolveLayerColors(layer.id, layer.colorKey, layerIndex);
+  const total = items.reduce((s, i) => s + i.amount, 0);
+  return (
+    <div className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm">
+      <div className={`flex items-center justify-between px-4 py-3 ${colors.header} border-b`}>
+        <div className="flex items-center gap-2">
+          <span>{layer.icon}</span>
+          <span className={`text-sm font-semibold ${colors.title}`}>{layer.label}</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${colors.badge}`}>
+            {items.length} {items.length === 1 ? 'item' : 'itens'}
+          </span>
+        </div>
+        <span className={`text-sm font-bold tabular-nums ${colors.title}`}>
+          {formatBRL.format(total)}
+        </span>
+      </div>
+      <div className="bg-white dark:bg-gray-800">
+        {items.map((item) => (
+          <PortfolioItemRow key={item.sourceId} name={item.name} type={item.type} amount={item.amount} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PortfolioDonutChart({ layers, grouped }) {
+  const layerTotals = layers
+    .map(l => ({ id: l.id, total: (grouped[l.id] ?? []).reduce((s, i) => s + i.amount, 0) }))
+    .filter(lt => lt.total > 0);
+  const grandTotal = layerTotals.reduce((s, lt) => s + lt.total, 0);
+  if (grandTotal === 0) return null;
+
+  let cursor = 0;
+  const stops = layerTotals.map(lt => {
+    const pct = (lt.total / grandTotal) * 100;
+    const color = DONUT_COLORS[lt.id] ?? '#94a3b8';
+    const stop = `${color} ${cursor.toFixed(2)}% ${(cursor + pct).toFixed(2)}%`;
+    cursor += pct;
+    return stop;
+  });
+  const gradient = `conic-gradient(${stops.join(', ')})`;
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
+      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Alocação por camada</p>
+      <div className="flex items-center gap-5">
+        <div className="shrink-0 relative w-20 h-20 rounded-full" style={{ background: gradient }}>
+          <div className="absolute inset-[14px] bg-white dark:bg-gray-800 rounded-full" />
+        </div>
+        <div className="flex flex-col gap-2 flex-1">
+          {layerTotals.map(lt => {
+            const layer = layers.find(l => l.id === lt.id);
+            const pct = ((lt.total / grandTotal) * 100).toFixed(1);
+            const color = DONUT_COLORS[lt.id] ?? '#94a3b8';
+            return (
+              <div key={lt.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {layer?.icon} {layer?.label}
+                  </span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function InvestmentsPage() {
   const navigate = useNavigate();
@@ -28,6 +154,33 @@ export default function InvestmentsPage() {
   const [sortBy, setSortBy] = useState('value'); // value, growth, date, name
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Tab state: 'portfolio' | 'investments'
+  const [activeTab, setActiveTab] = useState('portfolio');
+
+  // Portfolio data
+  const { ownerId } = useAccess();
+  const layers = usePlannerLayers();
+  const [taggedTxs, setTaggedTxs] = useState([]);
+  const [txLoading, setTxLoading] = useState(true);
+
+  useEffect(() => {
+    if (!ownerId) { setTxLoading(false); return; }
+    setTxLoading(true);
+    const q = query(
+      collection(db, 'transactions'),
+      where('userId', '==', ownerId),
+      where('plannerGoalId', '!=', null)
+    );
+    getDocs(q)
+      .then(snap => {
+        const tagged = [];
+        snap.forEach(d => tagged.push({ id: d.id, ...d.data() }));
+        setTaggedTxs(tagged);
+      })
+      .catch(err => console.error('[Portfolio] fetch tagged transactions:', err))
+      .finally(() => setTxLoading(false));
+  }, [ownerId]);
 
   const handleInvestmentClick = (investment) => {
     navigate(`/investments/${investment.id}/edit`);
@@ -111,6 +264,52 @@ export default function InvestmentsPage() {
     filterBank !== 'all',
     searchQuery !== ''
   ].filter(Boolean).length;
+
+  // Portfolio tab computed data
+  const portfolioLoading = loading || txLoading;
+
+  const sublayerToLayer = {};
+  layers.forEach(layer => {
+    (layer.sublayers ?? []).forEach(sub => {
+      sublayerToLayer[sub.id] = layer.id;
+    });
+  });
+
+  const activeInvestments = investments.filter(inv => inv.status !== 'closed');
+
+  const invItems = activeInvestments.map(inv => ({
+    sourceId: `inv-${inv.id}`,
+    name: inv.name,
+    type: inv.type,
+    amount: inv.initialAmount ?? 0,
+    plannerGoalId: inv.plannerGoalId ?? null,
+  }));
+
+  const txItems = taggedTxs.map(tx => ({
+    sourceId: `tx-${tx.id}`,
+    name: tx.description,
+    type: tx.investmentType ?? null,
+    amount: tx.amount ?? 0,
+    plannerGoalId: tx.plannerGoalId,
+  }));
+
+  const allPortfolioItems = [...invItems, ...txItems];
+
+  const portfolioGrouped = {};
+  const portfolioUnlinked = [];
+
+  allPortfolioItems.forEach(item => {
+    const layerId = item.plannerGoalId ? sublayerToLayer[item.plannerGoalId] : null;
+    if (layerId) {
+      if (!portfolioGrouped[layerId]) portfolioGrouped[layerId] = [];
+      portfolioGrouped[layerId].push(item);
+    } else {
+      portfolioUnlinked.push(item);
+    }
+  });
+
+  const portfolioTotal = allPortfolioItems.reduce((s, i) => s + i.amount, 0);
+  const portfolioActiveLayers = layers.filter(l => (portfolioGrouped[l.id] ?? []).length > 0);
 
   const InvestmentItem = ({ investment }) => {
     const typeInfo = getInvestmentType(investment.type);
@@ -237,359 +436,476 @@ export default function InvestmentsPage() {
             <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
               {language === 'pt' ? 'Investimentos' : 'Investments'}
             </h1>
-            <button
-              onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium text-sm transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="hidden sm:inline">{language === 'pt' ? 'Adicionar' : 'Add'}</span>
-            </button>
+            {activeTab === 'investments' && (
+              <button
+                onClick={handleOpenAdd}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium text-sm transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">{language === 'pt' ? 'Adicionar' : 'Add'}</span>
+              </button>
+            )}
           </div>
+        </div>
+        {/* Tab bar */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex">
+          <button
+            onClick={() => setActiveTab('portfolio')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'portfolio'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            {language === 'pt' ? 'Portfólio' : 'Portfolio'}
+          </button>
+          <button
+            onClick={() => setActiveTab('investments')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'investments'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            {language === 'pt' ? 'Investimentos' : 'Investments'}
+          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8 pt-4 space-y-4 sm:space-y-6">
-        {/* Beautiful Summary Header */}
-        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg">
-          {/* Main Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
-                {language === 'pt' ? 'Investido' : 'Invested'}
-              </p>
-              <p className="text-base sm:text-xl font-bold text-white truncate">
-                {formatCurrency(totalInvested)}
-              </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
-                {language === 'pt' ? 'Valor Atual' : 'Current Value'}
-              </p>
-              <p className="text-base sm:text-xl font-bold text-white truncate">
-                {formatCurrency(totalValue)}
-              </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
-                {language === 'pt' ? 'Rendimento' : 'Profit/Loss'}
-              </p>
-              <p className={`text-base sm:text-xl font-bold truncate ${totalGrowth >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                {totalGrowth >= 0 ? '+' : ''}{formatCurrency(totalGrowth)}
-              </p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
-                {language === 'pt' ? 'Rentabilidade' : 'Return'}
-              </p>
-              <p className={`text-base sm:text-xl font-bold truncate ${totalGrowthPercent >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                {totalGrowthPercent >= 0 ? '+' : ''}{totalGrowthPercent.toFixed(2)}%
-              </p>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8 pt-4">
 
-          {/* Count Badge */}
-          <div className="flex items-center justify-center sm:justify-start gap-2">
-            <div className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full">
-              <p className="text-xs sm:text-sm text-white font-medium">
-                {investments.length} {investments.length === 1
-                  ? (language === 'pt' ? 'investimento' : 'investment')
-                  : (language === 'pt' ? 'investimentos' : 'investments')}
+        {/* ── Portfolio tab ── */}
+        {activeTab === 'portfolio' && (
+          <div className="space-y-4">
+            {/* Total card */}
+            <div className="bg-gray-900 dark:bg-gray-950 rounded-2xl p-5">
+              <p className="text-xs text-gray-400 mb-1">
+                {language === 'pt' ? 'Total investido' : 'Total invested'}
               </p>
-            </div>
-            {totalGrowth >= 0 && totalGrowthPercent > 0 && (
-              <div className="px-3 py-1.5 bg-emerald-500/30 backdrop-blur-sm rounded-full flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                <p className="text-xs sm:text-sm text-emerald-100 font-medium">
-                  {language === 'pt' ? 'Crescendo' : 'Growing'}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Filters Bar */}
-        <div className="flex items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === 'pt' ? 'Buscar investimentos...' : 'Search investments...'}
-                className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 rounded-xl text-sm text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <XMarkIcon className="w-5 h-5" />
-                </button>
+              {portfolioLoading ? (
+                <Shimmer className="h-8 w-2/3 rounded-lg" />
+              ) : (
+                <p className="text-2xl font-bold text-white tabular-nums">{formatBRL.format(portfolioTotal)}</p>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                {invItems.length} {invItems.length === 1 ? (language === 'pt' ? 'ativo' : 'asset') : (language === 'pt' ? 'ativos' : 'assets')}
+                {' · '}
+                {txItems.length} {txItems.length === 1 ? (language === 'pt' ? 'transação vinculada' : 'linked transaction') : (language === 'pt' ? 'transações vinculadas' : 'linked transactions')}
+              </p>
             </div>
-          </div>
 
-          {/* Filters Toggle Button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl shadow-sm transition-all flex-shrink-0 ${
-              showFilters || activeFiltersCount > 0
-                ? 'bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-            }`}
-          >
-            <AdjustmentsHorizontalIcon className="w-5 h-5" />
-            <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
-            {activeFiltersCount > 0 && (
-              <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                showFilters ? 'bg-white/20' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-              }`}>
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-        </div>
+            {/* Donut chart */}
+            {portfolioLoading
+              ? <Shimmer className="h-28 w-full rounded-2xl" />
+              : <PortfolioDonutChart layers={layers} grouped={portfolioGrouped} />
+            }
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
-            {/* Investment Type Pills */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                {language === 'pt' ? 'Tipo de Investimento' : 'Investment Type'}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setFilterType('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                    filterType === 'all'
-                      ? 'bg-blue-500 text-white shadow-sm'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {language === 'pt' ? 'Todos' : 'All'} ({investments.length})
-                </button>
-                {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                  <button
-                    key={key}
-                    onClick={() => setFilterType(key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
-                      filterType === key
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <span>{info.icon}</span>
-                    <span>{t(`investments.types.${key}`)}</span>
-                    <span className={`${filterType === key ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-                      ({totalsByType[key]?.count || 0})
-                    </span>
-                  </button>
+            {/* Layer groups */}
+            {portfolioLoading ? (
+              <>
+                <Shimmer className="h-24 w-full rounded-2xl" />
+                <Shimmer className="h-24 w-full rounded-2xl" />
+              </>
+            ) : (
+              <>
+                {portfolioActiveLayers.map((layer, i) => (
+                  <PortfolioLayerGroup
+                    key={layer.id}
+                    layer={layer}
+                    layerIndex={i}
+                    items={portfolioGrouped[layer.id] ?? []}
+                  />
                 ))}
-              </div>
-            </div>
 
-            {/* Status Pills */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                {language === 'pt' ? 'Status' : 'Status'}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { value: 'all', label: language === 'pt' ? 'Todos' : 'All' },
-                  { value: 'active', label: language === 'pt' ? 'Ativos' : 'Active' },
-                  { value: 'closed', label: language === 'pt' ? 'Encerrados' : 'Closed' }
-                ].map(option => (
-                  <button
-                    key={option.value}
-                    onClick={() => setFilterStatus(option.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      filterStatus === option.value
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+                {portfolioUnlinked.length > 0 && (
+                  <div className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm opacity-50">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center gap-2">
+                        <span>📦</span>
+                        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                          {language === 'pt' ? 'Sem vínculo' : 'Unlinked'}
+                        </span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                          {portfolioUnlinked.length} {portfolioUnlinked.length === 1 ? 'item' : 'itens'}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold tabular-nums text-gray-400">
+                        {formatBRL.format(portfolioUnlinked.reduce((s, i) => s + i.amount, 0))}
+                      </span>
+                    </div>
+                    <div className="bg-white dark:bg-gray-800">
+                      {portfolioUnlinked.map((item) => (
+                        <PortfolioItemRow key={item.sourceId} name={item.name} type={item.type} amount={item.amount} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {/* Bank Filter */}
-            {availableBanks.length > 0 && (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Banco / Plataforma' : 'Bank / Platform'}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setFilterBank('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      filterBank === 'all'
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {language === 'pt' ? 'Todos' : 'All'}
-                  </button>
-                  {availableBanks.map(bankValue => {
-                    const knownBank = getBankInfo(bankValue);
-                    const isKnown = knownBank && knownBank.id !== 'other';
-                    const displayName = isKnown ? knownBank.name : bankValue;
-                    const icon = isKnown ? knownBank.icon : '🏦';
-                    return (
-                      <button
-                        key={bankValue}
-                        onClick={() => setFilterBank(bankValue)}
-                        className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
-                          filterBank === bankValue
-                            ? 'bg-blue-500 text-white shadow-sm'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                        }`}
-                      >
-                        <span>{icon}</span>
-                        <span>{displayName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Sort Controls */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Ordenar por' : 'Sort by'}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { value: 'value', label: language === 'pt' ? 'Valor' : 'Value' },
-                    { value: 'growth', label: language === 'pt' ? 'Rentabilidade' : 'Growth' },
-                    { value: 'date', label: language === 'pt' ? 'Data' : 'Date' },
-                    { value: 'name', label: language === 'pt' ? 'Nome' : 'Name' }
-                  ].map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => setSortBy(option.value)}
-                      className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                        sortBy === option.value
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Ordem' : 'Order'}
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSortOrder('desc')}
-                    className={`flex-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-                      sortOrder === 'desc'
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    {language === 'pt' ? 'Maior' : 'Highest'}
-                  </button>
-                  <button
-                    onClick={() => setSortOrder('asc')}
-                    className={`flex-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-                      sortOrder === 'asc'
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    {language === 'pt' ? 'Menor' : 'Lowest'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Clear Filters Button */}
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={() => {
-                  setFilterType('all');
-                  setFilterStatus('all');
-                  setFilterBank('all');
-                  setSearchQuery('');
-                }}
-                className="w-full py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-              >
-                {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
-              </button>
+                {portfolioActiveLayers.length === 0 && portfolioUnlinked.length === 0 && (
+                  <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+                    <p className="text-4xl mb-3">💼</p>
+                    <p className="text-sm font-medium">
+                      {language === 'pt' ? 'Nenhum investimento encontrado' : 'No investments found'}
+                    </p>
+                    <p className="text-xs mt-1">
+                      {language === 'pt'
+                        ? 'Adicione investimentos ou vincule transações a uma camada da carteira'
+                        : 'Add investments or link transactions to a wallet layer'}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {/* Results Count */}
-        <div className="flex items-center justify-between px-1">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {sortedInvestments.length} {sortedInvestments.length === 1
-              ? (language === 'pt' ? 'investimento' : 'investment')
-              : (language === 'pt' ? 'investimentos' : 'investments')}
-            {activeFiltersCount > 0 && (
-              <span className="ml-1 text-gray-500 dark:text-gray-500">
-                ({language === 'pt' ? 'filtrado' : 'filtered'})
-              </span>
-            )}
-          </p>
-        </div>
-
-        {/* Investments List */}
-        <div className="flex-1">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <svg className="animate-spin w-8 h-8 text-gray-400" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            </div>
-          ) : sortedInvestments.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
+        {/* ── Investments list tab ── */}
+        {activeTab === 'investments' && (
+          <div className="space-y-4 sm:space-y-6">
+            {/* Beautiful Summary Header */}
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg">
+              {/* Main Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
+                    {language === 'pt' ? 'Investido' : 'Invested'}
+                  </p>
+                  <p className="text-base sm:text-xl font-bold text-white truncate">
+                    {formatCurrency(totalInvested)}
+                  </p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
+                    {language === 'pt' ? 'Valor Atual' : 'Current Value'}
+                  </p>
+                  <p className="text-base sm:text-xl font-bold text-white truncate">
+                    {formatCurrency(totalValue)}
+                  </p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
+                    {language === 'pt' ? 'Rendimento' : 'Profit/Loss'}
+                  </p>
+                  <p className={`text-base sm:text-xl font-bold truncate ${totalGrowth >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                    {totalGrowth >= 0 ? '+' : ''}{formatCurrency(totalGrowth)}
+                  </p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-blue-100 dark:text-blue-200 uppercase tracking-wide mb-1">
+                    {language === 'pt' ? 'Rentabilidade' : 'Return'}
+                  </p>
+                  <p className={`text-base sm:text-xl font-bold truncate ${totalGrowthPercent >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                    {totalGrowthPercent >= 0 ? '+' : ''}{totalGrowthPercent.toFixed(2)}%
+                  </p>
+                </div>
               </div>
-              <p className="font-medium text-gray-900 dark:text-white mb-1">
-                {filterType !== 'all'
-                  ? (language === 'pt' ? 'Nenhum investimento deste tipo' : 'No investments of this type')
-                  : (language === 'pt' ? 'Nenhum investimento' : 'No investments')}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Adicione investimentos pelo botão +' : 'Add investments using the + button'}
+
+              {/* Count Badge */}
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <div className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full">
+                  <p className="text-xs sm:text-sm text-white font-medium">
+                    {investments.length} {investments.length === 1
+                      ? (language === 'pt' ? 'investimento' : 'investment')
+                      : (language === 'pt' ? 'investimentos' : 'investments')}
+                  </p>
+                </div>
+                {totalGrowth >= 0 && totalGrowthPercent > 0 && (
+                  <div className="px-3 py-1.5 bg-emerald-500/30 backdrop-blur-sm rounded-full flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <p className="text-xs sm:text-sm text-emerald-100 font-medium">
+                      {language === 'pt' ? 'Crescendo' : 'Growing'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Filters Bar */}
+            <div className="flex items-center justify-between gap-3">
+              {/* Search Input */}
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={language === 'pt' ? 'Buscar investimentos...' : 'Search investments...'}
+                    className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 rounded-xl text-sm text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filters Toggle Button */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl shadow-sm transition-all flex-shrink-0 ${
+                  showFilters || activeFiltersCount > 0
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <AdjustmentsHorizontalIcon className="w-5 h-5" />
+                <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
+                {activeFiltersCount > 0 && (
+                  <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
+                    showFilters ? 'bg-white/20' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Filters Panel */}
+            {showFilters && (
+              <div className="p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                {/* Investment Type Pills */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                    {language === 'pt' ? 'Tipo de Investimento' : 'Investment Type'}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setFilterType('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                        filterType === 'all'
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {language === 'pt' ? 'Todos' : 'All'} ({investments.length})
+                    </button>
+                    {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                      <button
+                        key={key}
+                        onClick={() => setFilterType(key)}
+                        className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
+                          filterType === key
+                            ? 'bg-blue-500 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        <span>{info.icon}</span>
+                        <span>{t(`investments.types.${key}`)}</span>
+                        <span className={`${filterType === key ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                          ({totalsByType[key]?.count || 0})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Status Pills */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                    {language === 'pt' ? 'Status' : 'Status'}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'all', label: language === 'pt' ? 'Todos' : 'All' },
+                      { value: 'active', label: language === 'pt' ? 'Ativos' : 'Active' },
+                      { value: 'closed', label: language === 'pt' ? 'Encerrados' : 'Closed' }
+                    ].map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => setFilterStatus(option.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                          filterStatus === option.value
+                            ? 'bg-blue-500 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bank Filter */}
+                {availableBanks.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                      {language === 'pt' ? 'Banco / Plataforma' : 'Bank / Platform'}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setFilterBank('all')}
+                        className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                          filterBank === 'all'
+                            ? 'bg-blue-500 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {language === 'pt' ? 'Todos' : 'All'}
+                      </button>
+                      {availableBanks.map(bankValue => {
+                        const knownBank = getBankInfo(bankValue);
+                        const isKnown = knownBank && knownBank.id !== 'other';
+                        const displayName = isKnown ? knownBank.name : bankValue;
+                        const icon = isKnown ? knownBank.icon : '🏦';
+                        return (
+                          <button
+                            key={bankValue}
+                            onClick={() => setFilterBank(bankValue)}
+                            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
+                              filterBank === bankValue
+                                ? 'bg-blue-500 text-white shadow-sm'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }`}
+                          >
+                            <span>{icon}</span>
+                            <span>{displayName}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sort Controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                      {language === 'pt' ? 'Ordenar por' : 'Sort by'}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: 'value', label: language === 'pt' ? 'Valor' : 'Value' },
+                        { value: 'growth', label: language === 'pt' ? 'Rentabilidade' : 'Growth' },
+                        { value: 'date', label: language === 'pt' ? 'Data' : 'Date' },
+                        { value: 'name', label: language === 'pt' ? 'Nome' : 'Name' }
+                      ].map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => setSortBy(option.value)}
+                          className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                            sortBy === option.value
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                      {language === 'pt' ? 'Ordem' : 'Order'}
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSortOrder('desc')}
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                          sortOrder === 'desc'
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        {language === 'pt' ? 'Maior' : 'Highest'}
+                      </button>
+                      <button
+                        onClick={() => setSortOrder('asc')}
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                          sortOrder === 'asc'
+                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        {language === 'pt' ? 'Menor' : 'Lowest'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Clear Filters Button */}
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={() => {
+                      setFilterType('all');
+                      setFilterStatus('all');
+                      setFilterBank('all');
+                      setSearchQuery('');
+                    }}
+                    className="w-full py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                  >
+                    {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Results Count */}
+            <div className="flex items-center justify-between px-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {sortedInvestments.length} {sortedInvestments.length === 1
+                  ? (language === 'pt' ? 'investimento' : 'investment')
+                  : (language === 'pt' ? 'investimentos' : 'investments')}
+                {activeFiltersCount > 0 && (
+                  <span className="ml-1 text-gray-500 dark:text-gray-500">
+                    ({language === 'pt' ? 'filtrado' : 'filtered'})
+                  </span>
+                )}
               </p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {sortedInvestments.map((investment) => (
-                <InvestmentItem key={investment.id} investment={investment} />
-              ))}
+
+            {/* Investments List */}
+            <div className="flex-1">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <svg className="animate-spin w-8 h-8 text-gray-400" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              ) : sortedInvestments.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <p className="font-medium text-gray-900 dark:text-white mb-1">
+                    {filterType !== 'all'
+                      ? (language === 'pt' ? 'Nenhum investimento deste tipo' : 'No investments of this type')
+                      : (language === 'pt' ? 'Nenhum investimento' : 'No investments')}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {language === 'pt' ? 'Adicione investimentos pelo botão +' : 'Add investments using the + button'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {sortedInvestments.map((investment) => (
+                    <InvestmentItem key={investment.id} investment={investment} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
