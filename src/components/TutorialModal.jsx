@@ -93,7 +93,6 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
   const [sharedEmails, setSharedEmails] = useState([]);
   const [newEmail, setNewEmail] = useState('');
   const [newEmailRole, setNewEmailRole] = useState('write');
-  const [isSaving, setIsSaving] = useState(false);
 
   if (!isOpen) return null;
 
@@ -118,17 +117,14 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
     setPhase('content');
   };
 
-  const handleSkip = async () => {
-    try {
-      if (isFirstTime) {
-        await setTutorialCompleted(true);
-      }
-    } catch (err) {
-      console.error('Error marking tutorial completed:', err);
-    } finally {
-      onClose();
-      resetState();
+  const handleSkip = () => {
+    if (isFirstTime) {
+      setTutorialCompleted(true).catch(err =>
+        console.error('Error marking tutorial completed:', err)
+      );
     }
+    onClose();
+    resetState();
   };
 
   const handleNext = () => {
@@ -158,24 +154,19 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
     }
   };
 
-  const handleFinish = async () => {
-    setIsSaving(true);
-    try {
-      // Save shared emails if any
-      if (sharedEmails.length > 0 && auth.currentUser) {
-        await saveSharedEmails();
-      }
-
-      if (isFirstTime) {
-        await setTutorialCompleted(true);
-      }
-    } catch (err) {
-      console.error('Error finishing tutorial:', err);
-    } finally {
-      setIsSaving(false);
-      onClose();
-      resetState();
+  const handleFinish = () => {
+    if (sharedEmails.length > 0 && auth.currentUser) {
+      saveSharedEmails().catch(err =>
+        console.error('Error saving shared emails:', err)
+      );
     }
+    if (isFirstTime) {
+      setTutorialCompleted(true).catch(err =>
+        console.error('Error finishing tutorial:', err)
+      );
+    }
+    onClose();
+    resetState();
   };
 
   const resetState = () => {
@@ -467,12 +458,9 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
                 </div>
                 <button
                   onClick={handleFinish}
-                  disabled={isSaving}
-                  className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition flex items-center gap-2"
                 >
-                  {isSaving
-                    ? (lang === 'pt' ? 'Salvando...' : 'Saving...')
-                    : sharedEmails.length > 0
+                  {sharedEmails.length > 0
                     ? (lang === 'pt' ? 'Salvar e Concluir' : 'Save & Finish')
                     : (lang === 'pt' ? 'Pular' : 'Skip')
                   }
