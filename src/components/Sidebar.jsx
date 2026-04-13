@@ -20,11 +20,13 @@ import {
   ArrowLeftIcon,
   BellIcon,
   PresentationChartLineIcon,
+  BriefcaseIcon,
 } from '@heroicons/react/24/outline';
 
 const navItems = [
   { path: '/dashboard', icon: HomeIcon, labelKey: 'dashboard' },
   { path: '/planner', icon: PresentationChartLineIcon, labelKey: 'planner' },
+  { path: '/investments', icon: BriefcaseIcon, labelKey: 'investments' },
   { path: '/expenses', icon: ArrowTrendingDownIcon, labelKey: 'expenses' },
   { path: '/income', icon: ArrowTrendingUpIcon, labelKey: 'income' },
   { divider: true },
@@ -73,6 +75,7 @@ export default function Sidebar() {
     goals: language === 'pt' ? 'Metas' : 'Goals',
     bills: language === 'pt' ? 'Contas' : 'Bills',
     cards: language === 'pt' ? 'Cartões' : 'Cards',
+    investments: language === 'pt' ? 'Investimentos' : 'Investments',
     notifications: language === 'pt' ? 'Notificações' : 'Notifications',
     help: language === 'pt' ? 'Ajuda' : 'Help',
     settings: language === 'pt' ? 'Configurações' : 'Settings',
