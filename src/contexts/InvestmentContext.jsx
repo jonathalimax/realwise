@@ -183,8 +183,11 @@ export function InvestmentProvider({ children }) {
       const dailyCDIRate = Math.pow(1 + CDI_ANNUAL_RATE, 1 / BUSINESS_DAYS_PER_YEAR) - 1;
       const effectiveDailyRate = dailyCDIRate * expectedReturn;
 
-      // Count business days held
-      const businessDays = getBusinessDays(startDate, today);
+      // Count only fully completed business days — use midnight of today as the end
+      // boundary so the current day (not yet closed) is never counted
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
+      const businessDays = getBusinessDays(startDate, todayMidnight);
 
       // Compound daily: P * (1 + daily_rate)^business_days
       return initialAmount * Math.pow(1 + effectiveDailyRate, businessDays);
@@ -215,11 +218,12 @@ export function InvestmentProvider({ children }) {
     return calculateProjectedValue(investment);
   };
 
-  // Calculate growth percentage
+  // Calculate growth percentage (accounts for partial withdrawals)
   const getGrowthPercentage = (investment) => {
     const currentValue = getCurrentValue(investment);
+    const totalWithdrawn = investment.totalWithdrawn || 0;
     if (!investment.initialAmount || investment.initialAmount === 0) return 0;
-    return ((currentValue - investment.initialAmount) / investment.initialAmount) * 100;
+    return ((currentValue + totalWithdrawn - investment.initialAmount) / investment.initialAmount) * 100;
   };
 
   // Calculate days held since purchase
@@ -294,11 +298,17 @@ export function InvestmentProvider({ children }) {
     return investments.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
   };
 
-  // Get total growth
+  // Get total withdrawn across all investments
+  const getTotalWithdrawn = () => {
+    return investments.reduce((sum, inv) => sum + (inv.totalWithdrawn || 0), 0);
+  };
+
+  // Get total growth (accounts for partial withdrawals)
   const getTotalGrowth = () => {
     const invested = getTotalInvested();
     const current = getTotalCurrentValue();
-    return current - invested;
+    const withdrawn = getTotalWithdrawn();
+    return current + withdrawn - invested;
   };
 
   // Get investments linked to a specific goal (excludes closed/withdrawn investments)

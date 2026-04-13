@@ -22,7 +22,16 @@
       "Bash(npm run lint:*)",
       "Bash(npx eslint:*)",
       "Bash(wc:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebSearch",
+      "Bash(/Users/jonathalima/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh:*)",
+      "Bash(git rm:*)",
+      "Bash(grep:*)",
+      "Bash(wait)",
+      "Bash(npm ls:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm test:*)",
+      "Bash(/Users/jonathalima/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/scripts/start-server.sh:*)"
     ]
   },
   "outputStyle": "Explanatory"

@@ -93,9 +93,10 @@ export default function TransactionForm() {
           totalInstallmentsCreated++;
         }
 
-        // If category is Investments, create an investment record
+        // If category is Investments and it's an expense, create an investment record
+        // Income with Investments category = dividends/returns, not a new investment
         const isInvestment = baseCategory === 'Investments' || baseCategory === 'Investimentos';
-        if (isInvestment) {
+        if (isInvestment && type === 'expense') {
           const totalInvestmentAmount = parseFloat(amount) * totalInstallmentsCreated;
           const investmentData = {
             name: description,
@@ -142,9 +143,10 @@ export default function TransactionForm() {
         transactionData.hash = generateTransactionHash(transactionData);
         const docRef = await addDoc(collection(db, 'transactions'), transactionData);
 
-        // If category is Investments, create an investment record and link it
+        // If category is Investments and it's an expense, create an investment record and link it
+        // Income with Investments category = dividends/returns, not a new investment
         const isInvestment = baseCategory === 'Investments' || baseCategory === 'Investimentos';
-        if (isInvestment) {
+        if (isInvestment && type === 'expense') {
           const investmentData = {
             name: description,
             type: investmentType,

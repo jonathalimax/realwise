@@ -100,7 +100,8 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
     const typeInfo = getInvestmentType(investment.type);
     const currentValue = getCurrentValue(investment);
     const growthPercent = getGrowthPercentage(investment);
-    const growth = currentValue - (investment.initialAmount || 0);
+    const totalWithdrawn = investment.totalWithdrawn || 0;
+    const growth = currentValue + totalWithdrawn - (investment.initialAmount || 0);
     const daysHeld = getDaysHeld(investment);
 
     const formatDate = (dateStr) => {
