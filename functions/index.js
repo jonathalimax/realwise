@@ -11,6 +11,7 @@ const axios = require('axios');
 
 // Import processor functions (must come after admin.initializeApp())
 const importProcessor = require('./importProcessor');
+const { runB3Sync } = require('./b3Sync');
 
 const db = admin.firestore();
 
@@ -578,6 +579,60 @@ async function sendFcmRemindersForUser(userId, fcmToken) {
 
   return sent;
 }
+
+/**
+ * Sync B3 investment prices and dividends from Brapi.dev
+ * Runs on 1st, 10th, and 20th of each month at 8 AM Brazil time
+ */
+exports.syncB3Investments = functions.pubsub
+  .schedule('0 8 1,10,20 * *')
+  .timeZone('America/Sao_Paulo')
+  .onRun(async () => {
+    try {
+      console.log('[syncB3Investments] Scheduled run started');
+
+      const snap = await db.collection('investments')
+        .where('source', '==', 'b3')
+        .select('userId')
+        .get();
+
+      const userIds = [...new Set(snap.docs.map(d => d.data().userId).filter(Boolean))];
+      console.log(`[syncB3Investments] Found ${userIds.length} user(s) with B3 investments`);
+
+      for (const userId of userIds) {
+        try {
+          await runB3Sync(userId);
+        } catch (err) {
+          console.error(`[syncB3Investments] Error syncing user ${userId}:`, err);
+        }
+      }
+
+      return null;
+    } catch (err) {
+      console.error('[syncB3Investments] Fatal error:', err);
+      return null;
+    }
+  });
+
+/**
+ * Manual sync trigger — callable from the app after a B3 CSV import.
+ * Requires the caller to be authenticated.
+ */
+exports.syncB3InvestmentsCallable = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const userId = context.auth.uid;
+
+  try {
+    const result = await runB3Sync(userId);
+    return { success: true, ...result };
+  } catch (err) {
+    console.error(`[syncB3InvestmentsCallable] Error for user ${userId}:`, err);
+    throw new functions.https.HttpsError('internal', err.message);
+  }
+});
 
 // ============================================================
 // IMPORT PROCESSOR FUNCTIONS
