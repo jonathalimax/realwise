@@ -65,6 +65,7 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: 'node',
+      exclude: ['functions/**', 'node_modules/**'],
     },
   }
 })
