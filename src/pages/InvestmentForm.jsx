@@ -53,6 +53,7 @@ export default function InvestmentForm() {
     goalId: '',
     plannerGoalId: '',
     notes: '',
+    ticker: '',
   });
 
   // Withdraw state
@@ -85,6 +86,7 @@ export default function InvestmentForm() {
             goalId: inv.goalId || '',
             plannerGoalId: inv.plannerGoalId || '',
             notes: inv.notes || '',
+            ticker: inv.ticker || '',
           });
         } else if (mode === 'withdraw') {
           const currentValue = getCurrentValue(inv);
@@ -116,6 +118,7 @@ export default function InvestmentForm() {
         goalId: formData.goalId || null,
         plannerGoalId: formData.plannerGoalId || null,
         notes: formData.notes.trim(),
+        ticker: formData.ticker.trim().toUpperCase() || null,
       };
 
       if (id) {
@@ -589,6 +592,30 @@ export default function InvestmentForm() {
                     <option key={g.id} value={g.id}>{g.label}</option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* Ticker — shown only for B3-eligible types */}
+            {['stocks', 'fii', 'funds'].includes(formData.type) && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'pt' ? 'Ticker B3 (opcional)' : 'B3 Ticker (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.ticker}
+                  onChange={(e) => setFormData(prev => ({ ...prev, ticker: e.target.value.toUpperCase() }))}
+                  placeholder="Ex: ITSA4, MXRF11"
+                  maxLength={6}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                    focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition uppercase"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {language === 'pt'
+                    ? 'Necessário para sincronização automática com a B3'
+                    : 'Required for automatic B3 sync'}
+                </p>
               </div>
             )}
 
