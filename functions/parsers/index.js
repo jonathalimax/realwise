@@ -12,6 +12,7 @@ const {
   parseGenericStatement
 } = require('./bankParsers');
 const { categorizeTransaction } = require('./categorization');
+const { detectB3, parseB3Positions } = require('./b3Parser');
 const {
   detectInstallment,
   generateInstallmentTransactions,
@@ -167,6 +168,7 @@ function detectBankTypeFromPath(filePath) {
   if (pathLower.includes('/nubank/')) return 'nubank';
   if (pathLower.includes('/itau/')) return 'itau';
   if (pathLower.includes('/bradesco/')) return 'bradesco';
+  if (pathLower.includes('/b3/')) return 'b3';
   if (pathLower.includes('/other/') || pathLower.includes('/generic/')) return 'generic';
 
   return 'auto';
@@ -180,10 +182,17 @@ const BANK_OPTIONS = [
   { value: 'generic', label: 'Other / Generic' }
 ];
 
+function isB3Format(data) {
+  if (!data || data.length === 0) return false;
+  return detectB3(Object.keys(data[0]));
+}
+
 module.exports = {
   parseFileFromBuffer,
   parseCSVFromBuffer,
   parseExcelFromBuffer,
   detectBankTypeFromPath,
+  isB3Format,
+  parseB3Positions,
   BANK_OPTIONS
 };
