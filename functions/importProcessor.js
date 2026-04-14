@@ -12,6 +12,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const { parseFileFromBuffer, detectBankTypeFromPath } = require('./parsers');
+const { isB3Format, parseB3Positions, parseCSVFromBuffer } = require('./parsers');
 const { generateTransactionHash } = require('./parsers/installments');
 const {
   getGeminiApiKey,
@@ -179,6 +180,101 @@ async function sendImportNotification(userId, importResult) {
 }
 
 /**
+ * Process B3 position CSV files — writes to investments collection, not transactions
+ */
+async function processB3Positions(userId, fileBuffer, fileName, filePath) {
+  const data = parseCSVFromBuffer(fileBuffer);
+
+  if (!data || data.length === 0) {
+    console.log('B3 file has no data rows');
+    return;
+  }
+
+  const positions = parseB3Positions(data);
+  console.log(`B3 import: ${positions.length} positions found for user ${userId}`);
+
+  if (positions.length === 0) return;
+
+  // Load existing investments with tickers for merge matching
+  const existingSnap = await db.collection('investments')
+    .where('userId', '==', userId)
+    .where('ticker', '!=', null)
+    .get();
+
+  const byTicker = {};
+  existingSnap.forEach(doc => {
+    const d = doc.data();
+    if (d.ticker) byTicker[d.ticker.toUpperCase()] = { id: doc.id, data: d };
+  });
+
+  const batch = db.batch();
+  let created = 0;
+  let updated = 0;
+
+  for (const pos of positions) {
+    const existing = byTicker[pos.ticker];
+
+    if (existing) {
+      const ref = db.collection('investments').doc(existing.id);
+      batch.update(ref, {
+        ticker: pos.ticker,
+        quantity: pos.quantity,
+        currentAmount: pos.currentValue,
+        source: 'b3',
+        broker: existing.data.broker || pos.broker || '',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      updated++;
+    } else {
+      const ref = db.collection('investments').doc();
+      batch.set(ref, {
+        userId,
+        name: pos.ticker,
+        ticker: pos.ticker,
+        type: pos.type,
+        bank: pos.broker || '',
+        initialAmount: pos.currentValue,
+        currentAmount: pos.currentValue,
+        quantity: pos.quantity,
+        source: 'b3',
+        expectedReturn: 0,
+        returnType: 'annual',
+        purchaseDate: new Date().toISOString().split('T')[0],
+        maturityDate: null,
+        goalId: null,
+        plannerGoalId: null,
+        notes: '',
+        status: null,
+        totalWithdrawn: 0,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      created++;
+    }
+  }
+
+  await batch.commit();
+
+  await db.collection('importHistory').add({
+    userId,
+    fileName,
+    fileHash: 'b3-positions',
+    bankType: 'b3',
+    totalTransactions: positions.length,
+    importedCount: created + updated,
+    duplicateCount: 0,
+    status: 'completed',
+    storagePath: filePath,
+    source: 'b3_positions',
+    b3Summary: { created, updated },
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    processedAt: admin.firestore.FieldValue.serverTimestamp(),
+    transactionIds: [],
+  });
+
+  console.log(`B3 import done — created: ${created}, updated: ${updated}`);
+}
+
+/**
  * Process import files uploaded to Firebase Storage
  * Triggered on file upload to /imports/{userId}/{bankType}/{filename}
  */
@@ -249,6 +345,13 @@ exports.processImport = functions
       // Detect bank type from folder path
       const bankType = detectBankTypeFromPath(filePath);
       console.log('Detected bank type:', bankType);
+
+      // B3 position files write to investments, not transactions
+      if (bankType === 'b3') {
+        await processB3Positions(userId, fileBuffer, fileName, filePath);
+        await moveToProcessed(bucket, filePath, userId);
+        return null;
+      }
 
       // Parse the file
       const { transactions, detectedBankType } = parseFileFromBuffer(
