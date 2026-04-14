@@ -52,8 +52,10 @@ async function runB3Sync(userId) {
       })
     );
   }
-  await Promise.all(priceUpdates);
-  console.log(`[B3Sync] Updated prices for ${priceUpdates.length} investments`);
+  const results = await Promise.allSettled(priceUpdates);
+  const failed = results.filter(r => r.status === 'rejected').length;
+  if (failed > 0) console.warn(`[B3Sync] ${failed} price update(s) failed`);
+  console.log(`[B3Sync] Updated prices for ${priceUpdates.length - failed} investments`);
 
   let totalDividends = 0;
   for (const ticker of tickers) {

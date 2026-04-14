@@ -476,6 +476,9 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     setUploadMode('local');
     setUploadProgress(null);
     setImportResult(null);
+    setIsB3Import(false);
+    setSyncing(false);
+    setSyncMessage('');
     onClose();
   };
 

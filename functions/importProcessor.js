@@ -182,7 +182,7 @@ async function sendImportNotification(userId, importResult) {
 /**
  * Process B3 position CSV files — writes to investments collection, not transactions
  */
-async function processB3Positions(userId, fileBuffer, fileName, filePath) {
+async function processB3Positions(userId, fileBuffer, fileName, filePath, fileHash) {
   const data = parseCSVFromBuffer(fileBuffer);
 
   if (!data || data.length === 0) {
@@ -264,7 +264,7 @@ async function processB3Positions(userId, fileBuffer, fileName, filePath) {
   await db.collection('importHistory').add({
     userId,
     fileName,
-    fileHash: 'b3-positions',
+    fileHash: fileHash || 'b3-positions',
     bankType: 'b3',
     totalTransactions: positions.length,
     importedCount: created + updated,
@@ -355,7 +355,7 @@ exports.processImport = functions
 
       // B3 position files write to investments, not transactions
       if (bankType === 'b3') {
-        await processB3Positions(userId, fileBuffer, fileName, filePath);
+        await processB3Positions(userId, fileBuffer, fileName, filePath, fileHash);
         await moveToProcessed(bucket, filePath, userId);
         return null;
       }
