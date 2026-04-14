@@ -149,6 +149,11 @@ export function InvestmentProvider({ children }) {
 
   // Calculate projected value based on return rate and time
   const calculateProjectedValue = (investment) => {
+    // B3 investments have currentAmount maintained by the sync cron — never project over it
+    if (investment.source === 'b3') {
+      return investment.currentAmount ?? investment.initialAmount ?? 0;
+    }
+
     const { initialAmount, currentAmount, expectedReturn, returnType, maturityDate, purchaseDate, createdAt } = investment;
 
     // If user has manually set currentAmount, use it
@@ -210,6 +215,10 @@ export function InvestmentProvider({ children }) {
     // If investment is closed (fully withdrawn), return 0
     if (investment.status === 'closed') {
       return 0;
+    }
+    // B3 investments: currentAmount is always authoritative (set by sync cron)
+    if (investment.source === 'b3') {
+      return investment.currentAmount ?? investment.initialAmount ?? 0;
     }
     // If currentAmount is explicitly set (including 0 for partial withdrawals), use it
     if (investment.currentAmount !== undefined && investment.currentAmount !== investment.initialAmount) {
