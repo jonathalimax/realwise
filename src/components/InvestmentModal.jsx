@@ -3,6 +3,7 @@ import { useInvestments, INVESTMENT_TYPES, CDI_ANNUAL_RATE } from '../contexts/I
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from './ui/CurrencyInput';
+import PlannerGoalSelect from './PlannerGoalSelect';
 
 export default function InvestmentModal({ isOpen, onClose, initialView = 'form', editingInvestment: externalEditingInvestment = null }) {
   const {
@@ -43,6 +44,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
     purchaseDate: new Date().toISOString().split('T')[0],
     maturityDate: '',
     goalId: '',
+    plannerGoalId: '',
     notes: '',
   });
 
@@ -79,6 +81,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
       purchaseDate: new Date().toISOString().split('T')[0],
       maturityDate: '',
       goalId: '',
+      plannerGoalId: '',
       notes: '',
     });
     setEditingInvestment(null);
@@ -97,6 +100,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
         purchaseDate: investment.purchaseDate || new Date().toISOString().split('T')[0],
         maturityDate: investment.maturityDate || '',
         goalId: investment.goalId || '',
+        plannerGoalId: investment.plannerGoalId || '',
         notes: investment.notes || '',
       });
     } else {
@@ -119,6 +123,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
       purchaseDate: formData.purchaseDate || null,
       maturityDate: formData.maturityDate || null,
       goalId: formData.goalId || null,
+      plannerGoalId: formData.plannerGoalId || null,
       notes: formData.notes.trim(),
     };
 
@@ -431,6 +436,12 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                   </div>
                 </div>
               )}
+
+              <PlannerGoalSelect
+                value={formData.plannerGoalId}
+                onChange={(plannerGoalId) => setFormData((prev) => ({ ...prev, plannerGoalId }))}
+                selectClassName="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+              />
 
               {/* Notes */}
               <div>

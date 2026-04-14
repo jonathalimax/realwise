@@ -9,6 +9,7 @@ import { useCards } from '../contexts/CardsContext';
 import { INVESTMENT_TYPES, useInvestments } from '../contexts/InvestmentContext';
 import CurrencyInput from './ui/CurrencyInput';
 import { generateTransactionHash, generateInstallmentGroupId } from '../services/installments';
+import PlannerGoalSelect from './PlannerGoalSelect';
 
 export default function TransactionModal({ isOpen, onClose }) {
   const [type, setType] = useState('expense');
@@ -16,6 +17,7 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState('');
   const [selectedGoalId, setSelectedGoalId] = useState('');
+  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState('');
   const [selectedBankId, setSelectedBankId] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('credit');
   const [loading, setLoading] = useState(false);
@@ -67,6 +69,7 @@ export default function TransactionModal({ isOpen, onClose }) {
     setAmount(0);
     setCategory('');
     setSelectedGoalId('');
+    setSelectedPlannerGoalId('');
     setSelectedBankId(null);
     setPaymentMethod('credit');
     setTransactionDate(new Date().toISOString().split('T')[0]);
@@ -150,6 +153,7 @@ export default function TransactionModal({ isOpen, onClose }) {
             date: installmentDate.toISOString(),
             goalId: selectedGoalId || null,
             goalName: selectedGoal?.name || null,
+            plannerGoalId: selectedPlannerGoalId || null,
             bankId: selectedBankId || null,
             paymentMethod: selectedBankId ? paymentMethod : null,
             ignored: isIgnored,
@@ -188,6 +192,7 @@ export default function TransactionModal({ isOpen, onClose }) {
             purchaseDate: baseDate.toISOString().split('T')[0],
             maturityDate: extraFields.maturityDate ?? null,
             goalId: selectedGoalId || null,
+            plannerGoalId: selectedPlannerGoalId || null,
             notes: `Installment investment: ${totalInstallmentsCreated} payments of ${amount}`,
             ...extraFields,
           };
@@ -213,6 +218,7 @@ export default function TransactionModal({ isOpen, onClose }) {
           date: baseDate.toISOString(),
           goalId: selectedGoalId || null,
           goalName: selectedGoal?.name || null,
+          plannerGoalId: selectedPlannerGoalId || null,
           bankId: selectedBankId || null,
           paymentMethod: selectedBankId ? paymentMethod : null,
           ignored: isIgnored,
@@ -243,6 +249,7 @@ export default function TransactionModal({ isOpen, onClose }) {
             purchaseDate: baseDate.toISOString().split('T')[0],
             maturityDate: extraFields.maturityDate ?? null,
             goalId: selectedGoalId || null,
+            plannerGoalId: selectedPlannerGoalId || null,
             notes: '',
             ...extraFields,
           };
@@ -864,6 +871,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                         ))}
                       </select>
                     </div>
+                  )}
+
+                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                    <PlannerGoalSelect
+                      value={selectedPlannerGoalId}
+                      onChange={setSelectedPlannerGoalId}
+                      selectClassName="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                    />
                   )}
 
                   {/* Recurrence Toggle */}

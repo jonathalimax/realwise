@@ -25,7 +25,9 @@ export default function CarteiraTab({ state, update, poupancaValue, selectedMont
         const byGoal = {};
         snap.forEach(d => {
           const tx = { id: d.id, ...d.data() };
-          if (tx.plannerGoalId) {
+          // Transactions that already created a linked investment should not be
+          // counted again in wallet balances.
+          if (tx.plannerGoalId && !tx.investmentId) {
             if (!byGoal[tx.plannerGoalId]) byGoal[tx.plannerGoalId] = [];
             byGoal[tx.plannerGoalId].push(tx);
           }

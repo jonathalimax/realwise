@@ -299,7 +299,10 @@ export function InvestmentProvider({ children }) {
 
   // Get total invested amount
   const getTotalInvested = () => {
-    return investments.reduce((sum, inv) => sum + (inv.initialAmount || 0), 0);
+    return investments.reduce((sum, inv) => {
+      const net = (inv.initialAmount || 0) - (inv.totalWithdrawn || 0);
+      return sum + Math.max(0, net);
+    }, 0);
   };
 
   // Get total current value (portfolio value)
@@ -393,6 +396,7 @@ export function InvestmentProvider({ children }) {
         purchaseDate: investmentData.purchaseDate || new Date().toISOString().split('T')[0],
         maturityDate: investmentData.maturityDate || null,
         goalId: investmentData.goalId || null,
+        plannerGoalId: investmentData.plannerGoalId || null,
         notes: investmentData.notes || '',
         createdAt: serverTimestamp(),
       };

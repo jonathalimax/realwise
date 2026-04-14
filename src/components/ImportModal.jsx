@@ -14,6 +14,7 @@ import { detectDuplicatesWithAI } from '../services/aiCategorizationService';
 import { useIsMobile } from '../hooks/useIsMobile';
 import CurrencyInput from './ui/CurrencyInput';
 import CategoryPicker from './ui/CategoryPicker';
+import PlannerGoalSelect from './PlannerGoalSelect';
 
 // Defined at module level so its reference is stable across renders.
 // If defined inside ImportModal, React sees a new component type on every render
@@ -77,6 +78,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [isB3Import, setIsB3Import] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [b3PlannerGoalId, setB3PlannerGoalId] = useState('');
 
   const { formatCurrency, categories, t, language, geminiApiKey } = useSettings();
   const { userBanks, getBankInfo, getBankDisplayName } = useCards();
@@ -308,6 +310,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           // New fields from edit form
           goalId: t.goalId || null,
           goalName: t.goalName || null,
+          plannerGoalId: t.plannerGoalId || null,
           investmentType: t.investmentType || null,
           // Investment extra fields
           ticker: t.ticker || null,
@@ -363,7 +366,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       const filePath = `imports/${userId}/${bankFolder}/${timestamp}_${file.name}`;
       const storageRef = ref(storage, filePath);
 
-      await uploadBytes(storageRef, file);
+      await uploadBytes(storageRef, file, {
+        customMetadata: isB3Import && b3PlannerGoalId
+          ? { plannerGoalId: b3PlannerGoalId }
+          : undefined,
+      });
 
       // File uploaded successfully - close modal immediately
       // User will be notified via push notification when processing completes
@@ -479,6 +486,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     setIsB3Import(false);
     setSyncing(false);
     setSyncMessage('');
+    setB3PlannerGoalId('');
     onClose();
   };
 
@@ -498,6 +506,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       transactionId,
       ...transaction,
       selectedGoalId: transaction.goalId || '',
+      selectedPlannerGoalId: transaction.plannerGoalId || '',
       investmentType: transaction.investmentType || 'fixed_income'
     });
     setShowEditHint(false);
@@ -507,13 +516,14 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const saveEditTransaction = () => {
     if (editingTransaction === null) return;
 
-    const { transactionId, selectedGoalId, ...updates } = editingTransaction;
+    const { transactionId, selectedGoalId, selectedPlannerGoalId, ...updates } = editingTransaction;
     setTransactions(prev => prev.map((t) =>
       t._localId === transactionId ? {
         ...t,
         ...updates,
         goalId: selectedGoalId || null,
         goalName: selectedGoalId ? availableGoals.find(g => g.id === selectedGoalId)?.name || null : null,
+        plannerGoalId: selectedPlannerGoalId || null,
         autoCategory: false // Mark as manually edited
       } : t
     ));
@@ -615,11 +625,22 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 </label>
               </div>
               {isB3Import && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 ml-8">
-                  {language === 'pt'
-                    ? 'Exporte em investidor.b3.com.br → Posição → Posição Consolidada → Exportar'
-                    : 'Export at investidor.b3.com.br → Position → Consolidated Position → Export'}
-                </p>
+                <>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 ml-8">
+                    {language === 'pt'
+                      ? 'Exporte em investidor.b3.com.br → Posição → Posição Consolidada → Exportar'
+                      : 'Export at investidor.b3.com.br → Position → Consolidated Position → Export'}
+                  </p>
+                  <div className="mt-3 ml-8">
+                    <PlannerGoalSelect
+                      value={b3PlannerGoalId}
+                      onChange={setB3PlannerGoalId}
+                      label={language === 'pt' ? 'Camada para importar posições B3' : 'Sublayer for imported B3 positions'}
+                      emptyLabel={language === 'pt' ? 'Sem camada' : 'No sublayer'}
+                      selectClassName="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition appearance-none cursor-pointer"
+                    />
+                  </div>
+                </>
               )}
             </div>
 
@@ -1264,6 +1285,14 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                     ))}
                   </select>
                 </div>
+              )}
+
+              {(editingTransaction.category === 'Investments' || editingTransaction.category === 'Investimentos') && (
+                <PlannerGoalSelect
+                  value={editingTransaction.selectedPlannerGoalId || ''}
+                  onChange={(selectedPlannerGoalId) => setEditingTransaction(prev => ({ ...prev, selectedPlannerGoalId }))}
+                  selectClassName="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                />
               )}
             </div>
               </>

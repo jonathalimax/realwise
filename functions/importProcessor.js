@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const { parseFileFromBuffer, detectBankTypeFromPath } = require('./parsers');
 const { isB3Format, parseB3Positions, parseCSVFromBuffer } = require('./parsers');
 const { generateTransactionHash } = require('./parsers/installments');
+const { getPlannerGoalIdFromObjectMetadata } = require('./importMetadata');
 const {
   getGeminiApiKey,
   batchCategorizeTransactions,
@@ -182,7 +183,7 @@ async function sendImportNotification(userId, importResult) {
 /**
  * Process B3 position CSV files — writes to investments collection, not transactions
  */
-async function processB3Positions(userId, fileBuffer, fileName, filePath, fileHash) {
+async function processB3Positions(userId, fileBuffer, fileName, filePath, fileHash, plannerGoalId = null) {
   const data = parseCSVFromBuffer(fileBuffer);
 
   if (!data || data.length === 0) {
@@ -249,7 +250,7 @@ async function processB3Positions(userId, fileBuffer, fileName, filePath, fileHa
         purchaseDate: new Date().toISOString().split('T')[0],
         maturityDate: null,
         goalId: null,
-        plannerGoalId: null,
+        plannerGoalId,
         notes: '',
         status: null,
         totalWithdrawn: 0,
@@ -355,7 +356,8 @@ exports.processImport = functions
 
       // B3 position files write to investments, not transactions
       if (bankType === 'b3') {
-        await processB3Positions(userId, fileBuffer, fileName, filePath, fileHash);
+        const plannerGoalId = getPlannerGoalIdFromObjectMetadata(object);
+        await processB3Positions(userId, fileBuffer, fileName, filePath, fileHash, plannerGoalId);
         await moveToProcessed(bucket, filePath, userId);
         return null;
       }

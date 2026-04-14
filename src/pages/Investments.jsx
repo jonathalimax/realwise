@@ -285,7 +285,9 @@ export default function InvestmentsPage() {
     plannerGoalId: inv.plannerGoalId ?? null,
   }));
 
-  const txItems = taggedTxs.map(tx => ({
+  const txItems = taggedTxs
+    .filter(tx => !tx.investmentId)
+    .map(tx => ({
     sourceId: `tx-${tx.id}`,
     name: tx.description,
     type: tx.investmentType ?? null,
