@@ -211,7 +211,14 @@ async function processB3Positions(userId, fileBuffer, fileName, filePath) {
   let created = 0;
   let updated = 0;
 
+  const processedInFile = new Set();
+
   for (const pos of positions) {
+    if (processedInFile.has(pos.ticker)) {
+      console.log(`[B3Import] Skipping duplicate ticker in CSV: ${pos.ticker}`);
+      continue;
+    }
+    processedInFile.add(pos.ticker);
     const existing = byTicker[pos.ticker];
 
     if (existing) {
@@ -221,7 +228,7 @@ async function processB3Positions(userId, fileBuffer, fileName, filePath) {
         quantity: pos.quantity,
         currentAmount: pos.currentValue,
         source: 'b3',
-        broker: existing.data.broker || pos.broker || '',
+        bank: existing.data.bank || pos.broker || '',
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       updated++;
