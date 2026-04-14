@@ -76,6 +76,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [importResult, setImportResult] = useState(null);
   const [isB3Import, setIsB3Import] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
 
   const { formatCurrency, categories, t, language, geminiApiKey } = useSettings();
   const { userBanks, getBankInfo, getBankDisplayName } = useCards();
@@ -588,6 +589,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               <div className="flex items-center gap-3 mt-3">
                 <button
                   type="button"
+                  role="checkbox"
+                  aria-checked={isB3Import}
                   onClick={() => setIsB3Import(prev => !prev)}
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
                     isB3Import
@@ -601,7 +604,10 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                     </svg>
                   )}
                 </button>
-                <label className="text-sm text-gray-700 dark:text-gray-300">
+                <label
+                  onClick={() => setIsB3Import(prev => !prev)}
+                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                >
                   {language === 'pt' ? 'Importar posição B3 (Posição Consolidada)' : 'Import B3 positions (Consolidated Position)'}
                 </label>
               </div>
@@ -1307,26 +1313,40 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
             )}
 
             {isB3Import && (
-              <button
-                onClick={async () => {
-                  setSyncing(true);
-                  try {
-                    const fns = getFunctions();
-                    const syncFn = httpsCallable(fns, 'syncB3InvestmentsCallable');
-                    await syncFn();
-                  } catch (err) {
-                    console.error('Sync error:', err);
-                  } finally {
-                    setSyncing(false);
-                  }
-                }}
-                disabled={syncing}
-                className="mt-3 w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-medium transition"
-              >
-                {syncing
-                  ? (language === 'pt' ? 'Sincronizando...' : 'Syncing...')
-                  : (language === 'pt' ? 'Sincronizar preços agora' : 'Sync prices now')}
-              </button>
+              <>
+                <button
+                  onClick={async () => {
+                    setSyncing(true);
+                    setSyncMessage('');
+                    try {
+                      const fns = getFunctions();
+                      const syncFn = httpsCallable(fns, 'syncB3InvestmentsCallable');
+                      await syncFn();
+                      setSyncMessage(language === 'pt' ? 'Preços sincronizados!' : 'Prices synced!');
+                    } catch (err) {
+                      console.error('Sync error:', err);
+                      setSyncMessage(language === 'pt' ? 'Erro ao sincronizar. Tente novamente.' : 'Sync failed. Please try again.');
+                    } finally {
+                      setSyncing(false);
+                    }
+                  }}
+                  disabled={syncing}
+                  className="mt-3 w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-medium transition"
+                >
+                  {syncing
+                    ? (language === 'pt' ? 'Sincronizando...' : 'Syncing...')
+                    : (language === 'pt' ? 'Sincronizar preços agora' : 'Sync prices now')}
+                </button>
+                {syncMessage && (
+                  <p className={`mt-2 text-sm text-center ${
+                    syncMessage.includes('sincronizados') || syncMessage.includes('synced')
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-red-500 dark:text-red-400'
+                  }`}>
+                    {syncMessage}
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}
