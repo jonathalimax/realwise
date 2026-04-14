@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Fra
 import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { parseFile } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
@@ -73,6 +74,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [uploadMode, setUploadMode] = useState('local'); // 'local' or 'background'
   const [uploadProgress, setUploadProgress] = useState(null);
   const [importResult, setImportResult] = useState(null);
+  const [isB3Import, setIsB3Import] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const { formatCurrency, categories, t, language, geminiApiKey } = useSettings();
   const { userBanks, getBankInfo, getBankDisplayName } = useCards();
@@ -349,6 +352,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
         }
       }
 
+      // B3 imports go to dedicated folder so the cloud function can detect them
+      if (isB3Import) {
+        bankFolder = 'b3';
+      }
+
       // Upload to Firebase Storage
       const timestamp = Date.now();
       const filePath = `imports/${userId}/${bankFolder}/${timestamp}_${file.name}`;
@@ -575,6 +583,35 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                   );
                 })}
               </select>
+
+              {/* B3 positions import toggle */}
+              <div className="flex items-center gap-3 mt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsB3Import(prev => !prev)}
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                    isB3Import
+                      ? 'bg-emerald-500 border-emerald-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                >
+                  {isB3Import && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+                <label className="text-sm text-gray-700 dark:text-gray-300">
+                  {language === 'pt' ? 'Importar posição B3 (Posição Consolidada)' : 'Import B3 positions (Consolidated Position)'}
+                </label>
+              </div>
+              {isB3Import && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 ml-8">
+                  {language === 'pt'
+                    ? 'Exporte em investidor.b3.com.br → Posição → Posição Consolidada → Exportar'
+                    : 'Export at investidor.b3.com.br → Position → Consolidated Position → Export'}
+                </p>
+              )}
             </div>
 
             {/* Upload Mode Toggle */}
@@ -1267,6 +1304,29 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               <p className="text-gray-500 dark:text-gray-400">
                 {t('import.successMessage', { count: transactions.filter(t => t.selected).length })}
               </p>
+            )}
+
+            {isB3Import && (
+              <button
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    const fns = getFunctions();
+                    const syncFn = httpsCallable(fns, 'syncB3InvestmentsCallable');
+                    await syncFn();
+                  } catch (err) {
+                    console.error('Sync error:', err);
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+                className="mt-3 w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-medium transition"
+              >
+                {syncing
+                  ? (language === 'pt' ? 'Sincronizando...' : 'Syncing...')
+                  : (language === 'pt' ? 'Sincronizar preços agora' : 'Sync prices now')}
+              </button>
             )}
           </div>
         )}
