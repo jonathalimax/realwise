@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { CDI_ANNUAL_RATE } from './InvestmentContext';
 
 describe('B3 investment source bypass', () => {
+  it('CDI_ANNUAL_RATE is a number (sanity check)', () => {
+    expect(typeof CDI_ANNUAL_RATE).toBe('number');
+  });
+
   it('b3 investment should use currentAmount directly without projection', () => {
     const investment = {
       source: 'b3',
