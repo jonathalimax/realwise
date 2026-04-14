@@ -118,6 +118,10 @@ async function processDividends(userId, ticker, investmentId, quantity) {
 
   const today = new Date();
   today.setHours(23, 59, 59, 999);
+
+  const cutoffDate = new Date();
+  cutoffDate.setMonth(cutoffDate.getMonth() - 24);
+
   let created = 0;
 
   for (const dividend of cashDividends) {
@@ -125,9 +129,10 @@ async function processDividends(userId, ticker, investmentId, quantity) {
     if (!paymentDate) continue;
 
     const paid = new Date(paymentDate);
-    if (paid > today) continue;
+    if (paid > today || paid < cutoffDate) continue;
 
-    const dedupId = `${userId}_${ticker}_${paymentDate}`;
+    const normalizedDate = new Date(paymentDate).toISOString().split('T')[0];
+    const dedupId = `${userId}_${ticker}_${normalizedDate}`;
     const dedupRef = db.collection('investment_dividends').doc(dedupId);
     const dedupSnap = await dedupRef.get();
     if (dedupSnap.exists) continue;
@@ -150,7 +155,7 @@ async function processDividends(userId, ticker, investmentId, quantity) {
     await dedupRef.set({
       userId,
       ticker,
-      paymentDate,
+      paymentDate: normalizedDate,
       amount,
       transactionId: txRef.id,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
