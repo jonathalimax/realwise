@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
+import { computeNetSalary } from './rendaCalc.js';
 
 export function countWeekdays(year, month) {
   let count = 0;
@@ -14,7 +15,16 @@ export function countWeekdays(year, month) {
 }
 
 const DEFAULT_STATE = {
-  // Tab 1 - Dashboard
+  // Tab 1 - Renda
+  salarioBruto: 10000,
+  salarioDeductions: [
+    { id: 'simples', label: 'Simples Nacional', type: 'pct', amount: 6 },
+    { id: 'saude', label: 'Plano de Saúde', type: 'value', amount: 300 },
+    { id: 'contabil', label: 'Contabilidade', type: 'value', amount: 150 },
+    { id: 'internet', label: 'Internet', type: 'value', amount: 50 },
+  ],
+
+  // Legacy USD-calc fields (kept for migration — overridden by salarioBruto/salarioDeductions)
   rendaBruta: 10000,
   selectedPlannerMonth: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
   useMinScenario: true,
@@ -161,6 +171,14 @@ function migrateState(saved) {
 
   // Ensure categoryBudgetsPct exists
   if (!merged.categoryBudgetsPct) merged.categoryBudgetsPct = {};
+
+  // Ensure salarioBruto and salarioDeductions exist (new fields — migrate from old rendaBruta)
+  if (merged.salarioBruto == null) {
+    merged.salarioBruto = merged.rendaBruta ?? DEFAULT_STATE.salarioBruto;
+  }
+  if (!merged.salarioDeductions?.length) {
+    merged.salarioDeductions = DEFAULT_STATE.salarioDeductions;
+  }
 
   // Remove deprecated rows (aposentadoria replaced by investment classes in Crescimento layer)
   merged.savingsRows = merged.savingsRows.filter(r => r.id !== 'aposentadoria');
@@ -381,8 +399,8 @@ export default function usePlannerState() {
   );
 
   const liquidezFinal = useMemo(
-    () => computedRendaBruta - simplesValue - despesasPJ,
-    [computedRendaBruta, simplesValue, despesasPJ]
+    () => computeNetSalary(state.salarioBruto, state.salarioDeductions),
+    [state.salarioBruto, state.salarioDeductions]
   );
 
   const updateCategoryBudgetPct = (category, pct) =>
@@ -564,10 +582,11 @@ export default function usePlannerState() {
     update,
     setState,
     isLoading,
-    // Dashboard
+    // Renda
+    liquidezFinal,
+    // Legacy dashboard computed (kept for existing tab consumers)
     simplesValue,
     despesasPJ,
-    liquidezFinal,
     // Category budgets
     updateCategoryBudgetPct,
     // Allocation
