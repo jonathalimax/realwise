@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Shimmer } from '@/components/ui/shimmer';
 import usePlannerState from './usePlannerState';
-import SistemaTab from './SistemaTab';
-import CarteiraTab from './carteira';
-import DashboardTab from './DashboardTab';
+import RendaTab from './RendaTab';
 import AllocationTab from './AllocationTab';
+import CarteiraTab from './carteira';
 
 function MonthNav({ value, onChange }) {
   const [y, m] = value.split('-').map(Number);
@@ -55,17 +54,16 @@ function MonthNav({ value, onChange }) {
 }
 
 const TABS = [
-  { value: 'sistema',    label: 'Sistema',   icon: '🧭' },
-  { value: 'carteira',   label: 'Carteira',  icon: '💼' },
-  { value: 'dashboard',  label: 'Dashboard', icon: '📊' },
-  { value: 'allocation', label: 'Alocação',  icon: '📐' },
+  { value: 'renda',      label: 'Renda',    icon: '💰' },
+  { value: 'allocation', label: 'Alocação', icon: '📐' },
+  { value: 'carteira',   label: 'Carteira', icon: '💼' },
 ];
 
 function PlannerSkeleton() {
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        {[...Array(6)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <Shimmer key={i} className="h-9 w-24 rounded-xl" />
         ))}
       </div>
@@ -78,22 +76,17 @@ function PlannerSkeleton() {
 
 export default function PlannerPage() {
   const planner = usePlannerState();
-  const [activeTab, setActiveTab] = useState('sistema');
+  const [activeTab, setActiveTab] = useState('renda');
   const [showSettings, setShowSettings] = useState(false);
   const {
     state,
     update,
     isLoading,
-    simplesValue,
-    despesasPJ,
     liquidezFinal,
     updateCategoryBudgetPct,
     necessidadesValue,
     poupancaValue,
     desejosValue,
-    selectedMonthIncome,
-    yearIncomeStats,
-    computedRendaBruta,
     monthAllocation,
     updateMonthAllocation,
     resetMonthAllocation,
@@ -125,17 +118,8 @@ export default function PlannerPage() {
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Planejador Financeiro</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Planejamento pessoal PJ — modele sua renda, investimentos e metas de médio prazo.
+              Configure sua renda e planeje como alocar cada real.
             </p>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Início do plano</label>
-            <input
-              type="month"
-              value={state.plannerStartDate}
-              onChange={e => update('plannerStartDate', e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
-            />
           </div>
           <div className="flex flex-col gap-0.5">
             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Mês selecionado</label>
@@ -196,38 +180,11 @@ export default function PlannerPage() {
             <PlannerSkeleton />
           ) : (
             <>
-              <TabsContent value="sistema">
-                <SistemaTab
-                  state={state}
-                  computedRendaBruta={computedRendaBruta}
-                  simplesValue={simplesValue}
-                  despesasPJ={despesasPJ}
-                  liquidezFinal={liquidezFinal}
-                  necessidadesValue={necessidadesValue}
-                  poupancaValue={poupancaValue}
-                  desejosValue={desejosValue}
-                />
-              </TabsContent>
-
-              <TabsContent value="carteira">
-                <CarteiraTab
+              <TabsContent value="renda">
+                <RendaTab
                   state={state}
                   update={update}
-                  poupancaValue={poupancaValue}
-                  selectedMonth={state.selectedPlannerMonth}
-                />
-              </TabsContent>
-
-              <TabsContent value="dashboard">
-                <DashboardTab
-                  state={state}
-                  update={update}
-                  simplesValue={simplesValue}
-                  despesasPJ={despesasPJ}
                   liquidezFinal={liquidezFinal}
-                  computedRendaBruta={computedRendaBruta}
-                  selectedMonthIncome={selectedMonthIncome}
-                  yearIncomeStats={yearIncomeStats}
                 />
               </TabsContent>
 
@@ -246,6 +203,14 @@ export default function PlannerPage() {
                 />
               </TabsContent>
 
+              <TabsContent value="carteira">
+                <CarteiraTab
+                  state={state}
+                  update={update}
+                  poupancaValue={poupancaValue}
+                  selectedMonth={state.selectedPlannerMonth}
+                />
+              </TabsContent>
             </>
           )}
         </Tabs>
