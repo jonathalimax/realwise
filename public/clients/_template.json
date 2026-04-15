@@ -1,0 +1,18 @@
+{
+  "clientName": "My Company",
+  "firebase": {
+    "apiKey": "REPLACE",
+    "authDomain": "REPLACE.firebaseapp.com",
+    "projectId": "REPLACE",
+    "storageBucket": "REPLACE.firebasestorage.app",
+    "messagingSenderId": "REPLACE",
+    "appId": "REPLACE"
+  },
+  "features": {
+    "investments": false,
+    "b3Sync": false,
+    "whatsapp": false,
+    "goals": false,
+    "salaryBreakdown": false
+  }
+}

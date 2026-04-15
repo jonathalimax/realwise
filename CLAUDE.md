@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Limas Finance is a personal finance tracker PWA built with React 19, Vite, and Tailwind CSS v4. It uses Firebase for authentication (email/password and Google) and Firestore as the database. The app supports Portuguese and English languages and includes features like transaction tracking, budgets, goals, bill reminders with WhatsApp notifications, credit card management, and bank statement imports.
+**Moneywise** is a multi-client personal finance SaaS PWA built with React 19, Vite, and Tailwind CSS v4. One codebase and one Firebase Hosting deployment (`moneywise.web.app`) serves many clients — each with their own isolated Firebase project (Auth + Firestore) and per-client feature flags.
+
+- URL pattern: `moneywise.web.app/{clientId}/dashboard`
+- Client config is fetched at runtime from `public/clients/{clientId}.json`
+- Firebase is initialized lazily (not at module load time)
 
 ## Commands
 
@@ -13,6 +17,7 @@ npm run dev      # Start dev server at http://localhost:5173
 npm run build    # Production build to dist/
 npm run lint     # Run ESLint
 npm run preview  # Preview production build
+npx vitest run src/  # Run unit tests (pure functions only)
 ```
 
 ### Firebase Functions (in `/functions`)
@@ -23,17 +28,60 @@ firebase deploy --only functions    # Deploy cloud functions
 firebase functions:config:set ...   # Set config values
 ```
 
+### Adding a new client
+
+1. Create their Firebase project
+2. Copy `public/clients/_template.json` → `public/clients/{clientId}.json`
+3. Fill in Firebase credentials and enable desired feature flags
+4. Deploy: `firebase deploy --only hosting`
+
 ## Architecture
+
+### Multi-Client Routing
+
+- `src/config/clientConfig.js` — `extractClientId(pathname)` reads the first URL segment
+- `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json`, calls `initializeFirebase()`, renders spinner until ready
+- `src/firebase.js` — exports live bindings (`auth`, `db`, `storage`, `functions`) initialized by `ClientConfigContext`
+- `src/App.jsx` — sets `BrowserRouter basename="/{clientId}"` so all internal routes resolve correctly
+
+### Feature Flags
+
+Defined in each client's JSON under `features`:
+
+| Flag | Default | Controls |
+|------|---------|----------|
+| `investments` | false | Investments page + Sidebar nav item |
+| `goals` | false | Goals page + Sidebar nav item |
+| `b3Sync` | false | B3 sync toggle in ImportModal |
+| `whatsapp` | false | WhatsApp bill reminder (server-side only) |
+| `salaryBreakdown` | false | RendaTab: gross + deductions mode vs simple net input |
+
+Usage: `const hasX = useFeature('x')` from `ClientConfigContext`.
 
 ### Frontend Structure
 
-- **Routing**: React Router v7 in `src/App.jsx`. Landing page at `/`, main app at `/home` (requires auth)
+- **Routing**: React Router v7 with dynamic `basename`. Login at `/{clientId}/login`, app at `/{clientId}/dashboard`
 - **State Management**: React Context providers nested in `App.jsx`:
-  - `AccessContext` - User access/permissions, shared account support via `ownerId`
-  - `SettingsContext` - Currency, language, categories, dark mode, tutorial state
+  - `ClientConfigContext` — runtime Firebase config + feature flags (outermost)
+  - `AccessContext` — user access/permissions, shared account support via `ownerId`
+  - `SettingsContext` — currency, language, categories, dark mode
   - `BillsContext`, `BudgetContext`, `CardsContext`, `GoalsContext`, `InvestmentContext`
 - **Localization**: Custom i18n in `src/locales/` using dot-notation paths (`t('auth.welcomeBack')`)
 - **Path Aliases**: `@` → `src/`, `@landing` → `landing_page/` (configured in vite.config.js)
+
+### Planner
+
+Three tabs: **Renda** / **Alocação** / **Carteira**
+
+- `RendaTab.jsx` — salary input (simple net or gross+deductions based on `salaryBreakdown` flag)
+- `rendaCalc.js` — pure functions: `resolveDeduction`, `computeDeductionTotal`, `computeNetSalary`
+- `usePlannerState.js` — `liquidezFinal` = `computeNetSalary(salarioBruto, salarioDeductions)`
+
+### Onboarding
+
+- `src/config/onboardingSteps.js` — 3-step definitions with `isComplete(profile)` predicates
+- `src/components/OnboardingWizard.jsx` — dismissible progress banner rendered in Layout
+- `src/hooks/useOnboardingProfile.js` — reads `userBanks`, transactions, and planner from Firestore
 
 ### Key Data Patterns
 
@@ -44,17 +92,16 @@ firebase functions:config:set ...   # Set config values
 
 ### Firebase Functions (`/functions`)
 
-- `createPayment` / `mercadoPagoWebhook` - Mercado Pago PIX payment processing
-- `whatsappWebhook` - WhatsApp Cloud API for bill reminder responses
-- `scheduledBillReminders` - Daily 9 AM (Brazil time) bill notifications
-- `sendWhatsAppReminder` / `testWhatsApp` - Manual testing endpoints
+- `whatsappWebhook` — WhatsApp Cloud API for bill reminder responses
+- `scheduledBillReminders` — Daily 9 AM (Brazil time) bill notifications
+- `sendWhatsAppReminder` / `testWhatsApp` — Manual testing endpoints
 
 ### Firestore Collections
 
-- `transactions` - Income/expenses with `userId`, `date`, `amount`, `type`, `category`, `bankId`
-- `bills` - Recurring bills with `status` (pending/paid), `dueDate`
-- `settings` - Per-user preferences (currency, language, categories, whatsappNumber)
-- `purchases` / `pending_payments` / `coupons` - Payment system data
+- `transactions` — Income/expenses with `userId`, `date`, `amount`, `type`, `category`, `bankId`
+- `bills` — Recurring bills with `status` (pending/paid), `dueDate`
+- `settings` — Per-user preferences (currency, language, categories, whatsappNumber)
+- `planner` — Per-user planner state including `salarioBruto`, `salarioDeductions`, wallet/allocation config
 
 ## Styling
 
@@ -62,12 +109,19 @@ firebase functions:config:set ...   # Set config values
 - Dark mode toggles `dark` class on `document.documentElement`
 - UI components in `src/components/ui/` (button, input, badge, tabs, shimmer)
 
+## Testing
+
+Vitest in `node` environment — only pure functions (no Firebase, no React). Test files sit next to the modules they test.
+
+- `src/config/clientConfig.test.js` — `extractClientId`, `fetchClientConfig`
+- `src/config/onboardingSteps.test.js` — step predicates and helpers
+- `src/pages/planner/rendaCalc.test.js` — salary deduction math
+
 ## Environment Variables
 
-Frontend (`.env`):
-- `VITE_FIREBASE_*` - Firebase configuration
+Frontend (`.env`) — only used in dev. Production uses runtime config from `public/clients/{id}.json`.
+- `VITE_FIREBASE_*` — Firebase configuration (dev only)
 
 Functions (Firebase config):
-- `mercadopago.access_token` - Mercado Pago API
-- `email.user` / `email.password` - Gmail for notifications
-- `whatsapp.access_token` / `whatsapp.phone_number_id` / `whatsapp.verify_token` - WhatsApp Cloud API
+- `email.user` / `email.password` — Gmail for notifications
+- `whatsapp.access_token` / `whatsapp.phone_number_id` / `whatsapp.verify_token` — WhatsApp Cloud API
