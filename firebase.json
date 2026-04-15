@@ -33,18 +33,6 @@
     ],
     "rewrites": [
       {
-        "source": "/api/payment/create",
-        "function": "createPayment"
-      },
-      {
-        "source": "/api/webhook/mercadopago",
-        "function": "mercadoPagoWebhook"
-      },
-      {
-        "source": "/api/payment/status",
-        "function": "checkPaymentStatus"
-      },
-      {
         "source": "/__/auth/handler",
         "destination": "/index.html"
       },
