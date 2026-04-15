@@ -54,3 +54,6 @@ functions/whatsapp-service.js
 public/screenshots/
 src/utils/analytics.js
 test-whatsapp.sh
+
+# Local git worktrees
+.worktrees/
