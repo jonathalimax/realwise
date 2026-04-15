@@ -153,7 +153,7 @@ export default function HelpPage() {
 
         {/* App Version */}
         <div className="mt-8 text-center text-sm text-gray-400 dark:text-gray-500">
-          <p>Blim Wallet v1.0.0</p>
+          <p>Moneywise v1.0.0</p>
           <p className="mt-1">
             {language === 'pt' ? 'Feito com ❤️ para você' : 'Made with ❤️ for you'}
           </p>

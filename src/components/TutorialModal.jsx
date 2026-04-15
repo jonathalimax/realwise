@@ -63,7 +63,7 @@ const TUTORIAL_TOPICS = [
     title: { pt: 'Dicas Rápidas', en: 'Quick Tips' },
     content: {
       pt: {
-        subtitle: 'Aproveite ao máximo o Blim Wallet',
+        subtitle: 'Aproveite ao máximo o Moneywise',
         points: [
           '📱 Instale como App - Use o botão de instalação para acesso rápido',
           '👥 Compartilhe - Adicione pessoas em Configurações > Acesso',
@@ -71,7 +71,7 @@ const TUTORIAL_TOPICS = [
         ]
       },
       en: {
-        subtitle: 'Make the most of Blim Wallet',
+        subtitle: 'Make the most of Moneywise',
         points: [
           '📱 Install as App - Use the install button for quick access',
           '👥 Share - Add people in Settings > Access',
@@ -248,7 +248,7 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
               {phase === 'selection'
-                ? (lang === 'pt' ? 'Bem-vindo ao Blim Wallet!' : 'Welcome to Blim Wallet!')
+                ? (lang === 'pt' ? 'Bem-vindo ao Moneywise!' : 'Welcome to Moneywise!')
                 : phase === 'sharing'
                 ? (lang === 'pt' ? 'Compartilhar Acesso' : 'Share Access')
                 : currentTopic?.title[lang]
