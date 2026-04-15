@@ -1,9 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/firebase';
-import { useAccess } from '@/contexts/AccessContext';
-import { useCards } from '@/contexts/CardsContext';
 import {
   ONBOARDING_STEPS,
   isOnboardingComplete,
@@ -16,7 +12,7 @@ const STEP_ROUTES = {
   transaction: '/transactions',
 };
 
-function StepIndicator({ steps, currentIndex, completedCount }) {
+function StepIndicator({ steps, currentIndex }) {
   return (
     <div className="flex items-center gap-1">
       {steps.map((step, i) => {
@@ -94,11 +90,7 @@ export default function OnboardingWizard({ profile, onDismiss }) {
 
         {/* Progress bar */}
         <div className="mb-3">
-          <StepIndicator
-            steps={stepsWithStatus}
-            currentIndex={currentIndex}
-            completedCount={completedCount}
-          />
+          <StepIndicator steps={stepsWithStatus} currentIndex={currentIndex} />
         </div>
 
         {/* Current step */}
@@ -119,7 +111,7 @@ export default function OnboardingWizard({ profile, onDismiss }) {
           </button>
         </div>
 
-        {/* Completed steps list (collapsed by default — only show when progress > 0) */}
+        {/* Completed steps list */}
         {completedCount > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1">
             {stepsWithStatus.filter(s => s.isComplete).map(step => (
@@ -135,46 +127,4 @@ export default function OnboardingWizard({ profile, onDismiss }) {
       </div>
     </div>
   );
-}
-
-/**
- * Hook that builds the onboarding profile from live app state.
- * Returns { profile, loading }.
- */
-export function useOnboardingProfile() {
-  const { ownerId } = useAccess();
-  const { userBanks } = useCards();
-  const [hasTransaction, setHasTransaction] = useState(false);
-  const [hasRenda, setHasRenda] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!ownerId) { setLoading(false); return; }
-
-    const txQuery = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId),
-      limit(1),
-    );
-
-    Promise.all([
-      getDocs(txQuery),
-      getDocs(query(collection(db, 'planner'), where('__name__', '==', ownerId))),
-    ])
-      .then(([txSnap, plannerSnap]) => {
-        setHasTransaction(!txSnap.empty);
-        const plannerData = plannerSnap.docs[0]?.data();
-        setHasRenda((plannerData?.salarioBruto ?? 0) > 0);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [ownerId]);
-
-  const profile = {
-    hasAccount: userBanks.length > 0,
-    hasRenda,
-    hasTransaction,
-  };
-
-  return { profile, loading };
 }

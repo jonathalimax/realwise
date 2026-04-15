@@ -1,11 +1,11 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import OnboardingWizard, { useOnboardingProfile } from './OnboardingWizard';
+import OnboardingWizard from './OnboardingWizard';
+import { useOnboardingProfile } from '../hooks/useOnboardingProfile';
 
 function OnboardingBanner() {
-  const { profile, loading } = useOnboardingProfile();
-  if (loading) return null;
+  const { profile } = useOnboardingProfile();
   return <OnboardingWizard profile={profile} />;
 }
 

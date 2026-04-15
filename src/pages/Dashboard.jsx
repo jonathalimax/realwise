@@ -4,7 +4,6 @@ import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
-import { useBills } from '../contexts/BillsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
 import { useMonth } from '../contexts/MonthContext';
@@ -22,7 +21,6 @@ import BillModal from '../components/BillModal';
 import GoalProgress from '../components/GoalProgress';
 import RuleComparison from '../components/RuleComparison';
 import TrendChart from '../components/charts/TrendChart';
-import TutorialModal from '../components/TutorialModal';
 import MonthSelector from '../components/MonthSelector';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
@@ -37,19 +35,17 @@ export default function DashboardPage() {
   const [showInvestmentsList, setShowInvestmentsList] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [isFirstTimeTutorial, setIsFirstTimeTutorial] = useState(false);
   const [transactions, setTransactions] = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey] = useState(0);
   const { selectedMonth, setSelectedMonth } = useMonth();
-  const [viewMode, setViewMode] = useState('payment');
-  const { t, language, categories, tutorialCompleted, loading: settingsLoading } = useSettings();
+  const [viewMode] = useState('payment');
+  const { t, language, categories } = useSettings();
   const { canWrite, ownerId } = useAccess();
   const { getPaymentMonthKey } = useCards();
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
     transactions, selectedMonth, viewMode, getPaymentMonthKey
   );
-  const { getTotalCurrentValue } = useInvestments();
+  useInvestments();
 
   const handleOpenGoals = () => {
     navigate('/goals');
@@ -75,13 +71,6 @@ export default function DashboardPage() {
   };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  useEffect(() => {
-    if (!settingsLoading && !tutorialCompleted) {
-      setIsFirstTimeTutorial(true);
-      setShowTutorial(true);
-    }
-  }, [settingsLoading, tutorialCompleted]);
 
   useEffect(() => {
     if (!auth.currentUser || !ownerId) return;
@@ -346,11 +335,6 @@ export default function DashboardPage() {
       <BillModal
         isOpen={showBillModal}
         onClose={() => setShowBillModal(false)}
-      />
-      <TutorialModal
-        isOpen={showTutorial}
-        onClose={() => setShowTutorial(false)}
-        isFirstTime={isFirstTimeTutorial}
       />
 
       <style>{`
