@@ -1,41 +1,43 @@
-# Productization Design — Limas Finance
+# Productization Design — Moneywise
 
 **Date:** 2026-04-15  
 **Status:** Approved
 
 ## Overview
 
-Transform Limas Finance from a personal finance tracker into a sellable product. Each client gets their own isolated Firebase project (Auth + Firestore) while the app is hosted and maintained on a single deployment by the developer. One codebase, one deploy, many clients.
+Transform Moneywise (formerly Limas Finance) from a personal finance tracker into a sellable product. Each client gets their own isolated Firebase project (Auth + Firestore) while the app is hosted and maintained on a single deployment by the developer. One codebase, one deploy, many clients.
 
 ---
 
 ## 1. URL & Hosting Structure
 
-Each client gets a subdomain on the developer's custom domain:
+Each client gets a path on the developer's Firebase Hosting:
 
 ```
-app.limasfinance.com.br        ← developer's own account / demo
-clienta.limasfinance.com.br
-clientb.limasfinance.com.br
+moneywise.web.app/app        ← developer's own account / demo
+moneywise.web.app/clienta
+moneywise.web.app/clientb
 ```
 
-- Register `limasfinance.com.br` on Registro.br (~R$40/year)
-- Firebase Hosting serves one site; each subdomain is added as a custom domain pointing to the same hosting project
-- Custom domains are free on Firebase Spark plan (up to 36)
+- No domain registration needed — stays on Firebase's free `web.app` domain
+- Firebase Hosting serves one site (one SPA build)
+- The app reads the first path segment (`/clienta`) to identify the client, fetches their config, then initializes Firebase accordingly
+- React Router's `basename` is set dynamically to `/{clientId}` so internal routing works correctly
 
-**Adding a new client:** Add subdomain in Firebase Hosting console → drop their config JSON → done. No code changes, no redeploy.
+**Adding a new client:** Drop their config JSON → next deploy picks it up. No code changes needed.
 
 ---
 
 ## 2. Per-Client Config & Feature Flags
 
 On app load, the app:
-1. Reads `window.location.hostname` → extracts subdomain (e.g. `clienta`)
+1. Reads `window.location.pathname` → extracts first segment (e.g. `clienta` from `/clienta/dashboard`)
 2. Fetches `/clients/clienta.json` from the hosting's public folder
 3. Initializes Firebase with that client's credentials
-4. Reads feature flags from the same config
+4. Sets React Router `basename` to `/clienta`
+5. Reads feature flags from the same config
 
-Client config format (`public/clients/{subdomain}.json`):
+Client config format (`public/clients/{clientId}.json`):
 
 ```json
 {
@@ -61,6 +63,8 @@ Client config format (`public/clients/{subdomain}.json`):
 A new hook `src/config/useClientConfig.js` loads this config at startup and provides it via a `ClientConfigContext`. All feature flag checks happen through this context.
 
 **Toggling a feature for one client:** Edit their JSON file → next deploy picks it up. No code changes needed.
+
+**Firebase Hosting SPA config:** `firebase.json` must include a rewrite rule so all paths under `/{clientId}/**` serve `index.html`, allowing React Router to handle navigation client-side.
 
 ---
 
@@ -159,7 +163,7 @@ Two options side by side: **Importar CSV** or **Adicionar manualmente**. Either 
 | `src/config/useClientConfig.js` | Hook that loads subdomain config on startup |
 | `src/contexts/ClientConfigContext.jsx` | Provides Firebase config + feature flags to the app |
 | `public/clients/app.json` | Developer's own config (all features enabled) |
-| `public/clients/{subdomain}.json` | Per-client config (one file per client) |
+| `public/clients/{clientId}.json` | Per-client config (one file per client) |
 
 ---
 
