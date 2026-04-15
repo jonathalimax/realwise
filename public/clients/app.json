@@ -1,0 +1,18 @@
+{
+  "clientName": "Moneywise Demo",
+  "firebase": {
+    "apiKey": "AIzaSyBWjz67b6zGgX48QmTV-AL73YaMQY3ViiI",
+    "authDomain": "limas-finance.firebaseapp.com",
+    "projectId": "limas-finance",
+    "storageBucket": "limas-finance.firebasestorage.app",
+    "messagingSenderId": "223174084388",
+    "appId": "1:223174084388:web:ead52b9db953df90b555b1"
+  },
+  "features": {
+    "investments": true,
+    "b3Sync": true,
+    "whatsapp": true,
+    "goals": true,
+    "salaryBreakdown": true
+  }
+}

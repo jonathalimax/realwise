@@ -1,135 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
+import { GoalsProvider } from './contexts/GoalsContext';
+import { InvestmentProvider } from './contexts/InvestmentContext';
+import { extractClientId } from './config/clientConfig';
 import Auth from './components/Auth';
 import Layout from './components/Layout';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AccessProvider } from './contexts/AccessContext';
-import { GoalsProvider } from './contexts/GoalsContext';
 import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
-import { InvestmentProvider } from './contexts/InvestmentContext';
 import { BillsProvider } from './contexts/BillsContext';
 import { PWAInstallProvider } from './contexts/PWAInstallContext';
 import { MonthProvider } from './contexts/MonthContext';
 
-// Landing/Marketing pages
-import Home from './pages/Home';
-import Donations from './pages/Donations';
-import FeatureRequest from './pages/FeatureRequest';
-import Support from './pages/Support';
-import Admin from './pages/Admin';
-import Purchase from './pages/Purchase';
-import PurchaseSuccess from './pages/PurchaseSuccess';
-import PurchaseFailure from './pages/PurchaseFailure';
+// Lazy-loaded page components (code splitting — each page is its own chunk)
+const DashboardPage = lazy(() => import('./pages/Dashboard'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
+const CardsPage = lazy(() => import('./pages/Cards'));
+const BudgetPage = lazy(() => import('./pages/Budget'));
+const TransactionsPage = lazy(() => import('./pages/Transactions'));
+const ExpensesPage = lazy(() => import('./pages/Expenses'));
+const IncomePage = lazy(() => import('./pages/Income'));
+const BillsPage = lazy(() => import('./pages/Bills'));
+const HelpPage = lazy(() => import('./pages/Help'));
+const NotificationsPage = lazy(() => import('./pages/Notifications'));
+const ImportPage = lazy(() => import('./pages/Import'));
+const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
+const PlannerPage = lazy(() => import('./pages/planner/PlannerPage'));
 
-// App pages
-import DashboardPage from './pages/Dashboard';
-import SettingsPage from './pages/Settings';
-import GoalsPage from './pages/Goals';
-import CardsPage from './pages/Cards';
-import BudgetPage from './pages/Budget';
-import InvestmentsPage from './pages/Investments';
-import InvestmentForm from './pages/InvestmentForm';
-import TransactionsPage from './pages/Transactions';
-import ExpensesPage from './pages/Expenses';
-import IncomePage from './pages/Income';
-import BillsPage from './pages/Bills';
-import HelpPage from './pages/Help';
-import NotificationsPage from './pages/Notifications';
-import ImportPage from './pages/Import';
-import TransactionEditPage from './pages/TransactionEdit';
-import PlannerPage from './pages/planner/PlannerPage';
+// Feature-flagged pages (only imported when flags are enabled)
+const GoalsPage = lazy(() => import('./pages/Goals'));
+const InvestmentsPage = lazy(() => import('./pages/Investments'));
+const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 
-// Handles the case where our SPA is loaded inside Firebase's auth popup window.
-// Firebase opens /__/auth/handler?apiKey=...&authType=signInViaPopup in a popup.
-// If our SPA is served there (instead of Firebase's own handler), this component
-// uses Firebase's createAuthUri REST API to get the Google OAuth URL, redirects
-// to it, then sends the result back to the opener window via postMessage so that
-// signInWithPopup resolves normally.
-// Handles /__/auth/handler in popup context.
-// Phase 1 (initial open): receives apiKey, calls createAuthUri, redirects to Google.
-// Phase 2 (Google callback): receives id_token in hash, postMessages it to opener.
-function FirebaseAuthHandler() {
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hash = window.location.hash;
-    const apiKey = params.get('apiKey');
-
-    // Phase 2 — returning from Google with id_token in hash fragment
-    if (hash.includes('id_token')) {
-      if (!window.opener) return;
-      const hashParams = new URLSearchParams(hash.slice(1));
-      const idToken = hashParams.get('id_token');
-      // Use '*' — opener may be on web.app while popup is on firebaseapp.com
-      window.opener.postMessage({ type: 'lf-google-auth', idToken }, '*');
-      window.close();
-      return;
-    }
-
-    // Phase 1 — initial popup open, get Google OAuth URL and redirect
-    if (!apiKey || !window.opener) return;
-
-    fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // Must use authDomain (firebaseapp.com), not window.location.origin —
-          // Firebase redirects firebaseapp.com → web.app, so window.location.origin
-          // ends up as web.app which is not registered in Google OAuth.
-          continueUri: `https://${auth.app.options.authDomain}/__/auth/handler`,
-          providerId: 'google.com',
-          oauthScopes: 'profile email',
-        }),
-      }
-    )
-      .then((r) => r.json())
-      .then(({ authUri }) => {
-        if (authUri) window.location.href = authUri;
-      });
-  }, []);
-
-  return null;
-}
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500" />
+  </div>
+);
 
 function AuthenticatedApp() {
+  const hasGoals = useFeature('goals');
+  const hasInvestments = useFeature('investments');
+
   return (
     <AccessProvider>
       <SettingsProvider>
         <MonthProvider>
+          {/* InvestmentProvider and GoalsProvider stay in the tree always —
+              Dashboard.jsx uses useInvestments() even when the investments page
+              is hidden, so the context must be present. */}
           <GoalsProvider>
             <CardsProvider>
               <BudgetProvider>
                 <InvestmentProvider>
                   <BillsProvider>
-                    <Routes>
-                    <Route element={<Layout />}>
-                      <Route index element={<Navigate to="/dashboard" replace />} />
-                      <Route path="dashboard" element={<DashboardPage />} />
-                      <Route path="planner" element={<PlannerPage />} />
-                      <Route path="portfolio" element={<Navigate to="/investments" replace />} />
-                      <Route path="expenses" element={<ExpensesPage />} />
-                      <Route path="income" element={<IncomePage />} />
-                      <Route path="goals" element={<GoalsPage />} />
-                      <Route path="bills" element={<BillsPage />} />
-                      <Route path="cards" element={<CardsPage />} />
-                      <Route path="investments" element={<InvestmentsPage />} />
-                      <Route path="investments/new" element={<InvestmentForm />} />
-                      <Route path="investments/:id/edit" element={<InvestmentForm />} />
-                      <Route path="investments/:id/withdraw" element={<InvestmentForm />} />
-                      <Route path="transactions" element={<TransactionsPage />} />
-                      <Route path="settings" element={<SettingsPage />} />
-                      <Route path="budget" element={<BudgetPage />} />
-                      <Route path="help" element={<HelpPage />} />
-                      <Route path="notifications" element={<NotificationsPage />} />
-                      <Route path="import" element={<ImportPage />} />
-                      <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
-                    </Route>
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                    </Routes>
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route element={<Layout />}>
+                          <Route index element={<Navigate to="dashboard" replace />} />
+                          <Route path="dashboard" element={<DashboardPage />} />
+                          <Route path="planner" element={<PlannerPage />} />
+                          <Route path="expenses" element={<ExpensesPage />} />
+                          <Route path="income" element={<IncomePage />} />
+                          <Route path="bills" element={<BillsPage />} />
+                          <Route path="cards" element={<CardsPage />} />
+                          <Route path="transactions" element={<TransactionsPage />} />
+                          <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
+                          <Route path="settings" element={<SettingsPage />} />
+                          <Route path="budget" element={<BudgetPage />} />
+                          <Route path="help" element={<HelpPage />} />
+                          <Route path="notifications" element={<NotificationsPage />} />
+                          <Route path="import" element={<ImportPage />} />
+                          {hasGoals && <Route path="goals" element={<GoalsPage />} />}
+                          {hasInvestments && (
+                            <>
+                              <Route path="investments" element={<InvestmentsPage />} />
+                              <Route path="investments/new" element={<InvestmentForm />} />
+                              <Route path="investments/:id/edit" element={<InvestmentForm />} />
+                              <Route path="investments/:id/withdraw" element={<InvestmentForm />} />
+                            </>
+                          )}
+                        </Route>
+                        <Route path="*" element={<Navigate to="dashboard" replace />} />
+                      </Routes>
+                    </Suspense>
                   </BillsProvider>
                 </InvestmentProvider>
               </BudgetProvider>
@@ -150,57 +108,83 @@ function AppRouter() {
       setUser(currentUser);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
     <Routes>
-      {/* Public routes - Landing page and related pages (always accessible) */}
-      <Route path="/purchase" element={<Home />} />
-      <Route path="/selling" element={<Home />} />
-      <Route path="/donations" element={<Donations />} />
-      <Route path="/feedback" element={<FeatureRequest />} />
-      <Route path="/support" element={<Support />} />
-      <Route path="/admin" element={<Admin />} />
-      <Route path="/checkout" element={<Purchase />} />
-      <Route path="/checkout/success" element={<PurchaseSuccess />} />
-      <Route path="/checkout/failure" element={<PurchaseFailure />} />
-      <Route path="/checkout/pending" element={<PurchaseSuccess />} />
-
-      {/* Auth route - redirect to dashboard if already logged in */}
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
-
-      {/* Authenticated App routes */}
-      {user && <Route path="/*" element={<AuthenticatedApp />} />}
-
-      {/* Firebase auth popup handler */}
-      <Route path="/__/auth/*" element={<FirebaseAuthHandler />} />
-
-      {/* Fallback - redirect to login if not authenticated */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route
+        path="login"
+        element={user ? <Navigate to="dashboard" replace /> : <Auth />}
+      />
+      {user
+        ? <Route path="/*" element={<AuthenticatedApp />} />
+        : <Route path="*" element={<Navigate to="login" replace />} />
+      }
     </Routes>
   );
 }
 
+// FirebaseAuthHandler handles /__/auth/handler popup — same logic as before,
+// kept outside BrowserRouter because the auth handler URL doesn't follow the
+// /{clientId}/... pattern and must match the absolute path.
+function FirebaseAuthHandler() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    const apiKey = params.get('apiKey');
+
+    if (hash.includes('id_token')) {
+      if (!window.opener) return;
+      const hashParams = new URLSearchParams(hash.slice(1));
+      const idToken = hashParams.get('id_token');
+      window.opener.postMessage({ type: 'lf-google-auth', idToken }, '*');
+      window.close();
+      return;
+    }
+
+    if (!apiKey || !window.opener) return;
+
+    const authDomain = window.location.hostname;
+    fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          continueUri: `https://${authDomain}/__/auth/handler`,
+          providerId: 'google.com',
+          oauthScopes: 'profile email',
+        }),
+      }
+    )
+      .then((r) => r.json())
+      .then(({ authUri }) => { if (authUri) window.location.href = authUri; });
+  }, []);
+  return null;
+}
+
 function App() {
+  // Handle Firebase auth popup before any routing — the popup opens at
+  // /__/auth/handler which doesn't follow the /{clientId}/... pattern.
+  if (window.location.pathname.startsWith('/__/auth/')) {
+    return <FirebaseAuthHandler />;
+  }
+
+  const clientId = extractClientId(window.location.pathname);
+
   return (
-    <PWAInstallProvider>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
-    </PWAInstallProvider>
+    <ClientConfigProvider>
+      <PWAInstallProvider>
+        <BrowserRouter basename={`/${clientId}`}>
+          <AppRouter />
+        </BrowserRouter>
+      </PWAInstallProvider>
+    </ClientConfigProvider>
   );
 }
 
