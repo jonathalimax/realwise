@@ -12,6 +12,7 @@ import { useAccess } from '../contexts/AccessContext';
 import { generateTransactionHash } from '../services/installments';
 import { detectDuplicatesWithAI } from '../services/aiCategorizationService';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useFeature } from '../contexts/ClientConfigContext';
 import CurrencyInput from './ui/CurrencyInput';
 import CategoryPicker from './ui/CategoryPicker';
 import PlannerGoalSelect from './PlannerGoalSelect';
@@ -45,6 +46,7 @@ function ModalWrapper({ embedded, isMobile, children }) {
 }
 
 export default function ImportModal({ isOpen = true, onClose, embedded = false }) {
+  const hasB3Sync = useFeature('b3Sync');
   const isMobile = useIsMobile();
   const [file, setFile] = useState(null);
   const [selectedBankId, setSelectedBankId] = useState(null);
@@ -598,48 +600,52 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 })}
               </select>
 
-              {/* B3 positions import toggle */}
-              <div className="flex items-center gap-3 mt-3">
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={isB3Import}
-                  onClick={() => setIsB3Import(prev => !prev)}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-                    isB3Import
-                      ? 'bg-emerald-500 border-emerald-500'
-                      : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                >
-                  {isB3Import && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-                <label
-                  onClick={() => setIsB3Import(prev => !prev)}
-                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                >
-                  {language === 'pt' ? 'Importar posição B3 (Posição Consolidada)' : 'Import B3 positions (Consolidated Position)'}
-                </label>
-              </div>
-              {isB3Import && (
+              {/* B3 positions import toggle — only when b3Sync feature is enabled */}
+              {hasB3Sync && (
                 <>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 ml-8">
-                    {language === 'pt'
-                      ? 'Exporte em investidor.b3.com.br → Posição → Posição Consolidada → Exportar'
-                      : 'Export at investidor.b3.com.br → Position → Consolidated Position → Export'}
-                  </p>
-                  <div className="mt-3 ml-8">
-                    <PlannerGoalSelect
-                      value={b3PlannerGoalId}
-                      onChange={setB3PlannerGoalId}
-                      label={language === 'pt' ? 'Camada para importar posições B3' : 'Sublayer for imported B3 positions'}
-                      emptyLabel={language === 'pt' ? 'Sem camada' : 'No sublayer'}
-                      selectClassName="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition appearance-none cursor-pointer"
-                    />
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isB3Import}
+                      onClick={() => setIsB3Import(prev => !prev)}
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                        isB3Import
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                    >
+                      {isB3Import && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                    <label
+                      onClick={() => setIsB3Import(prev => !prev)}
+                      className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    >
+                      {language === 'pt' ? 'Importar posição B3 (Posição Consolidada)' : 'Import B3 positions (Consolidated Position)'}
+                    </label>
                   </div>
+                  {isB3Import && (
+                    <>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 ml-8">
+                        {language === 'pt'
+                          ? 'Exporte em investidor.b3.com.br → Posição → Posição Consolidada → Exportar'
+                          : 'Export at investidor.b3.com.br → Position → Consolidated Position → Export'}
+                      </p>
+                      <div className="mt-3 ml-8">
+                        <PlannerGoalSelect
+                          value={b3PlannerGoalId}
+                          onChange={setB3PlannerGoalId}
+                          label={language === 'pt' ? 'Camada para importar posições B3' : 'Sublayer for imported B3 positions'}
+                          emptyLabel={language === 'pt' ? 'Sem camada' : 'No sublayer'}
+                          selectClassName="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition appearance-none cursor-pointer"
+                        />
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
