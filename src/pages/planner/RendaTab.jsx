@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import { formatBRL } from './usePlannerState';
 import { computeDeductionTotal } from './rendaCalc.js';
+import { useFeature } from '@/contexts/ClientConfigContext';
 
 function SummaryRow({ label, value, highlight, negative }) {
   return (
@@ -25,6 +26,7 @@ function SummaryRow({ label, value, highlight, negative }) {
 const EMPTY_DEDUCTION = { label: '', type: 'value', amount: 0 };
 
 export default function RendaTab({ state, update, liquidezFinal }) {
+  const hasSalaryBreakdown = useFeature('salaryBreakdown');
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
 
@@ -60,6 +62,32 @@ export default function RendaTab({ state, update, liquidezFinal }) {
 
   function removeDeduction(id) {
     update('salarioDeductions', deductions.filter(d => d.id !== id));
+  }
+
+  /* When salaryBreakdown is off, show a single net salary input (CLT mode). */
+  if (!hasSalaryBreakdown) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Salário Líquido
+          </h3>
+          <NumericFormat
+            value={state.salarioBruto}
+            onValueChange={vals => update('salarioBruto', vals.floatValue ?? 0)}
+            prefix="R$ "
+            decimalSeparator=","
+            thousandSeparator="."
+            decimalScale={2}
+            allowNegative={false}
+            className="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-lg font-semibold"
+          />
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            Este valor será usado como base de alocação no planejador.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

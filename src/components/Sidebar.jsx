@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { useSettings } from '../contexts/SettingsContext';
+import { useFeature } from '../contexts/ClientConfigContext';
 import {
   HomeIcon,
   ArrowTrendingDownIcon,
@@ -60,6 +61,8 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, language, darkMode, toggleDarkMode } = useSettings();
+  const hasInvestments = useFeature('investments');
+  const hasGoals = useFeature('goals');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Check if we're on a nested route (should show back button instead of hamburger)
@@ -142,7 +145,7 @@ export default function Sidebar() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <span className="text-lg font-bold text-gray-900 dark:text-white">Blim Wallet</span>
+        <span className="text-lg font-bold text-gray-900 dark:text-white">Moneywise</span>
       </div>
 
       {/* User info */}
@@ -176,13 +179,19 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-        {navItems.map((item, index) => (
-          <NavItem
-            key={item.path || `divider-${index}`}
-            item={item}
-            onClick={isMobile ? () => setMobileOpen(false) : undefined}
-          />
-        ))}
+        {navItems
+          .filter(item => {
+            if (item.path === '/investments') return hasInvestments;
+            if (item.path === '/goals') return hasGoals;
+            return true;
+          })
+          .map((item, index) => (
+            <NavItem
+              key={item.path || `divider-${index}`}
+              item={item}
+              onClick={isMobile ? () => setMobileOpen(false) : undefined}
+            />
+          ))}
       </nav>
 
       {/* Bottom section */}
