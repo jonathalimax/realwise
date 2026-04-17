@@ -41,7 +41,7 @@ Build a persuasive, conversion-focused landing page to sell Moneywise to individ
 Four cards, each describing a pain point the app solves:
 1. "Não sei pra onde vai meu dinheiro todo mês" → Dashboard + categorias automáticas
 2. "Esqueço de pagar contas e pago juros à toa" → Gestão de contas com alertas
-3. "Tenho dados espalhados em vários apps e planilhas" → Tudo num só lugar, com importação automática
+3. "Tenho dados espalhados em vários apps e planilhas" → Tudo num só lugar, importe seu extrato e deixe o app categorizar
 4. "Pago mensalidade pra app que não uso direito" → Pague uma vez, use para sempre
 
 ### 2.4 Features — "Tudo que você precisa"
@@ -53,12 +53,12 @@ Grid of features (icon + title + short description):
 | Transações | Registre receitas e despesas com categorias personalizadas |
 | Contas a pagar | Nunca mais esqueça uma conta — acompanhe status e vencimentos |
 | Cartões de crédito | Controle faturas e datas de pagamento por cartão |
-| Importação de extrato | Importe CSV do Nubank, Itaú e Bradesco automaticamente |
+| Importação de extrato | Importe CSV do Nubank, Itaú e Bradesco com categorização inteligente automática |
 | Planejador de renda | Configure seu salário e deduções para saber seu líquido real |
 | Alocação de orçamento | Distribua sua renda em categorias com metas percentuais |
 | Carteira de investimentos | Acompanhe sua carteira e diversificação por classe de ativo |
 | Modo escuro | Interface clara ou escura, como preferir |
-| PWA | Instale no celular ou use no navegador — funciona offline |
+| PWA | Instale no celular ou use no navegador — acesse de qualquer dispositivo |
 | Onboarding guiado | Configuração assistida passo a passo ao criar sua conta |
 
 ### 2.5 Why Moneywise — "Por que o Moneywise?"
@@ -104,30 +104,39 @@ Single pricing card:
 
 ### Flow
 1. User clicks "Comprar agora" on pricing section
-2. Frontend calls Firebase Function `createCheckoutSession`
-3. Function creates Stripe Checkout Session (one-time payment, `payment_mode`)
-4. User is redirected to Stripe-hosted checkout page
-5. On success → redirect to `/purchase-success`
-6. On cancel → redirect back to landing page
-7. Stripe webhook (`checkout.session.completed`) → Firebase Function `stripeWebhook` notifies developer (email) to set up client access
+2. A modal opens with a pre-checkout form: **Nome**, **E-mail**, **WhatsApp** (required)
+3. On submit, frontend calls Firebase Function `createCheckoutSession` passing name, email, whatsapp
+4. Function stores lead data in Firestore (`leads` collection) and creates Stripe Checkout Session
+5. User is redirected to Stripe-hosted checkout page (email pre-filled from form)
+6. On success → redirect to `/purchase-success`
+7. On cancel → redirect back to landing page
+8. Stripe webhook (`checkout.session.completed`) → Firebase Function `stripeWebhook` notifies developer (email + WhatsApp message) with buyer's full contact info to set up access
 
 ### Firebase Function: `createCheckoutSession`
 ```
 POST /createCheckoutSession
+Body: { name, email, whatsapp }
+→ Saves lead to Firestore `leads/{email}` (name, email, whatsapp, createdAt, paid: false)
 → Creates Stripe Checkout session
 → Returns { url: "https://checkout.stripe.com/..." }
 ```
 
-Parameters:
+Stripe Session Parameters:
+- `customer_email`: pre-filled from form
 - `price_data.currency`: "brl"
 - `price_data.unit_amount`: 47988 (R$479,88 in centavos)
+- `price_data.product_data.name`: "Moneywise — Acesso Vitalício"
 - `payment_method_types`: ["card"]
 - `mode`: "payment"
+- `metadata`: `{ name, whatsapp }` — carried through to webhook
 - Installments: enabled via `payment_method_options.card.installments` (allows up to 12x)
 
 ### Firebase Function: `stripeWebhook`
 - Verifies Stripe signature
-- On `checkout.session.completed` → sends email notification to developer with buyer's email
+- On `checkout.session.completed`:
+  - Updates `leads/{email}.paid = true` in Firestore
+  - Sends email notification to developer with buyer's name, email, and WhatsApp
+  - Optionally sends WhatsApp message to buyer confirming purchase (if `whatsapp` feature flag is on for the functions config)
 
 ### Config
 - `stripe.secret_key` — Firebase Functions config
@@ -162,6 +171,7 @@ Parameters:
 ### New
 - `landing_page/components/landing/PainPointsSection.jsx`
 - `landing_page/components/landing/WhyMoneywiseSection.jsx`
+- `landing_page/components/landing/CheckoutModal.jsx` — modal with Nome, E-mail, WhatsApp form before redirecting to Stripe
 - `landing_page/pages/PurchaseSuccess.jsx`
 - `functions/createCheckoutSession.js`
 - `functions/stripeWebhook.js`
