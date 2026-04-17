@@ -290,8 +290,9 @@ export default function TransactionsPage() {
             {/* To Review Toggle */}
             <button
               onClick={() => {
-                setShowUncategorized(prev => !prev);
-                if (!showUncategorized) setSelectedCategoryFilter('all');
+                const turningOn = !showUncategorized;
+                setShowUncategorized(turningOn);
+                if (turningOn) setSelectedCategoryFilter('all');
               }}
               className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 showUncategorized

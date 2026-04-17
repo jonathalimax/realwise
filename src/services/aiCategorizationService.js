@@ -16,6 +16,8 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
 const DAILY_FREE_LIMIT = 950; // Leave some buffer below 1000
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+export const CATEGORIZATION_CONFIDENCE_THRESHOLD = 0.6;
+
 /**
  * Get today's date key for tracking daily usage
  */
@@ -238,12 +240,10 @@ export async function categorizeWithAI({
     return { ...cached, source: 'cache' };
   }
 
-  const CONFIDENCE_THRESHOLD = 0.6;
-
   // 2. If no API key, go straight to fallback
   if (!apiKey) {
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-    if (!fallbackResult || (fallbackResult.confidence ?? 1) < CONFIDENCE_THRESHOLD) {
+    if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
       return { category: null, source: 'none', confidence: 0 };
     }
     return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
@@ -255,7 +255,7 @@ export async function categorizeWithAI({
   if (!quota.available) {
     console.log(`AI quota exhausted (${quota.used}/${DAILY_FREE_LIMIT}), using fallback`);
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-    if (!fallbackResult || (fallbackResult.confidence ?? 1) < CONFIDENCE_THRESHOLD) {
+    if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
       return { category: null, source: 'none', confidence: 0 };
     }
     return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
@@ -280,7 +280,7 @@ export async function categorizeWithAI({
 
   // 5. AI failed - use fallback
   const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-  if (!fallbackResult || (fallbackResult.confidence ?? 1) < CONFIDENCE_THRESHOLD) {
+  if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
     return { category: null, source: 'none', confidence: 0 };
   }
   return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
