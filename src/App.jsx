@@ -61,7 +61,7 @@ function AuthenticatedApp() {
                     <Suspense fallback={<PageLoader />}>
                       <Routes>
                         <Route element={<Layout />}>
-                          <Route index element={<Navigate to="dashboard" replace />} />
+                          <Route index element={<Navigate to="/dashboard" replace />} />
                           <Route path="dashboard" element={<DashboardPage />} />
                           <Route path="planner" element={<PlannerPage />} />
                           <Route path="expenses" element={<ExpensesPage />} />
@@ -85,7 +85,7 @@ function AuthenticatedApp() {
                             </>
                           )}
                         </Route>
-                        <Route path="*" element={<Navigate to="dashboard" replace />} />
+                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
                       </Routes>
                     </Suspense>
                   </BillsProvider>
@@ -119,11 +119,11 @@ function AppRouter() {
     <Routes>
       <Route
         path="login"
-        element={user ? <Navigate to="dashboard" replace /> : <Auth />}
+        element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
       />
       {user
         ? <Route path="/*" element={<AuthenticatedApp />} />
-        : <Route path="*" element={<Navigate to="login" replace />} />
+        : <Route path="*" element={<Navigate to="/login" replace />} />
       }
     </Routes>
   );
@@ -176,6 +176,27 @@ function App() {
   }
 
   const clientId = extractClientId(window.location.pathname);
+
+  // Bare root "/" — no clientId segment in the URL. The BrowserRouter basename
+  // would be "/app" but the URL is "/", so React Router can't match any routes.
+  // Redirect to /{clientId}/ so the router and clientId are in sync.
+  if (window.location.pathname === '/') {
+    const LandingPage = lazy(() => import('../landing_page/pages/home'));
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <LandingPage />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname === '/purchase-success') {
+    const PurchaseSuccess = lazy(() => import('../landing_page/pages/PurchaseSuccess'));
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PurchaseSuccess />
+      </Suspense>
+    );
+  }
 
   return (
     <ClientConfigProvider>
