@@ -36,6 +36,10 @@ const GoalsPage = lazy(() => import('./pages/Goals'));
 const InvestmentsPage = lazy(() => import('./pages/Investments'));
 const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 
+// Landing pages (served at "/" and "/purchase-success" outside any clientId scope)
+const LandingPage = lazy(() => import('../landing_page/pages/home'));
+const PurchaseSuccessPage = lazy(() => import('../landing_page/pages/PurchaseSuccess'));
+
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500" />
@@ -181,7 +185,6 @@ function App() {
   // would be "/app" but the URL is "/", so React Router can't match any routes.
   // Redirect to /{clientId}/ so the router and clientId are in sync.
   if (window.location.pathname === '/') {
-    const LandingPage = lazy(() => import('../landing_page/pages/home'));
     return (
       <Suspense fallback={<PageLoader />}>
         <LandingPage />
@@ -190,10 +193,9 @@ function App() {
   }
 
   if (window.location.pathname === '/purchase-success') {
-    const PurchaseSuccess = lazy(() => import('../landing_page/pages/PurchaseSuccess'));
     return (
       <Suspense fallback={<PageLoader />}>
-        <PurchaseSuccess />
+        <PurchaseSuccessPage />
       </Suspense>
     );
   }
