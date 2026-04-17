@@ -1,4 +1,4 @@
-const RESERVED_PATHS = ['__', 'api', 'clients'];
+const RESERVED_PATHS = ['__', 'api', 'clients', 'purchase-success', 'login'];
 
 /**
  * Extracts the client identifier from the URL pathname.

@@ -21,6 +21,14 @@ describe('extractClientId', () => {
   it('returns app when first segment is a known non-client path', () => {
     expect(extractClientId('/__/auth/handler')).toBe('app');
   });
+
+  it('returns app when first segment is purchase-success', () => {
+    expect(extractClientId('/purchase-success')).toBe('app');
+  });
+
+  it('returns app when first segment is login', () => {
+    expect(extractClientId('/login')).toBe('app');
+  });
 });
 
 describe('fetchClientConfig', () => {
