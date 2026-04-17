@@ -254,8 +254,14 @@ export async function categorizeWithAI({
   const quota = await checkAIQuota(userId);
 
   const usagePercent = quota.used / DAILY_FREE_LIMIT;
-  if (usagePercent >= 0.8) {
-    analytics.aiQuotaWarning(userId, { used: quota.used, limit: DAILY_FREE_LIMIT, threshold: usagePercent >= 1 ? 100 : 80 });
+  // Fire quota warning only when crossing 80% or 100% thresholds (not on every call)
+  if (usagePercent >= 0.8 && usagePercent < 1) {
+    const prevPercent = (quota.used - 1) / DAILY_FREE_LIMIT;
+    if (prevPercent < 0.8) {
+      analytics.aiQuotaWarning(userId, { used: quota.used, limit: DAILY_FREE_LIMIT, threshold: 80 });
+    }
+  } else if (!quota.available && quota.used === DAILY_FREE_LIMIT) {
+    analytics.aiQuotaWarning(userId, { used: quota.used, limit: DAILY_FREE_LIMIT, threshold: 100 });
   }
 
   if (!quota.available) {

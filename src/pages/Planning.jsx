@@ -22,6 +22,7 @@ export default function PlanningPage() {
   const { selectedMonth, setSelectedMonth } = useMonth();
 
   const [transactions, setTransactions] = useState([]);
+  const [transactionsLoaded, setTransactionsLoaded] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -39,16 +40,17 @@ export default function PlanningPage() {
         ...doc.data()
       }));
       setTransactions(data);
+      setTransactionsLoaded(true);
     });
 
     return () => unsubscribe();
   }, [ownerId]);
 
   useEffect(() => {
-    if (transactions.length === 0 && auth.currentUser) {
-      analytics.emptyStateVisited(auth.currentUser.uid, { tab: 'planning' });
+    if (transactionsLoaded && transactions.length === 0 && auth.currentUser) {
+      analytics.emptyStateVisited(auth.currentUser?.uid, { tab: 'planning' });
     }
-  }, [transactions.length]);
+  }, [transactionsLoaded, transactions.length]);
 
   const availableMonths = useMemo(() => {
     const months = new Set();
