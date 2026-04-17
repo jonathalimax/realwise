@@ -5,6 +5,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useBudget } from '../contexts/BudgetContext';
+import { analytics } from '../services/analyticsService';
 import { useCards } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import BudgetCategorySection from '../components/BudgetCategorySection';
@@ -42,6 +43,12 @@ export default function PlanningPage() {
 
     return () => unsubscribe();
   }, [ownerId]);
+
+  useEffect(() => {
+    if (transactions.length === 0 && auth.currentUser) {
+      analytics.emptyStateVisited(auth.currentUser.uid, { tab: 'planning' });
+    }
+  }, [transactions.length]);
 
   const availableMonths = useMemo(() => {
     const months = new Set();

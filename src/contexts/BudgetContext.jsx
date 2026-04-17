@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useAccess } from './AccessContext';
+import { analytics } from '../services/analyticsService';
 
 const BudgetContext = createContext();
 
@@ -132,6 +133,10 @@ export function BudgetProvider({ children }) {
       updatedAt: serverTimestamp(),
       ...(existingBudget ? {} : { createdAt: serverTimestamp() })
     }, { merge: true });
+
+    if (!existingBudget) {
+      analytics.budgetCreated(auth.currentUser.uid);
+    }
   };
 
   // Set total monthly budget

@@ -11,6 +11,7 @@ import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext'
 import { useAccess } from '../contexts/AccessContext';
 import { generateTransactionHash } from '../services/installments';
 import { detectDuplicatesWithAI } from '../services/aiCategorizationService';
+import { analytics } from '../services/analyticsService';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useFeature } from '../contexts/ClientConfigContext';
 import CurrencyInput from './ui/CurrencyInput';
@@ -280,6 +281,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       setStep('preview');
     } catch (err) {
       setError(err.message || 'Failed to parse file');
+      const userId = ownerId || auth.currentUser?.uid;
+      analytics.importError(userId, { bankName: selectedBankId || 'unknown', errorType: err.message || 'parse_error' });
     } finally {
       setLoading(false);
     }
@@ -327,6 +330,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
         });
       }
 
+      const userId = ownerId || auth.currentUser?.uid;
+      analytics.firstImport(userId, { bankId: selectedBankId, transactionCount: toImport.length });
       setStep('done');
     } catch (err) {
       setError(err.message || 'Failed to import transactions');

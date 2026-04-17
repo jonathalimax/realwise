@@ -10,6 +10,7 @@
 
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { analytics } from './analyticsService';
 
 // Gemini API configuration
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
@@ -251,6 +252,11 @@ export async function categorizeWithAI({
 
   // 3. Check if we have free quota remaining
   const quota = await checkAIQuota(userId);
+
+  const usagePercent = quota.used / DAILY_FREE_LIMIT;
+  if (usagePercent >= 0.8) {
+    analytics.aiQuotaWarning(userId, { used: quota.used, limit: DAILY_FREE_LIMIT, threshold: usagePercent >= 1 ? 100 : 80 });
+  }
 
   if (!quota.available) {
     console.log(`AI quota exhausted (${quota.used}/${DAILY_FREE_LIMIT}), using fallback`);

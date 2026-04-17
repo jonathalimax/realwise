@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
+import { analytics } from '../services/analyticsService';
+import { auth } from '../firebase';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
@@ -57,6 +59,12 @@ export default function InvestmentsPage() {
   const [activeSubTab, setActiveSubTab] = useState('plano');
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!loading && investments.length === 0) {
+      analytics.emptyStateVisited(auth.currentUser?.uid, { tab: 'investments' });
+    }
+  }, [loading, investments.length]);
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);

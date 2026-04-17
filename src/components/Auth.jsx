@@ -9,6 +9,7 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { LANGUAGES, DEFAULT_LANGUAGE, getTranslation } from '../locales';
 import { useClientConfig } from '../contexts/ClientConfigContext';
+import { analytics } from '../services/analyticsService';
 
 export default function Auth() {
   const config = useClientConfig();
@@ -124,6 +125,8 @@ export default function Auth() {
           setError(language === 'pt'
             ? 'Acesso não autorizado. Entre em contato com o administrador.'
             : 'Access not authorized. Please contact the administrator.');
+        } else if (result.additionalUserInfo?.isNewUser) {
+          analytics.userSignup(result.user.uid);
         }
       } catch (err) {
         setError(getErrorMessage(err.code));
