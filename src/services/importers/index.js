@@ -189,6 +189,27 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
   // Clean up needsAI flag if AI wasn't used
   processedTransactions.forEach(t => delete t.needsAI);
 
+  // Attach categorization metadata to each transaction
+  processedTransactions.forEach(t => {
+    let catSource;
+    if (t.aiCategorized) {
+      catSource = 'ai';
+    } else if (t.isUserRule) {
+      catSource = 'user_rule';
+    } else if (t.autoCategory) {
+      catSource = 'default_rule';
+    } else {
+      catSource = null;
+    }
+
+    t.metadata = {
+      catSource,
+      catConfidence: t.categoryConfidence ?? (catSource ? 1.0 : 0),
+      isCorrected: false,
+      originalCategory: t.category ?? null,
+    };
+  });
+
   return processedTransactions;
 }
 

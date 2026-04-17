@@ -117,6 +117,13 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
       const isInvestmentCategory = (finalCategory === 'Investments' || finalCategory === 'Investimentos');
 
+      const prevMeta = transaction.metadata;
+      const categoryChanged = finalCategory !== transaction.category;
+      const wasAutoCategorized = prevMeta?.catSource && prevMeta.catSource !== 'manual';
+      const updatedMetadata = prevMeta
+        ? { ...prevMeta, isCorrected: prevMeta.isCorrected || (categoryChanged && wasAutoCategorized) }
+        : { catSource: 'manual', catConfidence: 1.0, isCorrected: false, originalCategory: finalCategory };
+
       const updates = {
         userId: transaction.userId || ownerId || auth.currentUser.uid,
         type,
@@ -131,7 +138,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         paymentMethod: selectedBankId ? paymentMethod : null,
         ignored: isIgnored,
         // Investment type (if category is Investments)
-        investmentType: isInvestmentCategory ? investmentType : null
+        investmentType: isInvestmentCategory ? investmentType : null,
+        metadata: updatedMetadata
       };
 
       // Build extra investment fields based on investmentType

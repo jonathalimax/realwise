@@ -322,7 +322,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           propertyDescription: t.propertyDescription || null,
           expectedReturn: t.expectedReturn != null ? parseFloat(t.expectedReturn) / 100 : null,
           returnType: t.returnType || null,
-          maturityDate: t.maturityDate || null
+          maturityDate: t.maturityDate || null,
+          metadata: t.metadata || null
         });
       }
 
