@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import PageHeader from '../components/PageHeader';
 
 export default function CardsPage() {
   const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, getBankDisplayName } = useCards();
@@ -396,42 +397,26 @@ export default function CardsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Page Header */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {view === 'list' && (language === 'pt' ? 'Meus Bancos' : 'My Banks')}
-              {view === 'form' && (editingBank
-                ? (language === 'pt' ? 'Editar Banco' : 'Edit Bank')
-                : (language === 'pt' ? 'Adicionar Banco' : 'Add Bank'))}
-            </h1>
-            {view === 'list' ? (
-              <button
-                onClick={() => handleOpenForm()}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium text-sm transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="hidden sm:inline">{language === 'pt' ? 'Adicionar' : 'Add Bank'}</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setView('list');
-                  resetForm();
-                }}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={
+          view === 'list'
+            ? (language === 'pt' ? 'Meus Bancos' : 'My Banks')
+            : editingBank
+              ? (language === 'pt' ? 'Editar Banco' : 'Edit Bank')
+              : (language === 'pt' ? 'Adicionar Banco' : 'Add Bank')
+        }
+        showMonth={false}
+        right={view === 'form' ? (
+          <button
+            onClick={() => { setView('list'); resetForm(); }}
+            className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        ) : null}
+      />
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8 pb-6">
@@ -636,6 +621,19 @@ export default function CardsPage() {
 
       {/* Edit Bank Modal */}
       <EditBankModal />
+
+      {/* FAB — only on list view */}
+      {view === 'list' && (
+        <button
+          onClick={() => handleOpenForm()}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+          aria-label={language === 'pt' ? 'Adicionar Banco' : 'Add Bank'}
+        >
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

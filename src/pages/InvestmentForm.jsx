@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useInvestments, INVESTMENT_TYPES, CDI_ANNUAL_RATE } from '../contexts/InvestmentContext';
+import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from '../components/ui/CurrencyInput';
@@ -46,10 +46,7 @@ export default function InvestmentForm() {
     type: 'fixed_income',
     bank: '',
     initialAmount: 0,
-    expectedReturn: 0,
-    returnType: 'annual',
     purchaseDate: new Date().toISOString().split('T')[0],
-    maturityDate: '',
     goalId: '',
     plannerGoalId: '',
     notes: '',
@@ -79,10 +76,7 @@ export default function InvestmentForm() {
             type: inv.type,
             bank: inv.bank || '',
             initialAmount: inv.initialAmount,
-            expectedReturn: (inv.expectedReturn || 0) * 100,
-            returnType: inv.returnType || 'annual',
             purchaseDate: inv.purchaseDate || new Date().toISOString().split('T')[0],
-            maturityDate: inv.maturityDate || '',
             goalId: inv.goalId || '',
             plannerGoalId: inv.plannerGoalId || '',
             notes: inv.notes || '',
@@ -111,10 +105,7 @@ export default function InvestmentForm() {
         type: formData.type,
         bank: formData.bank.trim(),
         initialAmount: formData.initialAmount,
-        expectedReturn: formData.expectedReturn / 100,
-        returnType: formData.returnType,
         purchaseDate: formData.purchaseDate || null,
-        maturityDate: formData.maturityDate || null,
         goalId: formData.goalId || null,
         plannerGoalId: formData.plannerGoalId || null,
         notes: formData.notes.trim(),
@@ -454,74 +445,6 @@ export default function InvestmentForm() {
                     text-gray-900 dark:text-white
                     focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                 />
-              </div>
-
-              {/* Maturity Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('investments.maturityDate')}
-                </label>
-                <input
-                  type="date"
-                  value={formData.maturityDate}
-                  onChange={(e) => setFormData({ ...formData, maturityDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white
-                    focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
-                />
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 space-y-6">
-              {/* Expected Return */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    {t('investments.returnType')}
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {['cdi', 'annual', 'monthly', 'total'].map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, returnType: type })}
-                        className={`px-3 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
-                          formData.returnType === type
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
-                        }`}
-                      >
-                        {t(`investments.returnTypes.${type}`)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {formData.returnType === 'cdi' ? t('investments.cdiPercentage') : t('investments.expectedReturn')}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.expectedReturn}
-                      onChange={(e) => setFormData({ ...formData, expectedReturn: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400
-                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition pr-24"
-                      placeholder={formData.returnType === 'cdi' ? '100' : '0.00'}
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      {formData.returnType === 'cdi' ? '% CDI' : '%'}
-                    </span>
-                  </div>
-                  {formData.returnType === 'cdi' && (
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      {t('investments.cdiHint')} ({t('investments.currentCdi')}: {(CDI_ANNUAL_RATE * 100).toFixed(2)}% {t('investments.returnTypes.annual').toLowerCase()})
-                    </p>
-                  )}
-                </div>
               </div>
             </div>
 

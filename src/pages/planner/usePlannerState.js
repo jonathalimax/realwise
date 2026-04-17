@@ -18,10 +18,8 @@ const DEFAULT_STATE = {
   // Tab 1 - Renda
   salarioBruto: 10000,
   salarioDeductions: [
-    { id: 'simples', label: 'Simples Nacional', type: 'pct', amount: 6 },
-    { id: 'saude', label: 'Plano de Saúde', type: 'value', amount: 300 },
-    { id: 'contabil', label: 'Contabilidade', type: 'value', amount: 150 },
-    { id: 'internet', label: 'Internet', type: 'value', amount: 50 },
+    { id: 'inss', label: 'INSS', type: 'pct', amount: 7.5 },
+    { id: 'irpf', label: 'IRPF', type: 'pct', amount: 27.5 },
   ],
 
   // Legacy USD-calc fields (kept for migration — overridden by salarioBruto/salarioDeductions)
@@ -36,10 +34,10 @@ const DEFAULT_STATE = {
   // Category budget percentages — { [categoryName]: pct (% of liquidezFinal) }
   categoryBudgetsPct: {},
 
-  // Tab 2 - Allocation (64/28/8)
-  necessidades: 64,
-  poupanca: 28,
-  desejos: 8,
+  // Tab 2 - Allocation (70/20/10)
+  necessidades: 70,
+  poupanca: 20,
+  desejos: 10,
   allocationOverrides: {},
 
   // USD Calculator
@@ -154,8 +152,27 @@ const DEFAULT_STATE = {
     { name: 'Cripto',                   pct:  0, phase1: 65,   phase2: 0,    returnPct: 1.5, vehicle: 'BTC 70% + ETH',                      mode: 'pct', positions: [] },
   ],
 
-  // Wallet versions — used by CarteiraTab only. Other tabs keep using savingsRows/investmentClasses.
-  walletVersions: [],
+  // Wallet versions — used by CarteiraTab only.
+  walletVersions: [{
+    from: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+    layers: [
+      {
+        id: 'protecao', label: 'Proteção', icon: '🛡️', colorKey: 'blue',
+        description: 'Reservas de emergência e proteção financeira.',
+        pct: 30,
+        sublayers: [
+          {
+            id: 'reserva-emergencia', label: 'Reserva de Emergência', icon: '🛡️',
+            type: 'Renda Fixa', bank: '',
+            description: 'CDB liq. diária / Tesouro Selic',
+            mode: 'value', pct: 0, value: 0,
+            goalTarget: 0, manualBalance: 0,
+            returnPct: 1.0, taxRate: 15, instruments: [],
+          },
+        ],
+      },
+    ],
+  }],
 };
 
 function migrateState(saved) {

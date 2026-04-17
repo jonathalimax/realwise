@@ -648,3 +648,13 @@ exports.processImport = importProcessor.processImport;
  * Firestore trigger to decrement pending review count when transaction is reviewed
  */
 exports.onTransactionReviewed = importProcessor.onTransactionReviewed;
+
+// ============================================================
+// STRIPE PAYMENT FUNCTIONS
+// ============================================================
+
+const { createCheckoutSession } = require('./createCheckoutSession');
+exports.createCheckoutSession = createCheckoutSession;
+
+const { stripeWebhook } = require('./stripeWebhook');
+exports.stripeWebhook = stripeWebhook;

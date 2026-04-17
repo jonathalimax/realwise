@@ -6,22 +6,23 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
+import { useFeature } from '../contexts/ClientConfigContext';
 import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
 import InvestmentsListModal from '../components/InvestmentsListModal';
 import ExpensesPieChart from '../components/charts/ExpensesPieChart';
+import CategoryTrendChart from './planner/CategoryTrendChart';
 import BillsSummaryCard from '../components/BillsSummaryCard';
 import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
 import CardsModal from '../components/CardsModal';
-import BudgetModal from '../components/BudgetModal';
 import TransactionModal from '../components/TransactionModal';
-import InvestmentModal from '../components/InvestmentModal';
 import BillModal from '../components/BillModal';
 import GoalProgress from '../components/GoalProgress';
-import RuleComparison from '../components/RuleComparison';
+import PlannerSummaryCard from '../components/PlannerSummaryCard';
 import TrendChart from '../components/charts/TrendChart';
-import MonthSelector from '../components/MonthSelector';
+import PageHeader from '../components/PageHeader';
+import TutorialModal from '../components/TutorialModal';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
 export default function DashboardPage() {
@@ -29,40 +30,27 @@ export default function DashboardPage() {
   const isMobile = useIsMobile();
 
   const [showCards, setShowCards] = useState(false);
-  const [showBudget, setShowBudget] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showInvestments, setShowInvestments] = useState(false);
   const [showInvestmentsList, setShowInvestmentsList] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
+  const [tutorialDismissed, setTutorialDismissed] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [refreshKey] = useState(0);
-  const { selectedMonth, setSelectedMonth } = useMonth();
+  const { selectedMonth } = useMonth();
   const [viewMode] = useState('payment');
-  const { t, language, categories } = useSettings();
+  const { t, language, tutorialCompleted, loading: settingsLoading } = useSettings();
   const { canWrite, ownerId } = useAccess();
+  const hasGoals = useFeature('goals');
   const { getPaymentMonthKey } = useCards();
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
     transactions, selectedMonth, viewMode, getPaymentMonthKey
   );
   useInvestments();
 
-  const handleOpenGoals = () => {
-    navigate('/goals');
-  };
-
   const handleOpenCards = () => {
     if (isMobile) navigate('/cards');
     else setShowCards(true);
-  };
-
-  const handleOpenBudget = () => {
-    navigate('/budget');
-  };
-
-  const handleOpenInvestments = () => {
-    if (isMobile) navigate('/investments');
-    else setShowInvestments(true);
   };
 
   const handleOpenInvestmentsList = () => {
@@ -71,6 +59,8 @@ export default function DashboardPage() {
   };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
+
+  const showTutorial = !settingsLoading && !tutorialCompleted && !tutorialDismissed;
 
   useEffect(() => {
     if (!auth.currentUser || !ownerId) return;
@@ -91,17 +81,11 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [refreshKey, ownerId]);
 
-  const availableMonths = useMemo(() => {
-    const months = new Set();
-    transactions.forEach(t => {
-      const date = new Date(t.date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      months.add(key);
-    });
-    const now = new Date();
-    months.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-    return Array.from(months).sort().reverse();
-  }, [transactions]);
+  const last6Months = useMemo(() => Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(`${selectedMonth}-01`);
+    d.setMonth(d.getMonth() - (5 - i));
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }), [selectedMonth]);
 
   const monthlyTransactions = useMemo(() => {
     if (!selectedMonth) return transactions;
@@ -125,42 +109,13 @@ export default function DashboardPage() {
     });
   }, [transactions, selectedMonth, viewMode, getPaymentMonthKey]);
 
-  const totalIncome = useMemo(() => {
-    return monthlyTransactions
-      .filter(t => t.type === 'income' && !t.ignored)
-      .reduce((sum, t) => sum + t.amount, 0);
-  }, [monthlyTransactions]);
-
-  const expenseCategories = useMemo(() => {
-    return categories.expense || [];
-  }, [categories]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {t('dashboard.title')}
-            </h1>
-          </div>
-        </div>
-      </div>
+      <PageHeader title={t('dashboard.title')} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        {/* Enhanced Month Selector */}
-        <div className="mb-6">
-          <MonthSelector
-            selectedMonth={selectedMonth}
-            availableMonths={availableMonths}
-            onMonthChange={setSelectedMonth}
-            locale={locale}
-            enhanced
-          />
-        </div>
-
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Left Column - Main Charts */}
@@ -185,21 +140,30 @@ export default function DashboardPage() {
                 cumulativeByMonth={cumulativeByMonth}
               />
             </div>
+
+            {/* Category Trend Chart */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                {locale === 'pt-BR' ? 'Tendência por Categoria' : 'Spending by Category'}
+              </h3>
+              <CategoryTrendChart
+                allTx={transactions}
+                last6Months={last6Months}
+                getMonthKey={getPaymentMonthKey}
+              />
+            </div>
           </div>
 
           {/* Right Column - Summary Cards */}
           <div className="space-y-4 md:space-y-6">
-            {/* My Goals Progress - Clickable Card */}
-            <GoalProgress onManageGoals={handleOpenGoals} />
+            {/* My Goals Progress - only when feature is enabled */}
+            {hasGoals && <GoalProgress onManageGoals={() => navigate('/goals')} />}
 
             {/* Bills Summary - Simple Card */}
             <BillsSummaryCard selectedMonth={selectedMonth} />
 
-            {/* Planning - 50/30/20 Rule */}
-            <RuleComparison
-              transactions={monthlyTransactions}
-              totalIncome={totalIncome}
-            />
+            {/* Planner allocation summary */}
+            <PlannerSummaryCard />
           </div>
         </div>
       </main>
@@ -238,40 +202,6 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <span className="font-medium text-gray-900 dark:text-white">{language === 'pt' ? 'Adicionar' : 'Add Manually'}</span>
-              </button>
-
-              <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-1" />
-
-              <button
-                onClick={() => { handleOpenGoals(); setShowFabMenu(false); }}
-                className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
-              >
-                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
-                  <span className="text-lg">🎯</span>
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white">{t('goals.title')}</span>
-              </button>
-
-              <button
-                onClick={() => { handleOpenBudget(); setShowFabMenu(false); }}
-                className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
-              >
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white">{t('budget.title')}</span>
-              </button>
-
-              <button
-                onClick={() => { handleOpenInvestments(); setShowFabMenu(false); }}
-                className="flex items-center gap-3 pl-4 pr-5 py-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all animate-fade-in"
-              >
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                  <span className="text-lg">📈</span>
-                </div>
-                <span className="font-medium text-gray-900 dark:text-white">{t('investments.title')}</span>
               </button>
 
               <button
@@ -313,20 +243,9 @@ export default function DashboardPage() {
 
       {/* Modals */}
       <CardsModal isOpen={showCards} onClose={() => setShowCards(false)} />
-      <BudgetModal
-        isOpen={showBudget}
-        onClose={() => setShowBudget(false)}
-        currentMonth={selectedMonth}
-        totalIncome={totalIncome}
-        expenseCategories={expenseCategories}
-      />
       <TransactionModal
         isOpen={showTransactionModal}
         onClose={() => setShowTransactionModal(false)}
-      />
-      <InvestmentModal
-        isOpen={showInvestments}
-        onClose={() => setShowInvestments(false)}
       />
       <InvestmentsListModal
         isOpen={showInvestmentsList}
@@ -335,6 +254,12 @@ export default function DashboardPage() {
       <BillModal
         isOpen={showBillModal}
         onClose={() => setShowBillModal(false)}
+      />
+
+      <TutorialModal
+        isOpen={showTutorial}
+        onClose={() => setTutorialDismissed(true)}
+        isFirstTime={true}
       />
 
       <style>{`

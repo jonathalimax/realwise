@@ -26,7 +26,7 @@ export default function SettingsPage() {
 
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [newIncomeCategory, setNewIncomeCategory] = useState('');
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState('categories');
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
 
@@ -278,16 +278,6 @@ export default function SettingsPage() {
       <div className="sticky top-14 sm:top-16 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex">
           <button
-            onClick={() => setActiveTab('general')}
-            className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === 'general'
-                ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            {language === 'pt' ? 'Geral' : 'General'}
-          </button>
-          <button
             onClick={() => setActiveTab('categories')}
             className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
               activeTab === 'categories'
@@ -298,21 +288,21 @@ export default function SettingsPage() {
             {t('settings.categories')}
           </button>
           <button
-            onClick={() => setActiveTab('access')}
+            onClick={() => setActiveTab('notifications')}
             className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === 'access'
+              activeTab === 'notifications'
                 ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
-            {language === 'pt' ? 'Acesso' : 'Access'}
+            {language === 'pt' ? 'Notificações' : 'Notifications'}
           </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8 pb-24">
-        {/* General Tab */}
+        {/* General Tab — hidden but kept for potential admin access */}
         {activeTab === 'general' && (
           <div className="space-y-6">
             {/* Language */}
@@ -801,6 +791,66 @@ export default function SettingsPage() {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <div className="space-y-6 max-w-2xl">
+            {/* Push notification status */}
+            {(() => {
+              const permission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+              return (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`p-3 rounded-xl ${permission === 'granted' ? 'bg-violet-100 dark:bg-violet-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                      <svg className={`w-6 h-6 ${permission === 'granted' ? 'text-violet-600 dark:text-violet-400' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {language === 'pt' ? 'Notificações Push' : 'Push Notifications'}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {permission === 'granted'
+                          ? (language === 'pt' ? 'Ativas — você receberá lembretes de contas' : 'Enabled — you will receive bill reminders')
+                          : permission === 'denied'
+                            ? (language === 'pt' ? 'Bloqueadas pelo navegador' : 'Blocked by browser')
+                            : (language === 'pt' ? 'Permissão não concedida' : 'Permission not granted')}
+                      </p>
+                    </div>
+                  </div>
+                  {permission !== 'granted' && permission !== 'denied' && (
+                    <button
+                      onClick={() => Notification.requestPermission()}
+                      className="w-full py-2.5 bg-violet-500 text-white rounded-xl text-sm font-medium hover:bg-violet-600 transition-colors"
+                    >
+                      {language === 'pt' ? 'Ativar notificações' : 'Enable notifications'}
+                    </button>
+                  )}
+                  {permission === 'denied' && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      {language === 'pt'
+                        ? 'Para ativar, permita notificações nas configurações do seu navegador.'
+                        : 'To enable, allow notifications in your browser settings.'}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Info */}
+            <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-4">
+              <p className="text-sm font-medium text-violet-800 dark:text-violet-200 mb-1">
+                {language === 'pt' ? 'Como funciona?' : 'How does it work?'}
+              </p>
+              <p className="text-xs text-violet-700 dark:text-violet-300">
+                {language === 'pt'
+                  ? 'Todos os dias às 9h (horário de Brasília), você receberá uma notificação push sobre as contas próximas do vencimento.'
+                  : 'Every day at 9 AM (Brazil time), you will receive a push notification about bills that are due soon or overdue.'}
+              </p>
             </div>
           </div>
         )}

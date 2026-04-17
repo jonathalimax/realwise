@@ -5,37 +5,20 @@ import { useAccess } from '../contexts/AccessContext';
 import { useMonth } from '../contexts/MonthContext';
 import BillsList from '../components/BillsList';
 import BillModal from '../components/BillModal';
-import MonthSelector from '../components/MonthSelector';
+import PageHeader from '../components/PageHeader';
 import { PlusIcon, AdjustmentsHorizontalIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 export default function BillsPage() {
   const { language } = useSettings();
-  const { bills, loading } = useBills();
+  const { bills } = useBills();
   const { canWrite } = useAccess();
-  const { selectedMonth, setSelectedMonth } = useMonth();
+  const { selectedMonth } = useMonth();
   const [showBillModal, setShowBillModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
-  const availableMonths = useMemo(() => {
-    const months = new Set();
-    bills.forEach(bill => {
-      if (bill.dueDate) {
-        const date = new Date(bill.dueDate);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        months.add(key);
-      }
-    });
-    // Add current month and next 3 months
-    const now = new Date();
-    for (let i = 0; i < 4; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      months.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
-    }
-    return Array.from(months).sort().reverse();
-  }, [bills]);
 
   const billsStats = useMemo(() => {
     const monthBills = bills.filter(bill => {
@@ -71,41 +54,15 @@ export default function BillsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {language === 'pt' ? 'Contas a Pagar' : 'Bills'}
-            </h1>
-            {canWrite && (
-              <button
-                onClick={() => setShowBillModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium text-sm transition-colors"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span className="hidden sm:inline">{language === 'pt' ? 'Nova Conta' : 'New Bill'}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <PageHeader title={language === 'pt' ? 'Contas a Pagar' : 'Bills'} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Month Selector */}
-        <div className="flex items-center justify-between gap-2 mb-6">
-          <MonthSelector
-            selectedMonth={selectedMonth}
-            availableMonths={availableMonths}
-            onMonthChange={setSelectedMonth}
-            locale={locale}
-          />
-
-          {/* Filters Button */}
+        {/* Filters */}
+        <div className="flex justify-end mb-6">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
+            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all ${
               showFilters || activeFiltersCount > 0
                 ? 'bg-orange-500 text-white'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -217,6 +174,17 @@ export default function BillsPage() {
         isOpen={showBillModal}
         onClose={() => setShowBillModal(false)}
       />
+
+      {/* FAB */}
+      {canWrite && (
+        <button
+          onClick={() => setShowBillModal(true)}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+          aria-label={language === 'pt' ? 'Nova Conta' : 'New Bill'}
+        >
+          <PlusIcon className="w-7 h-7" />
+        </button>
+      )}
     </div>
   );
 }

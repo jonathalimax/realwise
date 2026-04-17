@@ -7,14 +7,14 @@ import { useCards } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import TransactionList from '../components/TransactionList';
 import TransactionModal from '../components/TransactionModal';
-import MonthSelector from '../components/MonthSelector';
+import PageHeader from '../components/PageHeader';
 import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export default function ExpensesPage() {
-  const { t, language, categories } = useSettings();
+  const { t, language } = useSettings();
   const { ownerId, canWrite } = useAccess();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
-  const { selectedMonth, setSelectedMonth } = useMonth();
+  const { selectedMonth } = useMonth();
 
   const [transactions, setTransactions] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -54,17 +54,6 @@ export default function ExpensesPage() {
     return () => unsubscribe();
   }, [refreshKey, ownerId]);
 
-  const availableMonths = useMemo(() => {
-    const months = new Set();
-    transactions.forEach(t => {
-      const date = new Date(t.date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      months.add(key);
-    });
-    const now = new Date();
-    months.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-    return Array.from(months).sort().reverse();
-  }, [transactions]);
 
   const monthlyTransactions = useMemo(() => {
     if (!selectedMonth) return transactions;
@@ -155,25 +144,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {language === 'pt' ? 'Saída' : 'Expenses'}
-            </h1>
-            {canWrite && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium text-sm transition-colors"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span className="hidden sm:inline">{language === 'pt' ? 'Nova Saída' : 'New Expense'}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <PageHeader title={language === 'pt' ? 'Saída' : 'Expenses'} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -188,36 +159,26 @@ export default function ExpensesPage() {
           </p>
         </div>
 
-        {/* Month Selector + Filters */}
-        <div className="flex flex-col gap-3 mb-4 sm:mb-6">
-          <div className="flex items-center justify-between gap-2">
-            <MonthSelector
-              selectedMonth={selectedMonth}
-              availableMonths={availableMonths}
-              onMonthChange={setSelectedMonth}
-              locale={locale}
-            />
-
-            {/* Filters Button */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
-                showFilters || activeFiltersCount > 0
-                  ? 'bg-violet-500 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
-            >
-              <AdjustmentsHorizontalIcon className="w-5 h-5" />
-              <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
-              {activeFiltersCount > 0 && (
-                <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                  showFilters ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400'
-                }`}>
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-          </div>
+        {/* Filters */}
+        <div className="flex justify-end mb-4 sm:mb-6">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all ${
+              showFilters || activeFiltersCount > 0
+                ? 'bg-violet-500 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <AdjustmentsHorizontalIcon className="w-5 h-5" />
+            <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
+            {activeFiltersCount > 0 && (
+              <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
+                showFilters ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400'
+              }`}>
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Filters Panel */}
@@ -377,6 +338,17 @@ export default function ExpensesPage() {
         onClose={() => setShowAddModal(false)}
         defaultType="expense"
       />
+
+      {/* FAB */}
+      {canWrite && (
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-violet-500 hover:bg-violet-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+          aria-label={language === 'pt' ? 'Nova Saída' : 'New Expense'}
+        >
+          <PlusIcon className="w-7 h-7" />
+        </button>
+      )}
     </div>
   );
 }

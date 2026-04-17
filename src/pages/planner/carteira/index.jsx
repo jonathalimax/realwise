@@ -5,10 +5,8 @@ import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useInvestments } from '@/contexts/InvestmentContext';
 import { getActiveVersion, updateWalletForMonth } from './walletVersion';
-import CarteiraDashboard from './CarteiraDashboard';
 import LayerAllocationEditor from './LayerAllocationEditor';
 import WalletLayerSection from './WalletLayerSection';
-import AnalysePanel from './AnalysePanel';
 
 export default function CarteiraTab({ state, update, poupancaValue, selectedMonth }) {
   const { ownerId } = useAccess();
@@ -66,45 +64,8 @@ export default function CarteiraTab({ state, update, poupancaValue, selectedMont
     applyLayerPatch(layers => layers.filter(l => l.id !== layerId));
   };
 
-  const handleApplySuggestions = (suggestions) => {
-    applyLayerPatch(currentLayers => {
-      let updated = [...currentLayers];
-      suggestions.forEach(s => {
-        if (s.type === 'allocation' && s.patch?.layerId && s.patch?.newPct != null) {
-          updated = updated.map(l => l.id === s.patch.layerId ? { ...l, pct: s.patch.newPct } : l);
-        }
-        if (s.type === 'instrument' && s.patch?.sublayerId && s.patch?.instruments) {
-          updated = updated.map(l => ({
-            ...l,
-            sublayers: (l.sublayers ?? []).map(sub =>
-              sub.id === s.patch.sublayerId ? { ...sub, instruments: s.patch.instruments } : sub
-            ),
-          }));
-        }
-      });
-      return updated;
-    });
-  };
-
   return (
     <div className="space-y-6">
-      <CarteiraDashboard
-        walletVersions={walletVersions}
-        selectedMonth={selectedMonth}
-        poupancaValue={poupancaValue}
-        investments={investments}
-        getCurrentValue={getCurrentValue}
-        invLoading={invLoading}
-        taggedTransactions={taggedTransactions}
-      />
-
-      <AnalysePanel
-        layers={layers}
-        poupancaValue={poupancaValue}
-        onApplySuggestions={handleApplySuggestions}
-        readOnly={readOnly}
-      />
-
       <LayerAllocationEditor
         layers={layers}
         poupancaValue={poupancaValue}
