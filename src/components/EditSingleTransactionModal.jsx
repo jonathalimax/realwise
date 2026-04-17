@@ -8,6 +8,7 @@ import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
+import { buildUpdatedMetadata } from '../utils/transactionMetadata';
 import CurrencyInput from './ui/CurrencyInput';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
 
@@ -117,12 +118,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
       const isInvestmentCategory = (finalCategory === 'Investments' || finalCategory === 'Investimentos');
 
-      const prevMeta = transaction.metadata;
-      const categoryChanged = finalCategory !== transaction.category;
-      const wasAutoCategorized = prevMeta?.catSource && prevMeta.catSource !== 'manual';
-      const updatedMetadata = prevMeta
-        ? { ...prevMeta, isCorrected: prevMeta.isCorrected || (categoryChanged && wasAutoCategorized) }
-        : { catSource: 'manual', catConfidence: 1.0, isCorrected: false, originalCategory: finalCategory };
+      const updatedMetadata = buildUpdatedMetadata(transaction.metadata, finalCategory, transaction.category);
 
       const updates = {
         userId: transaction.userId || ownerId || auth.currentUser.uid,

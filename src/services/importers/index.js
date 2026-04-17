@@ -204,7 +204,7 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
 
     t.metadata = {
       catSource,
-      catConfidence: t.categoryConfidence ?? (catSource ? 1.0 : 0),
+      catConfidence: catSource === 'ai' ? (t.categoryConfidence ?? null) : null,
       isCorrected: false,
       originalCategory: t.category ?? null,
     };
