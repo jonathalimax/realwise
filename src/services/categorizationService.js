@@ -46,8 +46,11 @@ export function extractPattern(description) {
   pattern = pattern.replace(/\s*\(\d+[/]\d+\)/g, '');
   pattern = pattern.replace(/\s*\d+\s*[/]\s*\d+\s*(?:PARCELAS?)?/gi, '');
 
-  // Remove transaction IDs and numbers at end (common in bank statements)
-  pattern = pattern.replace(/\s+\d{6,}$/g, '');
+  // Remove transaction IDs and numbers (6+ digits) anywhere in the string
+  pattern = pattern.replace(/\b\d{6,}\b/g, '');
+
+  // Remove UUID-like patterns (hex sequences with dashes)
+  pattern = pattern.replace(/[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}/gi, '');
 
   // Remove common suffixes like "- SAO PAULO SP"
   pattern = pattern.replace(/\s*-\s*[A-Z]{2,}\s+[A-Z]{2}$/g, '');

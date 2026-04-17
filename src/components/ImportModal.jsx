@@ -909,12 +909,14 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                             <button
                               onClick={(e) => openCategoryPicker(trans._localId, e)}
                               className={`px-2 py-0.5 text-[11px] font-medium rounded-full transition-all flex-shrink-0 active:scale-95 ${
-                                trans.type === 'income'
-                                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                                  : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                                !trans.category
+                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+                                  : trans.type === 'income'
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
                               }`}
                             >
-                              {trans.category}
+                              {trans.category || (language === 'pt' ? 'Categorizar' : 'Needs Category')}
                               <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
@@ -947,12 +949,14 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                               <button
                                 onClick={(e) => openCategoryPicker(trans._localId, e)}
                                 className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all hover:opacity-80 active:scale-95 ${
-                                  trans.type === 'income'
-                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                                  !trans.category
+                                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+                                    : trans.type === 'income'
+                                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                      : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
                                 }`}
                               >
-                                {trans.category}
+                                {trans.category || (language === 'pt' ? 'Categorizar' : 'Needs Category')}
                                 <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>

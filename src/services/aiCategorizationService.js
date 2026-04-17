@@ -238,14 +238,15 @@ export async function categorizeWithAI({
     return { ...cached, source: 'cache' };
   }
 
+  const CONFIDENCE_THRESHOLD = 0.6;
+
   // 2. If no API key, go straight to fallback
   if (!apiKey) {
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-    return {
-      category: fallbackResult?.category || categories[0],
-      source: 'fallback',
-      confidence: fallbackResult?.confidence || 0.5
-    };
+    if (!fallbackResult || (fallbackResult.confidence ?? 1) < CONFIDENCE_THRESHOLD) {
+      return { category: null, source: 'none', confidence: 0 };
+    }
+    return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
   }
 
   // 3. Check if we have free quota remaining
@@ -254,11 +255,10 @@ export async function categorizeWithAI({
   if (!quota.available) {
     console.log(`AI quota exhausted (${quota.used}/${DAILY_FREE_LIMIT}), using fallback`);
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-    return {
-      category: fallbackResult?.category || categories[0],
-      source: 'fallback',
-      confidence: fallbackResult?.confidence || 0.5
-    };
+    if (!fallbackResult || (fallbackResult.confidence ?? 1) < CONFIDENCE_THRESHOLD) {
+      return { category: null, source: 'none', confidence: 0 };
+    }
+    return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
   }
 
   // 4. Call Gemini API
@@ -280,11 +280,10 @@ export async function categorizeWithAI({
 
   // 5. AI failed - use fallback
   const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-  return {
-    category: fallbackResult?.category || categories[0],
-    source: 'fallback',
-    confidence: fallbackResult?.confidence || 0.5
-  };
+  if (!fallbackResult || (fallbackResult.confidence ?? 1) < CONFIDENCE_THRESHOLD) {
+    return { category: null, source: 'none', confidence: 0 };
+  }
+  return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
 }
 
 /**

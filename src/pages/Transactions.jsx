@@ -40,6 +40,7 @@ export default function TransactionsPage() {
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
+  const [showUncategorized, setShowUncategorized] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -112,11 +113,14 @@ export default function TransactionsPage() {
   }, [transactions, selectedMonth, viewMode, selectedBankFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
-    if (selectedCategoryFilter === 'all') {
-      return monthlyTransactions;
+    let result = monthlyTransactions;
+    if (showUncategorized) {
+      result = result.filter(t => !t.category);
+    } else if (selectedCategoryFilter !== 'all') {
+      result = result.filter(t => t.category === selectedCategoryFilter);
     }
-    return monthlyTransactions.filter(t => t.category === selectedCategoryFilter);
-  }, [monthlyTransactions, selectedCategoryFilter]);
+    return result;
+  }, [monthlyTransactions, selectedCategoryFilter, showUncategorized]);
 
   const availableCategories = useMemo(() => {
     const cats = new Set();
@@ -163,10 +167,15 @@ export default function TransactionsPage() {
   const canGoPrevious = availableMonths.indexOf(selectedMonth) < availableMonths.length - 1;
   const canGoNext = availableMonths.indexOf(selectedMonth) > 0;
 
+  const uncategorizedCount = useMemo(() => {
+    return monthlyTransactions.filter(t => !t.category).length;
+  }, [monthlyTransactions]);
+
   const activeFiltersCount = [
     viewMode !== 'payment',
     selectedBankFilter !== 'all',
-    selectedCategoryFilter !== 'all'
+    selectedCategoryFilter !== 'all',
+    showUncategorized
   ].filter(Boolean).length;
 
   const triggerRefresh = () => setRefreshKey(prev => prev + 1);
@@ -278,6 +287,31 @@ export default function TransactionsPage() {
               </div>
             </div>
 
+            {/* To Review Toggle */}
+            <button
+              onClick={() => {
+                setShowUncategorized(prev => !prev);
+                if (!showUncategorized) setSelectedCategoryFilter('all');
+              }}
+              className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                showUncategorized
+                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                  : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-400'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+              {language === 'pt' ? 'A Categorizar' : 'To Review'}
+              {uncategorizedCount > 0 && (
+                <span className={`ml-auto px-1.5 py-0.5 text-xs font-bold rounded-full ${
+                  showUncategorized
+                    ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
+                    : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+                }`}>
+                  {uncategorizedCount}
+                </span>
+              )}
+            </button>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Bank Filter */}
               <div>
@@ -369,6 +403,7 @@ export default function TransactionsPage() {
                   setViewMode('payment');
                   setSelectedBankFilter('all');
                   setSelectedCategoryFilter('all');
+                  setShowUncategorized(false);
                 }}
                 className="w-full py-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
               >
