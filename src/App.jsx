@@ -65,8 +65,8 @@ function AuthenticatedApp() {
                     <Suspense fallback={<PageLoader />}>
                       <Routes>
                         <Route element={<Layout />}>
-                          <Route index element={<Navigate to="/dashboard" replace />} />
-                          <Route path="dashboard" element={<DashboardPage />} />
+                          <Route index element={<Navigate to="/app" replace />} />
+                          <Route path="app" element={<DashboardPage />} />
                           <Route path="planner" element={<PlannerPage />} />
                           <Route path="expenses" element={<ExpensesPage />} />
                           <Route path="income" element={<IncomePage />} />
@@ -89,7 +89,7 @@ function AuthenticatedApp() {
                             </>
                           )}
                         </Route>
-                        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="*" element={<Navigate to="/app" replace />} />
                       </Routes>
                     </Suspense>
                   </BillsProvider>
@@ -123,7 +123,7 @@ function AppRouter() {
     <Routes>
       <Route
         path="login"
-        element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
+        element={user ? <Navigate to="/app" replace /> : <Auth />}
       />
       {user
         ? <Route path="/*" element={<AuthenticatedApp />} />
@@ -179,11 +179,6 @@ function App() {
     return <FirebaseAuthHandler />;
   }
 
-  const clientId = extractClientId(window.location.pathname);
-
-  // Bare root "/" — no clientId segment in the URL. The BrowserRouter basename
-  // would be "/app" but the URL is "/", so React Router can't match any routes.
-  // Redirect to /{clientId}/ so the router and clientId are in sync.
   if (window.location.pathname === '/') {
     return (
       <Suspense fallback={<PageLoader />}>
@@ -199,6 +194,8 @@ function App() {
       </Suspense>
     );
   }
+
+  const clientId = extractClientId(window.location.pathname);
 
   return (
     <ClientConfigProvider>
