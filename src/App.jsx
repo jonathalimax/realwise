@@ -39,6 +39,8 @@ const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 // Landing pages (served at "/" and "/purchase-success" outside any clientId scope)
 const LandingPage = lazy(() => import('../landing_page/pages/home'));
 const PurchaseSuccessPage = lazy(() => import('../landing_page/pages/PurchaseSuccess'));
+const SharedLogin = lazy(() => import('./pages/SharedLogin'));
+const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -191,6 +193,22 @@ function App() {
     return (
       <Suspense fallback={<PageLoader />}>
         <PurchaseSuccessPage />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname === '/login') {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <SharedLogin />
+      </Suspense>
+    );
+  }
+
+  if (window.location.pathname.startsWith('/admin')) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <AdminApp />
       </Suspense>
     );
   }
