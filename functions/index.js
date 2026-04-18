@@ -1,5 +1,9 @@
 const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
+
+const emailUserSecret = defineSecret('EMAIL_USER');
+const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
 
 // Initialize Firebase Admin BEFORE importing other modules that depend on it
 admin.initializeApp();
@@ -7,6 +11,7 @@ admin.initializeApp();
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
+const { accessGrantedTemplate, billReminderTemplate } = require('./emailTemplates');
 const axios = require('axios');
 
 // Import processor functions (must come after admin.initializeApp())
@@ -26,21 +31,23 @@ const getMercadoPagoClient = () => {
 
 // Create email transporter
 const getEmailTransporter = () => {
-  const email = functions.config().email?.user;
-  const password = functions.config().email?.password;
+  try {
+    const user = emailUserSecret.value();
+    const pass = emailPasswordSecret.value();
 
-  if (!email || !password) {
-    console.log('Email not configured - skipping email notification');
+    if (!user || !pass) {
+      console.log('Email secrets not set — skipping email transporter creation');
+      return null;
+    }
+
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+    });
+  } catch (err) {
+    console.error('Error getting email transporter:', err);
     return null;
   }
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: email,
-      pass: password, // Use App Password, not regular password
-    },
-  });
 };
 
 // Send purchase notification email (optional - works without email config)
@@ -66,7 +73,7 @@ const sendPurchaseNotification = async (purchaseData) => {
   const mailOptions = {
     from: functions.config().email?.user || 'noreply@limasfinance.com',
     to: adminEmail,
-    subject: `💰 Nova Compra - Limas Finance - R$ ${purchaseData.amount.toFixed(2)}`,
+    subject: `💰 Nova Compra - Lima's Finance - R$ ${purchaseData.amount.toFixed(2)}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; border-radius: 12px 12px 0 0;">
@@ -265,10 +272,17 @@ async function grantAccessAndNotify(email, name, couponCode) {
       purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Send notification email (implementation depends on your email setup)
+    // Send notification email
     const transporter = getEmailTransporter();
     if (transporter) {
-      // Send email notification logic here
+      const from = functions.config().email?.user || 'contato@limasfinance.com';
+      await transporter.sendMail({
+        from,
+        to: email,
+        subject: 'Luz Verde! Seu acesso ao Lima\'s Finance foi liberado 🟢',
+        html: accessGrantedTemplate(name || 'Cliente'),
+      });
+      console.log(`Access granted email sent to ${email}`);
     }
   } catch (error) {
     console.error('Error granting access:', error);
@@ -486,34 +500,107 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
 });
 
 /**
- * Scheduled function to send FCM push bill reminders
+ * Scheduled function to send email bill reminders
  * Runs daily at 9 AM Brazil time
  */
-exports.scheduledBillReminders = functions.pubsub
+exports.scheduledBillReminders = functions
+  .runWith({ secrets: [emailUserSecret, emailPasswordSecret] })
+  .pubsub
   .schedule('0 9 * * *')
   .timeZone('America/Sao_Paulo')
   .onRun(async () => {
     try {
-      console.log('Starting scheduled FCM bill reminders...');
+      console.log('Starting scheduled email bill reminders...');
 
-      // Get all settings docs that have an FCM token
-      const settingsSnap = await db.collection('settings').where('fcmToken', '!=', null).get();
-      console.log(`Found ${settingsSnap.size} user(s) with FCM token`);
+      const user = emailUserSecret.value();
+      const pass = emailPasswordSecret.value();
+      if (!user || !pass) {
+        console.log('Email secrets not set - aborting reminders');
+        return null;
+      }
 
-      let totalRemindersSent = 0;
+      const now = new Date();
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      nextWeek.setHours(23, 59, 59, 999);
 
-      for (const settingsDoc of settingsSnap.docs) {
-        const userId = settingsDoc.id;
-        const { fcmToken } = settingsDoc.data();
+      const billsSnap = await db.collection('bills')
+        .where('status', '==', 'pending')
+        .get();
+
+      const byUser = new Map();
+      for (const doc of billsSnap.docs) {
+        const data = doc.data();
+        if (!data.userId || !data.dueDate) continue;
+        
+        const due = data.dueDate.toDate ? data.dueDate.toDate() : new Date(data.dueDate);
+        
+        // Categorize
+        let category = '';
+        if (due < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+          category = 'overdue';
+        } else if (due <= endOfToday) {
+          category = 'dueToday';
+        } else if (due <= nextWeek) {
+          category = 'upcoming';
+        } else {
+          continue; // Too far in the future
+        }
+
+        if (!byUser.has(data.userId)) {
+          byUser.set(data.userId, { overdue: [], dueToday: [], upcoming: [] });
+        }
+        byUser.get(data.userId)[category].push({ id: doc.id, ...data });
+      }
+
+      console.log(`Found ${byUser.size} user(s) with pending bills`);
+
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass },
+      });
+
+      let totalSent = 0;
+      for (const [userId, billGroups] of byUser) {
         try {
-          const sent = await sendFcmRemindersForUser(userId, fcmToken);
-          totalRemindersSent += sent;
+          // Skip if no overdue or due today (only upcoming doesn't trigger email daily unless we want)
+          // Actually, let's only send if there is at least one overdue or due today
+          if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) continue;
+
+          const settingsDoc = await db.collection('settings').doc(userId).get();
+          if (settingsDoc.exists && settingsDoc.data().billReminders === false) continue;
+
+          const authUser = await admin.auth().getUser(userId);
+          if (!authUser.email) continue;
+
+          // Get name from settings if available
+          const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
+
+          await sendBillReminderEmail(transporter, user, authUser.email, userName || 'Cliente', billGroups);
+
+          // Log reminders
+          const batch = db.batch();
+          const allBills = [...billGroups.overdue, ...billGroups.dueToday];
+          for (const bill of allBills.slice(0, 10)) {
+            batch.set(db.collection('reminder_logs').doc(), {
+              userId,
+              billId: bill.id,
+              billName: bill.name || bill.description || 'Conta',
+              sentAt: admin.firestore.FieldValue.serverTimestamp(),
+              sentVia: 'email',
+            });
+          }
+          await batch.commit();
+          totalSent++;
         } catch (err) {
-          console.error(`Error sending FCM reminders to user ${userId}:`, err);
+          console.error(`Error sending email reminders to user ${userId}:`, err);
         }
       }
 
-      console.log(`Scheduled FCM reminders done. Sent ${totalRemindersSent} notification(s).`);
+      console.log(`Scheduled email reminders done. Sent ${totalSent} email(s).`);
       return null;
     } catch (err) {
       console.error('Error in scheduledBillReminders:', err);
@@ -521,64 +608,56 @@ exports.scheduledBillReminders = functions.pubsub
     }
   });
 
-/**
- * Send FCM push reminders for a specific user
- * @returns {number} number of notifications sent
- */
-async function sendFcmRemindersForUser(userId, fcmToken) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(today);
-  endOfToday.setHours(23, 59, 59, 999);
+async function sendBillReminderEmail(transporter, from, to, name, billGroups) {
+  const totalPending = billGroups.overdue.length + billGroups.dueToday.length;
+  
+  const subject = billGroups.overdue.length > 0
+    ? `⚠️ Atenção: Você tem ${billGroups.overdue.length} conta(s) atrasada(s)`
+    : `📅 Lembrete: ${billGroups.dueToday.length} conta(s) vencendo hoje`;
 
-  const billsSnap = await db.collection('bills')
-    .where('userId', '==', userId)
-    .where('status', '==', 'pending')
-    .get();
+  const html = billReminderTemplate(name, billGroups);
 
-  const dueBills = billsSnap.docs
-    .filter((d) => {
-      const { dueDate } = d.data();
-      if (!dueDate) return false;
-      const due = dueDate.toDate ? dueDate.toDate() : new Date(dueDate);
-      return due <= endOfToday;
-    })
-    .slice(0, 5);
-
-  if (dueBills.length === 0) return 0;
-
-  let sent = 0;
-
-  for (const billDoc of dueBills) {
-    const { name, description, amount } = billDoc.data();
-    const billName = name || description || 'Conta';
-    const amountStr = amount != null ? ` - R$ ${Number(amount).toFixed(2)}` : '';
-
-    try {
-      await admin.messaging().send({
-        token: fcmToken,
-        notification: {
-          title: 'Limas Finance',
-          body: `${billName}${amountStr} vence hoje ou está atrasada`,
-        },
-      });
-
-      await db.collection('reminder_logs').add({
-        userId,
-        billId: billDoc.id,
-        billName,
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        sentVia: 'fcm',
-      });
-
-      sent++;
-    } catch (err) {
-      console.error('Error sending FCM for bill:', billDoc.id, err);
-    }
-  }
-
-  return sent;
+  await transporter.sendMail({ from, to, subject, html });
 }
+/**
+ * TEMPORARY: Test function to send email templates
+ * Usage: /testEmail?email=your@email.com&type=welcome|access|reminder
+ */
+exports.testEmail = functions
+  .runWith({ secrets: [emailUserSecret, emailPasswordSecret] })
+  .https.onRequest(async (req, res) => {
+  const { email, type } = req.query;
+  if (!email) return res.status(400).send('Missing email parameter');
+
+  const transporter = getEmailTransporter();
+  if (!transporter) return res.status(500).send('Email not configured in Firebase');
+
+  const from = functions.config().email?.user || 'contato@limasfinance.com';
+  let html = '';
+  let subject = '';
+
+  try {
+    if (type === 'welcome') {
+      subject = 'Teste: Bem-vindo';
+      html = welcomeTemplate('Usuário Teste');
+    } else if (type === 'access') {
+      subject = 'Teste: Luz Verde';
+      html = accessGrantedTemplate('Usuário Teste');
+    } else {
+      subject = 'Teste: Lembrete de Contas';
+      html = billReminderTemplate('Usuário Teste', {
+        overdue: [{ name: 'Aluguel Atrasado', amount: 1500.00 }],
+        dueToday: [{ name: 'Internet', amount: 99.90 }],
+        upcoming: [{ name: 'Energia', amount: 250.00 }, { name: 'Netflix', amount: 55.90 }]
+      });
+    }
+
+    await transporter.sendMail({ from, to: email, subject, html });
+    res.send(`E-mail de teste do tipo "${type || 'reminder'}" enviado para ${email}`);
+  } catch (error) {
+    res.status(500).send('Erro ao enviar: ' + error.message);
+  }
+});
 
 /**
  * Sync B3 investment prices and dividends from Brapi.dev
@@ -658,3 +737,11 @@ exports.createCheckoutSession = createCheckoutSession;
 
 const { stripeWebhook } = require('./stripeWebhook');
 exports.stripeWebhook = stripeWebhook;
+
+
+// ============================================================
+// SEAMLESS LOGIN
+// ============================================================
+
+const { getCustomToken } = require('./getCustomToken');
+exports.getCustomToken = getCustomToken;
