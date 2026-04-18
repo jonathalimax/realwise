@@ -1,12 +1,12 @@
 {
-  "clientName": "Moneywise Demo",
+  "clientName": "Moneywise",
   "firebase": {
-    "apiKey": "AIzaSyBWjz67b6zGgX48QmTV-AL73YaMQY3ViiI",
-    "authDomain": "limas-finance.firebaseapp.com",
-    "projectId": "limas-finance",
-    "storageBucket": "limas-finance.firebasestorage.app",
-    "messagingSenderId": "223174084388",
-    "appId": "1:223174084388:web:ead52b9db953df90b555b1"
+    "apiKey": "AIzaSyDqSsb3LqJi9NJdo3VOuEkBX-vIzLzWIxE",
+    "authDomain": "moneywise-ad9ec.firebaseapp.com",
+    "projectId": "moneywise-ad9ec",
+    "storageBucket": "moneywise-ad9ec.firebasestorage.app",
+    "messagingSenderId": "111194799118",
+    "appId": "1:111194799118:web:5d45ee9a03b54f0b36105f"
   },
   "features": {
     "investments": true,
