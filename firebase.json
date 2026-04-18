@@ -25,6 +25,7 @@
     }
   },
   "hosting": {
+    "site": "mymoneywise",
     "public": "dist",
     "ignore": [
       "firebase.json",

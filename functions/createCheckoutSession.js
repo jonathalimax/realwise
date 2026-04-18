@@ -85,11 +85,11 @@ exports.createCheckoutSession = functions
             email: emailLower,
           },
           success_url: clientId
-            ? `https://moneywise.web.app/${clientId}/purchase-success`
-            : 'https://moneywise.web.app/purchase-success',
+            ? `https://mymoneywise.web.app/${clientId}/purchase-success`
+            : 'https://mymoneywise.web.app/purchase-success',
           cancel_url: clientId
-            ? `https://moneywise.web.app/${clientId}/`
-            : 'https://moneywise.web.app/',
+            ? `https://mymoneywise.web.app/${clientId}/`
+            : 'https://mymoneywise.web.app/',
         });
 
         res.json({ url: session.url });
