@@ -179,7 +179,9 @@ async function main() {
   console.log('[4c] Initializing Firebase Auth...');
   await sleep(3000); // allow identitytoolkit API to propagate
   try {
-    const identityToolkit = google.identitytoolkit('v2');
+    // identitytoolkit v2 requires a quota project; use the new project itself
+    authClient.quotaProjectId = projectId;
+    const identityToolkit = google.identitytoolkit({ version: 'v2', auth: authClient });
     await identityToolkit.projects.updateConfig({
       name: `projects/${projectId}/config`,
       updateMask: 'signIn',
