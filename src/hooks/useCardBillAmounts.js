@@ -24,6 +24,10 @@ export default function useCardBillAmounts(bills, selectedMonth) {
     [bills]
   );
 
+  // Keep cardBills in a ref so it's always current but doesn't trigger re-subscriptions
+  const cardBillsRef = useRef(cardBills);
+  useEffect(() => { cardBillsRef.current = cardBills; }, [cardBills]);
+
   // For each linked card doc ID, also collect the legacy bankId type string (e.g. 'nubank')
   // so old-format transactions (which store type strings in tx.bankId) are included in totals.
   const { allBankIds, docIdByAnyBankId } = useMemo(() => {
@@ -83,7 +87,7 @@ export default function useCardBillAmounts(bills, selectedMonth) {
         for (const tx of creditTxs) {
           // Normalize tx.bankId to doc ID so key matches bill.linkedBankId
           const docId = docIdByAnyBankId.get(tx.bankId) ?? tx.bankId;
-          const monthKey = getPaymentMonthKey(tx.date, tx.bankId, tx.paymentMethod);
+          const monthKey = getPaymentMonthKey(tx.date, docId, tx.paymentMethod);
           const key = `${docId}::${monthKey}`;
           sumByBankMonth.set(key, (sumByBankMonth.get(key) ?? 0) + Math.abs(tx.amount));
         }
@@ -100,7 +104,7 @@ export default function useCardBillAmounts(bills, selectedMonth) {
 
         setAmounts(() => {
           const next = new Map();
-          for (const bill of cardBills) {
+          for (const bill of cardBillsRef.current) {
             const key = `${bill.linkedBankId}::${selectedMonth}`;
             next.set(bill.id, merged.get(key) ?? 0);
           }
@@ -113,8 +117,11 @@ export default function useCardBillAmounts(bills, selectedMonth) {
       unsubscribes.forEach(unsub => unsub());
       batchResultsRef.current = new Map();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ownerId, selectedMonth, allBankIdsKey, cardBills, getPaymentMonthKey]);
+    // allBankIdsKey is a stable string representation of allBankIds (array identity is unstable).
+    // getPaymentMonthKey is intentionally included: it closes over userBanks via findUserBank,
+    // so changes to card closing/payment days will re-run the subscription.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownerId, selectedMonth, allBankIdsKey, getPaymentMonthKey]);
 
   return amounts;
 }
