@@ -306,7 +306,6 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
     );
   }
 
-  console.log('BillsList - Before compact view logic. Loading:', loading, 'Bills:', bills, 'Upcoming:', upcomingBills, 'Overdue:', overdueBills);
 
   if (compact) {
     // Filter expanded bills for the selected month (unpaid bills with dueDate in selected month)
