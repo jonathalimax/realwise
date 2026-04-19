@@ -1,6 +1,6 @@
 {
-  "name": "limas-finance-functions",
-  "description": "Cloud Functions for Limas Finance",
+  "name": "moneywise-functions",
+  "description": "Cloud Functions for Moneywise",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",

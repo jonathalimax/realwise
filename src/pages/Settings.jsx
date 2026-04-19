@@ -20,6 +20,8 @@ export default function SettingsPage() {
     toggleCategory,
     geminiApiKey,
     updateGeminiApiKey,
+    billReminders,
+    updateBillReminders,
     t
   } = useSettings();
   const { ownerId } = useAccess();
@@ -798,59 +800,34 @@ export default function SettingsPage() {
         {/* Notifications Tab */}
         {activeTab === 'notifications' && (
           <div className="space-y-6 max-w-2xl">
-            {/* Push notification status */}
-            {(() => {
-              const permission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
-              return (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`p-3 rounded-xl ${permission === 'granted' ? 'bg-violet-100 dark:bg-violet-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
-                      <svg className={`w-6 h-6 ${permission === 'granted' ? 'text-violet-600 dark:text-violet-400' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
-                        {language === 'pt' ? 'Notificações Push' : 'Push Notifications'}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {permission === 'granted'
-                          ? (language === 'pt' ? 'Ativas — você receberá lembretes de contas' : 'Enabled — you will receive bill reminders')
-                          : permission === 'denied'
-                            ? (language === 'pt' ? 'Bloqueadas pelo navegador' : 'Blocked by browser')
-                            : (language === 'pt' ? 'Permissão não concedida' : 'Permission not granted')}
-                      </p>
-                    </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className={`p-3 rounded-xl ${billReminders ? 'bg-violet-100 dark:bg-violet-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                    <svg className={`w-6 h-6 ${billReminders ? 'text-violet-600 dark:text-violet-400' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
                   </div>
-                  {permission !== 'granted' && permission !== 'denied' && (
-                    <button
-                      onClick={() => Notification.requestPermission()}
-                      className="w-full py-2.5 bg-violet-500 text-white rounded-xl text-sm font-medium hover:bg-violet-600 transition-colors"
-                    >
-                      {language === 'pt' ? 'Ativar notificações' : 'Enable notifications'}
-                    </button>
-                  )}
-                  {permission === 'denied' && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {language === 'pt' ? 'Lembretes de contas por email' : 'Bill reminders by email'}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {language === 'pt'
-                        ? 'Para ativar, permita notificações nas configurações do seu navegador.'
-                        : 'To enable, allow notifications in your browser settings.'}
+                        ? 'Todos os dias às 9h (horário de Brasília), enviaremos um email com as contas vencendo hoje ou atrasadas.'
+                        : 'Every day at 9 AM (Brazil time), we send an email with bills due today or overdue.'}
                     </p>
-                  )}
+                  </div>
                 </div>
-              );
-            })()}
-
-            {/* Info */}
-            <div className="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-4">
-              <p className="text-sm font-medium text-violet-800 dark:text-violet-200 mb-1">
-                {language === 'pt' ? 'Como funciona?' : 'How does it work?'}
-              </p>
-              <p className="text-xs text-violet-700 dark:text-violet-300">
-                {language === 'pt'
-                  ? 'Todos os dias às 9h (horário de Brasília), você receberá uma notificação push sobre as contas próximas do vencimento.'
-                  : 'Every day at 9 AM (Brazil time), you will receive a push notification about bills that are due soon or overdue.'}
-              </p>
+                <button
+                  role="switch"
+                  aria-checked={billReminders}
+                  onClick={() => updateBillReminders(!billReminders)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${billReminders ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -8,7 +8,6 @@ const STATES = ['pending', 'not_paid', 'paid', 'onboarding', 'active', 'cancelle
 
 export default function UserList({ db, functions }) {
   const [leads, setLeads] = useState([]);
-  const [serviceAccounts, setServiceAccounts] = useState([]);
   const [search, setSearch] = useState('');
   const [emailTarget, setEmailTarget] = useState(null);
   const [updatingState, setUpdatingState] = useState({});
@@ -18,11 +17,7 @@ export default function UserList({ db, functions }) {
       query(collection(db, 'leads'), orderBy('paidAt', 'desc')),
       snap => setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })))
     );
-    const unsubSA = onSnapshot(
-      collection(db, 'serviceAccounts'),
-      snap => setServiceAccounts(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
-    return () => { unsubLeads(); unsubSA(); };
+    return () => { unsubLeads(); };
   }, [db]);
 
   async function handleStateChange(email, newState) {
@@ -88,39 +83,6 @@ export default function UserList({ db, functions }) {
                     <button
                       onClick={() => setEmailTarget(lead)}
                       className="px-3 py-1 bg-blue-800 hover:bg-blue-700 text-white text-xs rounded-lg"
-                    >
-                      Email
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Service Accounts */}
-      <section>
-        <h3 className="text-sm font-semibold text-gray-400 mb-3">Service Accounts ({serviceAccounts.length})</h3>
-        <div className="overflow-x-auto rounded-xl border border-gray-800">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-900 text-gray-400 text-xs uppercase">
-              <tr>
-                {['Username', 'Email', 'Actions'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {serviceAccounts.map(sa => (
-                <tr key={sa.id} className="border-t border-gray-800 hover:bg-gray-900/50">
-                  <td className="px-4 py-3 font-mono text-emerald-400">{sa.id}</td>
-                  <td className="px-4 py-3 text-gray-300">{sa.client_email || '—'}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => setEmailTarget({ email: sa.client_email || sa.id, name: sa.id })}
-                      disabled={!sa.client_email}
-                      className="px-3 py-1 bg-blue-800 hover:bg-blue-700 disabled:opacity-30 text-white text-xs rounded-lg"
                     >
                       Email
                     </button>

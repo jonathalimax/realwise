@@ -49,9 +49,9 @@ export default function FooterSection() {
             {/* Logo/Brand */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">L</span>
+                <span className="text-white font-bold text-lg">M</span>
               </div>
-              <span className="font-semibold text-lg">Limas Finance</span>
+              <span className="font-semibold text-lg">Moneywise</span>
             </div>
 
             {/* Links */}

@@ -71,9 +71,9 @@ const sendPurchaseNotification = async (purchaseData) => {
   const adminEmail = 'jonathalimax@gmail.com';
 
   const mailOptions = {
-    from: functions.config().email?.user || 'noreply@limasfinance.com',
+    from: functions.config().email?.user || 'noreply@mymoneywise.web.app',
     to: adminEmail,
-    subject: `💰 Nova Compra - Lima's Finance - R$ ${purchaseData.amount.toFixed(2)}`,
+    subject: `💰 Nova Compra - Moneywise - R$ ${purchaseData.amount.toFixed(2)}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; border-radius: 12px 12px 0 0;">
@@ -118,7 +118,7 @@ const sendPurchaseNotification = async (purchaseData) => {
         </div>
 
         <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
-          Limas Finance - Sistema de Finanças Pessoais
+          Moneywise - Sistema de Finanças Pessoais
         </p>
       </div>
     `,
@@ -205,7 +205,7 @@ exports.processPayment = functions.https.onRequest((req, res) => {
       const paymentData = {
         transaction_amount: parseFloat(transaction_amount),
         token: token,
-        description: 'Limas Finance - Acesso Completo',
+        description: 'Moneywise - Acesso Completo',
         installments: parseInt(installments) || 1,
         payment_method_id: payment_method_id,
         issuer_id: issuer_id,
@@ -222,7 +222,7 @@ exports.processPayment = functions.https.onRequest((req, res) => {
           contribution: parseFloat(contribution) || 0,
           timestamp: Date.now(),
         }),
-        statement_descriptor: 'LIMAS FINANCE',
+        statement_descriptor: 'MONEYWISE',
       };
 
       const response = await payment.create({ body: paymentData });
@@ -275,11 +275,11 @@ async function grantAccessAndNotify(email, name, couponCode) {
     // Send notification email
     const transporter = getEmailTransporter();
     if (transporter) {
-      const from = functions.config().email?.user || 'contato@limasfinance.com';
+      const from = functions.config().email?.user || 'contato@mymoneywise.web.app';
       await transporter.sendMail({
         from,
         to: email,
-        subject: 'Luz Verde! Seu acesso ao Lima\'s Finance foi liberado 🟢',
+        subject: 'Luz Verde! Seu acesso ao Moneywise foi liberado 🟢',
         html: accessGrantedTemplate(name || 'Cliente'),
       });
       console.log(`Access granted email sent to ${email}`);
@@ -567,7 +567,6 @@ exports.scheduledBillReminders = functions
       for (const [userId, billGroups] of byUser) {
         try {
           // Skip if no overdue or due today (only upcoming doesn't trigger email daily unless we want)
-          // Actually, let's only send if there is at least one overdue or due today
           if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) continue;
 
           const settingsDoc = await db.collection('settings').doc(userId).get();
@@ -578,6 +577,64 @@ exports.scheduledBillReminders = functions
 
           // Get name from settings if available
           const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
+
+          // Enrich bills with additional info for the email
+          try {
+            // Fetch Transactions (last 45 days to cover most billing cycles)
+            const transactionsSnap = await db.collection('transactions')
+              .where('userId', '==', userId)
+              .where('date', '>=', new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString())
+              .get();
+            const userTransactions = transactionsSnap.docs.map(d => d.data());
+
+            // Fetch User Banks (to get closing dates for cards)
+            const userBanksSnap = await db.collection('userBanks')
+              .where('userId', '==', userId)
+              .get();
+            const userBanks = userBanksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            const allLists = [billGroups.overdue, billGroups.dueToday, billGroups.upcoming];
+            for (const list of allLists) {
+              for (const bill of list) {
+                const billDue = bill.dueDate.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
+                bill.dueDate = billDue.toISOString(); // Normalize for template
+
+                // Days overdue
+                if (billDue < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                  const diffTime = now - billDue;
+                  bill.daysOverdue = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+                }
+
+                // Card outcomes
+                if (bill.category === 'credit_card' && bill.linkedBankId) {
+                  const bank = userBanks.find(b => b.id === bill.linkedBankId);
+                  if (bank && bank.hasCredit) {
+                    const closingDay = bank.closingDay || 10;
+                    const cycleEnd = new Date(billDue);
+                    cycleEnd.setDate(closingDay);
+                    // If closing day is after payment day, it likely closed in previous month
+                    if (cycleEnd > billDue) cycleEnd.setMonth(cycleEnd.getMonth() - 1);
+                    
+                    const cycleStart = new Date(cycleEnd);
+                    cycleStart.setMonth(cycleStart.getMonth() - 1);
+                    cycleStart.setDate(cycleStart.getDate() + 1);
+
+                    const cycleTxs = userTransactions.filter(tx => {
+                      if (tx.cardId !== bill.linkedBankId || tx.type !== 'expense') return false;
+                      const txDate = new Date(tx.date);
+                      return txDate >= cycleStart && txDate <= cycleEnd;
+                    });
+
+                    bill.cardOutcomesAmount = cycleTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                    bill.cardOutcomesCount = cycleTxs.length;
+                  }
+                }
+              }
+            }
+          } catch (enrichErr) {
+            console.error(`Error enriching bills for user ${userId}:`, enrichErr);
+            // Continue anyway with basic bill info
+          }
 
           await sendBillReminderEmail(transporter, user, authUser.email, userName || 'Cliente', billGroups);
 
@@ -632,7 +689,7 @@ exports.testEmail = functions
   const transporter = getEmailTransporter();
   if (!transporter) return res.status(500).send('Email not configured in Firebase');
 
-  const from = functions.config().email?.user || 'contato@limasfinance.com';
+  const from = functions.config().email?.user || 'contato@mymoneywise.web.app';
   let html = '';
   let subject = '';
 

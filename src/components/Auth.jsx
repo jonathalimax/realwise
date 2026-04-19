@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import {
   GoogleAuthProvider,
-  signInWithCredential,
+  signInWithPopup,
   getRedirectResult,
   signOut
 } from 'firebase/auth';
@@ -49,9 +49,7 @@ export default function Auth() {
       return isAllowed;
     } catch (err) {
       console.error('Error checking access:', err);
-      // On error, allow access (for initial setup scenarios)
-      // Once whitelist is properly configured, errors won't occur
-      return true;
+      return false;
     }
   };
 
@@ -84,58 +82,27 @@ export default function Auth() {
     return () => clearTimeout(timeout);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
 
-    const apiKey = auth.app.options.apiKey;
-    // Always open on authDomain (firebaseapp.com) — that's the URI registered
-    // in Google OAuth. Using web.app causes redirect_uri_mismatch.
-    const authDomain = auth.app.options.authDomain;
-    const popup = window.open(
-      `https://${authDomain}/__/auth/handler?apiKey=${apiKey}`,
-      'lf-google-auth',
-      'width=500,height=600,left=300,top=200'
-    );
-
-    // Detect popup closed without completing auth
-    const pollClosed = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(pollClosed);
-        window.removeEventListener('message', onMessage);
-        setLoading(false);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const isAllowed = await checkEmailAllowed(result.user.email);
+      if (!isAllowed) {
+        await signOut(auth);
+        setError(language === 'pt'
+          ? 'Acesso não autorizado. Entre em contato com o administrador.'
+          : 'Access not authorized. Please contact the administrator.');
+      } else if (result.additionalUserInfo?.isNewUser) {
+        analytics.userSignup(result.user.uid);
       }
-    }, 500);
-
-    const authOrigin = `https://${auth.app.options.authDomain}`;
-    const onMessage = async (event) => {
-      // Accept from same origin or from the authDomain popup (firebaseapp.com vs web.app)
-      if (event.origin !== window.location.origin && event.origin !== authOrigin) return;
-      if (event.data?.type !== 'lf-google-auth') return;
-
-      clearInterval(pollClosed);
-      window.removeEventListener('message', onMessage);
-
-      try {
-        const credential = GoogleAuthProvider.credential(event.data.idToken);
-        const result = await signInWithCredential(auth, credential);
-        const isAllowed = await checkEmailAllowed(result.user.email);
-        if (!isAllowed) {
-          await signOut(auth);
-          setError(language === 'pt'
-            ? 'Acesso não autorizado. Entre em contato com o administrador.'
-            : 'Access not authorized. Please contact the administrator.');
-        } else if (result.additionalUserInfo?.isNewUser) {
-          analytics.userSignup(result.user.uid);
-        }
-      } catch (err) {
-        setError(getErrorMessage(err.code));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    window.addEventListener('message', onMessage);
+    } catch (err) {
+      setError(getErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getErrorMessage = (code) => {

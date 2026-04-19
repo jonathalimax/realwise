@@ -1,18 +1,18 @@
 {
-  "clientName": "Jonatha Lima",
+  "clientName": "Moneywise jonathalimax",
   "firebase": {
-    "apiKey": "AIzaSyBWjz67b6zGgX48QmTV-AL73YaMQY3ViiI",
-    "authDomain": "limas-finance.firebaseapp.com",
-    "projectId": "limas-finance",
-    "storageBucket": "limas-finance.firebasestorage.app",
-    "messagingSenderId": "223174084388",
-    "appId": "1:223174084388:web:ead52b9db953df90b555b1"
+    "apiKey": "AIzaSyA-e5lmotlWWR4L1y7saUDXce3aN1thJcs",
+    "authDomain": "moneywise-jonathalimax.firebaseapp.com",
+    "projectId": "moneywise-jonathalimax",
+    "storageBucket": "moneywise-jonathalimax.firebasestorage.app",
+    "messagingSenderId": "874459425635",
+    "appId": "1:874459425635:web:e28752d91c2b2bb70ac156"
   },
   "features": {
     "investments": true,
-    "b3Sync": true,
-    "whatsapp": true,
     "goals": true,
+    "b3Sync": true,
+    "whatsapp": false,
     "salaryBreakdown": true
   }
 }

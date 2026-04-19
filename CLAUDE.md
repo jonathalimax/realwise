@@ -93,14 +93,15 @@ Three tabs: **Renda** / **Alocação** / **Carteira**
 ### Firebase Functions (`/functions`)
 
 - `whatsappWebhook` — WhatsApp Cloud API for bill reminder responses
-- `scheduledBillReminders` — Daily 9 AM (Brazil time) bill notifications
+- `scheduledBillReminders` — Daily 9 AM (Brazil time) bill reminder **emails**. Queries pending bills with `dueDate <= today`, groups by user, fetches the user's email from Firebase Auth, and sends a single digest email via Gmail (Nodemailer). Respects `settings/{userId}.billReminders === false` as opt-out. Logs to `reminder_logs` with `sentVia: 'email'`.
 - `sendWhatsAppReminder` / `testWhatsApp` — Manual testing endpoints
 
 ### Firestore Collections
 
 - `transactions` — Income/expenses with `userId`, `date`, `amount`, `type`, `category`, `bankId`
 - `bills` — Recurring bills with `status` (pending/paid), `dueDate`
-- `settings` — Per-user preferences (currency, language, categories, whatsappNumber)
+- `settings` — Per-user preferences (currency, language, categories, whatsappNumber, `billReminders` opt-out flag)
+- `reminder_logs` — Audit trail of sent bill reminders (`userId`, `billId`, `billName`, `sentAt`, `sentVia`)
 - `planner` — Per-user planner state including `salarioBruto`, `salarioDeductions`, wallet/allocation config
 
 ## Styling
@@ -122,6 +123,7 @@ Vitest in `node` environment — only pure functions (no Firebase, no React). Te
 Frontend (`.env`) — only used in dev. Production uses runtime config from `public/clients/{id}.json`.
 - `VITE_FIREBASE_*` — Firebase configuration (dev only)
 
-Functions (Firebase config):
-- `email.user` / `email.password` — Gmail for notifications
-- `whatsapp.access_token` / `whatsapp.phone_number_id` / `whatsapp.verify_token` — WhatsApp Cloud API
+Functions (Firebase Secret Manager via `defineSecret`, set with `firebase functions:secrets:set <NAME>`):
+- `EMAIL_USER` / `EMAIL_PASSWORD` — Gmail address + App Password used by `scheduledBillReminders` and `stripeWebhook` purchase notifications
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — Stripe integration
+- `whatsapp.access_token` / `whatsapp.phone_number_id` / `whatsapp.verify_token` — WhatsApp Cloud API (still on legacy `functions.config()`)

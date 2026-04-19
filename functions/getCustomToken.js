@@ -35,7 +35,9 @@ exports.getCustomToken = functions.https.onCall(async (data, context) => {
   }
 
   // 2. Read service account from shared Firestore
+  console.log(`[getCustomToken] looking up serviceAccounts/${username}`);
   const saDoc = await db.collection('serviceAccounts').doc(username).get();
+  console.log(`[getCustomToken] doc exists: ${saDoc.exists}`);
   if (!saDoc.exists) {
     throw new functions.https.HttpsError(
       'not-found',

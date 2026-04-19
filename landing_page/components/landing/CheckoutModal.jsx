@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { extractClientId } from '@/config/clientConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ export default function CheckoutModal({ open, onClose }) {
 
     try {
       const functionUrl = import.meta.env.VITE_CHECKOUT_URL;
+      const clientId = extractClientId(window.location.pathname);
       const res = await fetch(functionUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,6 +40,7 @@ export default function CheckoutModal({ open, onClose }) {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           whatsapp: whatsapp.trim(),
+          clientId: clientId !== 'app' ? clientId : undefined,
         }),
       });
 

@@ -101,6 +101,7 @@ export function SettingsProvider({ children }) {
   const [categories, setCategories] = useState(getDefaultCategories(DEFAULT_LANGUAGE));
   const [tutorialCompleted, setTutorialCompletedState] = useState(true); // Default true to avoid flash
   const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [billReminders, setBillRemindersState] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     if (saved !== null) return JSON.parse(saved);
@@ -142,6 +143,7 @@ export function SettingsProvider({ children }) {
         setTutorialCompletedState(data.tutorialCompleted === true);
         // Load Gemini API key if set
         setGeminiApiKey(data.geminiApiKey || '');
+        setBillRemindersState(data.billReminders !== false);
       } else {
         // No settings doc = first time user, show tutorial
         setTutorialCompletedState(false);
@@ -189,6 +191,14 @@ export function SettingsProvider({ children }) {
     if (auth.currentUser) {
       const settingsRef = doc(db, 'settings', auth.currentUser.uid);
       await setDoc(settingsRef, { tutorialCompleted: completed }, { merge: true });
+    }
+  };
+
+  const updateBillReminders = async (enabled) => {
+    setBillRemindersState(enabled);
+    if (auth.currentUser) {
+      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
+      await setDoc(settingsRef, { billReminders: enabled }, { merge: true });
     }
   };
 
@@ -300,6 +310,8 @@ export function SettingsProvider({ children }) {
       setTutorialCompleted,
       geminiApiKey,
       updateGeminiApiKey,
+      billReminders,
+      updateBillReminders,
       loading
     }}>
       {children}

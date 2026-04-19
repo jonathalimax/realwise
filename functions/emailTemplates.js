@@ -44,14 +44,14 @@ const BUTTON_STYLE = `
 const getBaseTemplate = (content) => `
   <div style="${BASE_STYLE}">
     <div style="${HEADER_STYLE}">
-      <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">Lima's Finance</h1>
+      <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">Moneywise</h1>
     </div>
     <div style="${CONTENT_STYLE}">
       ${content}
     </div>
     <div style="${FOOTER_STYLE}">
-      <p>© ${new Date().getFullYear()} Lima's Finance. Todos os direitos reservados.</p>
-      <p>Você está recebendo este e-mail porque é um cliente Lima's Finance.</p>
+      <p>© ${new Date().getFullYear()} Moneywise. Todos os direitos reservados.</p>
+      <p>Você está recebendo este e-mail porque é um cliente Moneywise.</p>
     </div>
   </div>
 `;
@@ -61,7 +61,7 @@ const getBaseTemplate = (content) => `
  */
 exports.welcomeTemplate = (name) => {
   const content = `
-    <h2 style="color: #059669; margin-top: 0;">Bem-vindo ao Lima's Finance! 🚀</h2>
+    <h2 style="color: #059669; margin-top: 0;">Bem-vindo ao Moneywise! 🚀</h2>
     <p>Olá, <strong>${name}</strong>!</p>
     <p>Estamos muito felizes em ter você conosco. Sua jornada para uma vida financeira mais organizada e próspera começa agora.</p>
     
@@ -75,7 +75,7 @@ exports.welcomeTemplate = (name) => {
     </div>
     
     <p>Obrigado por confiar no nosso sistema!</p>
-    <p>Atenciosamente,<br><strong>Equipe Lima's Finance</strong></p>
+    <p>Atenciosamente,<br><strong>Equipe Moneywise</strong></p>
   `;
   return getBaseTemplate(content);
 };
@@ -83,11 +83,11 @@ exports.welcomeTemplate = (name) => {
 /**
  * Template 2: Access Granted (Green Light)
  */
-exports.accessGrantedTemplate = (name, loginUrl = 'https://limasfinance.web.app') => {
+exports.accessGrantedTemplate = (name, loginUrl = 'https://mymoneywise.web.app') => {
   const content = `
     <h2 style="color: #059669; margin-top: 0;">Luz Verde! Tudo pronto. 🟢</h2>
     <p>Olá, <strong>${name}</strong>!</p>
-    <p>Seu acesso ao sistema <strong>Lima's Finance</strong> já foi liberado. Você já pode começar a gerenciar suas finanças de forma profissional.</p>
+    <p>Seu acesso ao sistema <strong>Moneywise</strong> já foi liberado. Você já pode começar a gerenciar suas finanças de forma profissional.</p>
     
     <div style="text-align: center;">
       <a href="${loginUrl}" style="${BUTTON_STYLE}">Acessar o Sistema Agora</a>
@@ -100,7 +100,7 @@ exports.accessGrantedTemplate = (name, loginUrl = 'https://limasfinance.web.app'
     </div>
     
     <p>Nos vemos lá!</p>
-    <p>Atenciosamente,<br><strong>Equipe Lima's Finance</strong></p>
+    <p>Atenciosamente,<br><strong>Equipe Moneywise</strong></p>
   `;
   return getBaseTemplate(content);
 };
@@ -109,19 +109,46 @@ exports.accessGrantedTemplate = (name, loginUrl = 'https://limasfinance.web.app'
  * Template 3: Bill Reminders (Summary)
  */
 exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
-  const formatCurrency = (val) => `R$ ${Number(val).toFixed(2).replace('.', ',')}`;
+  const formatCurrency = (val) => `R$ ${Number(val || 0).toFixed(2).replace('.', ',')}`;
   
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('pt-BR');
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   const renderList = (items, title, color) => {
     if (!items || items.length === 0) return '';
     return `
       <h3 style="color: ${color}; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">${title}</h3>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-        ${items.map(item => `
-          <tr>
-            <td style="padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f9fafb;">${item.name || 'Sem nome'}</td>
-            <td style="padding: 8px 0; font-size: 14px; text-align: right; font-weight: bold; border-bottom: 1px solid #f9fafb;">${formatCurrency(item.amount)}</td>
-          </tr>
-        `).join('')}
+        ${items.map(item => {
+          const dueDate = formatDate(item.dueDate);
+          const overdueInfo = item.daysOverdue ? `(atrasada ${item.daysOverdue} dia${item.daysOverdue > 1 ? 's' : ''})` : '';
+          
+          return `
+            <tr>
+              <td style="padding: 10px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
+                <div style="font-weight: 600; color: #1f2937;">${item.name || 'Sem nome'}</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                  Vence: ${dueDate} ${overdueInfo ? `<span style="color: #dc2626;">${overdueInfo}</span>` : ''}
+                </div>
+                ${item.cardOutcomesAmount > 0 ? `
+                  <div style="font-size: 12px; color: #4b5563; margin-top: 4px; padding: 4px 8px; background-color: #f9fafb; border-radius: 4px; display: inline-block;">
+                    💳 <strong>Lançamentos:</strong> ${formatCurrency(item.cardOutcomesAmount)} (${item.cardOutcomesCount} saídas)
+                  </div>
+                ` : ''}
+              </td>
+              <td style="padding: 10px 0; font-size: 14px; text-align: right; font-weight: bold; border-bottom: 1px solid #f3f4f6; vertical-align: top; color: #111827;">
+                ${formatCurrency(item.amount)}
+              </td>
+            </tr>
+          `;
+        }).join('')}
       </table>
     `;
   };
@@ -135,7 +162,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
     ${renderList(upcoming, '🕓 PRÓXIMOS DIAS', '#2563eb')}
     
     <div style="text-align: center; margin-top: 30px;">
-      <a href="https://limasfinance.web.app/bills" style="${BUTTON_STYLE}">Ver Todas as Contas</a>
+      <a href="https://mymoneywise.web.app/jonathalimax/bills" style="${BUTTON_STYLE}">Ver Todas as Contas</a>
     </div>
     
     <p style="margin-top: 30px; font-size: 13px; color: #6b7280; text-align: center;">

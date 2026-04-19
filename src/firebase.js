@@ -16,8 +16,8 @@ export let functions;
  * Called once by ClientConfigContext after loading the client config JSON.
  * Must be called before any component that uses auth/db/storage/functions renders.
  */
-export function initializeFirebase(firebaseConfig) {
-  app = initializeApp(firebaseConfig);
+export function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') {
+  app = initializeApp(firebaseConfig, appName);
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);

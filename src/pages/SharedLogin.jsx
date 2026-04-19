@@ -3,7 +3,7 @@
 // Does NOT rely on ClientConfigProvider or the per-client firebase.js bindings.
 
 import { useState, useEffect, useRef } from 'react';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
@@ -34,91 +34,58 @@ export default function SharedLogin() {
       });
   }, []);
 
-  const handleGoogleSignIn = () => {
+  const handlePostSignIn = async (email, functions) => {
+    if (!email) throw new Error('No email returned from Google');
+    const username = email.split('@')[0];
+
+    let token;
+    try {
+      const getCustomToken = httpsCallable(functions, 'getCustomToken');
+      const response = await getCustomToken({ username });
+      token = response.data.token;
+    } catch (fnErr) {
+      if (fnErr.code === 'functions/not-found') {
+        setError('Acesso não autorizado.');
+        setTimeout(() => { window.location.href = '/'; }, 3000);
+        return;
+      }
+      throw fnErr;
+    }
+
+    const configRes = await fetch(`/clients/${username}.json`);
+    if (!configRes.ok) {
+      setError('Configuração do usuário não encontrada.');
+      setTimeout(() => { window.location.href = '/'; }, 3000);
+      return;
+    }
+    const userConfig = await configRes.json();
+
+    const userAppName = `user-${username}`;
+    const existingUserApp = getApps().find((a) => a.name === userAppName);
+    const userApp = existingUserApp ?? initializeApp(userConfig.firebase, userAppName);
+    const userAuth = getAuth(userApp);
+
+    console.log('[SharedLogin] signing in with custom token...');
+    await signInWithCustomToken(userAuth, token);
+    console.log('[SharedLogin] custom token sign-in succeeded, redirecting...');
+    window.location.href = `/${username}/dashboard`;
+  };
+
+  const handleGoogleSignIn = async () => {
     if (!sharedRef.current) return;
     setError('');
     setLoading(true);
 
-    const { auth } = sharedRef.current;
-    const apiKey = auth.app.options.apiKey;
-    const authDomain = auth.app.options.authDomain;
-
-    const popup = window.open(
-      `https://${authDomain}/__/auth/handler?apiKey=${apiKey}`,
-      'mw-google-auth',
-      'width=500,height=600,left=300,top=200'
-    );
-
-    // Detect popup closed without completing auth
-    const pollClosed = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(pollClosed);
-        window.removeEventListener('message', onMessage);
-        setLoading(false);
-      }
-    }, 500);
-
-    const authOrigin = `https://${authDomain}`;
-
-    const onMessage = async (event) => {
-      if (event.origin !== window.location.origin && event.origin !== authOrigin) return;
-      if (event.data?.type !== 'lf-google-auth') return;
-
-      clearInterval(pollClosed);
-      window.removeEventListener('message', onMessage);
-
-      try {
-        const { auth, functions } = sharedRef.current;
-        const credential = GoogleAuthProvider.credential(event.data.idToken);
-        const result = await signInWithCredential(auth, credential);
-
-        const email = result.user.email;
-        if (!email) throw new Error('No email returned from Google');
-
-        const username = email.split('@')[0];
-
-        // Ask the backend to mint a custom token for the user's own Firebase project
-        let token;
-        try {
-          const getCustomToken = httpsCallable(functions, 'getCustomToken');
-          const response = await getCustomToken({ username });
-          token = response.data.token;
-        } catch (fnErr) {
-          if (fnErr.code === 'functions/not-found') {
-            setError('Acesso não autorizado.');
-            setTimeout(() => { window.location.href = '/'; }, 3000);
-            return;
-          }
-          throw fnErr;
-        }
-
-        // Fetch the user's own Firebase config
-        const configRes = await fetch(`/clients/${username}.json`);
-        if (!configRes.ok) {
-          setError('Configuração do usuário não encontrada.');
-          setTimeout(() => { window.location.href = '/'; }, 3000);
-          return;
-        }
-        const userConfig = await configRes.json();
-
-        // Initialise the user's Firebase app (idempotent)
-        const userAppName = `user-${username}`;
-        const existingUserApp = getApps().find((a) => a.name === userAppName);
-        const userApp = existingUserApp ?? initializeApp(userConfig.firebase, userAppName);
-        const userAuth = getAuth(userApp);
-
-        await signInWithCustomToken(userAuth, token);
-
-        // Hard-navigate so App.jsx re-runs with the correct clientId in the URL
-        window.location.href = `/${username}/dashboard`;
-      } catch (err) {
-        console.error('[SharedLogin] auth error', err);
-        setError('Falha na autenticação. Tente novamente.');
-        setLoading(false);
-      }
-    };
-
-    window.addEventListener('message', onMessage);
+    try {
+      const { auth, functions } = sharedRef.current;
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handlePostSignIn(result.user.email, functions);
+    } catch (err) {
+      console.error('[SharedLogin] auth error', err);
+      setError('Falha na autenticação. Tente novamente.');
+      setLoading(false);
+    }
   };
 
   if (!initDone) return <PageLoader />;

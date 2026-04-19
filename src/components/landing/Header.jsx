@@ -8,9 +8,9 @@ export default function Header() {
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <span className="text-white font-bold text-lg">L</span>
+            <span className="text-white font-bold text-lg">M</span>
           </div>
-          <span className="font-semibold text-lg">Limas Finance</span>
+          <span className="font-semibold text-lg">Moneywise</span>
         </div>
         
         <div className="flex items-center gap-2">

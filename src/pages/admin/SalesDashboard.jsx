@@ -24,7 +24,10 @@ export default function SalesDashboard({ db }) {
   useEffect(() => {
     const unsubLeads = onSnapshot(
       query(collection(db, 'leads'), orderBy('paidAt', 'desc')),
-      snap => setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      snap => setLeads(snap.docs.map(d => {
+        const data = d.data();
+        return { id: d.id, ...data, state: data.state ?? (data.paid ? 'paid' : 'pending') };
+      }))
     );
     const unsubPurchases = onSnapshot(
       collection(db, 'purchases'),

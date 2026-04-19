@@ -291,7 +291,7 @@ exports.processImport = functions
     memory: '1GB',
     timeoutSeconds: 540 // 9 minutes max
   })
-  .storage.bucket('limas-finance.firebasestorage.app')
+  .storage.bucket('moneywise-ad9ec.firebasestorage.app')
   .object()
   .onFinalize(async (object) => {
     const filePath = object.name;

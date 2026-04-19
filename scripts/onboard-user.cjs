@@ -46,7 +46,7 @@ try {
 
 let admin;
 try {
-  admin = require('firebase-admin');
+  admin = require('../functions/node_modules/firebase-admin');
 } catch {
   console.error(
     'Error: `firebase-admin` package not found.\n' +
@@ -65,9 +65,9 @@ if (!email || !email.includes('@')) {
 
 // Sanitise username: lowercase, alphanumeric only
 const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-const projectId = `limas-finance-${username}`;
+const projectId = `moneywise-${username}`;
 const billingAccountId = process.argv[3] || process.env.BILLING_ACCOUNT_ID;
-const sharedProjectId = process.env.SHARED_PROJECT_ID || 'limas-finance';
+const sharedProjectId = process.env.SHARED_PROJECT_ID || 'moneywise-ad9ec';
 const repoRoot = path.resolve(__dirname, '..');
 
 console.log('\nOnboarding user:', email);
@@ -102,6 +102,7 @@ async function main() {
   const serviceUsage = google.serviceusage('v1');
   const iam = google.iam('v1');
   const firebaseApi = google.firebase('v1beta1');
+  const firestoreApi = google.firestore('v1');
 
   // ── Step 1: Create GCP project ───────────────────────────────────────────
   console.log('[1/9] Creating GCP project...');
@@ -172,6 +173,36 @@ async function main() {
     });
     console.log('    Enabled', api);
     await sleep(1000);
+  }
+
+  // ── Step 4b: Create Firestore database in São Paulo ──────────────────────
+  console.log('[4b] Creating Firestore database (southamerica-east1)...');
+  try {
+    const dbOp = await firestoreApi.projects.databases.create({
+      parent: `projects/${projectId}`,
+      databaseId: '(default)',
+      requestBody: {
+        locationId: 'southamerica-east1',
+        type: 'FIRESTORE_NATIVE',
+      },
+    });
+    // Wait for operation to complete
+    let done = false;
+    while (!done) {
+      await sleep(3000);
+      const { data: opData } = await firestoreApi.projects.databases.operations.get({
+        name: dbOp.data.name,
+      });
+      done = opData.done;
+      if (!done) console.log('    Waiting for Firestore database creation...');
+    }
+    console.log('    Firestore database created in southamerica-east1');
+  } catch (err) {
+    if (err.message?.includes('already exists')) {
+      console.log('    Firestore database already exists — skipping');
+    } else {
+      throw err;
+    }
   }
 
   // ── Step 5: Create Firebase web app + fetch SDK config ───────────────────
@@ -274,7 +305,7 @@ async function main() {
   console.log('    Private key generated');
 
   // ── Step 8: Store service account in shared Firestore ────────────────────
-  console.log('[8/9] Writing service account to shared Firestore...');
+  console.log('[8/10] Writing service account to shared Firestore...');
   if (!admin.apps.length) {
     admin.initializeApp({ projectId: sharedProjectId });
   }
@@ -282,8 +313,74 @@ async function main() {
   await sharedDb.collection('serviceAccounts').doc(username).set(serviceAccountJson);
   console.log('    serviceAccounts/' + username + ' written');
 
-  // ── Step 9: Write public/clients/{username}.json + deploy ─────────────────
-  console.log('[9/9] Writing client config + deploying hosting...');
+  // ── Step 9: Create Firebase Auth user in new project ─────────────────────
+  console.log('[9/11] Creating Firebase Auth user...');
+  const clientApp = admin.initializeApp(
+    { credential: admin.credential.cert(serviceAccountJson), projectId },
+    'client'
+  );
+  const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + '!1';
+  try {
+    await clientApp.auth().createUser({ email, password: tempPassword, displayName: name || username });
+    console.log('    Auth user created');
+    console.log('    Temp password:', tempPassword);
+  } catch (err) {
+    if (err.code === 'auth/email-already-exists') {
+      console.log('    Auth user already exists — skipping');
+    } else {
+      throw err;
+    }
+  }
+  // ── Step 9b: Seed access/allowed_emails + deploy Firestore rules ─────────
+  console.log('[9b] Seeding access whitelist and deploying Firestore rules...');
+  const clientDb = clientApp.firestore();
+  await clientDb.collection('access').doc('allowed_emails').set({ emails: [email] });
+  console.log('    access/allowed_emails seeded with', email);
+
+  // Deploy Firestore rules to allow public read of access/allowed_emails
+  const rulesContent = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /access/allowed_emails {
+      allow read: if true;
+    }
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}`;
+  const rulesPath = path.join(repoRoot, 'firestore.client.rules');
+  fs.writeFileSync(rulesPath, rulesContent, 'utf8');
+  run(`firebase deploy --only firestore:rules --project ${projectId} --config firestore-client.json`, { cwd: repoRoot });
+  fs.unlinkSync(rulesPath);
+
+  await admin.app('client').delete();
+
+  // ── Step 9c: Authorize mymoneywise.web.app in client Auth settings ────────
+  console.log('[9c] Authorizing mymoneywise.web.app in client Auth...');
+  const identityToolkit = google.identitytoolkit('v2');
+  try {
+    const { data: authConfig } = await identityToolkit.projects.getConfig({
+      name: `projects/${projectId}`,
+    });
+    const existing = authConfig.authorizedDomains || [];
+    const toAdd = 'mymoneywise.web.app';
+    if (!existing.includes(toAdd)) {
+      await identityToolkit.projects.updateConfig({
+        name: `projects/${projectId}`,
+        updateMask: 'authorizedDomains',
+        requestBody: { authorizedDomains: [...existing, toAdd] },
+      });
+      console.log('    mymoneywise.web.app authorized');
+    } else {
+      console.log('    Already authorized — skipping');
+    }
+  } catch (err) {
+    console.warn('    Warning: could not update authorized domains:', err.message);
+  }
+
+  // ── Step 10: Write public/clients/{username}.json + deploy ────────────────
+  console.log('[10/11] Writing client config + deploying hosting...');
   const clientConfig = {
     clientName: `Moneywise ${username}`,
     firebase: sdkConfig,
@@ -305,9 +402,17 @@ async function main() {
     { cwd: repoRoot }
   );
 
+  // ── Step 11: Mark lead as active in shared Firestore ─────────────────────
+  console.log('[11/11] Updating lead state to active...');
+  await sharedDb.collection('leads').doc(email).set(
+    { state: 'active', activatedAt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  );
+  console.log('    Lead state → active');
+
   console.log('\nOnboarding complete for', email);
-  console.log('  Login URL :', 'https://moneywise.web.app/login');
-  console.log('  Dashboard :', `https://moneywise.web.app/${username}/dashboard\n`);
+  console.log('  Login URL :', 'https://mymoneywise.web.app/login');
+  console.log('  Dashboard :', `https://mymoneywise.web.app/${username}/dashboard\n`);
 }
 
 main().catch((err) => {

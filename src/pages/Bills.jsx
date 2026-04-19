@@ -6,16 +6,15 @@ import { useMonth } from '../contexts/MonthContext';
 import BillsList from '../components/BillsList';
 import BillModal from '../components/BillModal';
 import PageHeader from '../components/PageHeader';
-import { PlusIcon, AdjustmentsHorizontalIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 export default function BillsPage() {
-  const { language } = useSettings();
+  const { language, billReminders, updateBillReminders } = useSettings();
   const { bills } = useBills();
   const { canWrite } = useAccess();
   const { selectedMonth } = useMonth();
   const [showBillModal, setShowBillModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -50,64 +49,52 @@ export default function BillsPage() {
     }).format(amount);
   };
 
-  const activeFiltersCount = statusFilter !== 'all' ? 1 : 0;
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <PageHeader title={language === 'pt' ? 'Contas a Pagar' : 'Bills'} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Filters */}
-        <div className="flex justify-end mb-6">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all ${
-              showFilters || activeFiltersCount > 0
-                ? 'bg-orange-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <AdjustmentsHorizontalIcon className="w-5 h-5" />
-            <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
-            {activeFiltersCount > 0 && (
-              <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                showFilters ? 'bg-white/20' : 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
-              }`}>
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-              {language === 'pt' ? 'Status' : 'Status'}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'all', label: language === 'pt' ? 'Todas' : 'All' },
-                { value: 'pending', label: language === 'pt' ? 'Pendentes' : 'Pending' },
-                { value: 'paid', label: language === 'pt' ? 'Pagas' : 'Paid' },
-                { value: 'overdue', label: language === 'pt' ? 'Atrasadas' : 'Overdue' },
-              ].map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => setStatusFilter(option.value)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    statusFilter === option.value
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+        {/* Filters + Email reminder toggle */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'all', label: language === 'pt' ? 'Todas' : 'All' },
+              { value: 'pending', label: language === 'pt' ? 'Pendentes' : 'Pending' },
+              { value: 'paid', label: language === 'pt' ? 'Pagas' : 'Paid' },
+              { value: 'overdue', label: language === 'pt' ? 'Atrasadas' : 'Overdue' },
+            ].map(option => (
+              <button
+                key={option.value}
+                onClick={() => setStatusFilter(option.value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  statusFilter === option.value
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
-        )}
+
+          <div className="flex items-center gap-2 shrink-0">
+            <svg className={`w-4 h-4 ${billReminders ? 'text-violet-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {language === 'pt' ? 'Lembretes' : 'Reminders'}
+            </span>
+            <button
+              role="switch"
+              aria-checked={billReminders}
+              onClick={() => updateBillReminders(!billReminders)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${billReminders ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">

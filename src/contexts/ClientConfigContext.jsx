@@ -18,7 +18,8 @@ export function ClientConfigProvider({ children }) {
           const clientId = extractClientId(window.location.pathname);
           cfg = await fetchClientConfig(clientId);
         }
-        initializeFirebase(cfg.firebase);
+        const clientId = import.meta.env.DEV ? 'dev' : extractClientId(window.location.pathname);
+        initializeFirebase(cfg.firebase, clientId);
         setConfig(cfg);
       } catch (err) {
         console.error('[ClientConfig] Failed to load config:', err);
