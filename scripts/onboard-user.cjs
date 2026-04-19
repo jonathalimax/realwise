@@ -321,7 +321,7 @@ async function main() {
   );
   const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + '!1';
   try {
-    await clientApp.auth().createUser({ email, password: tempPassword, displayName: name || username });
+    await clientApp.auth().createUser({ email, password: tempPassword, displayName: username });
     console.log('    Auth user created');
     console.log('    Temp password:', tempPassword);
   } catch (err) {
