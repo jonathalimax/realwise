@@ -175,32 +175,6 @@ async function main() {
     await sleep(1000);
   }
 
-  // ── Step 4c: Initialize Firebase Auth config ─────────────────────────────
-  console.log('[4c] Initializing Firebase Auth...');
-  await sleep(3000); // allow identitytoolkit API to propagate
-  try {
-    // identitytoolkit v2 requires a quota project; use the new project itself
-    authClient.quotaProjectId = projectId;
-    const identityToolkit = google.identitytoolkit({ version: 'v2', auth: authClient });
-    await identityToolkit.projects.updateConfig({
-      name: `projects/${projectId}/config`,
-      updateMask: 'signIn',
-      requestBody: {
-        signIn: {
-          email: { enabled: true, passwordRequired: true },
-          allowDuplicateEmails: false,
-        },
-      },
-    });
-    console.log('    Firebase Auth initialized');
-  } catch (err) {
-    if (err.message?.includes('already') || err.status === 409) {
-      console.log('    Firebase Auth already initialized — continuing');
-    } else {
-      throw err;
-    }
-  }
-
   // ── Step 4b: Create Firestore database in São Paulo ──────────────────────
   console.log('[4b] Creating Firestore database (southamerica-east1)...');
   try {
@@ -346,15 +320,27 @@ async function main() {
     'client'
   );
   const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + '!1';
-  try {
-    await clientApp.auth().createUser({ email, password: tempPassword, displayName: username });
-    console.log('    Auth user created');
-    console.log('    Temp password:', tempPassword);
-  } catch (err) {
-    if (err.code === 'auth/email-already-exists') {
-      console.log('    Auth user already exists — skipping');
-    } else {
-      throw err;
+  // Retry createUser — Firebase Auth may not be ready immediately after addFirebase
+  let userCreated = false;
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    try {
+      await clientApp.auth().createUser({ email, password: tempPassword, displayName: username });
+      console.log('    Auth user created');
+      console.log('    Temp password:', tempPassword);
+      userCreated = true;
+      break;
+    } catch (err) {
+      if (err.code === 'auth/email-already-exists') {
+        console.log('    Auth user already exists — skipping');
+        userCreated = true;
+        break;
+      }
+      if (attempt < 10) {
+        console.log(`    Auth not ready yet (attempt ${attempt}/10), retrying in 6s...`);
+        await sleep(6000);
+      } else {
+        throw err;
+      }
     }
   }
   // ── Step 9b: Seed access/allowed_emails + deploy Firestore rules ─────────
