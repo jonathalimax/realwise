@@ -345,8 +345,24 @@ async function main() {
   }
   // ── Step 9b: Seed access/allowed_emails + deploy Firestore rules ─────────
   console.log('[9b] Seeding access whitelist and deploying Firestore rules...');
+  // Wait for the new service account key to propagate before using it
+  console.log('    Waiting 15s for service account key to propagate...');
+  await sleep(15000);
   const clientDb = clientApp.firestore();
-  await clientDb.collection('access').doc('allowed_emails').set({ emails: [email] });
+  // Retry in case Firestore or credentials are still warming up
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      await clientDb.collection('access').doc('allowed_emails').set({ emails: [email] });
+      break;
+    } catch (err) {
+      if (attempt < 5 && (err.code === 16 || err.message?.includes('UNAUTHENTICATED'))) {
+        console.log(`    Credentials not ready (attempt ${attempt}/5), retrying in 10s...`);
+        await sleep(10000);
+      } else {
+        throw err;
+      }
+    }
+  }
   console.log('    access/allowed_emails seeded with', email);
 
   // Deploy Firestore rules to allow public read of access/allowed_emails
