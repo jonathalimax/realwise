@@ -2,16 +2,21 @@ import { useState } from 'react';
 import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
+import useCardBillAmounts from '../hooks/useCardBillAmounts';
 import BillModal from './BillModal';
 import { BellIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 export default function BillsList({ compact = false, selectedMonth, statusFilter = 'all' }) {
   const { bills, loading, markBillAsPaid } = useBills();
-  const { language } = useSettings();
+  const { language, formatCurrency } = useSettings();
   const { canWrite } = useAccess();
   const [editingBill, setEditingBill] = useState(null);
   const [showAllBills, setShowAllBills] = useState(false);
   const [confirmPayBillId, setConfirmPayBillId] = useState(null);
+
+  const cardAmounts = useCardBillAmounts(bills, selectedMonth);
+
+  const getBillAmount = (bill) => cardAmounts.get(bill.id) ?? bill.amount ?? 0;
 
   // Parse selectedMonth for filtering (format: "YYYY-MM")
   const [selectedYear, selectedMonthNum] = selectedMonth
@@ -245,6 +250,11 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
               <span className="text-gray-300 dark:text-gray-600">•</span>
               <span className="truncate">{formatDueDate(bill.dueDate)}</span>
             </div>
+            {getBillAmount(bill) > 0 && (
+              <p className="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-gray-200 mt-0.5">
+                {formatCurrency(getBillAmount(bill))}
+              </p>
+            )}
           </div>
 
           {/* Mark as paid button - only for write access */}
@@ -513,30 +523,34 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
             {language === 'pt' ? 'Vencidas' : 'Overdue'}
           </p>
           <p className="text-lg sm:text-2xl font-bold text-rose-600 dark:text-rose-400">{overdueBills.length}</p>
+          <p className="text-[10px] sm:text-xs text-rose-500 dark:text-rose-400 mt-0.5 truncate">{formatCurrency(overdueBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-2 sm:p-4">
           <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">
             {language === 'pt' ? 'Próximas' : 'Upcoming'}
           </p>
           <p className="text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{upcomingBills.length}</p>
+          <p className="text-[10px] sm:text-xs text-amber-500 dark:text-amber-400 mt-0.5 truncate">{formatCurrency(upcomingBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2 sm:p-4">
           <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">
             {language === 'pt' ? 'Pendentes' : 'Pending'}
           </p>
           <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{otherPendingBills.length}</p>
+          <p className="text-[10px] sm:text-xs text-blue-500 dark:text-blue-400 mt-0.5 truncate">{formatCurrency(otherPendingBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2 sm:p-4">
           <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">
             {language === 'pt' ? 'Pagas' : 'Paid'}
           </p>
           <p className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{paidBills.length}</p>
+          <p className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-0.5 truncate">{formatCurrency(paidBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
       </div>
 
       {/* Bills list */}
       <div className="space-y-4">
-        {overdueBills.length > 0 && (
+        {(statusFilter === 'all' || statusFilter === 'overdue') && overdueBills.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Vencidas' : 'Overdue'}
@@ -549,7 +563,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
           </div>
         )}
 
-        {upcomingBills.length > 0 && (
+        {(statusFilter === 'all' || statusFilter === 'pending') && upcomingBills.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Próximas (7 dias)' : 'Upcoming (7 days)'}
@@ -562,7 +576,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
           </div>
         )}
 
-        {otherPendingBills.length > 0 && (
+        {(statusFilter === 'all' || statusFilter === 'pending') && otherPendingBills.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Pendentes' : 'Pending'}
@@ -575,7 +589,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
           </div>
         )}
 
-        {paidBills.length > 0 && (
+        {(statusFilter === 'all' || statusFilter === 'paid') && paidBills.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Pagas recentemente' : 'Recently Paid'}
