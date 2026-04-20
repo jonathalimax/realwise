@@ -1,20 +1,28 @@
 import { NumericFormat } from 'react-number-format';
 import { formatBRL } from './usePlannerState';
+import CurrencyInput from '@/components/ui/CurrencyInput';
+import PercentInput from '@/components/ui/PercentInput';
 
-function FieldInput({ label, value, onChange, suffix, decimalScale = 2, hint }) {
+function FieldInput({ label, value, onChange, type = 'number', suffix, decimalScale = 2, hint }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
-      <NumericFormat
-        value={value}
-        onValueChange={vals => onChange(vals.floatValue ?? 0)}
-        decimalSeparator=","
-        thousandSeparator="."
-        suffix={suffix}
-        decimalScale={decimalScale}
-        allowNegative={false}
-        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
-      />
+      {type === 'currency' ? (
+        <CurrencyInput value={value} onChange={onChange} className="text-sm py-2 px-3" />
+      ) : type === 'percent' ? (
+        <PercentInput value={value} onChange={onChange} decimalScale={decimalScale} className="text-sm" />
+      ) : (
+        <NumericFormat
+          value={value}
+          onValueChange={vals => onChange(vals.floatValue ?? 0)}
+          decimalSeparator=","
+          thousandSeparator="."
+          suffix={suffix}
+          decimalScale={decimalScale}
+          allowNegative={false}
+          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+        />
+      )}
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
@@ -71,12 +79,13 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             label="Valor do imóvel (R$)"
             value={state.propertyPrice}
             onChange={v => update('propertyPrice', v)}
+            type="currency"
           />
           <FieldInput
             label="Entrada (%)"
             value={state.downPaymentPercent}
             onChange={v => update('downPaymentPercent', Math.min(100, Math.max(1, v)))}
-            suffix=" %"
+            type="percent"
             decimalScale={0}
             hint={`Meta: ${formatBRL.format(downPaymentTarget)}`}
           />
@@ -84,7 +93,7 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             label="CDB mensal (%)"
             value={state.cdbMonthlyRate}
             onChange={v => update('cdbMonthlyRate', v)}
-            suffix=" %"
+            type="percent"
             hint="Rendimento CDB/mês sobre saldo"
           />
           <div className="col-span-2 sm:col-span-1 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 px-3 py-2 text-xs text-violet-600 dark:text-violet-400">
@@ -226,7 +235,7 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             label="Taxa anual (%)"
             value={state.mortgageAnnualRate}
             onChange={v => update('mortgageAnnualRate', Math.min(30, Math.max(1, v)))}
-            suffix=" % a.a."
+            type="percent"
             hint={`≈ ${(mortgage.r * 100).toFixed(3)}% a.m.`}
           />
           <FieldInput

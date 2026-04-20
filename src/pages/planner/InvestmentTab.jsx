@@ -3,6 +3,7 @@ import { NumericFormat } from 'react-number-format';
 import { Badge } from '@/components/ui/badge';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatBRL } from './usePlannerState';
+import PercentInput from '@/components/ui/PercentInput';
 
 const GEMINI_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
@@ -54,25 +55,21 @@ function ClassRow({ cls, index, onChange, onRemove }) {
         />
       </td>
       <td className="px-3 py-2 w-24">
-        <NumericFormat
+        <PercentInput
           value={cls.pct}
-          onValueChange={vals => onChange(index, 'pct', vals.floatValue ?? 0)}
-          decimalSeparator=","
+          onChange={v => onChange(index, 'pct', v)}
           decimalScale={0}
-          suffix=" %"
-          allowNegative={false}
-          className="w-full px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
+          placeholder="0 %"
+          className="w-full text-sm"
         />
       </td>
       <td className="px-3 py-2 w-32">
-        <NumericFormat
+        <PercentInput
           value={cls.returnPct}
-          onValueChange={vals => onChange(index, 'returnPct', vals.floatValue ?? 0)}
-          decimalSeparator=","
+          onChange={v => onChange(index, 'returnPct', v)}
           decimalScale={2}
-          suffix=" %/mês"
-          allowNegative={false}
-          className="w-full px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
+          placeholder="0,00 %"
+          className="w-full text-sm"
         />
       </td>
       <td className="px-3 py-2">
@@ -339,14 +336,12 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
                     />
                   </td>
                   <td className="px-3 py-2 w-28 hidden sm:table-cell">
-                    <NumericFormat
+                    <PercentInput
                       value={row.returnPct ?? 1.0}
-                      onValueChange={vals => updateRow(row.id, 'returnPct', vals.floatValue ?? 0)}
-                      decimalSeparator=","
+                      onChange={v => updateRow(row.id, 'returnPct', v)}
                       decimalScale={2}
-                      suffix=" %/mês"
-                      allowNegative={false}
-                      className="w-full px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-violet-500"
+                      placeholder="1,00 %"
+                      className="w-full text-sm text-right"
                     />
                   </td>
                   <td className="px-3 py-2 hidden md:table-cell">

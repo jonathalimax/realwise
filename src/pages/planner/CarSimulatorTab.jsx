@@ -1,21 +1,29 @@
 import { NumericFormat } from 'react-number-format';
 import { Badge } from '@/components/ui/badge';
 import { formatBRL } from './usePlannerState';
+import CurrencyInput from '@/components/ui/CurrencyInput';
+import PercentInput from '@/components/ui/PercentInput';
 
-function FieldInput({ label, value, onChange, suffix, decimalScale = 2, hint }) {
+function FieldInput({ label, value, onChange, type = 'number', suffix, decimalScale = 2, hint }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
-      <NumericFormat
-        value={value}
-        onValueChange={vals => onChange(vals.floatValue ?? 0)}
-        decimalSeparator=","
-        thousandSeparator="."
-        suffix={suffix}
-        decimalScale={decimalScale}
-        allowNegative={false}
-        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
-      />
+      {type === 'currency' ? (
+        <CurrencyInput value={value} onChange={onChange} className="text-sm py-2 px-3" />
+      ) : type === 'percent' ? (
+        <PercentInput value={value} onChange={onChange} decimalScale={decimalScale} className="text-sm" />
+      ) : (
+        <NumericFormat
+          value={value}
+          onValueChange={vals => onChange(vals.floatValue ?? 0)}
+          decimalSeparator=","
+          thousandSeparator="."
+          suffix={suffix}
+          decimalScale={decimalScale}
+          allowNegative={false}
+          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+        />
+      )}
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
@@ -38,6 +46,7 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
             label="Parcela mensal (R$)"
             value={state.carMonthlyPayment}
             onChange={v => update('carMonthlyPayment', v)}
+            type="currency"
           />
           <FieldInput
             label="Parcelas restantes"
@@ -50,7 +59,7 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
             label="Taxa mensal do financ. (%)"
             value={state.carMonthlyRate}
             onChange={v => update('carMonthlyRate', v)}
-            suffix=" %"
+            type="percent"
             hint="Usada para crescer o boleto"
           />
           <FieldInput
@@ -64,6 +73,7 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
             label="Valor inicial do boleto (R$)"
             value={state.carInitialBoleto}
             onChange={v => update('carInitialBoleto', v)}
+            type="currency"
             hint="Boleto no 1º mês"
           />
         </div>
