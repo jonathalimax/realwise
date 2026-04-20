@@ -484,11 +484,11 @@ service cloud.firestore {
   // ── Step 10: Write public/clients/{username}.json + deploy ────────────────
   console.log('[10/11] Writing client config + deploying hosting...');
   const clientConfig = {
-    clientName: `Moneywise ${username}`,
+    clientName: 'Moneywise',
     firebase: sdkConfig,
     features: {
       investments: true,
-      goals: true,
+      goals: false,
       b3Sync: true,
       whatsapp: false,
       salaryBreakdown: true,

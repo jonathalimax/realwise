@@ -1,5 +1,5 @@
 {
-  "clientName": "Moneywise palomabandeiramatos5",
+  "clientName": "Moneywise",
   "firebase": {
     "apiKey": "AIzaSyAGF8tmIzQkc_KMsoeRsCe_5aqZPPARNVM",
     "authDomain": "moneywise-palomabandeiramatos5.firebaseapp.com",
@@ -10,7 +10,7 @@
   },
   "features": {
     "investments": true,
-    "goals": true,
+    "goals": false,
     "b3Sync": true,
     "whatsapp": false,
     "salaryBreakdown": true

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { useSettings } from '../contexts/SettingsContext';
 import { useFeature, useClientConfig } from '../contexts/ClientConfigContext';
 import {
@@ -79,8 +79,7 @@ function SectionLabel({ children }) {
   );
 }
 
-function getUserDisplayName() {
-  const user = auth.currentUser;
+function getUserDisplayName(user) {
   if (!user) return null;
   if (user.displayName) return user.displayName;
   if (user.email) {
@@ -90,10 +89,16 @@ function getUserDisplayName() {
   return null;
 }
 
+function useCurrentUser() {
+  const [user, setUser] = useState(auth.currentUser);
+  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  return user;
+}
+
 function SidebarContent({
   language, darkMode, toggleDarkMode, appName,
   hasInvestments, mobileClose, navigate, location,
-  labels, onSignOut,
+  labels, onSignOut, user,
 }) {
   const isPlannerTab = (tab) =>
     location.pathname === '/planner' && location.search.includes(`tab=${tab}`);
@@ -111,21 +116,21 @@ function SidebarContent({
       </div>
 
       {/* User info */}
-      {auth.currentUser && (
+      {user && (
         <div className="px-4 pb-3">
           <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <div className="w-9 h-9 bg-violet-100 dark:bg-violet-900/50 rounded-full flex items-center justify-center flex-shrink-0">
-              {auth.currentUser.photoURL ? (
-                <img src={auth.currentUser.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
               ) : (
                 <span className="text-violet-600 dark:text-violet-300 font-semibold text-sm">
-                  {getUserDisplayName()?.charAt(0)?.toUpperCase() || '?'}
+                  {getUserDisplayName(user)?.charAt(0)?.toUpperCase() || '?'}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{getUserDisplayName()}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{auth.currentUser.email}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{getUserDisplayName(user)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
             </div>
           </div>
         </div>
@@ -241,10 +246,12 @@ export default function Sidebar() {
     return '/dashboard';
   };
 
+  const user = useCurrentUser();
+
   const sharedProps = {
     language, darkMode, toggleDarkMode, appName,
     hasInvestments, navigate, location, labels,
-    onSignOut: handleSignOut,
+    onSignOut: handleSignOut, user,
   };
 
   return (
