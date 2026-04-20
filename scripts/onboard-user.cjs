@@ -217,7 +217,7 @@ async function main() {
   await sleep(5000); // allow identitytoolkit API to propagate
   try {
     await authClient.request({
-      url: `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/config`,
+      url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
       method: 'PATCH',
       params: { updateMask: 'signIn' },
       headers: { 'x-goog-user-project': projectId },
