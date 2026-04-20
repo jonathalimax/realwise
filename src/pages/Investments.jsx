@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PageHelp from '@/components/ui/PageHelp';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { analytics } from '../services/analyticsService';
 import { auth } from '../firebase';
@@ -354,6 +355,11 @@ export default function InvestmentsPage() {
       >
         <PlusIcon className="w-7 h-7" />
       </button>
+      <PageHelp
+        title="Investimentos"
+        text="Acompanhe seus ativos reais. Registre o valor atual e o retorno de cada investimento. O total é atualizado conforme você adiciona ou edita ativos."
+        hasFab={true}
+      />
     </div>
   );
 }

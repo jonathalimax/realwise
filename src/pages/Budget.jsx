@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
+import PageHelp from '@/components/ui/PageHelp';
 import { Tab } from '@headlessui/react';
 import { ArrowPathIcon, AdjustmentsHorizontalIcon, ArrowLeftIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { auth, db } from '../firebase';
@@ -534,6 +535,11 @@ export default function BudgetPage() {
           </div>
         </div>
       </div>
+      <PageHelp
+        title="Orçamento"
+        text="Defina limites de gasto por categoria. A barra mostra quanto você já usou do orçamento do mês. Quando chegar a 100%, você atingiu o limite definido."
+        hasFab={false}
+      />
     </div>
   );
 }

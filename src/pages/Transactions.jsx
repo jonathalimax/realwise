@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageHelp from '@/components/ui/PageHelp';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
@@ -434,6 +435,11 @@ export default function TransactionsPage() {
           />
         </div>
       </main>
+      <PageHelp
+        title="Transações"
+        text="Registre e filtre suas movimentações. Categorize cada transação para acompanhar onde seu dinheiro vai. Use o + para adicionar manualmente ou importe um extrato."
+        hasFab={false}
+      />
     </div>
   );
 }

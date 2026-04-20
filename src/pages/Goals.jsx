@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import PageHelp from '@/components/ui/PageHelp';
 import { useGoals, GOAL_ICONS, GOAL_COLORS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
@@ -1028,6 +1029,11 @@ export default function GoalsPage() {
           </div>
         )}
       </div>
+      <PageHelp
+        title="Objetivos"
+        text="Defina metas financeiras e acompanhe o progresso. Vincule transações a um objetivo para registrar contribuições automaticamente."
+        hasFab={true}
+      />
     </div>
   );
 }

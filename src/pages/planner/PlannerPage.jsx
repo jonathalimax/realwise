@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageHelp from '@/components/ui/PageHelp';
 import { Shimmer } from '@/components/ui/shimmer';
 import { useMonth } from '@/contexts/MonthContext';
 import PageHeader from '@/components/PageHeader';
@@ -17,6 +18,12 @@ function PlannerSkeleton() {
     </div>
   );
 }
+
+const PLANNER_HELP = {
+  renda: 'Informe seu salário líquido. Ele é a base de todos os cálculos do planejador. Se tiver descontos em folha, ative o modo detalhado nas configurações.',
+  allocation: 'Defina a divisão ideal entre Necessidades, Poupança e Desejos. Arraste o controle para ajustar os percentuais. O total deve ser 100%.',
+  rastreamento: 'Acompanhe quanto do seu orçamento foi utilizado em cada categoria no mês selecionado.',
+};
 
 export default function PlannerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -84,6 +91,11 @@ export default function PlannerPage() {
           </>
         )}
       </div>
+      <PageHelp
+        title="Planejador"
+        text={PLANNER_HELP[activeTab] ?? 'Use as abas para navegar entre as seções do planejador financeiro.'}
+        hasFab={false}
+      />
     </div>
   );
 }

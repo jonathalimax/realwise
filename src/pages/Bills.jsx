@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import PageHelp from '@/components/ui/PageHelp';
 import { useBills } from '../contexts/BillsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useMonth } from '../contexts/MonthContext';
@@ -172,6 +173,11 @@ export default function BillsPage() {
           <PlusIcon className="w-7 h-7" />
         </button>
       )}
+      <PageHelp
+        title="Contas"
+        text="Controle suas contas a pagar. Marque como paga quando quitar e receba lembretes por e-mail antes do vencimento. Contas recorrentes se repetem automaticamente."
+        hasFab={true}
+      />
     </div>
   );
 }

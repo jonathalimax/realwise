@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PageHelp from '@/components/ui/PageHelp';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
@@ -271,6 +272,11 @@ export default function DashboardPage() {
           animation: fade-in 0.2s ease-out forwards;
         }
       `}</style>
+      <PageHelp
+        title="Dashboard"
+        text="Visão geral das suas finanças. Acompanhe saldo, receitas e despesas do mês selecionado. Use as setas para navegar entre os meses."
+        hasFab={true}
+      />
     </div>
   );
 }
