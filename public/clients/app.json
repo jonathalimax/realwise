@@ -10,9 +10,9 @@
   },
   "features": {
     "investments": true,
-    "b3Sync": true,
-    "whatsapp": true,
-    "goals": true,
+    "b3Sync": false,
+    "whatsapp": false,
+    "goals": false,
     "salaryBreakdown": true
   }
 }

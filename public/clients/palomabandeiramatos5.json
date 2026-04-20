@@ -11,7 +11,7 @@
   "features": {
     "investments": true,
     "goals": false,
-    "b3Sync": true,
+    "b3Sync": false,
     "whatsapp": false,
     "salaryBreakdown": true
   }
