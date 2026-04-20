@@ -498,7 +498,8 @@ service cloud.firestore {
   fs.writeFileSync(configPath, JSON.stringify(clientConfig, null, 2) + '\n', 'utf8');
   console.log('    Written', configPath);
 
-  // Deploy hosting — static command string, safe to use execSync here
+  // Build first so the new client JSON lands in dist/ before hosting deploy
+  run('npm run build', { cwd: repoRoot });
   run(
     `firebase deploy --only hosting --project ${sharedProjectId}`,
     { cwd: repoRoot }
