@@ -203,7 +203,7 @@ async function main() {
 
   // ── Step 4: Enable required APIs ─────────────────────────────────────────
   console.log('[4/9] Enabling Firestore + Auth APIs...');
-  for (const api of ['firestore.googleapis.com', 'identitytoolkit.googleapis.com']) {
+  for (const api of ['firestore.googleapis.com', 'identitytoolkit.googleapis.com', 'identityplatform.googleapis.com']) {
     await serviceUsage.services.enable({
       name: `projects/${projectId}/services/${api}`,
       requestBody: {},
