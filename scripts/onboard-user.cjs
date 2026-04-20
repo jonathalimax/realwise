@@ -203,7 +203,7 @@ async function main() {
 
   // ── Step 4: Enable required APIs ─────────────────────────────────────────
   console.log('[4/9] Enabling Firestore + Auth APIs...');
-  for (const api of ['firestore.googleapis.com', 'identitytoolkit.googleapis.com', 'identityplatform.googleapis.com']) {
+  for (const api of ['firestore.googleapis.com', 'identitytoolkit.googleapis.com']) {
     await serviceUsage.services.enable({
       name: `projects/${projectId}/services/${api}`,
       requestBody: {},
@@ -212,25 +212,20 @@ async function main() {
     await sleep(1000);
   }
 
-  // ── Step 4c: Initialize Firebase Auth via Identity Toolkit v1 ───────────
+  // ── Step 4c: Initialize Firebase Auth ───────────────────────────────────
   console.log('[4c] Initializing Firebase Auth...');
   await sleep(5000); // allow identitytoolkit API to propagate
   try {
+    // initializeAuth creates the auth config for the project (no Identity Platform required)
     await authClient.request({
-      url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
-      method: 'PATCH',
-      params: { updateMask: 'signIn' },
+      url: `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth`,
+      method: 'POST',
       headers: { 'x-goog-user-project': projectId },
-      data: {
-        signIn: {
-          email: { enabled: true, passwordRequired: true },
-          allowDuplicateEmails: false,
-        },
-      },
+      data: {},
     });
     console.log('    Firebase Auth initialized');
   } catch (err) {
-    if (err.status === 409 || err.message?.includes('already')) {
+    if (err.status === 409 || err.message?.includes('already') || err.message?.includes('ALREADY')) {
       console.log('    Firebase Auth already initialized — continuing');
     } else {
       console.warn('    Warning: Auth init returned:', err.message);
@@ -377,28 +372,38 @@ async function main() {
 
   // ── Step 9: Create Firebase Auth user in new project ─────────────────────
   console.log('[9/11] Creating Firebase Auth user...');
-  const clientApp = admin.initializeApp(
-    { credential: admin.credential.cert(serviceAccountJson), projectId },
-    'client'
-  );
+  // Call the Identity Toolkit Admin REST API directly using the existing authClient
+  // (which already has the project owner's OAuth token). This avoids Firebase Admin
+  // SDK quota-project issues with ADC user credentials.
   const tempPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + '!1';
-  // Retry createUser — Firebase Auth may not be ready immediately after addFirebase
   let userCreated = false;
   for (let attempt = 1; attempt <= 10; attempt++) {
     try {
-      await clientApp.auth().createUser({ email, password: tempPassword, displayName: username });
+      await authClient.request({
+        url: `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
+        method: 'POST',
+        headers: { 'x-goog-user-project': projectId },
+        data: {
+          email,
+          password: tempPassword,
+          displayName: username,
+          emailVerified: false,
+          disabled: false,
+        },
+      });
       console.log('    Auth user created');
       console.log('    Temp password:', tempPassword);
       userCreated = true;
       break;
     } catch (err) {
-      if (err.code === 'auth/email-already-exists') {
+      const msg = err.message || '';
+      if (msg.includes('EMAIL_EXISTS') || msg.includes('email-already-exists')) {
         console.log('    Auth user already exists — skipping');
         userCreated = true;
         break;
       }
       if (attempt < 10) {
-        console.log(`    Auth not ready yet (attempt ${attempt}/10), retrying in 6s...`);
+        console.log(`    Auth not ready yet (attempt ${attempt}/10), retrying in 6s... [${msg.slice(0, 80)}]`);
         await sleep(6000);
       } else {
         throw err;
@@ -410,6 +415,10 @@ async function main() {
   // Wait for the new service account key to propagate before using it
   console.log('    Waiting 15s for service account key to propagate...');
   await sleep(15000);
+  const clientApp = admin.initializeApp(
+    { credential: admin.credential.cert(serviceAccountJson), projectId },
+    'client'
+  );
   const clientDb = clientApp.firestore();
   // Retry in case Firestore or credentials are still warming up
   for (let attempt = 1; attempt <= 5; attempt++) {
@@ -448,18 +457,21 @@ service cloud.firestore {
 
   // ── Step 9c: Authorize mymoneywise.web.app in client Auth settings ────────
   console.log('[9c] Authorizing mymoneywise.web.app in client Auth...');
-  const identityToolkit = google.identitytoolkit('v2');
   try {
-    const { data: authConfig } = await identityToolkit.projects.getConfig({
-      name: `projects/${projectId}`,
+    const { data: authConfig } = await authClient.request({
+      url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
+      method: 'GET',
+      headers: { 'x-goog-user-project': projectId },
     });
     const existing = authConfig.authorizedDomains || [];
     const toAdd = 'mymoneywise.web.app';
     if (!existing.includes(toAdd)) {
-      await identityToolkit.projects.updateConfig({
-        name: `projects/${projectId}`,
-        updateMask: 'authorizedDomains',
-        requestBody: { authorizedDomains: [...existing, toAdd] },
+      await authClient.request({
+        url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
+        method: 'PATCH',
+        params: { updateMask: 'authorizedDomains' },
+        headers: { 'x-goog-user-project': projectId },
+        data: { authorizedDomains: [...existing, toAdd] },
       });
       console.log('    mymoneywise.web.app authorized');
     } else {
