@@ -212,6 +212,31 @@ async function main() {
     await sleep(1000);
   }
 
+  // ── Step 4c: Initialize Firebase Auth via Identity Toolkit v1 ───────────
+  console.log('[4c] Initializing Firebase Auth...');
+  await sleep(5000); // allow identitytoolkit API to propagate
+  try {
+    await authClient.request({
+      url: `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/config`,
+      method: 'PATCH',
+      params: { updateMask: 'signIn' },
+      headers: { 'x-goog-user-project': projectId },
+      data: {
+        signIn: {
+          email: { enabled: true, passwordRequired: true },
+          allowDuplicateEmails: false,
+        },
+      },
+    });
+    console.log('    Firebase Auth initialized');
+  } catch (err) {
+    if (err.status === 409 || err.message?.includes('already')) {
+      console.log('    Firebase Auth already initialized — continuing');
+    } else {
+      console.warn('    Warning: Auth init returned:', err.message);
+    }
+  }
+
   // ── Step 4b: Create Firestore database in São Paulo ──────────────────────
   console.log('[4b] Creating Firestore database (southamerica-east1)...');
   try {
