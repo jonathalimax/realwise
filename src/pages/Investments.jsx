@@ -357,7 +357,7 @@ export default function InvestmentsPage() {
       </button>
       <PageHelp
         title="Investimentos"
-        text="Acompanhe seus ativos reais. Registre o valor atual e o retorno de cada investimento. O total é atualizado conforme você adiciona ou edita ativos."
+        text="Organize seus investimentos em Camadas e Sublayers. Camada = objetivo (ex: Proteção, Crescimento). Sublayer = produto real (ex: CDB, Tesouro Selic). Defina o % de cada camada no Plano e adicione os ativos reais na Lista."
         hasFab={true}
       />
     </div>
