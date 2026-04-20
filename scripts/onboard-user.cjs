@@ -123,6 +123,12 @@ async function main() {
   for (let i = 0; i < 20; i++) {
     const { data } = await resourceManager.projects.get({ projectId });
     if (data.lifecycleState === 'ACTIVE') break;
+    if (data.lifecycleState === 'DELETE_REQUESTED') {
+      throw new Error(
+        `Project ${projectId} is scheduled for deletion. Restore it first:\n` +
+        `  https://console.cloud.google.com/iam-admin/projects?organizationId=&project=${projectId}`
+      );
+    }
     console.log('    Waiting for ACTIVE...', data.lifecycleState);
     await sleep(3000);
   }
