@@ -165,11 +165,21 @@ export default function AllocationTab({
                   </div>
 
                   {/* Slider */}
-                  <input
-                    type="range" min={0} max={100} step={1} value={pct}
-                    onChange={e => onChange(Number(e.target.value))}
-                    className={`w-full h-2 rounded-full appearance-none cursor-pointer accent-${c}-500`}
-                  />
+                  <div className="space-y-1 py-1">
+                    <input
+                      type="range" min={0} max={100} step={1} value={pct}
+                      onChange={e => onChange(Number(e.target.value))}
+                      style={{
+                        background: `linear-gradient(to right, currentColor ${pct}%, #1e293b ${pct}%)`
+                      }}
+                      className={`styled-slider text-${c}-500`}
+                    />
+                    <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 select-none px-1">
+                      <span>0%</span>
+                      <span className="opacity-60">← arraste →</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
 
                   {/* Amount */}
                   <p className={`text-2xl font-bold text-${c}-700 dark:text-${c}-300 tabular-nums`}>
