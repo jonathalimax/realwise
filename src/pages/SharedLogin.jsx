@@ -60,7 +60,9 @@ export default function SharedLogin() {
     }
     const userConfig = await configRes.json();
 
-    const userAppName = `user-${username}`;
+    // Use the same app name that ClientConfigContext will use after redirect,
+    // so Firebase Auth can find the persisted custom-token session in IndexedDB.
+    const userAppName = username;
     const existingUserApp = getApps().find((a) => a.name === userAppName);
     const userApp = existingUserApp ?? initializeApp(userConfig.firebase, userAppName);
     const userAuth = getAuth(userApp);
