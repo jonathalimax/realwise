@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { formatBRL, resolveLayerColors } from './constants';
 import LayerModal from './LayerModal';
+import PercentInput from '@/components/ui/PercentInput';
 
 export default function LayerAllocationEditor({ layers, poupancaValue, onUpdateLayers, readOnly }) {
   const [showAddLayer, setShowAddLayer] = useState(false);
@@ -36,32 +37,38 @@ export default function LayerAllocationEditor({ layers, poupancaValue, onUpdateL
         {underAllocated && <div className="h-2 bg-gray-200 dark:bg-gray-600 flex-1" />}
       </div>
 
-      {/* Layer tiles */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Layer rows */}
+      <div className="flex flex-col gap-2">
         {layers.map((layer, i) => {
           const colors = resolveLayerColors(layer.id, layer.colorKey, i);
           const monthly = poupancaValue * ((layer.pct ?? 0) / 100);
           return (
-            <div key={layer.id} className={`flex items-center gap-2 p-2.5 rounded-xl border ${colors.tile} ${colors.tileBorder}`}>
-              <span className="text-base shrink-0">{layer.icon}</span>
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-semibold ${colors.tileText} truncate`}>{layer.label}</p>
-                <p className="text-xs text-gray-400 tabular-nums">{formatBRL.format(monthly)}/mês</p>
-              </div>
-              {!readOnly ? (
-                <div className="flex items-center gap-1 shrink-0">
-                  <input
-                    type="number"
-                    value={layer.pct ?? 0}
-                    onChange={e => handlePctChange(layer.id, parseFloat(e.target.value) || 0)}
-                    className={`w-10 border rounded-md px-1 py-0.5 text-xs font-bold text-center bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-violet-500 ${colors.input}`}
-                    min={0} max={100}
-                  />
-                  <span className="text-xs text-gray-400">%</span>
+            <div
+              key={layer.id}
+              className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 gap-3"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-lg flex-shrink-0">{layer.icon}</span>
+                <div className="min-w-0">
+                  <div className={`text-sm font-semibold truncate ${colors.tileText}`}>{layer.label}</div>
+                  <div className="text-xs text-violet-500 dark:text-violet-400 font-medium tabular-nums">
+                    {formatBRL.format(monthly)}/mês
+                  </div>
                 </div>
-              ) : (
-                <span className={`text-xs font-bold tabular-nums ${colors.tileText}`}>{layer.pct ?? 0}%</span>
-              )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {!readOnly ? (
+                  <PercentInput
+                    value={layer.pct ?? 0}
+                    onChange={v => handlePctChange(layer.id, v)}
+                    decimalScale={0}
+                    className="w-20 text-sm text-right"
+                    placeholder="0 %"
+                  />
+                ) : (
+                  <span className={`text-sm font-bold tabular-nums ${colors.tileText}`}>{layer.pct ?? 0}%</span>
+                )}
+              </div>
             </div>
           );
         })}
