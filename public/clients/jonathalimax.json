@@ -6,12 +6,12 @@
     "projectId": "moneywise-jonathalimax",
     "storageBucket": "moneywise-jonathalimax.firebasestorage.app",
     "messagingSenderId": "874459425635",
-    "appId": "1:874459425635:web:e28752d91c2b2bb70ac156"
+    "appId": "1:874459425635:web:35ee0fa2ea62f2f90ac156"
   },
   "features": {
     "investments": true,
-    "goals": true,
-    "b3Sync": true,
+    "goals": false,
+    "b3Sync": false,
     "whatsapp": false,
     "salaryBreakdown": true
   }
