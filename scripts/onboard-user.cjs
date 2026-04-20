@@ -384,6 +384,7 @@ async function main() {
         method: 'POST',
         headers: { 'x-goog-user-project': projectId },
         data: {
+          localId: username, // UID must match what getCustomToken mints the token for
           email,
           password: tempPassword,
           displayName: username,
