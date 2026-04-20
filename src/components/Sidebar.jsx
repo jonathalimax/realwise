@@ -234,7 +234,7 @@ export default function Sidebar() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      navigate('/login');
+      window.location.href = '/login';
     } catch (error) {
       console.error('Error signing out:', error);
     }
