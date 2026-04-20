@@ -104,6 +104,37 @@ async function main() {
   const firebaseApi = google.firebase('v1beta1');
   const firestoreApi = google.firestore('v1');
 
+  // ── Step 0: Ensure caller has billing.user on the billing account ─────────
+  if (billingAccountId) {
+    console.log('[0/9] Ensuring billing.user role on billing account...');
+    try {
+      const billing = google.cloudbilling('v1');
+      const creds = await auth.getCredentials();
+      if (!creds.client_email) throw new Error('Could not determine caller identity from credentials');
+      const callerMember = `serviceAccount:${creds.client_email}`;
+
+      const { data: billingPolicy } = await billing.billingAccounts.getIamPolicy({
+        resource: `billingAccounts/${billingAccountId}`,
+      });
+      billingPolicy.bindings = billingPolicy.bindings || [];
+      const billingRole = 'roles/billing.user';
+      const existing = billingPolicy.bindings.find(b => b.role === billingRole);
+      if (existing) {
+        if (!existing.members.includes(callerMember)) existing.members.push(callerMember);
+      } else {
+        billingPolicy.bindings.push({ role: billingRole, members: [callerMember] });
+      }
+      await billing.billingAccounts.setIamPolicy({
+        resource: `billingAccounts/${billingAccountId}`,
+        requestBody: { policy: billingPolicy },
+      });
+      console.log('    billing.user granted to', callerMember);
+    } catch (err) {
+      console.warn('    Warning: could not ensure billing.user role:', err.message);
+      console.warn(`    If step [2/9] fails, grant it manually and re-run.`);
+    }
+  }
+
   // ── Step 1: Create GCP project ───────────────────────────────────────────
   console.log('[1/9] Creating GCP project...');
   try {
