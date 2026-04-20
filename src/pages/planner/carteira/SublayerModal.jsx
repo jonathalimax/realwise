@@ -1,5 +1,7 @@
 // src/pages/planner/carteira/SublayerModal.jsx
 import { useState, useEffect } from 'react';
+import { NumericFormat } from 'react-number-format';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { SUBLAYER_TYPE_OPTIONS, formatBRL } from './constants';
 import { netReturn } from './walletVersion';
 
@@ -96,14 +98,30 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Retorno bruto % a.m.</label>
-            <input type="number" value={returnPct} onChange={e => setReturnPct(e.target.value)} step="0.1" min="0"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            <NumericFormat
+              value={returnPct === '0' || returnPct === '' ? '' : returnPct}
+              onValueChange={vals => setReturnPct(String(vals.floatValue ?? 0))}
+              decimalSeparator=","
+              decimalScale={3}
+              suffix=" %/mês"
+              allowNegative={false}
+              placeholder="1,000 %/mês"
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
             <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Líq: {net.toFixed(3)}% a.m.</p>
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Alíquota IRPF %</label>
-            <input type="number" value={taxRate} onChange={e => setTaxRate(e.target.value)} step="1" min="0" max="100"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            <NumericFormat
+              value={taxRate === '0' || taxRate === '' ? '' : taxRate}
+              onValueChange={vals => setTaxRate(String(vals.floatValue ?? 0))}
+              decimalSeparator=","
+              decimalScale={0}
+              suffix=" %"
+              allowNegative={false}
+              placeholder="15 %"
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
         </div>
 
@@ -122,14 +140,24 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
           </div>
           {mode === 'pct' ? (
             <div className="flex items-center gap-2">
-              <input type="number" value={pct} onChange={e => setPct(e.target.value)} step="1" min="0" max="100"
-                className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              <NumericFormat
+                value={pct === '0' || pct === '' ? '' : pct}
+                onValueChange={vals => setPct(String(vals.floatValue ?? 0))}
+                decimalSeparator=","
+                decimalScale={0}
+                suffix=" %"
+                allowNegative={false}
+                placeholder="0 %"
+                className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
               <span className="text-xs text-gray-400">% → {formatBRL.format(monthlyContrib)}/mês</span>
             </div>
           ) : (
-            <input type="number" value={value} onChange={e => setValue(e.target.value)} step="10" min="0"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-              placeholder="Ex: 500" />
+            <CurrencyInput
+              value={parseFloat(value) || 0}
+              onChange={v => setValue(String(v))}
+              placeholder="R$ 500,00"
+            />
           )}
         </div>
 
@@ -147,9 +175,11 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
             </button>
           </div>
           {hasGoal && (
-            <input type="number" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} step="1000" min="0"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-              placeholder="Ex: 120000" />
+            <CurrencyInput
+              value={parseFloat(goalTarget) || 0}
+              onChange={v => setGoalTarget(String(v))}
+              placeholder="R$ 120.000,00"
+            />
           )}
         </div>
 
