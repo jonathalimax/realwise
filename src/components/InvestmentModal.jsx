@@ -3,6 +3,7 @@ import { useInvestments, INVESTMENT_TYPES, CDI_ANNUAL_RATE } from '../contexts/I
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from './ui/CurrencyInput';
+import PercentInput from './ui/PercentInput';
 import PlannerGoalSelect from './PlannerGoalSelect';
 
 export default function InvestmentModal({ isOpen, onClose, initialView = 'form', editingInvestment: externalEditingInvestment = null }) {
@@ -38,8 +39,8 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
     name: '',
     type: 'fixed_income',
     bank: '',
-    initialAmount: 0,
-    expectedReturn: 0,
+    initialAmount: null,
+    expectedReturn: null,
     returnType: 'annual',
     purchaseDate: new Date().toISOString().split('T')[0],
     maturityDate: '',
@@ -75,8 +76,8 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
       name: '',
       type: 'fixed_income',
       bank: '',
-      initialAmount: 0,
-      expectedReturn: 0,
+      initialAmount: null,
+      expectedReturn: null,
       returnType: 'annual',
       purchaseDate: new Date().toISOString().split('T')[0],
       maturityDate: '',
@@ -118,7 +119,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
       type: formData.type,
       bank: formData.bank.trim(),
       initialAmount: formData.initialAmount,
-      expectedReturn: formData.expectedReturn / 100, // Convert from percentage
+      expectedReturn: (formData.expectedReturn ?? 0) / 100, // Convert from percentage
       returnType: formData.returnType,
       purchaseDate: formData.purchaseDate || null,
       maturityDate: formData.maturityDate || null,
@@ -300,7 +301,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                     {t('investments.initialAmount')}
                   </label>
                   <CurrencyInput
-                    value={formData.initialAmount}
+                    value={formData.initialAmount ?? 0}
                     onChange={(val) => setFormData({ ...formData, initialAmount: val })}
                   />
                 </div>
@@ -348,21 +349,10 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {formData.returnType === 'cdi' ? t('investments.cdiPercentage') : t('investments.expectedReturn')}
                   </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.expectedReturn}
-                      onChange={(e) => setFormData({ ...formData, expectedReturn: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400
-                        focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition pr-24"
-                      placeholder={formData.returnType === 'cdi' ? '100' : '0.00'}
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      {formData.returnType === 'cdi' ? '% CDI' : '%'}
-                    </span>
-                  </div>
+                  <PercentInput
+                    value={formData.expectedReturn ?? 0}
+                    onChange={(val) => setFormData({ ...formData, expectedReturn: val })}
+                  />
                   {formData.returnType === 'cdi' && (
                     <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       {t('investments.cdiHint')} ({t('investments.currentCdi')}: {(CDI_ANNUAL_RATE * 100).toFixed(2)}% {t('investments.returnTypes.annual').toLowerCase()})

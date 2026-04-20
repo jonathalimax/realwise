@@ -13,7 +13,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
   const [editingGoal, setEditingGoal] = useState(null);
   const [selectedGoalForFunds, setSelectedGoalForFunds] = useState(null);
   const [selectedGoalForTransactions, setSelectedGoalForTransactions] = useState(null);
-  const [fundAmount, setFundAmount] = useState(0);
+  const [fundAmount, setFundAmount] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmAchieved, setConfirmAchieved] = useState(null);
   const [sortBy, setSortBy] = useState('deadline'); // 'deadline', 'name', 'value', 'created'
@@ -21,7 +21,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    targetAmount: 0,
+    targetAmount: null,
     icon: 'other',
     color: 'blue',
     deadline: '',
@@ -33,7 +33,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
   const resetForm = () => {
     setFormData({
       name: '',
-      targetAmount: 0,
+      targetAmount: null,
       icon: 'other',
       color: 'blue',
       deadline: '',
@@ -111,13 +111,13 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
     if (!selectedGoalForFunds || !fundAmount || fundAmount <= 0) return;
     await addAmountToGoal(selectedGoalForFunds.id, fundAmount);
     setSelectedGoalForFunds(null);
-    setFundAmount(0);
+    setFundAmount(null);
     setView('list');
   };
 
   const openAddFunds = (goal) => {
     setSelectedGoalForFunds(goal);
-    setFundAmount(0);
+    setFundAmount(null);
     setView('addFunds');
   };
 
@@ -477,7 +477,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                   {t('goals.targetAmount')}
                 </label>
                 <CurrencyInput
-                  value={formData.targetAmount}
+                  value={formData.targetAmount ?? 0}
                   onChange={(val) => setFormData({ ...formData, targetAmount: val })}
                 />
               </div>
@@ -617,7 +617,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                   {t('goals.amount')}
                 </label>
                 <CurrencyInput
-                  value={fundAmount}
+                  value={fundAmount ?? 0}
                   onChange={setFundAmount}
                 />
               </div>

@@ -10,6 +10,7 @@ import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/Inve
 import { useAccess } from '../contexts/AccessContext';
 import { buildUpdatedMetadata } from '../utils/transactionMetadata';
 import CurrencyInput from './ui/CurrencyInput';
+import PercentInput from './ui/PercentInput';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
 
 export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess }) {
@@ -444,21 +445,10 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                   {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
                                 </label>
-                                <div className="relative">
-                                  <input
-                                    type="number"
-                                    value={expectedReturn}
-                                    onChange={(e) => setExpectedReturn(e.target.value)}
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    className="w-full px-4 py-3 pr-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                      text-gray-900 dark:text-white placeholder-gray-400
-                                      focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                      transition-all duration-200"
-                                  />
-                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">%</span>
-                                </div>
+                                <PercentInput
+                                  value={expectedReturn ?? 0}
+                                  onChange={(val) => setExpectedReturn(val)}
+                                />
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
