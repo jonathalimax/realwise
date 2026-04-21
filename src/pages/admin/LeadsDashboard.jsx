@@ -1,19 +1,9 @@
 // src/pages/admin/LeadsDashboard.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useNavigate } from 'react-router-dom';
 import EmailModal from './EmailModal';
-
-const STATE_COLORS = {
-  pending:    'bg-yellow-800 text-yellow-200',
-  not_paid:   'bg-gray-700 text-gray-300',
-  paid:       'bg-blue-800 text-blue-200',
-  onboarding: 'bg-purple-800 text-purple-200',
-  active:     'bg-emerald-800 text-emerald-200',
-  cancelled:  'bg-red-900 text-red-300',
-  refunded:   'bg-orange-900 text-orange-300',
-};
 
 const STATES = ['pending', 'not_paid', 'paid', 'onboarding', 'active', 'cancelled', 'refunded'];
 const FILTERS = ['all', ...STATES];
@@ -54,10 +44,10 @@ export default function LeadsDashboard({ db, functions }) {
   }, {});
 
   const totalRevenue = Object.values(revenueByEmail).reduce((a, b) => a + b, 0);
-  const paidLeads = leads.filter(l => l.paid).length;
+  const paidLeads = leads.filter(l => ['paid', 'onboarding', 'active'].includes(l.state)).length;
   const conversionRate = leads.length ? ((paidLeads / leads.length) * 100).toFixed(1) : '0.0';
 
-  async function handleStateChange(email, newState) {
+  const handleStateChange = useCallback(async (email, newState) => {
     setUpdatingState(prev => ({ ...prev, [email]: true }));
     try {
       await httpsCallable(functions, 'updateLeadState')({ email, state: newState });
@@ -66,7 +56,7 @@ export default function LeadsDashboard({ db, functions }) {
     } finally {
       setUpdatingState(prev => ({ ...prev, [email]: false }));
     }
-  }
+  }, [functions]);
 
   function startOnboarding(email) {
     const runId = `${Date.now()}-${email.split('@')[0]}`;
