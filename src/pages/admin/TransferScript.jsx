@@ -225,9 +225,8 @@ export default function TransferScript() {
         <p className="font-semibold text-gray-300">One-time setup for "Run Transfer"</p>
         <p>The admin service account must be granted IAM Admin on each client project. Run once per project:</p>
         <pre className="bg-gray-950 rounded-lg p-3 text-emerald-300 font-mono whitespace-pre-wrap overflow-x-auto">
-{`# Get service account email from Firebase Console → Project Settings → Service accounts
-gcloud projects add-iam-policy-binding ${selectedClient.projectId} \\
-  --member="serviceAccount:YOUR_ADMIN_SA@moneywise-ad9ec.iam.gserviceaccount.com" \\
+{`gcloud projects add-iam-policy-binding ${selectedClient.projectId} \\
+  --member="serviceAccount:firebase-adminsdk-fbsvc@moneywise-ad9ec.iam.gserviceaccount.com" \\
   --role="roles/resourcemanager.projectIamAdmin"`}
         </pre>
       </div>
