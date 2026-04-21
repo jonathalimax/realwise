@@ -75,13 +75,17 @@ export default function OnboardingRun({ db, functions }) {
     }
   }
 
-  function handleCopyLogs() {
+  async function handleCopyLogs() {
     const text = logs.map(l =>
       `[${l.ts?.toDate?.()?.toLocaleTimeString('pt-BR') ?? '—'}] [step ${l.step}] ${l.message}`
     ).join('\n');
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — silently ignore
+    }
   }
 
   return (
