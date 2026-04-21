@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { useNavigate } from 'react-router-dom';
 import EmailModal from './EmailModal';
+import DiscountModal from './DiscountModal';
 
 const STATES = ['pending', 'not_paid', 'paid', 'onboarding', 'active', 'cancelled', 'refunded'];
 const FILTERS = ['all', ...STATES];
@@ -184,12 +185,11 @@ export default function LeadsDashboard({ db, functions }) {
         <EmailModal user={emailTarget} functions={functions} onClose={() => setEmailTarget(null)} />
       )}
       {discountTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-md">
-            <p className="text-white font-bold mb-2">Discount — coming soon</p>
-            <button onClick={() => setDiscountTarget(null)} className="text-gray-400 hover:text-white text-sm">Close</button>
-          </div>
-        </div>
+        <DiscountModal
+          lead={discountTarget}
+          functions={functions}
+          onClose={() => setDiscountTarget(null)}
+        />
       )}
     </div>
   );

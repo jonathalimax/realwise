@@ -815,3 +815,6 @@ exports.sendAdminEmail = sendAdminEmail;
 
 const { updateLeadState } = require('./updateLeadState');
 exports.updateLeadState = updateLeadState;
+
+const { createDiscountCheckout } = require('./createDiscountCheckout');
+exports.createDiscountCheckout = createDiscountCheckout;
