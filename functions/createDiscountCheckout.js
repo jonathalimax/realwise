@@ -12,6 +12,15 @@ exports.createDiscountCheckout = functions
   .https.onCall(async (data, context) => {
     const { email, discountPct } = data;
 
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+    }
+    const callerEmail = context.auth.token.email;
+    const adminDoc = await db.collection('admins').doc(callerEmail).get();
+    if (!adminDoc.exists) {
+      throw new functions.https.HttpsError('permission-denied', 'Not an admin');
+    }
+
     if (!email || typeof discountPct !== 'number' || discountPct <= 0 || discountPct > 100) {
       throw new functions.https.HttpsError('invalid-argument', 'email and discountPct (1-100) required');
     }
@@ -36,29 +45,36 @@ exports.createDiscountCheckout = functions
       { merge: true }
     );
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      customer_email: emailLower,
-      discounts: [{ coupon: coupon.id }],
-      line_items: [
-        {
-          price_data: {
-            currency: 'brl',
-            unit_amount: 47988,
-            product_data: {
-              name: 'Moneywise — Acesso Vitalício',
-              description: 'Acesso completo, suporte vitalício, sem mensalidade.',
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        customer_email: emailLower,
+        discounts: [{ coupon: coupon.id }],
+        line_items: [
+          {
+            price_data: {
+              currency: 'brl',
+              unit_amount: 47988,
+              product_data: {
+                name: 'Moneywise — Acesso Vitalício',
+                description: 'Acesso completo, suporte vitalício, sem mensalidade.',
+              },
             },
+            quantity: 1,
           },
-          quantity: 1,
-        },
-      ],
-      payment_method_types: ['card'],
-      payment_method_options: { card: { installments: { enabled: true } } },
-      metadata: { email: emailLower, discountPct: String(discountPct), couponId: coupon.id },
-      success_url: 'https://mymoneywise.web.app/purchase-success',
-      cancel_url: 'https://mymoneywise.web.app/',
-    });
+        ],
+        payment_method_types: ['card'],
+        payment_method_options: { card: { installments: { enabled: true } } },
+        metadata: { email: emailLower, discountPct: String(discountPct), couponId: coupon.id },
+        success_url: 'https://mymoneywise.web.app/purchase-success',
+        cancel_url: 'https://mymoneywise.web.app/',
+      });
+    } catch (sessionErr) {
+      await stripe.coupons.del(coupon.id).catch(() => {});
+      console.error('Stripe session creation failed:', sessionErr);
+      throw new functions.https.HttpsError('internal', 'Failed to create checkout session');
+    }
 
     return { url: session.url, couponId: coupon.id };
   });
