@@ -220,16 +220,6 @@ export default function TransferScript() {
         </div>
       </details>
 
-      {/* Service account setup note */}
-      <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-xs text-gray-400 space-y-2">
-        <p className="font-semibold text-gray-300">One-time setup for "Run Transfer"</p>
-        <p>The admin service account must be granted IAM Admin on each client project. Run once per project:</p>
-        <pre className="bg-gray-950 rounded-lg p-3 text-emerald-300 font-mono whitespace-pre-wrap overflow-x-auto">
-{`gcloud projects add-iam-policy-binding ${selectedClient.projectId} \\
-  --member="serviceAccount:moneywise-ad9ec@appspot.gserviceaccount.com" \\
-  --role="roles/resourcemanager.projectIamAdmin"`}
-        </pre>
-      </div>
     </div>
   );
 }
