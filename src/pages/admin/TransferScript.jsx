@@ -226,7 +226,7 @@ export default function TransferScript() {
         <p>The admin service account must be granted IAM Admin on each client project. Run once per project:</p>
         <pre className="bg-gray-950 rounded-lg p-3 text-emerald-300 font-mono whitespace-pre-wrap overflow-x-auto">
 {`gcloud projects add-iam-policy-binding ${selectedClient.projectId} \\
-  --member="serviceAccount:firebase-adminsdk-fbsvc@moneywise-ad9ec.iam.gserviceaccount.com" \\
+  --member="serviceAccount:moneywise-ad9ec@appspot.gserviceaccount.com" \\
   --role="roles/resourcemanager.projectIamAdmin"`}
         </pre>
       </div>
