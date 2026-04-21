@@ -415,7 +415,6 @@ export default {
       crypto: 'Cripto',
       funds: 'Fundos',
       fii: 'FII',
-      real_estate: 'Imóveis/FIIs',
     },
     returnTypes: {
       cdi: '% CDI',

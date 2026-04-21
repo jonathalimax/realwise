@@ -1,4 +1,4 @@
-import { NumericFormat } from 'react-number-format';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatBRL } from './usePlannerState';
 
 const MONTH_NAMES_PT = [
@@ -179,17 +179,11 @@ export default function DashboardTab({
               <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {label}
               </label>
-              <NumericFormat
+              <CurrencyInput
                 id={id}
-                value={state[key] === 0 ? '' : state[key]}
-                onValueChange={vals => update(key, vals.floatValue ?? 0)}
-                thousandSeparator="."
-                decimalSeparator=","
-                prefix="R$ "
-                decimalScale={2}
-                allowNegative={false}
-                placeholder="R$ 0,00"
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                value={state[key]}
+                onChange={v => update(key, v)}
+                className="px-3 py-2 text-sm"
               />
             </div>
           ))}

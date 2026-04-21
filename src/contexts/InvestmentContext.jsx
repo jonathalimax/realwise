@@ -24,7 +24,6 @@ export const INVESTMENT_TYPES = {
   crypto: { icon: '₿', color: 'orange', label: 'crypto' },
   funds: { icon: '💼', color: 'purple', label: 'funds' },
   fii: { icon: '🏢', color: 'teal', label: 'fii' },
-  real_estate: { icon: '🏠', color: 'amber', label: 'real_estate' },
 };
 
 // Investment colors (reusing goal colors pattern)

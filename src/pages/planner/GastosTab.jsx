@@ -5,7 +5,7 @@ import { useAccess } from '@/contexts/AccessContext';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useCards } from '@/contexts/CardsContext';
-import { NumericFormat } from 'react-number-format';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatBRL } from './usePlannerState';
 import SpendingChart from '@/components/charts/SpendingChart';
 import CategoryTrendChart from './CategoryTrendChart';
@@ -247,16 +247,11 @@ export default function GastosTab({
                           {formatBRL.format(spent)} gasto
                         </span>
                         <span className="text-gray-300 dark:text-gray-600 text-xs">/</span>
-                        <NumericFormat
-                          value={limit === 0 ? '' : limit}
-                          onValueChange={vals => setTemplateCategoryBudget(category, vals.floatValue ?? 0)}
-                          thousandSeparator="."
-                          decimalSeparator=","
-                          prefix="R$ "
-                          decimalScale={0}
-                          allowNegative={false}
+                        <CurrencyInput
+                          value={limit}
+                          onChange={v => setTemplateCategoryBudget(category, v)}
                           placeholder="sem limite"
-                          className="w-28 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-violet-500"
+                          className="w-28 px-2 py-1 text-xs text-right"
                         />
                         {limit > 0 && (
                           <>

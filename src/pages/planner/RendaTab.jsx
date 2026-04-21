@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NumericFormat } from 'react-number-format';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatBRL } from './usePlannerState';
 import { computeDeductionTotal } from './rendaCalc.js';
 import { useFeature } from '@/contexts/ClientConfigContext';
@@ -72,15 +73,10 @@ export default function RendaTab({ state, update, liquidezFinal }) {
           <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             Salário Líquido
           </h3>
-          <NumericFormat
+          <CurrencyInput
             value={state.salarioBruto}
-            onValueChange={vals => update('salarioBruto', vals.floatValue ?? 0)}
-            prefix="R$ "
-            decimalSeparator=","
-            thousandSeparator="."
-            decimalScale={2}
-            allowNegative={false}
-            className="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-lg font-semibold"
+            onChange={v => update('salarioBruto', v)}
+            className="px-3 py-3 text-lg font-semibold"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
             Este valor será usado como base de alocação no planejador.
@@ -97,15 +93,10 @@ export default function RendaTab({ state, update, liquidezFinal }) {
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Salário / Renda Bruta
         </h3>
-        <NumericFormat
+        <CurrencyInput
           value={state.salarioBruto}
-          onValueChange={vals => update('salarioBruto', vals.floatValue ?? 0)}
-          prefix="R$ "
-          decimalSeparator=","
-          thousandSeparator="."
-          decimalScale={2}
-          allowNegative={false}
-          className="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-lg font-semibold"
+          onChange={v => update('salarioBruto', v)}
+          className="px-3 py-3 text-lg font-semibold"
         />
       </div>
 

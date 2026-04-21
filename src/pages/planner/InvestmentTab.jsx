@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NumericFormat } from 'react-number-format';
 import { Badge } from '@/components/ui/badge';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatBRL } from './usePlannerState';
 import PercentInput from '@/components/ui/PercentInput';
@@ -12,19 +12,13 @@ const GEMINI_ENDPOINT =
 
 function AmountCell({ value, onChange, highlight }) {
   return (
-    <NumericFormat
-      value={value === 0 ? '' : value}
-      onValueChange={vals => onChange(vals.floatValue ?? 0)}
-      thousandSeparator="."
-      decimalSeparator=","
-      prefix="R$ "
-      decimalScale={2}
-      allowNegative={false}
-      placeholder="R$ 0,00"
-      className={`w-full px-2 py-1 rounded-lg border text-sm text-right tabular-nums focus:outline-none focus:ring-1 focus:ring-violet-500
+    <CurrencyInput
+      value={value}
+      onChange={onChange}
+      className={`px-2 py-1 text-sm text-right
         ${highlight === 'casa'
           ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 font-bold'
-          : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white'
+          : ''
         }`}
     />
   );
