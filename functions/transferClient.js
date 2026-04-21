@@ -79,6 +79,22 @@ exports.transferClient = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', `Cannot read IAM policy: ${err.message}`);
   }
 
+  // Link billing FIRST — upgrades Spark → Blaze, enabling CLI owner grants
+  if (billingAccount) {
+    const billingRes = await fetch(
+      `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ billingAccountName: `billingAccounts/${billingAccount}` }),
+      }
+    );
+    if (!billingRes.ok) {
+      const billingErr = await billingRes.text();
+      throw new functions.https.HttpsError('internal', `Billing link failed: ${billingErr}`);
+    }
+  }
+
   // Add owner binding
   const ownerBinding = policy.bindings?.find(b => b.role === 'roles/owner');
   const member = `user:${emailLower}`;
@@ -110,36 +126,6 @@ exports.transferClient = functions.https.onCall(async (data, context) => {
       };
     }
     throw new functions.https.HttpsError('internal', `IAM update failed: ${errorBody}`);
-  }
-
-  // Optionally link billing account
-  if (billingAccount) {
-    try {
-      const billingRes = await fetch(
-        `https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`,
-        {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ billingAccountName: `billingAccounts/${billingAccount}` }),
-        }
-      );
-      if (!billingRes.ok) {
-        const billingErr = await billingRes.text();
-        return {
-          success: true,
-          iamDone: true,
-          billingError: `IAM transfer succeeded, but billing link failed: ${billingErr}`,
-          consoleUrl,
-        };
-      }
-    } catch (err) {
-      return {
-        success: true,
-        iamDone: true,
-        billingError: `IAM transfer succeeded, but billing link failed: ${err.message}`,
-        consoleUrl,
-      };
-    }
   }
 
   return { success: true, projectId, clientEmail: emailLower, consoleUrl };
