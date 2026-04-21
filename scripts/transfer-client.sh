@@ -31,6 +31,14 @@ if [[ -z "$PROJECT_ID" || -z "$CLIENT_EMAIL" ]]; then
   exit 1
 fi
 
+ADMIN_SA="moneywise-ad9ec@appspot.gserviceaccount.com"
+echo "→ Granting IAM admin to Cloud Functions service account..."
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$ADMIN_SA" \
+  --role="roles/resourcemanager.projectIamAdmin" \
+  --quiet 2>/dev/null || true
+echo "✓ Cloud Functions service account ready."
+
 echo "→ Granting roles/owner to $CLIENT_EMAIL on project $PROJECT_ID..."
 IAM_OUTPUT=$(gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="user:$CLIENT_EMAIL" \
