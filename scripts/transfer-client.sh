@@ -9,7 +9,7 @@
 #
 # Requirements: gcloud CLI authenticated as project owner
 
-set -euo pipefail
+set -uo pipefail
 
 PROJECT_ID=""
 CLIENT_EMAIL=""
@@ -32,10 +32,28 @@ if [[ -z "$PROJECT_ID" || -z "$CLIENT_EMAIL" ]]; then
 fi
 
 echo "→ Granting roles/owner to $CLIENT_EMAIL on project $PROJECT_ID..."
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+IAM_OUTPUT=$(gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="user:$CLIENT_EMAIL" \
   --role="roles/owner" \
-  --quiet
+  --quiet 2>&1) || true
+
+if echo "$IAM_OUTPUT" | grep -q "SOLO_MUST_INVITE_OWNERS"; then
+  echo ""
+  echo "⚠  This project requires an invitation for new owners (Spark plan restriction)."
+  echo "   The CLI cannot directly grant roles/owner. Complete the transfer manually:"
+  echo ""
+  echo "   1. Open: https://console.cloud.google.com/iam-admin/iam?project=$PROJECT_ID"
+  echo "   2. Click 'Grant Access'"
+  echo "   3. Add member: $CLIENT_EMAIL"
+  echo "   4. Select role: Owner"
+  echo "   5. Save — GCP will send an invitation email"
+  echo ""
+  echo "   Alternatively, upgrade the project to the Blaze plan first, then re-run this script."
+  exit 1
+elif echo "$IAM_OUTPUT" | grep -q "ERROR"; then
+  echo "$IAM_OUTPUT" >&2
+  exit 1
+fi
 
 echo "✓ Owner role granted."
 
