@@ -80,3 +80,5 @@ fi
 
 echo ""
 echo "✓ Transfer complete for $PROJECT_ID → $CLIENT_EMAIL"
+echo ""
+echo "  IAM Console: https://console.cloud.google.com/iam-admin/iam?project=$PROJECT_ID"

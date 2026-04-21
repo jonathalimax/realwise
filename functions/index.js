@@ -817,4 +817,7 @@ const { updateLeadState } = require('./updateLeadState');
 exports.updateLeadState = updateLeadState;
 
 const { createDiscountCheckout } = require('./createDiscountCheckout');
+
+const { transferClient } = require('./transferClient');
+exports.transferClient = transferClient;
 exports.createDiscountCheckout = createDiscountCheckout;
