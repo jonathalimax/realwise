@@ -139,46 +139,88 @@ export default function AllocationTab({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { key: 'necessidades', emoji: '🏠', label: 'Necessidades', ruleKey: 'needs',   pct: monthAllocation.necessidades, value: necessidadesValue, allocated: allocatedByRule.needs,   sub: 'Fixas / Essenciais', c: 'blue',    onChange: v => updateMonthAllocation('necessidades', v) },
-            { key: 'poupanca',     emoji: '💰', label: 'Poupança',     ruleKey: 'savings', pct: monthAllocation.poupanca,     value: poupancaValue,     allocated: allocatedByRule.savings, sub: 'Investimentos',    c: 'emerald', onChange: v => updateMonthAllocation('poupanca', v) },
-            { key: 'desejos',      emoji: '🎯', label: 'Desejos',      ruleKey: 'wants',   pct: monthAllocation.desejos,      value: desejosValue,      allocated: allocatedByRule.wants,   sub: 'Lazer / Variáveis',  c: 'orange',  onChange: v => updateMonthAllocation('desejos', v) },
-          ].map(({ key, emoji, label, pct, value, allocated, sub, c, onChange }) => {
+            { 
+              key: 'necessidades', emoji: '🏠', label: 'Necessidades', ruleKey: 'needs',   
+              pct: monthAllocation.necessidades, value: necessidadesValue, allocated: allocatedByRule.needs,   
+              sub: 'Fixas / Essenciais', 
+              colors: {
+                bg: 'bg-blue-50 dark:bg-blue-900/20',
+                border: 'border-blue-100 dark:border-blue-800/50',
+                text: 'text-blue-700 dark:text-blue-300',
+                label: 'text-blue-600 dark:text-blue-400',
+                subtext: 'text-blue-400/80',
+                slider: 'text-blue-500',
+                bar: 'bg-blue-500'
+              },
+              onChange: v => updateMonthAllocation('necessidades', v) 
+            },
+            { 
+              key: 'poupanca', emoji: '💰', label: 'Poupança', ruleKey: 'savings', 
+              pct: monthAllocation.poupanca, value: poupancaValue, allocated: allocatedByRule.savings, 
+              sub: 'Investimentos',    
+              colors: {
+                bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+                border: 'border-emerald-100 dark:border-emerald-800/50',
+                text: 'text-emerald-700 dark:text-emerald-300',
+                label: 'text-emerald-600 dark:text-emerald-400',
+                subtext: 'text-emerald-400/80',
+                slider: 'text-emerald-500',
+                bar: 'bg-emerald-500'
+              },
+              onChange: v => updateMonthAllocation('poupanca', v) 
+            },
+            { 
+              key: 'desejos', emoji: '🎯', label: 'Desejos', ruleKey: 'wants',   
+              pct: monthAllocation.desejos, value: desejosValue, allocated: allocatedByRule.wants,   
+              sub: 'Lazer / Variáveis',  
+              colors: {
+                bg: 'bg-orange-50 dark:bg-orange-900/20',
+                border: 'border-orange-100 dark:border-orange-800/50',
+                text: 'text-orange-700 dark:text-orange-300',
+                label: 'text-orange-600 dark:text-orange-400',
+                subtext: 'text-orange-400/80',
+                slider: 'text-orange-500',
+                bar: 'bg-orange-500'
+              },
+              onChange: v => updateMonthAllocation('desejos', v) 
+            },
+          ].map(({ key, emoji, label, pct, value, allocated, sub, colors, onChange }) => {
             const isOver  = allocated > value;
             const fillPct = value > 0 ? Math.min((allocated / value) * 100, 100) : 0;
 
             return (
-              <div key={key} className={`bg-${c}-50 dark:bg-${c}-900/10 rounded-2xl p-4 border border-${c}-100 dark:border-${c}-800/50 space-y-3`}>
+              <div key={key} className={`${colors.bg} rounded-2xl p-4 border ${colors.border} space-y-3`}>
                 <div className="flex items-center justify-between">
-                  <span className={`text-[10px] font-bold text-${c}-600 dark:text-${c}-400 uppercase tracking-widest`}>{emoji} {label}</span>
-                  <span className={`text-lg font-bold tabular-nums text-${c}-700 dark:text-${c}-300`}>{pct}%</span>
+                  <span className={`text-[10px] font-bold ${colors.label} uppercase tracking-widest`}>{emoji} {label}</span>
+                  <span className={`text-lg font-bold tabular-nums ${colors.text}`}>{pct}%</span>
                 </div>
 
                 <div className="space-y-1 py-1">
                   <input
                     type="range" min={0} max={100} step={1} value={pct}
                     onChange={e => onChange(Number(e.target.value))}
-                    className={`styled-slider text-${c}-500`}
+                    className={`styled-slider ${colors.slider}`}
                     style={{ background: `linear-gradient(to right, currentColor ${pct}%, #1e293b ${pct}%)` }}
                   />
                 </div>
 
                 <div>
-                  <p className={`text-xl font-bold text-${c}-700 dark:text-${c}-300 tabular-nums`}>
+                  <p className={`text-xl font-bold ${colors.text} tabular-nums`}>
                     {formatBRL.format(value)}
                   </p>
-                  <p className={`text-[10px] text-${c}-400/80 -mt-0.5`}>{sub}</p>
+                  <p className={`text-[10px] ${colors.subtext} -mt-0.5`}>{sub}</p>
                 </div>
 
                 <div className="pt-2 border-t border-black/5 dark:border-white/5">
                   <div className="flex justify-between text-[10px] mb-1">
                     <span className="text-gray-400">Distribuído</span>
-                    <span className={`font-bold ${isOver ? 'text-red-500' : `text-${c}-600 dark:text-${c}-400`}`}>
+                    <span className={`font-bold ${isOver ? 'text-red-500' : colors.label}`}>
                       {formatBRL.format(allocated)}
                     </span>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-800 mb-3">
                     <div
-                      className={`h-1.5 rounded-full transition-all ${isOver ? 'bg-red-500' : `bg-${c}-500`}`}
+                      className={`h-1.5 rounded-full transition-all ${isOver ? 'bg-red-500' : colors.bar}`}
                       style={{ width: `${fillPct}%` }}
                     />
                   </div>
