@@ -56,6 +56,7 @@ export default function PlannerPage() {
     monthAllocation,
     updateMonthAllocation,
     resetMonthAllocation,
+    copyFromPreviousMonth,
   } = planner;
 
   return (
@@ -74,6 +75,7 @@ export default function PlannerPage() {
                 liquidezFinal={liquidezFinal}
                 updateSalarioBruto={updateSalarioBruto}
                 updateSalarioDeductions={updateSalarioDeductions}
+                copyFromPreviousMonth={copyFromPreviousMonth}
               />
             )}
 
@@ -90,6 +92,7 @@ export default function PlannerPage() {
                 selectedMonth={selectedMonth}
                 categoryBudgetsPct={categoryBudgetsPct}
                 updateCategoryBudgetPct={updateCategoryBudgetPct}
+                copyFromPreviousMonth={copyFromPreviousMonth}
               />
             )}
 

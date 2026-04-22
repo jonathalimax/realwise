@@ -307,61 +307,37 @@ function migrateState(saved) {
   return merged;
 }
 
+const DEFAULT_MONTH_DATA = {
+  salarioBruto: 0,
+  salarioDeductions: [],
+  allocation: { necessidades: 70, poupanca: 20, desejos: 10 },
+  categoryBudgetsPct: {}
+};
+
 /**
- * Returns the most recent version whose 'from' <= month.
+ * Returns the version for a specific month or defaults.
  */
 export function getActivePlannerVersion(versions, month) {
-  if (!versions?.length) return null;
-  const sorted = [...versions].sort((a, b) => a.from.localeCompare(b.from));
-  let active = sorted[0];
-  for (const v of sorted) {
-    if (v.from <= month) active = v;
-  }
-  return active;
+  return versions?.find(v => v.from === month) || DEFAULT_MONTH_DATA;
 }
 
 /**
- * Applies a patch to the version active in 'month' and propaga-tes it to all future versions.
+ * Strictly updates only the specified month.
  */
 export function updatePlannerForMonth(versions, month, patchFn) {
-  const sorted = [...versions].sort((a, b) => a.from.localeCompare(b.from));
-  let activeIdx = -1;
-  sorted.forEach((v, i) => { if (v.from <= month) activeIdx = i; });
-
-  if (activeIdx === -1) {
-    const base = {
-      salarioBruto: 10000, salarioDeductions: [], 
-      allocation: { necessidades: 70, poupanca: 20, desejos: 10 },
-      categoryBudgetsPct: {}
-    };
-    return [{ from: month, ...base, ...patchFn(base) }];
+  const existingIdx = versions.findIndex(v => v.from === month);
+  
+  if (existingIdx !== -1) {
+    return versions.map((v, i) => i === existingIdx ? { ...v, ...patchFn(v) } : v);
   }
 
-  // Update the target version (either existing for 'month' or create new snapshot)
-  let nextVersions;
-  const active = sorted[activeIdx];
-
-  if (active.from === month) {
-    // Update existing version for this specific month
-    nextVersions = sorted.map((v, i) => i === activeIdx ? { ...v, ...patchFn(v) } : v);
-  } else {
-    // Create new version starting from this month (cloning previous state)
-    const cloned = JSON.parse(JSON.stringify(active));
-    const newVersion = {
-      ...cloned,
-      from: month,
-      ...patchFn(cloned),
-    };
-    nextVersions = [...sorted, newVersion].sort((a, b) => a.from.localeCompare(b.from));
-  }
-
-  // CASCADING: Apply the same patch to ALL future versions as well
-  return nextVersions.map(v => {
-    if (v.from > month) {
-      return { ...v, ...patchFn(v) };
-    }
-    return v;
-  });
+  // Create new entry for this month starting from defaults
+  const newEntry = {
+    ...DEFAULT_MONTH_DATA,
+    from: month,
+    ...patchFn(DEFAULT_MONTH_DATA),
+  };
+  return [...versions, newEntry];
 }
 
 export const formatBRL = new Intl.NumberFormat('pt-BR', {
@@ -464,9 +440,24 @@ export default function usePlannerState() {
   };
 
   const resetMonthAllocation = () => {
-    // Simply remove the version if it starts at this month, effectively rolling back to previous version
     const next = state.plannerVersions.filter(v => v.from !== state.selectedPlannerMonth);
-    if (next.length > 0) update('plannerVersions', next);
+    update('plannerVersions', next);
+  };
+
+  const copyFromPreviousMonth = () => {
+    const [y, m] = state.selectedPlannerMonth.split('-').map(Number);
+    const prevDate = new Date(y, m - 2, 1);
+    const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevData = state.plannerVersions.find(v => v.from === prevKey);
+
+    if (prevData) {
+      updatePlannerVersion(() => ({
+        salarioBruto: prevData.salarioBruto,
+        salarioDeductions: JSON.parse(JSON.stringify(prevData.salarioDeductions)),
+        allocation: JSON.parse(JSON.stringify(prevData.allocation)),
+        categoryBudgetsPct: JSON.parse(JSON.stringify(prevData.categoryBudgetsPct)),
+      }));
+    }
   };
 
   // ── Income from USD params (kept for legacy/specific UI needs) ───────────
@@ -693,5 +684,6 @@ export default function usePlannerState() {
     monthAllocation,
     updateMonthAllocation,
     resetMonthAllocation,
+    copyFromPreviousMonth,
   };
 }

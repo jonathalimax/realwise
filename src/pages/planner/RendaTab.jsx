@@ -25,18 +25,29 @@ function SummaryRow({ label, value, highlight, negative }) {
 }
 
 const EMPTY_DEDUCTION = { label: '', type: 'value', amount: 0 };
-
-export default function RendaTab({ state, update, liquidezFinal, activeVersion, updateSalarioBruto, updateSalarioDeductions }) {
+export default function RendaTab({ state, update, liquidezFinal, activeVersion, updateSalarioBruto, updateSalarioDeductions, copyFromPreviousMonth }) {
   const hasSalaryBreakdown = useFeature('salaryBreakdown');
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
 
-  const salarioBruto = activeVersion?.salarioBruto ?? 10000;
+  const salarioBruto = activeVersion?.salarioBruto ?? 0;
   const deductions = activeVersion?.salarioDeductions ?? [];
   const deductionTotal = computeDeductionTotal(salarioBruto, deductions);
 
-  function startAdd() {
-    const id = `custom-${Date.now()}`;
+  return (
+    <div className="space-y-4">
+      {/* Header Actions */}
+      <div className="flex justify-end">
+        <button
+          onClick={copyFromPreviousMonth}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+        >
+          📥 Copiar do mês anterior
+        </button>
+      </div>
+
+      {/* Salário Bruto */}
+
     setDraft({ id, ...EMPTY_DEDUCTION });
     setEditingId(id);
   }

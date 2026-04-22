@@ -47,6 +47,7 @@ export default function AllocationTab({
   selectedMonth,
   categoryBudgetsPct,
   updateCategoryBudgetPct,
+  copyFromPreviousMonth,
 }) {
   const { ownerId } = useAccess();
   const { categories } = useSettings();
@@ -122,6 +123,9 @@ export default function AllocationTab({
             )}
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={copyFromPreviousMonth} className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 underline font-medium">
+              📥 Copiar do mês anterior
+            </button>
             <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
               Total: <span className="font-bold text-violet-600 dark:text-violet-400">{formatBRL.format(liquidezFinal)}</span>
             </span>
