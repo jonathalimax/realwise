@@ -26,13 +26,14 @@ function SummaryRow({ label, value, highlight, negative }) {
 
 const EMPTY_DEDUCTION = { label: '', type: 'value', amount: 0 };
 
-export default function RendaTab({ state, update, liquidezFinal }) {
+export default function RendaTab({ state, update, liquidezFinal, activeVersion, updateSalarioBruto, updateSalarioDeductions }) {
   const hasSalaryBreakdown = useFeature('salaryBreakdown');
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
 
-  const deductions = state.salarioDeductions ?? [];
-  const deductionTotal = computeDeductionTotal(state.salarioBruto, deductions);
+  const salarioBruto = activeVersion?.salarioBruto ?? 10000;
+  const deductions = activeVersion?.salarioDeductions ?? [];
+  const deductionTotal = computeDeductionTotal(salarioBruto, deductions);
 
   function startAdd() {
     const id = `custom-${Date.now()}`;
@@ -56,13 +57,13 @@ export default function RendaTab({ state, update, liquidezFinal }) {
     const next = exists
       ? deductions.map(d => d.id === draft.id ? draft : d)
       : [...deductions, draft];
-    update('salarioDeductions', next);
+    updateSalarioDeductions(next);
     setEditingId(null);
     setDraft(null);
   }
 
   function removeDeduction(id) {
-    update('salarioDeductions', deductions.filter(d => d.id !== id));
+    updateSalarioDeductions(deductions.filter(d => d.id !== id));
   }
 
   /* When salaryBreakdown is off, show a single net salary input (CLT mode). */
@@ -74,8 +75,8 @@ export default function RendaTab({ state, update, liquidezFinal }) {
             Salário Líquido
           </h3>
           <CurrencyInput
-            value={state.salarioBruto}
-            onChange={v => update('salarioBruto', v)}
+            value={salarioBruto}
+            onChange={v => updateSalarioBruto(v)}
             className="px-3 py-3 text-lg font-semibold"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
@@ -94,8 +95,8 @@ export default function RendaTab({ state, update, liquidezFinal }) {
           Salário / Renda Bruta
         </h3>
         <CurrencyInput
-          value={state.salarioBruto}
-          onChange={v => update('salarioBruto', v)}
+          value={salarioBruto}
+          onChange={v => updateSalarioBruto(v)}
           className="px-3 py-3 text-lg font-semibold"
         />
       </div>
@@ -123,7 +124,7 @@ export default function RendaTab({ state, update, liquidezFinal }) {
                   setDraft={setDraft}
                   onSave={saveEdit}
                   onCancel={cancelEdit}
-                  salarioBruto={state.salarioBruto}
+                  salarioBruto={salarioBruto}
                 />
               ) : (
                 <div className="flex items-center justify-between py-1.5">
@@ -137,7 +138,7 @@ export default function RendaTab({ state, update, liquidezFinal }) {
                     <span className="text-sm font-medium tabular-nums text-red-500 dark:text-red-400">
                       - {formatBRL.format(
                         d.type === 'pct'
-                          ? state.salarioBruto * d.amount / 100
+                          ? salarioBruto * d.amount / 100
                           : d.amount
                       )}
                     </span>
@@ -168,7 +169,7 @@ export default function RendaTab({ state, update, liquidezFinal }) {
               setDraft={setDraft}
               onSave={saveEdit}
               onCancel={cancelEdit}
-              salarioBruto={state.salarioBruto}
+              salarioBruto={salarioBruto}
             />
           )}
 
@@ -185,7 +186,7 @@ export default function RendaTab({ state, update, liquidezFinal }) {
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
           Resumo
         </h3>
-        <SummaryRow label="Renda Bruta" value={state.salarioBruto} />
+        <SummaryRow label="Renda Bruta" value={salarioBruto} />
         <SummaryRow label="Total de Deduções" value={deductionTotal} negative />
         <SummaryRow label="Renda Líquida" value={liquidezFinal} highlight />
       </div>

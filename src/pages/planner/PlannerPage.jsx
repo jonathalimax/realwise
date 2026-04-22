@@ -44,7 +44,11 @@ export default function PlannerPage() {
     state,
     update,
     isLoading,
+    activeVersion,
     liquidezFinal,
+    updateSalarioBruto,
+    updateSalarioDeductions,
+    categoryBudgetsPct,
     updateCategoryBudgetPct,
     necessidadesValue,
     poupancaValue,
@@ -66,7 +70,10 @@ export default function PlannerPage() {
               <RendaTab
                 state={state}
                 update={update}
+                activeVersion={activeVersion}
                 liquidezFinal={liquidezFinal}
+                updateSalarioBruto={updateSalarioBruto}
+                updateSalarioDeductions={updateSalarioDeductions}
               />
             )}
 
@@ -81,6 +88,7 @@ export default function PlannerPage() {
                 updateMonthAllocation={updateMonthAllocation}
                 resetMonthAllocation={resetMonthAllocation}
                 selectedMonth={selectedMonth}
+                categoryBudgetsPct={categoryBudgetsPct}
                 updateCategoryBudgetPct={updateCategoryBudgetPct}
               />
             )}
