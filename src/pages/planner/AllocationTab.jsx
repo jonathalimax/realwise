@@ -172,7 +172,7 @@ export default function AllocationTab({
                       {formatBRL.format(allocated)}
                     </span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-800">
+                  <div className="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-800 mb-3">
                     <div
                       className={`h-1.5 rounded-full transition-all ${isOver ? 'bg-red-500' : `bg-${c}-500`}`}
                       style={{ width: `${fillPct}%` }}

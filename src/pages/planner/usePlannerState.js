@@ -385,6 +385,50 @@ export default function usePlannerState() {
     }
   }, [globalSelectedMonth, state.selectedPlannerMonth]);
 
+  // ── Resolve loading when AccessContext finishes but ownerId is still null ─
+  useEffect(() => {
+    if (!accessLoading && !ownerId) {
+      Promise.resolve().then(() => {
+        hasLoadedRef.current = true;
+        setIsLoading(false);
+      });
+    }
+  }, [accessLoading, ownerId]);
+
+  // ── Load from Firestore on mount ──────────────────────────────────────────
+  useEffect(() => {
+    if (!ownerId) return;
+    const plannerRef = doc(db, 'planner', ownerId);
+    getDoc(plannerRef)
+      .then(snap => {
+        if (snap.exists()) {
+          setState(migrateState(snap.data()));
+        } else {
+          // If no doc exists, run migration on default state to get first version
+          setState(migrateState({}));
+        }
+        hasLoadedRef.current = true;
+        setIsLoading(false);
+      })
+      .catch(() => {
+        hasLoadedRef.current = true;
+        setIsLoading(false);
+      });
+  }, [ownerId]);
+
+  // ── Debounced save to Firestore on every state change ─────────────────────
+  useEffect(() => {
+    if (!ownerId || !hasLoadedRef.current) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const plannerRef = doc(db, 'planner', ownerId);
+      setDoc(plannerRef, state).catch(() => {});
+    }, 800);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [state, ownerId]);
+
   // ── Active version for the selected month ────────────────────────────────
   const activeVersion = useMemo(() => {
     return getActivePlannerVersion(state.plannerVersions, state.selectedPlannerMonth);
