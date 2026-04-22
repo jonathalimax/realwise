@@ -25,6 +25,7 @@ function SummaryRow({ label, value, highlight, negative }) {
 }
 
 const EMPTY_DEDUCTION = { label: '', type: 'value', amount: 0 };
+
 export default function RendaTab({ state, update, liquidezFinal, activeVersion, updateSalarioBruto, updateSalarioDeductions, copyFromPreviousMonth }) {
   const hasSalaryBreakdown = useFeature('salaryBreakdown');
   const [editingId, setEditingId] = useState(null);
@@ -34,20 +35,8 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
   const deductions = activeVersion?.salarioDeductions ?? [];
   const deductionTotal = computeDeductionTotal(salarioBruto, deductions);
 
-  return (
-    <div className="space-y-4">
-      {/* Header Actions */}
-      <div className="flex justify-end">
-        <button
-          onClick={copyFromPreviousMonth}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
-        >
-          📥 Copiar do mês anterior
-        </button>
-      </div>
-
-      {/* Salário Bruto */}
-
+  function startAdd() {
+    const id = `custom-${Date.now()}`;
     setDraft({ id, ...EMPTY_DEDUCTION });
     setEditingId(id);
   }
@@ -81,6 +70,14 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
   if (!hasSalaryBreakdown) {
     return (
       <div className="space-y-4">
+        <div className="flex justify-end">
+          <button
+            onClick={copyFromPreviousMonth}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+          >
+            📥 Copiar do mês anterior
+          </button>
+        </div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
           <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             Salário Líquido
@@ -100,6 +97,16 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
 
   return (
     <div className="space-y-4">
+      {/* Header Actions */}
+      <div className="flex justify-end">
+        <button
+          onClick={copyFromPreviousMonth}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+        >
+          📥 Copiar do mês anterior
+        </button>
+      </div>
+
       {/* Salário Bruto */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
         <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
