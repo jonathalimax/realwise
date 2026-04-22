@@ -27,7 +27,8 @@ export function resolveDeduction(salarioBruto, deduction) {
  * @param {Array<{ type: 'pct'|'value', amount: number }>} deductions
  * @returns {number}
  */
-export function computeDeductionTotal(salarioBruto, deductions) {
+export function computeDeductionTotal(salarioBruto, deductions = []) {
+  if (!Array.isArray(deductions)) return 0;
   return deductions.reduce((sum, d) => sum + resolveDeduction(salarioBruto, d), 0);
 }
 

@@ -329,11 +329,12 @@ export function updatePlannerForMonth(versions, month, patchFn) {
   sorted.forEach((v, i) => { if (v.from <= month) activeIdx = i; });
 
   if (activeIdx === -1) {
-    return [{ from: month, ...patchFn({
+    const base = {
       salarioBruto: 10000, salarioDeductions: [], 
       allocation: { necessidades: 70, poupanca: 20, desejos: 10 },
       categoryBudgetsPct: {}
-    })}];
+    };
+    return [{ from: month, ...base, ...patchFn(base) }];
   }
 
   // Update the target version (either existing for 'month' or create new snapshot)
@@ -345,9 +346,11 @@ export function updatePlannerForMonth(versions, month, patchFn) {
     nextVersions = sorted.map((v, i) => i === activeIdx ? { ...v, ...patchFn(v) } : v);
   } else {
     // Create new version starting from this month (cloning previous state)
+    const cloned = JSON.parse(JSON.stringify(active));
     const newVersion = {
+      ...cloned,
       from: month,
-      ...patchFn(JSON.parse(JSON.stringify(active))),
+      ...patchFn(cloned),
     };
     nextVersions = [...sorted, newVersion].sort((a, b) => a.from.localeCompare(b.from));
   }
