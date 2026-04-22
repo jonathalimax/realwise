@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useSearchParams } from 'react-router-dom';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useBudget } from '@/contexts/BudgetContext';
@@ -53,6 +54,7 @@ export default function AllocationTab({
   const { categories } = useSettings();
   const { calculateCategorySpending, getCategoryRule, setCategoryRule } = useBudget();
   const { getPaymentMonthKey } = useCards();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [allTx, setAllTx] = useState([]);
 
@@ -102,8 +104,18 @@ export default function AllocationTab({
 
   if (liquidezFinal <= 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Preencha o Dashboard Financeiro para ver a alocação.</p>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm border border-gray-100 dark:border-gray-700 text-center space-y-6">
+        <div className="max-w-xs mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            Você ainda não definiu sua renda para este mês. Preencha os dados de renda para começar o planejamento.
+          </p>
+          <button
+            onClick={() => setSearchParams({ tab: 'renda' })}
+            className="w-full px-6 py-3 rounded-xl font-bold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98]"
+          >
+            💰 Definir Renda
+          </button>
+        </div>
       </div>
     );
   }
