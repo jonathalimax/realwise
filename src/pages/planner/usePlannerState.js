@@ -440,8 +440,10 @@ export default function usePlannerState() {
   };
 
   const resetMonthAllocation = () => {
-    const next = state.plannerVersions.filter(v => v.from !== state.selectedPlannerMonth);
-    update('plannerVersions', next);
+    updatePlannerVersion(v => ({
+      allocation: { ...DEFAULT_MONTH_DATA.allocation },
+      categoryBudgetsPct: { ...DEFAULT_MONTH_DATA.categoryBudgetsPct }
+    }));
   };
 
   const copyFromPreviousMonth = () => {

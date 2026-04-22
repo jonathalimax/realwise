@@ -118,22 +118,28 @@ export default function AllocationTab({
             {isValid
               ? <Badge variant="default" className="bg-emerald-500">✓ 100%</Badge>
               : <Badge variant="destructive">Soma: {allocationTotal}%</Badge>}
-            {hasOverride && (
-              <Badge variant="outline" className="text-[10px] text-gray-400 border-gray-200">Personalizado</Badge>
-            )}
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={copyFromPreviousMonth} className="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 underline font-medium">
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                if (window.confirm('Deseja copiar todos os limites e a regra do mês anterior para este mês?')) {
+                  copyFromPreviousMonth();
+                }
+              }} 
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+            >
               📥 Copiar do mês anterior
             </button>
-            <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-              Total: <span className="font-bold text-violet-600 dark:text-violet-400">{formatBRL.format(liquidezFinal)}</span>
-            </span>
-            {hasOverride && (
-              <button onClick={resetMonthAllocation} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline">
-                Resetar
-              </button>
-            )}
+            <button 
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja resetar a regra 70/20/10 e todos os limites de categorias deste mês para o padrão?')) {
+                  resetMonthAllocation();
+                }
+              }} 
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm"
+            >
+              🔄 Resetar
+            </button>
           </div>
         </div>
 
