@@ -37,7 +37,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* Push notification status card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden mb-6">
           <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">

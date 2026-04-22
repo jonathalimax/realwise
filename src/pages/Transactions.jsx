@@ -195,7 +195,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* Month Selector + Filters */}
         <div className="flex flex-col gap-3 mb-4 sm:mb-6">
           <div className="flex items-center justify-between gap-2">

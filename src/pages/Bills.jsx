@@ -55,7 +55,7 @@ export default function BillsPage() {
       <PageHeader title={language === 'pt' ? 'Contas a Pagar' : 'Bills'} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* Filters + Email reminder toggle */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
           <div className="flex flex-wrap gap-2">

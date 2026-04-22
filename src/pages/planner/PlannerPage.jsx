@@ -62,7 +62,7 @@ export default function PlannerPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <PageHeader title="Planejador Financeiro" />
-      <div className="max-w-5xl mx-auto space-y-4 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 space-y-4">
         {isLoading ? (
           <PlannerSkeleton />
         ) : (

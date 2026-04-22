@@ -197,7 +197,7 @@ export default function BudgetPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Page Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 h-14 sm:h-16">
             <button
               onClick={handleClose}
@@ -218,7 +218,7 @@ export default function BudgetPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         {/* Income Summary Card */}
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg mb-6">
           <p className="text-sm text-white/80 mb-1">
@@ -518,7 +518,7 @@ export default function BudgetPage() {
 
         {/* Save button - Fixed at bottom on mobile */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 sm:relative sm:mt-6 sm:p-0 sm:bg-transparent sm:border-0">
-          <div className="max-w-3xl mx-auto flex gap-3">
+          <div className="max-w-7xl mx-auto flex gap-3">
             <button
               onClick={handleClose}
               className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

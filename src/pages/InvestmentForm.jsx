@@ -174,7 +174,7 @@ export default function InvestmentForm() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 h-14 sm:h-16">
             <button
               onClick={() => navigate('/investments')}
@@ -192,7 +192,7 @@ export default function InvestmentForm() {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         {mode === 'withdraw' && investment ? (
           /* WITHDRAW VIEW */
           <div className="space-y-6">

@@ -104,8 +104,9 @@ export default function IncomePage() {
       <PageHeader title={language === 'pt' ? 'Entrada' : 'Income'} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* Summary Card */}
+
         <div className="mb-4 sm:mb-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
           <p className="text-sm text-white/80 mb-1">
             {language === 'pt' ? 'Total de Entrada' : 'Total Income'}
