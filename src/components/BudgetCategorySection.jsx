@@ -142,7 +142,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
           <p className="text-sm">{language === 'pt' ? 'Nenhuma categoria' : 'No categories'}</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-x-6 sm:gap-y-3">
           {categoryData.map((category) => {
             const statusColors = getStatusColor(category.status);
 
