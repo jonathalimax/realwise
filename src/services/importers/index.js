@@ -90,6 +90,7 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
   // Apply categorization and detect installments
   const processedTransactions = [];
   const uncategorizedTransactions = []; // Track transactions needing AI
+  const processedInstallmentGroups = new Set(); // Track groups we've already generated
 
   for (const t of transactions) {
     // User rules have higher priority (they're passed first)
@@ -104,7 +105,7 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
 
     const baseTransaction = {
       ...t,
-      category: categorization?.category || 'Diversos',
+      category: categorization?.category || 'Sem categoria',
       type: categorization?.type || t.type,
       autoCategory: !!categorization && !isUncategorized,
       isUserRule: categorization?.isUserRule || false,
@@ -113,8 +114,17 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
     };
 
     if (installmentInfo) {
+      const groupId = generateInstallmentGroupId(baseTransaction);
+      
+      // If we already processed this group in this file, skip it
+      // This happens if the file contains multiple installments of the same purchase
+      if (processedInstallmentGroups.has(groupId)) {
+        continue;
+      }
+      processedInstallmentGroups.add(groupId);
+
       // Generate all future installments
-      baseTransaction.installmentGroupId = generateInstallmentGroupId(baseTransaction);
+      baseTransaction.installmentGroupId = groupId;
       const installmentTransactions = generateInstallmentTransactions(
         baseTransaction,
         installmentInfo.current,

@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator, clearIndexedDbPersistence, terminate } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -16,7 +16,31 @@ export let functions;
  * Called once by ClientConfigContext after loading the client config JSON.
  * Must be called before any component that uses auth/db/storage/functions renders.
  */
-export function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') {
+export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') {
+  const existing = getApps().find(a => a.name === appName);
+  if (existing) {
+    const existingProjectId = existing.options.projectId;
+    if (existingProjectId !== firebaseConfig.projectId) {
+      // Different Firebase project for the same appName — tear down and reinitialize.
+      const staleDb = getFirestore(existing);
+      try {
+        await terminate(staleDb);
+        await clearIndexedDbPersistence(staleDb);
+      } catch (_) {
+        // Best-effort: ignore errors during cleanup
+      }
+      await deleteApp(existing);
+    } else {
+      // Same project — reuse existing app.
+      app = existing;
+      auth = getAuth(app);
+      db = getFirestore(app);
+      storage = getStorage(app);
+      functions = getFunctions(app);
+      return;
+    }
+  }
+
   app = initializeApp(firebaseConfig, appName);
   auth = getAuth(app);
   db = getFirestore(app);

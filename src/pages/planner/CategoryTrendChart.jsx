@@ -78,7 +78,7 @@ export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) 
           </div>
         ))}
       </div>
-      <div className="h-64">
+      <div className="h-64 w-full">
         <BarChart
           xAxis={[{
             scaleType: 'band',
@@ -92,7 +92,7 @@ export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) 
           series={series}
           slotProps={{ legend: { hidden: true } }}
           sx={sxDark}
-          margin={{ top: 10, right: 20, bottom: 30, left: 55 }}
+          margin={{ top: 10, right: 60, bottom: 30, left: 55 }}
         />
       </div>
     </div>

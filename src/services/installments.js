@@ -79,7 +79,17 @@ export function generateInstallmentTransactions(baseTransaction, currentInstallm
  * Generate a unique ID for grouping installments
  */
 export function generateInstallmentGroupId(transaction) {
-  const base = `${transaction.description}-${transaction.amount}-${Date.now()}`;
+  // Clean the description to remove installment info for a stable group ID
+  let cleanDescription = (transaction.description || '')
+    .replace(/\s*parcela\s*\d+\s*[/de]\s*\d+/gi, '')
+    .replace(/\s*\(\d+[/]\d+\)/g, '')
+    .replace(/\s*\d+\s*[/]\s*\d+\s*(?:parcelas?)?/gi, '')
+    .replace(/\s*\d+\s*de\s*\d+\s*(?:parcelas?|x)?/gi, '')
+    .trim()
+    .toLowerCase();
+
+  const amount = Math.round((transaction.amount || 0) * 100);
+  const base = `${cleanDescription}-${amount}`;
   return hashString(base);
 }
 

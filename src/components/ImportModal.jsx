@@ -48,6 +48,181 @@ function ModalWrapper({ embedded, isMobile, children }) {
   );
 }
 
+function TransactionRowContent({ trans, locale, language, formatCurrency, toggleTransactionSelection, toggleTransactionType, openCategoryPicker }) {
+  return (
+    <div className="flex items-start gap-3">
+      {/* Checkbox */}
+      <button
+        onClick={(e) => { e.stopPropagation(); toggleTransactionSelection(trans._localId); }}
+        className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors mt-0.5
+          ${trans.selected
+            ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+            : trans.isDuplicate
+              ? 'border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-900/30'
+              : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600'
+          }`}
+      >
+        {trans.selected && (
+          <svg className="w-3 h-3 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+
+      {/* Type Indicator - Hidden on mobile to save space */}
+      <button
+        onClick={(e) => { e.stopPropagation(); toggleTransactionType(trans._localId); }}
+        className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center flex-shrink-0 transition-colors active:scale-95
+        ${trans.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-rose-100 dark:bg-rose-900/40'}`}
+      >
+        <svg className={`w-4 h-4 ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {trans.type === 'income' ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+          )}
+        </svg>
+      </button>
+
+      {/* Content - Mobile-first layout */}
+      <div className="flex-1 min-w-0">
+        {/* Mobile: Title on its own row for full visibility */}
+        <div className="sm:hidden">
+          <p className="text-sm font-medium text-gray-900 dark:text-white" title={trans._isGroup ? trans._baseDescription : trans.description}>
+            {trans._isGroup ? trans._baseDescription : trans.description}
+          </p>
+          {/* Second row: date, category badge, amount */}
+          <div className="flex items-center justify-between mt-1.5 gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+                {new Date(trans.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+              </span>
+              {/* Tappable Category Badge */}
+              <button
+                onClick={(e) => openCategoryPicker(trans._localId, e)}
+                className={`px-2 py-0.5 text-[11px] font-medium rounded-full transition-all flex-shrink-0 active:scale-95 ${
+                  !trans.category
+                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+                    : trans.type === 'income'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                }`}
+              >
+                {trans.category || (language === 'pt' ? 'Categorizar' : 'Needs Category')}
+                <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {trans.isInstallment && (
+                <span className="text-[11px] text-blue-600 dark:text-blue-400 flex-shrink-0">
+                  {trans._isGroup ? `${trans.installmentTotal}x` : `${trans.installmentCurrent}/${trans.installmentTotal}`}
+                </span>
+              )}
+            </div>
+            {/* Amount */}
+            <p className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
+              ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans._isGroup ? trans._totalAmount : trans.amount)}
+            </p>
+          </div>
+        </div>
+
+        {/* Desktop: Horizontal layout */}
+        <div className="hidden sm:block">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1" title={trans._isGroup ? trans._baseDescription : trans.description}>
+                {trans._isGroup ? trans._baseDescription : trans.description}
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <span>{new Date(trans.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
+                <span className="text-gray-300 dark:text-gray-600">•</span>
+                {/* Tappable Category Badge - Desktop */}
+                <button
+                  onClick={(e) => openCategoryPicker(trans._localId, e)}
+                  className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all hover:opacity-80 active:scale-95 ${
+                    !trans.category
+                      ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+                      : trans.type === 'income'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                  }`}
+                >
+                  {trans.category || (language === 'pt' ? 'Categorizar' : 'Needs Category')}
+                  <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {trans.isInstallment && (
+                  <>
+                    <span className="text-gray-300 dark:text-gray-600">•</span>
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {trans._isGroup 
+                        ? (language === 'pt' ? `${trans.installmentTotal} parcelas` : `${trans.installmentTotal} installments`)
+                        : `${trans.installmentCurrent}/${trans.installmentTotal}`}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className={`text-sm font-semibold whitespace-nowrap flex-shrink-0
+                ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans._isGroup ? trans._totalAmount : trans.amount)}
+              </p>
+              {trans._isGroup && (
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                  {trans.installmentTotal}x {formatCurrency(trans.amount)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tags */}
+        {(trans.isDuplicate || trans.autoGenerated || trans.aiCategorized || trans._isGroup) && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            {trans._isGroup && (
+              <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] rounded flex items-center gap-0.5">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                {language === 'pt' ? 'Compra parcelada' : 'Grouped purchase'}
+              </span>
+            )}
+            {trans.isDuplicate && (
+              <span className={`px-1.5 py-0.5 text-[10px] rounded flex items-center gap-0.5 ${
+                trans.isAiDuplicate
+                  ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
+                  : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+              }`}>
+                {trans.isAiDuplicate && '🤖 '}
+                {language === 'pt' ? 'duplicada' : 'duplicate'}
+              </span>
+            )}
+            {trans.autoGenerated && !trans._isGroup && (
+              <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-[10px] rounded">
+                auto
+              </span>
+            )}
+            {trans.aiCategorized && (
+              <span className="px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[10px] rounded flex items-center gap-0.5">
+                🤖 AI
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Edit Indicator */}
+      <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    </div>
+  );
+}
+
 export default function ImportModal({ isOpen = true, onClose, embedded = false }) {
   const hasB3Sync = useFeature('b3Sync');
   const isMobile = useIsMobile();
@@ -67,6 +242,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [showEditHint, setShowEditHint] = useState(true);
   const [pickerTransactionId, setPickerTransactionId] = useState(null);
+  const [pickerAnchorEl, setPickerAnchorEl] = useState(null);
   const [previewView, setPreviewView] = useState('list'); // list | edit
   const [sortOrder, setSortOrder] = useState('desc'); // desc = most recent first
   const contentScrollRef = useRef(null);
@@ -216,10 +392,18 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       let aiCategorized = 0;
 
       // First pass: hash-based duplicate detection
+      const seenGroups = new Set();
       const afterHashFilter = parsed.map((t, index) => {
         const isDuplicate = existingHashes.has(t.hash);
         if (isDuplicate) hashDuplicates++;
-        if (t.isInstallment) installments++;
+        
+        if (t.isInstallment && t.installmentGroupId) {
+          if (!seenGroups.has(t.installmentGroupId)) {
+            installments++;
+            seenGroups.add(t.installmentGroupId);
+          }
+        }
+        
         if (t.aiCategorized) aiCategorized++;
 
         return {
@@ -405,9 +589,19 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
 
   const toggleTransactionSelection = (transactionId) => {
     const previousScrollTop = transactionsListRef.current?.scrollTop ?? 0;
-    setTransactions(prev => prev.map((t) =>
-      t._localId === transactionId ? { ...t, selected: !t.selected } : t
-    ));
+    const target = transactions.find(t => t._localId === transactionId);
+    const groupId = target?.installmentGroupId;
+
+    setTransactions(prev => prev.map((t) => {
+      const isTarget = t._localId === transactionId;
+      const isSameGroup = groupId && t.installmentGroupId === groupId;
+      
+      if (isTarget || isSameGroup) {
+        return { ...t, selected: !target.selected };
+      }
+      return t;
+    }));
+    
     requestAnimationFrame(() => {
       if (transactionsListRef.current) {
         transactionsListRef.current.scrollTop = previousScrollTop;
@@ -417,9 +611,20 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
 
   const toggleTransactionType = (transactionId) => {
     const previousScrollTop = transactionsListRef.current?.scrollTop ?? 0;
-    setTransactions(prev => prev.map((t) =>
-      t._localId === transactionId ? { ...t, type: t.type === 'income' ? 'expense' : 'income' } : t
-    ));
+    const target = transactions.find(t => t._localId === transactionId);
+    const groupId = target?.installmentGroupId;
+    const newType = target?.type === 'income' ? 'expense' : 'income';
+
+    setTransactions(prev => prev.map((t) => {
+      const isTarget = t._localId === transactionId;
+      const isSameGroup = groupId && t.installmentGroupId === groupId;
+      
+      if (isTarget || isSameGroup) {
+        return { ...t, type: newType };
+      }
+      return t;
+    }));
+    
     requestAnimationFrame(() => {
       if (transactionsListRef.current) {
         transactionsListRef.current.scrollTop = previousScrollTop;
@@ -427,18 +632,28 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     });
   };
 
-  // Open category picker popup for a transaction
+  // Open category picker dropdown for a transaction
   const openCategoryPicker = (transactionId, e) => {
     e.stopPropagation();
+    setPickerAnchorEl(e.currentTarget);
     setPickerTransactionId(transactionId);
   };
 
   // Quick category change (from picker)
   const handleQuickCategoryChange = (newCategory) => {
     if (pickerTransactionId === null) return;
-    setTransactions(prev => prev.map((t) =>
-      t._localId === pickerTransactionId ? { ...t, category: newCategory, autoCategory: false } : t
-    ));
+    const target = transactions.find(t => t._localId === pickerTransactionId);
+    const groupId = target?.installmentGroupId;
+
+    setTransactions(prev => prev.map((t) => {
+      const isTarget = t._localId === pickerTransactionId;
+      const isSameGroup = groupId && t.installmentGroupId === groupId;
+      
+      if (isTarget || isSameGroup) {
+        return { ...t, category: newCategory, autoCategory: false };
+      }
+      return t;
+    }));
     setPickerTransactionId(null);
   };
 
@@ -468,14 +683,57 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     });
   };
 
+  const [isDuplicatesExpanded, setIsDuplicatesExpanded] = useState(false);
+
   const sortedTransactions = useMemo(() => {
-    const ordered = [...transactions].sort((a, b) => {
+    const groups = new Map();
+    const result = [];
+    const duplicates = [];
+    
+    // Sort all transactions by date ascending first to consistently pick the first installment
+    const chronologicallyOrdered = [...transactions].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    chronologicallyOrdered.forEach(t => {
+      if (t.installmentGroupId) {
+        if (!groups.has(t.installmentGroupId)) {
+          const groupRepresentative = {
+            ...t,
+            _isGroup: true,
+            _groupTransactions: [t],
+            _baseDescription: t.description.replace(/\s*\(\d+\/\d+\)$/, ''),
+            _totalAmount: t.amount * t.installmentTotal,
+          };
+          groups.set(t.installmentGroupId, groupRepresentative);
+          if (t.isDuplicate) {
+            duplicates.push(groupRepresentative);
+          } else {
+            result.push(groupRepresentative);
+          }
+        } else {
+          groups.get(t.installmentGroupId)._groupTransactions.push(t);
+        }
+      } else {
+        if (t.isDuplicate) {
+          duplicates.push(t);
+        } else {
+          result.push(t);
+        }
+      }
+    });
+
+    const sortFn = (a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
       if (dateA === dateB) return String(a._localId).localeCompare(String(b._localId));
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
-    return ordered;
+    };
+
+    return {
+      main: result.sort(sortFn),
+      duplicates: duplicates.sort(sortFn)
+    };
   }, [transactions, sortOrder]);
 
   const handleClose = () => {
@@ -500,6 +758,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     setSyncing(false);
     setSyncMessage('');
     setB3PlannerGoalId('');
+    setIsDuplicatesExpanded(false);
     onClose();
   };
 
@@ -530,16 +789,57 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     if (editingTransaction === null) return;
 
     const { transactionId, selectedGoalId, selectedPlannerGoalId, ...updates } = editingTransaction;
-    setTransactions(prev => prev.map((t) =>
-      t._localId === transactionId ? {
-        ...t,
-        ...updates,
-        goalId: selectedGoalId || null,
-        goalName: selectedGoalId ? availableGoals.find(g => g.id === selectedGoalId)?.name || null : null,
-        plannerGoalId: selectedPlannerGoalId || null,
-        autoCategory: false // Mark as manually edited
-      } : t
-    ));
+    const groupId = updates.installmentGroupId;
+    
+    // Base description without installment info (e.g. "Amazon (1/10)" -> "Amazon")
+    const baseDescription = updates.description.replace(/\s*\(\d+\/\d+\)$/, '');
+    const editedDate = new Date(updates.date);
+
+    setTransactions(prev => prev.map((t) => {
+      const isTarget = t._localId === transactionId;
+      const isSameGroup = groupId && t.installmentGroupId === groupId;
+
+      if (isTarget || isSameGroup) {
+        const newT = {
+          ...t,
+          category: updates.category,
+          type: updates.type,
+          amount: updates.amount,
+          goalId: selectedGoalId || null,
+          goalName: selectedGoalId ? availableGoals.find(g => g.id === selectedGoalId)?.name || null : null,
+          plannerGoalId: selectedPlannerGoalId || null,
+          autoCategory: false,
+          investmentType: updates.investmentType,
+          ticker: updates.ticker,
+          platform: updates.platform,
+          coinName: updates.coinName,
+          fundName: updates.fundName,
+          propertyDescription: updates.propertyDescription,
+          expectedReturn: updates.expectedReturn,
+          returnType: updates.returnType,
+          maturityDate: updates.maturityDate,
+        };
+
+        if (isTarget) {
+          return {
+            ...newT,
+            description: updates.description,
+            date: updates.date,
+          };
+        } else {
+          // Update other installments in the group
+          return {
+            ...newT,
+            description: `${baseDescription} (${t.installmentCurrent}/${t.installmentTotal})`,
+            // Shift date relative to the new target date
+            date: new Date(new Date(editedDate).setMonth(
+              editedDate.getMonth() + (t.installmentCurrent - updates.installmentCurrent)
+            )).toISOString(),
+          };
+        }
+      }
+      return t;
+    }));
     setEditingTransaction(null);
     shouldRestorePreviewScrollRef.current = true;
     setPreviewView('list');
@@ -780,7 +1080,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               {/* Stats */}
               <div className="flex flex-wrap items-center gap-2 flex-1">
                 <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-700 dark:text-gray-300">
-                  {transactions.length} {language === 'pt' ? 'encontradas' : 'found'}
+                  {sortedTransactions.main.length + sortedTransactions.duplicates.length} {language === 'pt' ? 'encontradas' : 'found'}
                 </span>
                 {duplicateCount > 0 && (
                   <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-full text-sm flex items-center gap-1">
@@ -855,172 +1155,66 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
             )}
 
             {/* Transaction List */}
-            <div ref={transactionsListRef} className="space-y-2 overflow-y-auto flex-1 min-h-0">
-              {sortedTransactions.map((trans) => (
-                <div
-                  key={trans._localId}
-                  onClick={() => openEditTransaction(trans._localId)}
-                  className={`rounded-xl transition-all cursor-pointer active:scale-[0.99] ${
-                    trans.isDuplicate
-                      ? 'bg-amber-50 dark:bg-amber-900/20 opacity-60'
-                      : trans.selected
+            <div ref={transactionsListRef} className="space-y-4 overflow-y-auto flex-1 min-h-0 pb-4">
+              {/* Main List */}
+              <div className="space-y-2">
+                {sortedTransactions.main.map((trans) => (
+                  <div
+                    key={trans._localId}
+                    onClick={() => openEditTransaction(trans._localId)}
+                    className={`rounded-xl transition-all cursor-pointer active:scale-[0.99] ${
+                      trans.selected
                         ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
                         : 'bg-gray-50 dark:bg-gray-800/50 opacity-50'
-                  } p-3`}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Checkbox */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleTransactionSelection(trans._localId); }}
-                      className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors mt-0.5
-                        ${trans.selected
-                          ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
-                          : trans.isDuplicate
-                            ? 'border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-900/30'
-                            : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600'
-                        }`}
-                    >
-                      {trans.selected && (
-                        <svg className="w-3 h-3 text-white dark:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-
-                    {/* Type Indicator - Hidden on mobile to save space */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleTransactionType(trans._localId); }}
-                      className={`hidden sm:flex w-8 h-8 rounded-full items-center justify-center flex-shrink-0 transition-colors active:scale-95
-                      ${trans.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-rose-100 dark:bg-rose-900/40'}`}
-                    >
-                      <svg className={`w-4 h-4 ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        {trans.type === 'income' ? (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                        ) : (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
-                        )}
-                      </svg>
-                    </button>
-
-                    {/* Content - Mobile-first layout */}
-                    <div className="flex-1 min-w-0">
-                      {/* Mobile: Title on its own row for full visibility */}
-                      <div className="sm:hidden">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white" title={trans.description}>
-                          {trans.description}
-                        </p>
-                        {/* Second row: date, category badge, amount */}
-                        <div className="flex items-center justify-between mt-1.5 gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-                              {new Date(trans.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
-                            </span>
-                            {/* Tappable Category Badge */}
-                            <button
-                              onClick={(e) => openCategoryPicker(trans._localId, e)}
-                              className={`px-2 py-0.5 text-[11px] font-medium rounded-full transition-all flex-shrink-0 active:scale-95 ${
-                                !trans.category
-                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-                                  : trans.type === 'income'
-                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
-                              }`}
-                            >
-                              {trans.category || (language === 'pt' ? 'Categorizar' : 'Needs Category')}
-                              <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            {trans.isInstallment && (
-                              <span className="text-[11px] text-blue-600 dark:text-blue-400 flex-shrink-0">
-                                {trans.installmentCurrent}/{trans.installmentTotal}
-                              </span>
-                            )}
-                          </div>
-                          {/* Amount */}
-                          <p className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
-                            ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                            {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans.amount)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Desktop: Horizontal layout */}
-                      <div className="hidden sm:block">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1" title={trans.description}>
-                              {trans.description}
-                            </p>
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              <span>{new Date(trans.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>
-                              <span className="text-gray-300 dark:text-gray-600">•</span>
-                              {/* Tappable Category Badge - Desktop */}
-                              <button
-                                onClick={(e) => openCategoryPicker(trans._localId, e)}
-                                className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all hover:opacity-80 active:scale-95 ${
-                                  !trans.category
-                                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-                                    : trans.type === 'income'
-                                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                                      : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
-                                }`}
-                              >
-                                {trans.category || (language === 'pt' ? 'Categorizar' : 'Needs Category')}
-                                <svg className="w-3 h-3 ml-0.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                              {trans.isInstallment && (
-                                <>
-                                  <span className="text-gray-300 dark:text-gray-600">•</span>
-                                  <span className="text-blue-600 dark:text-blue-400">{trans.installmentCurrent}/{trans.installmentTotal}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <p className={`text-sm font-semibold whitespace-nowrap flex-shrink-0
-                            ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                            {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans.amount)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Tags */}
-                      {(trans.isDuplicate || trans.autoGenerated || trans.aiCategorized) && (
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          {trans.isDuplicate && (
-                            <span className={`px-1.5 py-0.5 text-[10px] rounded flex items-center gap-0.5 ${
-                              trans.isAiDuplicate
-                                ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300'
-                                : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
-                            }`}>
-                              {trans.isAiDuplicate && '🤖 '}
-                              {language === 'pt' ? 'duplicada' : 'duplicate'}
-                            </span>
-                          )}
-                          {trans.autoGenerated && (
-                            <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-[10px] rounded">
-                              auto
-                            </span>
-                          )}
-                          {trans.aiCategorized && (
-                            <span className="px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[10px] rounded flex items-center gap-0.5">
-                              🤖 AI
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Edit Indicator */}
-                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    } p-3 shadow-sm`}
+                  >
+                    <TransactionRowContent trans={trans} locale={locale} language={language} formatCurrency={formatCurrency} toggleTransactionSelection={toggleTransactionSelection} toggleTransactionType={toggleTransactionType} openCategoryPicker={openCategoryPicker} />
                   </div>
+                ))}
+              </div>
+
+              {/* Duplicates Section */}
+              {sortedTransactions.duplicates.length > 0 && (
+                <div className="mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
+                  <button
+                    onClick={() => setIsDuplicatesExpanded(!isDuplicatesExpanded)}
+                    className="flex items-center justify-between w-full px-4 py-3 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-xl transition-colors mb-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-amber-600 dark:text-amber-400">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </span>
+                      <span className="text-sm font-semibold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
+                        {language === 'pt' ? 'Transações Duplicadas' : 'Duplicate Transactions'} ({sortedTransactions.duplicates.length})
+                      </span>
+                    </div>
+                    <svg className={`w-5 h-5 text-amber-500 transition-transform duration-200 ${isDuplicatesExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {isDuplicatesExpanded && (
+                    <div className="space-y-2 mt-2">
+                      <p className="px-4 text-xs text-amber-600 dark:text-amber-400 mb-3 italic">
+                        {language === 'pt' 
+                          ? 'Estas transações já existem no seu histórico e estão desmarcadas por padrão.' 
+                          : 'These transactions already exist in your history and are deselected by default.'}
+                      </p>
+                      {sortedTransactions.duplicates.map((trans) => (
+                        <div
+                          key={trans._localId}
+                          onClick={() => openEditTransaction(trans._localId)}
+                          className={`rounded-xl transition-all cursor-pointer active:scale-[0.99] bg-amber-50/50 dark:bg-amber-900/10 opacity-70 p-3`}
+                        >
+                          <TransactionRowContent trans={trans} locale={locale} language={language} formatCurrency={formatCurrency} toggleTransactionSelection={toggleTransactionSelection} toggleTransactionType={toggleTransactionType} openCategoryPicker={openCategoryPicker} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
 
             {error && (
@@ -1506,10 +1700,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       {/* Category Picker */}
       <CategoryPicker
         isOpen={pickerTransactionId !== null}
-        onClose={() => setPickerTransactionId(null)}
+        onClose={() => { setPickerTransactionId(null); setPickerAnchorEl(null); }}
         onSelect={handleQuickCategoryChange}
         currentCategory={activeCategoryTransaction?.category || ''}
         type={activeCategoryTransaction?.type || 'expense'}
+        anchorEl={pickerAnchorEl}
       />
 
     </ModalWrapper>

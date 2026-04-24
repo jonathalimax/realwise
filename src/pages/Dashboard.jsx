@@ -21,6 +21,7 @@ import TransactionModal from '../components/TransactionModal';
 import BillModal from '../components/BillModal';
 import GoalProgress from '../components/GoalProgress';
 import PlannerSummaryCard from '../components/PlannerSummaryCard';
+import ExpensesByCategoryCard from '../components/ExpensesByCategoryCard';
 import TrendChart from '../components/charts/TrendChart';
 import PageHeader from '../components/PageHeader';
 import TutorialModal from '../components/TutorialModal';
@@ -165,6 +166,9 @@ export default function DashboardPage() {
 
             {/* Planner allocation summary */}
             <PlannerSummaryCard />
+
+            {/* Expenses by category */}
+            <ExpensesByCategoryCard transactions={monthlyTransactions} />
           </div>
         </div>
       </main>
