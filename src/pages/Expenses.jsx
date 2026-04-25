@@ -20,6 +20,7 @@ export default function ExpensesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState(() => sessionStorage.getItem('expenses_viewMode') ?? 'payment');
   const [selectedBankFilter, setSelectedBankFilter] = useState(() => sessionStorage.getItem('expenses_bankFilter') ?? 'all');
+  const [selectedPaymentMethodFilter, setSelectedPaymentMethodFilter] = useState(() => sessionStorage.getItem('expenses_paymentMethodFilter') ?? 'all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(() => sessionStorage.getItem('expenses_categoryFilter') ?? 'all');
   const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('expenses_sortBy') ?? 'date');
   const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem('expenses_sortOrder') ?? 'desc');
@@ -28,6 +29,7 @@ export default function ExpensesPage() {
 
   const handleSetViewMode = (v) => { sessionStorage.setItem('expenses_viewMode', v); setViewMode(v); };
   const handleSetBankFilter = (v) => { sessionStorage.setItem('expenses_bankFilter', v); setSelectedBankFilter(v); };
+  const handleSetPaymentMethodFilter = (v) => { sessionStorage.setItem('expenses_paymentMethodFilter', v); setSelectedPaymentMethodFilter(v); };
   const handleSetCategoryFilter = (v) => { sessionStorage.setItem('expenses_categoryFilter', v); setSelectedCategoryFilter(v); };
   const handleSetSortBy = (v) => { sessionStorage.setItem('expenses_sortBy', v); setSortBy(v); };
   const handleSetSortOrder = (v) => { sessionStorage.setItem('expenses_sortOrder', v); setSortOrder(v); };
@@ -63,12 +65,21 @@ export default function ExpensesPage() {
         if (selectedBankFilter === 'cash') {
           if (t.bankId) return false;
         } else {
-          // Support both new format (unique document ID) and old format (bank type ID)
           const matchesDirectly = t.bankId === selectedBankFilter;
           const transactionUserBank = findUserBank(t.bankId);
           const matchesViaLookup = transactionUserBank && transactionUserBank.id === selectedBankFilter;
 
           if (!matchesDirectly && !matchesViaLookup) return false;
+        }
+      }
+
+      if (selectedPaymentMethodFilter !== 'all') {
+        if (selectedPaymentMethodFilter === 'cash') {
+          if (t.bankId) return false;
+        } else {
+          const method = t.paymentMethod || 'credit';
+          if (method !== selectedPaymentMethodFilter) return false;
+          if (!t.bankId) return false;
         }
       }
 
@@ -85,7 +96,7 @@ export default function ExpensesPage() {
         return paymentKey === selectedMonth;
       }
     });
-  }, [transactions, selectedMonth, viewMode, selectedBankFilter, findUserBank, getPaymentMonthKey]);
+  }, [transactions, selectedMonth, viewMode, selectedBankFilter, selectedPaymentMethodFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
     if (selectedCategoryFilter === 'all') {
@@ -130,6 +141,7 @@ export default function ExpensesPage() {
   const activeFiltersCount = [
     viewMode !== 'payment',
     selectedBankFilter !== 'all',
+    selectedPaymentMethodFilter !== 'all',
     selectedCategoryFilter !== 'all'
   ].filter(Boolean).length;
 
@@ -213,7 +225,7 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
               {/* Bank Filter */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
@@ -231,6 +243,25 @@ export default function ExpensesPage() {
                       {bank.icon} {bank.name}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              {/* Payment Method Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                  {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
+                </label>
+                <select
+                  value={selectedPaymentMethodFilter}
+                  onChange={(e) => handleSetPaymentMethodFilter(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
+                  <option value="credit">{language === 'pt' ? '💳 Crédito' : '💳 Credit'}</option>
+                  <option value="debit">{language === 'pt' ? '🏦 Débito' : '🏦 Debit'}</option>
+                  <option value="pix">⚡ PIX</option>
+                  <option value="transfer">{language === 'pt' ? '↔️ Transferência' : '↔️ Transfer'}</option>
+                  <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
                 </select>
               </div>
 
@@ -302,6 +333,7 @@ export default function ExpensesPage() {
                 onClick={() => {
                   handleSetViewMode('payment');
                   handleSetBankFilter('all');
+                  handleSetPaymentMethodFilter('all');
                   handleSetCategoryFilter('all');
                 }}
                 className="w-full py-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
