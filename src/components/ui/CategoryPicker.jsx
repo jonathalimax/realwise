@@ -68,7 +68,6 @@ export default function CategoryPicker({ isOpen, onClose, onSelect, currentCateg
 
   const handleSelect = (category) => {
     onSelect(category);
-    onClose();
   };
 
   return createPortal(

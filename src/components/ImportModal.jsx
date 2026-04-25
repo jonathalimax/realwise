@@ -233,6 +233,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
+  const [pdfPassword, setPdfPassword] = useState('');
+  const [requiresPdfPassword, setRequiresPdfPassword] = useState(false);
   const [step, setStep] = useState('upload'); // upload, preview, done, uploading, processing
   const [existingHashes, setExistingHashes] = useState(new Set());
   const [duplicateCount, setDuplicateCount] = useState(0);
@@ -366,6 +368,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     if (selectedFile) {
       setFile(selectedFile);
       setError('');
+      setPdfPassword('');
+      setRequiresPdfPassword(false);
     }
   };
 
@@ -384,6 +388,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
         apiKey: geminiApiKey,
         categories: categories // { expense: [...], income: [...] }
       } : {};
+
+      if (pdfPassword) aiOptions.pdfPassword = pdfPassword;
 
       const parsed = await parseFile(file, 'auto', userId, aiOptions);
 
@@ -466,6 +472,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       setTransactions(afterHashFilter);
       setStep('preview');
     } catch (err) {
+      if (err.code === 'PDF_PASSWORD_REQUIRED') {
+        setRequiresPdfPassword(true);
+        setLoading(false);
+        return;
+      }
       setError(err.message || 'Failed to parse file');
       const userId = ownerId || auth.currentUser?.uid;
       analytics.importError(userId, { bankName: selectedBankId || 'unknown', errorType: err.message || 'parse_error' });
@@ -648,13 +659,12 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     setTransactions(prev => prev.map((t) => {
       const isTarget = t._localId === pickerTransactionId;
       const isSameGroup = groupId && t.installmentGroupId === groupId;
-      
+
       if (isTarget || isSameGroup) {
         return { ...t, category: newCategory, autoCategory: false };
       }
       return t;
     }));
-    setPickerTransactionId(null);
   };
 
   const selectedCount = transactions.filter(t => t.selected).length;
@@ -1008,27 +1018,45 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 {language === 'pt' ? 'Arquivo do extrato' : 'Statement file'}
               </label>
               {file ? (
-                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
-                  <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                <>
+                  <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                    <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{file.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { setFile(null); setPdfPassword(''); setRequiresPdfPassword(false); }}
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{file.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setFile(null)}
-                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+                  {requiresPdfPassword && (
+                    <div className="mt-3 flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {language === 'pt' ? 'Senha do PDF' : 'PDF Password'}
+                      </label>
+                      <input
+                        type="password"
+                        value={pdfPassword}
+                        onChange={(e) => setPdfPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleParse()}
+                        placeholder={language === 'pt' ? 'Digite a senha...' : 'Enter password...'}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      />
+                    </div>
+                  )}
+                </>
               ) : (
                 <label className="block cursor-pointer">
                   <div
@@ -1042,11 +1070,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {language === 'pt' ? 'Selecionar arquivo' : 'Select file'}
                     </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">CSV, XLS, XLSX</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">CSV, XLS, XLSX, PDF</p>
                   </div>
                   <input
                     type="file"
-                    accept=".csv,.xlsx,.xls"
+                    accept=".csv,.xlsx,.xls,.pdf"
                     onChange={handleFileSelect}
                     className="hidden"
                   />
@@ -1634,7 +1662,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                {t('import.processing')}
+                {file?.name?.toLowerCase().endsWith('.pdf') ? (language === 'pt' ? 'Lendo PDF...' : 'Reading PDF...') : (language === 'pt' ? 'Processando...' : 'Processing...')}
               </span>
             ) : uploadMode === 'local' ? t('common.continue') : (language === 'pt' ? 'Enviar arquivo' : 'Upload file')}
           </button>
