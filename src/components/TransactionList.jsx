@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
@@ -79,7 +79,35 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
     return iconMap[category] || (type === 'income' ? '💵' : '💳');
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (transaction) => {
+    const id = transaction.id;
+
+    if (transaction.isInstallment && transaction.installmentGroupId) {
+      const choice = window.confirm(
+        language === 'pt'
+          ? `Esta é a parcela ${transaction.installmentCurrent}/${transaction.installmentTotal}.\n\nClique OK para excluir TODAS as parcelas ou Cancelar para excluir apenas esta.`
+          : `This is installment ${transaction.installmentCurrent}/${transaction.installmentTotal}.\n\nClick OK to delete ALL installments or Cancel to delete only this one.`
+      );
+      try {
+        if (choice) {
+          const q = query(
+            collection(db, 'transactions'),
+            where('installmentGroupId', '==', transaction.installmentGroupId),
+            where('userId', '==', transaction.userId)
+          );
+          const snap = await getDocs(q);
+          const batch = writeBatch(db);
+          snap.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        } else {
+          await deleteDoc(doc(db, 'transactions', id));
+        }
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+      }
+      return;
+    }
+
     if (window.confirm(language === 'pt' ? 'Excluir esta transação?' : 'Delete this transaction?')) {
       try {
         await deleteDoc(doc(db, 'transactions', id));
@@ -465,7 +493,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                         </svg>
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(transaction.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(transaction); }}
                         className="p-2 text-slate-400 hover:text-rose-500
                           hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-all"
                         title={language === 'pt' ? 'Excluir' : 'Delete'}

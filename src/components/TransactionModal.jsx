@@ -27,8 +27,8 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
   // Installment state
   const [isInstallment, setIsInstallment] = useState(false);
-  const [currentInstallment, setCurrentInstallment] = useState(1);
-  const [totalInstallments, setTotalInstallments] = useState(2);
+  const [currentInstallmentStr, setCurrentInstallmentStr] = useState('1');
+  const [totalInstallmentsStr, setTotalInstallmentsStr] = useState('2');
   // Ignore state
   const [isIgnored, setIsIgnored] = useState(false);
   // Recurrence state
@@ -74,8 +74,8 @@ export default function TransactionModal({ isOpen, onClose }) {
     setPaymentMethod('credit');
     setTransactionDate(new Date().toISOString().split('T')[0]);
     setIsInstallment(false);
-    setCurrentInstallment(1);
-    setTotalInstallments(2);
+    setCurrentInstallmentStr('1');
+    setTotalInstallmentsStr('2');
     setIsIgnored(false);
     setIsRecurring(false);
     setRecurrenceFrequency('monthly');
@@ -127,6 +127,9 @@ export default function TransactionModal({ isOpen, onClose }) {
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
       const baseDate = new Date(transactionDate + 'T12:00:00'); // Use noon to avoid timezone issues
       const baseCategory = category || categories[type][0];
+
+      const currentInstallment = Math.max(1, parseInt(currentInstallmentStr) || 1);
+      const totalInstallments = Math.max(2, parseInt(totalInstallmentsStr) || 2);
 
       if (isInstallment && totalInstallments >= 2) {
         const installmentGroupId = generateInstallmentGroupId({
@@ -278,8 +281,8 @@ export default function TransactionModal({ isOpen, onClose }) {
         setDescription('');
         setAmount(0);
         setIsInstallment(false);
-        setCurrentInstallment(1);
-        setTotalInstallments(2);
+        setCurrentInstallmentStr('1');
+        setTotalInstallmentsStr('2');
         // Keep category, bank, and goal selection for convenience
       } else {
         onClose();
@@ -398,6 +401,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                     </label>
                     <input
                       type="date"
+                      lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                       value={transactionDate}
                       onChange={(e) => setTransactionDate(e.target.value)}
                       className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
@@ -811,11 +815,18 @@ export default function TransactionModal({ isOpen, onClose }) {
                                 {t('transactionForm.currentInstallment')}
                               </label>
                               <input
-                                type="number"
-                                min="1"
-                                max={totalInstallments}
-                                value={currentInstallment}
-                                onChange={(e) => setCurrentInstallment(Math.max(1, Math.min(parseInt(e.target.value) || 1, totalInstallments)))}
+                                type="text"
+                                inputMode="numeric"
+                                value={currentInstallmentStr}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(/\D/g, '');
+                                  setCurrentInstallmentStr(raw);
+                                }}
+                                onBlur={() => {
+                                  const total = Math.max(2, parseInt(totalInstallmentsStr) || 2);
+                                  const val = Math.max(1, Math.min(parseInt(currentInstallmentStr) || 1, total));
+                                  setCurrentInstallmentStr(String(val));
+                                }}
                                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
                                   focus:border-blue-500 focus:ring-0 focus:outline-none"
                               />
@@ -826,14 +837,18 @@ export default function TransactionModal({ isOpen, onClose }) {
                                 {t('transactionForm.totalInstallments')}
                               </label>
                               <input
-                                type="number"
-                                min="2"
-                                max="48"
-                                value={totalInstallments}
+                                type="text"
+                                inputMode="numeric"
+                                value={totalInstallmentsStr}
                                 onChange={(e) => {
-                                  const newTotal = Math.max(2, Math.min(parseInt(e.target.value) || 2, 48));
-                                  setTotalInstallments(newTotal);
-                                  if (currentInstallment > newTotal) setCurrentInstallment(newTotal);
+                                  const raw = e.target.value.replace(/\D/g, '');
+                                  setTotalInstallmentsStr(raw);
+                                }}
+                                onBlur={() => {
+                                  const val = Math.max(2, Math.min(parseInt(totalInstallmentsStr) || 2, 48));
+                                  setTotalInstallmentsStr(String(val));
+                                  const curr = Math.max(1, Math.min(parseInt(currentInstallmentStr) || 1, val));
+                                  setCurrentInstallmentStr(String(curr));
                                 }}
                                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
                                   focus:border-blue-500 focus:ring-0 focus:outline-none"

@@ -37,6 +37,7 @@ export default function TransactionsPage() {
   }, [searchParams]);
   const [viewMode, setViewMode] = useState('payment');
   const [selectedBankFilter, setSelectedBankFilter] = useState('all');
+  const [selectedPaymentMethodFilter, setSelectedPaymentMethodFilter] = useState('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -84,14 +85,21 @@ export default function TransactionsPage() {
         if (selectedBankFilter === 'cash') {
           if (t.bankId) return false;
         } else {
-          // Support both new format (unique document ID) and old format (bank type ID)
-          // matchesDirectly: transaction bankId equals filter (new format uses document ID)
           const matchesDirectly = t.bankId === selectedBankFilter;
-          // matchesViaLookup: for old format, find the user bank and check if it matches the filter
           const transactionUserBank = findUserBank(t.bankId);
           const matchesViaLookup = transactionUserBank && transactionUserBank.id === selectedBankFilter;
 
           if (!matchesDirectly && !matchesViaLookup) return false;
+        }
+      }
+
+      if (selectedPaymentMethodFilter !== 'all') {
+        if (selectedPaymentMethodFilter === 'cash') {
+          if (t.bankId) return false;
+        } else {
+          const method = t.paymentMethod || 'credit';
+          if (method !== selectedPaymentMethodFilter) return false;
+          if (!t.bankId) return false;
         }
       }
 
@@ -111,7 +119,7 @@ export default function TransactionsPage() {
         return paymentKey === selectedMonth;
       }
     });
-  }, [transactions, selectedMonth, viewMode, selectedBankFilter, findUserBank, getPaymentMonthKey]);
+  }, [transactions, selectedMonth, viewMode, selectedBankFilter, selectedPaymentMethodFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
     let result = monthlyTransactions;
@@ -175,6 +183,7 @@ export default function TransactionsPage() {
   const activeFiltersCount = [
     viewMode !== 'payment',
     selectedBankFilter !== 'all',
+    selectedPaymentMethodFilter !== 'all',
     selectedCategoryFilter !== 'all',
     showUncategorized
   ].filter(Boolean).length;
@@ -314,7 +323,7 @@ export default function TransactionsPage() {
               )}
             </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
               {/* Bank Filter */}
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
@@ -332,6 +341,25 @@ export default function TransactionsPage() {
                       {bank.icon} {bank.name}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              {/* Payment Method Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                  {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
+                </label>
+                <select
+                  value={selectedPaymentMethodFilter}
+                  onChange={(e) => setSelectedPaymentMethodFilter(e.target.value)}
+                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
+                  <option value="credit">{language === 'pt' ? '💳 Crédito' : '💳 Credit'}</option>
+                  <option value="debit">{language === 'pt' ? '🏦 Débito' : '🏦 Debit'}</option>
+                  <option value="pix">⚡ PIX</option>
+                  <option value="transfer">{language === 'pt' ? '↔️ Transferência' : '↔️ Transfer'}</option>
+                  <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
                 </select>
               </div>
 
@@ -404,6 +432,7 @@ export default function TransactionsPage() {
                 onClick={() => {
                   setViewMode('payment');
                   setSelectedBankFilter('all');
+                  setSelectedPaymentMethodFilter('all');
                   setSelectedCategoryFilter('all');
                   setShowUncategorized(false);
                 }}
