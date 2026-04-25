@@ -19,17 +19,21 @@ export default defineConfig(() => {
           short_name: 'Moneywise',
           start_url: '/app/dashboard',
           description: 'Controle financeiro pessoal simples e eficiente.',
-          theme_color: '#ffffff',
+          theme_color: '#f43f5e',
+          background_color: '#f43f5e',
+          display: 'standalone',
           icons: [
             {
               src: 'pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
+              purpose: 'any maskable',
             },
             {
               src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
+              purpose: 'any maskable',
             },
           ],
         },
