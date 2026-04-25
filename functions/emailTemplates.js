@@ -109,15 +109,19 @@ exports.accessGrantedTemplate = (name, loginUrl = 'https://mymoneywise.web.app')
  * Template 3: Bill Reminders (Summary)
  */
 exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
-  const formatCurrency = (val) => `R$ ${Number(val || 0).toFixed(2).replace('.', ',')}`;
-  
+  const formatCurrency = (val) => {
+    const num = parseFloat(val);
+    return `R$ ${(isNaN(num) ? 0 : num).toFixed(2).replace('.', ',')}`;
+  };
+
   const formatDate = (dateStr) => {
-    if (!dateStr) return '';
+    if (!dateStr) return '—';
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('pt-BR');
+      if (isNaN(date.getTime())) return '—';
+      return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     } catch (e) {
-      return dateStr;
+      return '—';
     }
   };
 
@@ -129,7 +133,11 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
         ${items.map(item => {
           const dueDate = formatDate(item.dueDate);
           const overdueInfo = item.daysOverdue ? `(atrasada ${item.daysOverdue} dia${item.daysOverdue > 1 ? 's' : ''})` : '';
-          
+          const isCreditCard = item.category === 'credit_card';
+          const displayAmount = isCreditCard && item.cardOutcomesAmount != null
+            ? item.cardOutcomesAmount
+            : item.amount;
+
           return `
             <tr>
               <td style="padding: 10px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;">
@@ -137,14 +145,14 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
                 <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
                   Vence: ${dueDate} ${overdueInfo ? `<span style="color: #dc2626;">${overdueInfo}</span>` : ''}
                 </div>
-                ${item.cardOutcomesAmount > 0 ? `
+                ${isCreditCard && item.cardOutcomesCount > 0 ? `
                   <div style="font-size: 12px; color: #4b5563; margin-top: 4px; padding: 4px 8px; background-color: #f9fafb; border-radius: 4px; display: inline-block;">
-                    💳 <strong>Lançamentos:</strong> ${formatCurrency(item.cardOutcomesAmount)} (${item.cardOutcomesCount} saídas)
+                    💳 ${item.cardOutcomesCount} lançamento${item.cardOutcomesCount > 1 ? 's' : ''} no ciclo
                   </div>
                 ` : ''}
               </td>
               <td style="padding: 10px 0; font-size: 14px; text-align: right; font-weight: bold; border-bottom: 1px solid #f3f4f6; vertical-align: top; color: #111827;">
-                ${formatCurrency(item.amount)}
+                ${formatCurrency(displayAmount)}
               </td>
             </tr>
           `;
