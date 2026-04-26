@@ -78,7 +78,7 @@ export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) 
           </div>
         ))}
       </div>
-      <div className="h-64 w-full overflow-visible">
+      <div className="h-80 w-full overflow-visible">
         <BarChart
           xAxis={[{
             scaleType: 'band',

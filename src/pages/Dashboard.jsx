@@ -12,7 +12,6 @@ import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
 import InvestmentsListModal from '../components/InvestmentsListModal';
-import CategoryTrendChart from './planner/CategoryTrendChart';
 import BillsSummaryCard from '../components/BillsSummaryCard';
 import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
 import CardsModal from '../components/CardsModal';
@@ -145,26 +144,14 @@ export default function DashboardPage() {
             {/* My Goals Progress - only when feature is enabled */}
             {hasGoals && <GoalProgress onManageGoals={() => navigate('/goals')} />}
 
-            {/* Bills Summary - Simple Card */}
-            <BillsSummaryCard selectedMonth={selectedMonth} />
-
             {/* Planner allocation summary */}
             <PlannerSummaryCard />
 
+            {/* Bills Summary - Simple Card */}
+            <BillsSummaryCard selectedMonth={selectedMonth} />
+
             {/* Expenses by category */}
             <ExpensesByCategoryCard transactions={monthlyTransactions} />
-
-            {/* Category Trend Chart */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                {locale === 'pt-BR' ? 'Tendência por Categoria' : 'Spending by Category'}
-              </h3>
-              <CategoryTrendChart
-                allTx={transactions}
-                last6Months={last6Months}
-                getMonthKey={getPaymentMonthKey}
-              />
-            </div>
           </div>
         </div>
       </main>
