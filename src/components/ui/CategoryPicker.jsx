@@ -77,7 +77,7 @@ export default function CategoryPicker({ isOpen, onClose, onSelect, currentCateg
       className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="py-1 max-h-72 overflow-y-auto">
+      <div className="py-1">
         {categoryList.map((category) => (
           <button
             key={category}

@@ -12,7 +12,6 @@ import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
 import InvestmentsListModal from '../components/InvestmentsListModal';
-import ExpensesPieChart from '../components/charts/ExpensesPieChart';
 import CategoryTrendChart from './planner/CategoryTrendChart';
 import BillsSummaryCard from '../components/BillsSummaryCard';
 import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
@@ -129,9 +128,6 @@ export default function DashboardPage() {
               carryoverSaldo={carryoverSaldo}
             />
 
-            {/* Expenses Pie Chart */}
-            <ExpensesPieChart transactions={monthlyTransactions} />
-
             {/* Trend Chart - Expenses vs Income Over Time */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
@@ -140,18 +136,6 @@ export default function DashboardPage() {
                 selectedMonth={selectedMonth}
                 viewMode={viewMode}
                 cumulativeByMonth={cumulativeByMonth}
-              />
-            </div>
-
-            {/* Category Trend Chart */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                {locale === 'pt-BR' ? 'Tendência por Categoria' : 'Spending by Category'}
-              </h3>
-              <CategoryTrendChart
-                allTx={transactions}
-                last6Months={last6Months}
-                getMonthKey={getPaymentMonthKey}
               />
             </div>
           </div>
@@ -169,6 +153,18 @@ export default function DashboardPage() {
 
             {/* Expenses by category */}
             <ExpensesByCategoryCard transactions={monthlyTransactions} />
+
+            {/* Category Trend Chart */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                {locale === 'pt-BR' ? 'Tendência por Categoria' : 'Spending by Category'}
+              </h3>
+              <CategoryTrendChart
+                allTx={transactions}
+                last6Months={last6Months}
+                getMonthKey={getPaymentMonthKey}
+              />
+            </div>
           </div>
         </div>
       </main>

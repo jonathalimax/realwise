@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 
 const COLORS = [
@@ -29,6 +30,7 @@ const CATEGORY_ICONS = {
 
 export default function ExpensesByCategoryCard({ transactions }) {
   const { language, formatCurrency } = useSettings();
+  const navigate = useNavigate();
 
   const { rows, total } = useMemo(() => {
     const spending = {};
@@ -50,13 +52,17 @@ export default function ExpensesByCategoryCard({ transactions }) {
         icon: CATEGORY_ICONS[cat] || '💰',
         color: COLORS[i % COLORS.length],
       }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 6);
+      .sort((a, b) => b.amount - a.amount);
 
     return { rows, total };
   }, [transactions]);
 
   if (rows.length === 0) return null;
+
+  const handleCategoryClick = (category) => {
+    sessionStorage.setItem('expenses_categoryFilter', category);
+    navigate('/expenses');
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
@@ -69,7 +75,11 @@ export default function ExpensesByCategoryCard({ transactions }) {
 
       <div className="space-y-2.5">
         {rows.map((row) => (
-          <div key={row.category}>
+          <button
+            key={row.category}
+            onClick={() => handleCategoryClick(row.category)}
+            className="w-full text-left hover:opacity-80 active:scale-[0.99] transition-all"
+          >
             <div className="flex justify-between mb-1">
               <span className="text-xs text-gray-600 dark:text-gray-300 truncate">
                 {row.icon} {row.category}
@@ -84,7 +94,7 @@ export default function ExpensesByCategoryCard({ transactions }) {
                 style={{ width: `${row.pct}%`, backgroundColor: row.color }}
               />
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

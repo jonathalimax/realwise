@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Fragment } from 'react';
+import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
@@ -277,13 +277,10 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const handleBankSelect = (e) => {
     const val = e.target.value;
     if (!val) { setSelectedBankId(null); setImportPaymentMethod('debit'); return; }
-    if (val.endsWith(':credit')) {
-      setSelectedBankId(val.replace(':credit', ''));
-      setImportPaymentMethod('credit');
-    } else {
-      setSelectedBankId(val);
-      setImportPaymentMethod('debit');
-    }
+    setSelectedBankId(val);
+    // Reset payment method when bank changes
+    const bank = userBanks.find(b => b.id === val);
+    if (!bank?.hasCredit) setImportPaymentMethod('debit');
   };
 
   // Load existing transaction hashes when modal opens
@@ -665,6 +662,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       }
       return t;
     }));
+    setPickerTransactionId(null);
   };
 
   const selectedCount = transactions.filter(t => t.selected).length;
@@ -885,13 +883,13 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       >
         {step === 'upload' && (
           <div className="flex flex-col h-full">
-            {/* Bank Selection - Dropdown */}
+            {/* Bank Selection */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                 {language === 'pt' ? 'Vincular ao Banco' : 'Link to Bank'}
               </label>
               <select
-                value={selectedBankId ? (importPaymentMethod === 'credit' ? `${selectedBankId}:credit` : selectedBankId) : ''}
+                value={selectedBankId || ''}
                 onChange={handleBankSelect}
                 className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
                 style={{
@@ -907,19 +905,40 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                   const bankInfo = getBankInfo(userBank.bankId);
                   const displayName = getBankDisplayName(userBank);
                   return (
-                    <Fragment key={userBank.id}>
-                      <option value={userBank.id}>
-                        {bankInfo.icon} {displayName} — {language === 'pt' ? 'Conta' : 'Account'}
-                      </option>
-                      {userBank.hasCredit && (
-                        <option value={`${userBank.id}:credit`}>
-                          💳 {displayName} — {language === 'pt' ? 'Cartão de Crédito' : 'Credit Card'}
-                        </option>
-                      )}
-                    </Fragment>
+                    <option key={userBank.id} value={userBank.id}>
+                      {bankInfo.icon} {displayName}
+                    </option>
                   );
                 })}
               </select>
+
+              {/* Payment method toggle — only when the selected bank has credit */}
+              {selectedBankId && userBanks.find(b => b.id === selectedBankId)?.hasCredit && (
+                <div className="mt-3 flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setImportPaymentMethod('debit')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      importPaymentMethod !== 'credit'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    🏦 {language === 'pt' ? 'Conta Corrente' : 'Account'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportPaymentMethod('credit')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      importPaymentMethod === 'credit'
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    💳 {language === 'pt' ? 'Cartão de Crédito' : 'Credit Card'}
+                  </button>
+                </div>
+              )}
 
               {/* B3 positions import toggle — only when b3Sync feature is enabled */}
               {hasB3Sync && (
@@ -968,47 +987,6 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                     </>
                   )}
                 </>
-              )}
-            </div>
-
-            {/* Upload Mode Toggle */}
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'pt' ? 'Modo de processamento' : 'Processing mode'}
-              </label>
-              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl mb-4">
-                <button
-                  type="button"
-                  onClick={() => setUploadMode('local')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    uploadMode === 'local'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {language === 'pt' ? '📱 Revisar aqui' : '📱 Review here'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUploadMode('background')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    uploadMode === 'background'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {language === 'pt' ? '☁️ Enviar e processar' : '☁️ Upload & process'}
-                </button>
-              </div>
-              {uploadMode === 'background' && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {language === 'pt'
-                    ? 'Transações serão processadas automaticamente. Revise depois em "Pendente de Revisão".'
-                    : 'Transactions will be auto-processed. Review later in "Pending Review".'}
-                </p>
               )}
             </div>
 
@@ -1650,7 +1628,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       <div className={`px-4 sm:px-6 py-4 border-t border-gray-100 dark:border-gray-700 ${isMobile ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`}>
         {step === 'upload' && (
           <button
-            onClick={uploadMode === 'local' ? handleParse : handleBackgroundUpload}
+            onClick={handleParse}
             disabled={!file || loading}
             className="w-full py-3.5 bg-slate-900 dark:bg-slate-50 text-white dark:text-slate-900 rounded-xl font-medium
               hover:bg-slate-800 dark:hover:bg-slate-200 hover:shadow-lg hover:shadow-slate-900/25 dark:hover:shadow-slate-50/25
@@ -1664,7 +1642,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 </svg>
                 {file?.name?.toLowerCase().endsWith('.pdf') ? (language === 'pt' ? 'Lendo PDF...' : 'Reading PDF...') : (language === 'pt' ? 'Processando...' : 'Processing...')}
               </span>
-            ) : uploadMode === 'local' ? t('common.continue') : (language === 'pt' ? 'Enviar arquivo' : 'Upload file')}
+            ) : t('common.continue')}
           </button>
         )}
 
