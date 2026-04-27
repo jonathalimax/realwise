@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
@@ -5,6 +6,7 @@ import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 export default function BillsSummaryCard({ selectedMonth }) {
   const { bills, loading } = useBills();
   const { language } = useSettings();
+  const navigate = useNavigate();
 
   // Parse selectedMonth for filtering (format: "YYYY-MM")
   const [selectedYear, selectedMonthNum] = selectedMonth
@@ -89,6 +91,8 @@ export default function BillsSummaryCard({ selectedMonth }) {
   const paidBills = monthBills.filter(b => b.status === 'paid').length;
   const pendingBills = totalBills - paidBills;
 
+  const handleClick = () => navigate('/bills');
+
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
@@ -101,10 +105,18 @@ export default function BillsSummaryCard({ selectedMonth }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        {language === 'pt' ? 'Contas do Mês' : 'Monthly Bills'}
-      </h3>
+    <div
+      onClick={handleClick}
+      className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-[0.98] group"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          {language === 'pt' ? 'Contas do Mês' : 'Monthly Bills'}
+        </h3>
+        <svg className="w-5 h-5 text-gray-300 group-hover:text-violet-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
 
       {totalBills === 0 ? (
         <div className="text-center py-8">
@@ -117,31 +129,15 @@ export default function BillsSummaryCard({ selectedMonth }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <ClockIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                  {language === 'pt' ? 'Total' : 'Total'}
-                </p>
-              </div>
-              <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{totalBills}</p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                {language === 'pt' ? 'contas' : 'bills'}
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/30 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <ClockIcon className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                <p className="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">
+                <p className="text-sm font-medium text-orange-700 dark:text-orange-300 uppercase tracking-wide">
                   {language === 'pt' ? 'A Pagar' : 'To Pay'}
                 </p>
               </div>
               <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{pendingBills}</p>
-              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                {language === 'pt' ? 'pendentes' : 'pending'}
-              </p>
             </div>
           </div>
 

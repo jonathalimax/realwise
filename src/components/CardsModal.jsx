@@ -125,8 +125,8 @@ export default function CardsModal({ isOpen, onClose }) {
     }
 
     // Otherwise, add a number based on creation order
-    const index = sameBankTypeWithoutName.findIndex(b => b.id === userBank.id) + 1;
-    return `${bankInfo.name} (${index})`;
+    const index = sameBankTypeWithoutName.findIndex(b => b.id === userBank.id);
+    return index === 0 ? bankInfo.name : `${bankInfo.name} (${index + 1})`;
   };
 
   const BankItem = ({ userBank }) => {

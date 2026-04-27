@@ -119,12 +119,11 @@ export default function ExpensesPage() {
     return Array.from(cats).sort();
   }, [transactions]);
 
-  // Return userBanks with their display info for the filter dropdown
   const availableBanks = useMemo(() => {
     return userBanks.map(ub => {
       const bankInfo = getBankInfo(ub.bankId);
       return {
-        id: ub.id, // Unique document ID for filtering
+        id: ub.id,
         bankId: ub.bankId,
         name: getBankDisplayName(ub),
         icon: bankInfo.icon
@@ -158,227 +157,173 @@ export default function ExpensesPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <PageHeader title={language === 'pt' ? 'Saída' : 'Expenses'} />
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* Summary Card */}
-        <div className="mb-4 sm:mb-6 bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-4 sm:p-6 text-white shadow-lg">
-          <p className="text-sm text-white/80 mb-1">
-            {language === 'pt' ? 'Total de Saída' : 'Total Expenses'}
-          </p>
-          <p className="text-2xl sm:text-3xl font-bold">{formatCurrency(totalExpenses)}</p>
-          <p className="text-sm text-white/70 mt-1">
-            {filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}
-          </p>
+        <div className="mb-6 bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+          <p className="text-sm text-white/80 mb-1">{language === 'pt' ? 'Total de Saída' : 'Total Expenses'}</p>
+          <p className="text-3xl font-bold">{formatCurrency(totalExpenses)}</p>
+          <p className="text-sm text-white/70 mt-1">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</p>
         </div>
 
-        {/* Filters */}
-        <div className="flex justify-end mb-4 sm:mb-6">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all ${
-              showFilters || activeFiltersCount > 0
-                ? 'bg-violet-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <AdjustmentsHorizontalIcon className="w-5 h-5" />
-            <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
-            {activeFiltersCount > 0 && (
-              <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                showFilters ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400'
-              }`}>
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm space-y-3 sm:space-y-4">
-            {/* View Mode Toggle */}
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                {language === 'pt' ? 'Visualizar por' : 'View by'}
-              </label>
-              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                <button
-                  onClick={() => handleSetViewMode('purchase')}
-                  className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                    viewMode === 'purchase'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {t('cards.viewByPurchase')}
-                </button>
-                <button
-                  onClick={() => handleSetViewMode('payment')}
-                  className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                    viewMode === 'payment'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {t('cards.viewByPayment')}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-              {/* Bank Filter */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Banco' : 'Bank'}
-                </label>
-                <select
-                  value={selectedBankFilter}
-                  onChange={(e) => handleSetBankFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                >
-                  <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'}</option>
-                  <option value="cash">{language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'}</option>
-                  {availableBanks.map(bank => (
-                    <option key={bank.id} value={bank.id}>
-                      {bank.icon} {bank.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Payment Method Filter */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
-                </label>
-                <select
-                  value={selectedPaymentMethodFilter}
-                  onChange={(e) => handleSetPaymentMethodFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                >
-                  <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
-                  <option value="credit">{language === 'pt' ? '💳 Crédito' : '💳 Credit'}</option>
-                  <option value="debit">{language === 'pt' ? '🏦 Débito' : '🏦 Debit'}</option>
-                  <option value="pix">⚡ PIX</option>
-                  <option value="transfer">{language === 'pt' ? '↔️ Transferência' : '↔️ Transfer'}</option>
-                  <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
-                </select>
-              </div>
-
-              {/* Category Filter */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {t('charts.category')}
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    value={selectedCategoryFilter}
-                    onChange={(e) => handleSetCategoryFilter(e.target.value)}
-                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
-                      selectedCategoryFilter !== 'all'
-                        ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300'
-                        : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
-                    }`}
-                  >
-                    <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
-                    {availableCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                  {selectedCategoryFilter !== 'all' && (
-                    <button
-                      onClick={() => handleSetCategoryFilter('all')}
-                      className="p-2.5 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg"
-                    >
-                      <XMarkIcon className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Sort By */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Ordenar por' : 'Sort by'}
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => handleSetSortBy(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                >
-                  <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
-                  <option value="description">{language === 'pt' ? 'Descrição' : 'Description'}</option>
-                  <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
-                </select>
-              </div>
-
-              {/* Sort Order */}
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Ordem' : 'Order'}
-                </label>
-                <select
-                  value={sortOrder}
-                  onChange={(e) => handleSetSortOrder(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                >
-                  <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
-                  <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
-                </select>
-              </div>
-            </div>
-
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={() => {
-                  handleSetViewMode('payment');
-                  handleSetBankFilter('all');
-                  handleSetPaymentMethodFilter('all');
-                  handleSetCategoryFilter('all');
-                }}
-                className="w-full py-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
-              >
-                {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Transactions List */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white capitalize">
+        {/* Transactions List Container */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
-            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
-            </span>
           </div>
+
           <TransactionList
             transactions={filteredTransactions}
             selectedMonth={selectedMonth}
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSuccess={triggerRefresh}
+            hideBulkEdit={true}
+            filterButton={
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
+                  showFilters || activeFiltersCount > 0
+                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20'
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                <AdjustmentsHorizontalIcon className="w-5 h-5" />
+                <span className="font-bold text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
+                {activeFiltersCount > 0 && (
+                  <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-black rounded-full ${
+                    showFilters ? 'bg-white text-violet-600' : 'bg-violet-600 text-white'
+                  }`}>
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+            }
           />
+
+          {/* Filters Panel - Now inside the list container */}
+          {showFilters && (
+            <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 animate-fade-in">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-widest">
+                  {language === 'pt' ? 'Visualizar por' : 'View by'}
+                </label>
+                <div className="flex p-1 bg-slate-200/50 dark:bg-slate-700 rounded-xl max-w-xs">
+                  <button
+                    onClick={() => handleSetViewMode('purchase')}
+                    className={`flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      viewMode === 'purchase' ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500'
+                    }`}
+                  >
+                    {t('cards.viewByPurchase')}
+                  </button>
+                  <button
+                    onClick={() => handleSetViewMode('payment')}
+                    className={`flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      viewMode === 'payment' ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500'
+                    }`}
+                  >
+                    {t('cards.viewByPayment')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Bank */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Banco' : 'Bank'}</label>
+                  <select
+                    value={selectedBankFilter}
+                    onChange={(e) => handleSetBankFilter(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-violet-500"
+                  >
+                    <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
+                    <option value="cash">{language === 'pt' ? 'Dinheiro' : 'Cash'}</option>
+                    {availableBanks.map(bank => <option key={bank.id} value={bank.id}>{bank.icon} {bank.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Method */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Pagamento' : 'Method'}</label>
+                  <select
+                    value={selectedPaymentMethodFilter}
+                    onChange={(e) => handleSetPaymentMethodFilter(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-violet-500"
+                  >
+                    <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
+                    <option value="credit">💳 {language === 'pt' ? 'Crédito' : 'Credit'}</option>
+                    <option value="debit">🏦 {language === 'pt' ? 'Débito' : 'Debit'}</option>
+                    <option value="pix">⚡ PIX</option>
+                  </select>
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{t('charts.category')}</label>
+                  <select
+                    value={selectedCategoryFilter}
+                    onChange={(e) => handleSetCategoryFilter(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-violet-500"
+                  >
+                    <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
+                    {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordenar' : 'Sort'}</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={sortBy}
+                      onChange={(e) => handleSetSortBy(e.target.value)}
+                      className="flex-1 pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-violet-500"
+                    >
+                      <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
+                      <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
+                    </select>
+                    <button
+                      onClick={() => handleSetSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                      className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl"
+                    >
+                      {sortOrder === 'desc' ? '↓' : '↑'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={() => {
+                    handleSetViewMode('payment');
+                    handleSetBankFilter('all');
+                    handleSetPaymentMethodFilter('all');
+                    handleSetCategoryFilter('all');
+                  }}
+                  className="w-full py-2 text-xs font-bold text-violet-600 dark:text-violet-400 hover:underline"
+                >
+                  {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Add Transaction Modal */}
       <TransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         defaultType="expense"
       />
 
-      {/* FAB */}
       {canWrite && (
         <button
           onClick={() => setShowAddModal(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-violet-500 hover:bg-violet-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
-          aria-label={language === 'pt' ? 'Nova Saída' : 'New Expense'}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl shadow-xl shadow-violet-600/20 flex items-center justify-center transition-all active:scale-90"
         >
-          <PlusIcon className="w-7 h-7" />
+          <PlusIcon className="w-8 h-8" />
         </button>
       )}
     </div>

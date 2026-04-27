@@ -9,7 +9,7 @@ import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/Inve
 import { useAccess } from '../contexts/AccessContext';
 import { buildUpdatedMetadata } from '../utils/transactionMetadata';
 import CurrencyInput from '../components/ui/CurrencyInput';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../components/PageHeader';
 
 export default function TransactionEditPage() {
   const { ownerId } = useAccess();
@@ -289,23 +289,10 @@ export default function TransactionEditPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 h-14 sm:h-16">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label={language === 'pt' ? 'Voltar' : 'Go back'}
-            >
-              <ArrowLeftIcon className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-              {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
-            </h1>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
+        showMonth={false}
+      />
 
       {/* Form */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
