@@ -19,7 +19,7 @@ import {
   QuestionMarkCircleIcon,
   PuzzlePieceIcon,
 } from '@heroicons/react/24/outline';
-import LanguageToggle from './LanguageToggle';
+import { LanguageToggle } from './LanguageToggle';
 import ThemeToggle from './ThemeToggle';
 import WhatsAppButton from './WhatsAppButton';
 
