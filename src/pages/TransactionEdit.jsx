@@ -8,6 +8,7 @@ import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
 import { buildUpdatedMetadata } from '../utils/transactionMetadata';
+import { formatDateBR } from '../utils/dateFormatter';
 import CurrencyInput from '../components/ui/CurrencyInput';
 import PercentInput from '../components/ui/PercentInput';
 import usePlannerGoals from './planner/usePlannerGoals';
@@ -343,51 +344,36 @@ export default function TransactionEditPage() {
               </button>
             </div>
 
-            {/* Amount */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('transactionForm.amount')}
-              </label>
-              <CurrencyInput value={amount} onChange={setAmount} />
-            </div>
+            {/* 2-Column Layout Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('transactionForm.description')}
+                </label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                    text-gray-900 dark:text-white placeholder-gray-400
+                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                    transition-all duration-200"
+                  placeholder={t('transactionForm.descriptionPlaceholder')}
+                />
+              </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('transactionForm.description')}
-              </label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                  text-gray-900 dark:text-white placeholder-gray-400
-                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                  transition-all duration-200"
-                placeholder={t('transactionForm.descriptionPlaceholder')}
-              />
-            </div>
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('transactionForm.amount')}
+                </label>
+                <CurrencyInput value={amount} onChange={setAmount} />
+              </div>
 
-            {/* Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('transactionForm.date')}
-              </label>
-              <input
-                type="date"
-                lang={language === 'pt' ? 'pt-BR' : 'en-US'}
-                value={transactionDate}
-                onChange={(e) => setTransactionDate(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                  text-gray-900 dark:text-white
-                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                  transition-all duration-200"
-              />
-            </div>
-
-            {/* Category */}
-            <div>
+              {/* Category */}
+              <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t('transactionForm.category')}
               </label>
@@ -411,6 +397,24 @@ export default function TransactionEditPage() {
                   </option>
                 ))}
               </select>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('transactionForm.date')}
+                </label>
+                <input
+                  type="date"
+                  lang={language === 'pt' ? 'pt-BR' : 'en-US'}
+                  value={transactionDate}
+                  onChange={(e) => setTransactionDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                    text-gray-900 dark:text-white
+                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                    transition-all duration-200"
+                />
+              </div>
             </div>
 
             {/* Investment Type (only shown when category is Investments) */}
