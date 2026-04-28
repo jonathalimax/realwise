@@ -69,10 +69,9 @@ export default function TransactionModal({ isOpen, onClose }) {
       isInvestments: effectiveCategory === 'Investments',
       isInvestimentos: effectiveCategory === 'Investimentos',
       conditionMet: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos'),
-      shouldShowPlanner: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos'),
-      plannerGoalsCount: plannerGoals.length
+      shouldShowPlanner: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos')
     });
-  }, [effectiveCategory, plannerGoals.length]);
+  }, [effectiveCategory]);
 
   // Reset form when modal opens
   useEffect(() => {
