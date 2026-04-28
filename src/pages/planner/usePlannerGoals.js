@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
+import { getActiveVersion } from './carteira/walletVersion';
 
 /**
  * Lightweight hook that reads wallet sublayers from the Firestore planner doc.
@@ -22,6 +23,7 @@ export default function usePlannerGoals() {
         doc(db, 'planner', ownerId),
         (snap) => {
           if (!snap.exists()) {
+            console.warn('[usePlannerGoals] Planner document does not exist for', ownerId);
             setGoals([]);
             return;
           }
@@ -32,33 +34,36 @@ export default function usePlannerGoals() {
           if (walletVersions.length > 0) {
             // Use the most recent wallet version to get all sublayers
             const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-            const sorted = [...walletVersions].sort((a, b) => a.from.localeCompare(b.from));
-            let activeVersion = null;
-            for (const v of sorted) {
-              if (v.from <= currentMonth) activeVersion = v;
+            const activeVersion = getActiveVersion(walletVersions, currentMonth);
+
+            if (activeVersion) {
+              const sublayers = (activeVersion.layers ?? []).flatMap(layer =>
+                (layer.sublayers ?? []).map(sub => ({
+                  id: sub.id,
+                  label: sub.label,
+                  layerLabel: layer.label,
+                }))
+              );
+              console.log('[usePlannerGoals] Found', sublayers.length, 'sublayers from active version:', sublayers);
+              setGoals(sublayers);
+            } else {
+              console.warn('[usePlannerGoals] No active version found. Versions:', walletVersions.map(v => v.from));
+              setGoals([]);
             }
-            const version = activeVersion ?? sorted[sorted.length - 1];
-            const sublayers = (version?.layers ?? []).flatMap(layer =>
-              (layer.sublayers ?? []).map(sub => ({
-                id: sub.id,
-                label: sub.label,
-                layerLabel: layer.label,
-              }))
-            );
-            setGoals(sublayers);
           } else {
             // Fallback for legacy planner docs without walletVersions
             const rows = data.savingsRows ?? [];
+            console.log('[usePlannerGoals] Using fallback savingsRows:', rows.length, 'rows');
             setGoals(rows.map(r => ({ id: r.id, label: r.label, layerLabel: '' })));
           }
         },
         (error) => {
-          console.error('Error loading planner goals:', error);
+          console.error('[usePlannerGoals] Firestore listener error:', error);
           setGoals([]);
         }
       );
     } catch (error) {
-      console.error('Error setting up planner goals listener:', error);
+      console.error('[usePlannerGoals] Error setting up listener:', error);
       setGoals([]);
     }
 
