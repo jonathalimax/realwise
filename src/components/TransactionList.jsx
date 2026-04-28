@@ -98,10 +98,20 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
           );
           const snap = await getDocs(q);
           const batch = writeBatch(db);
-          snap.forEach(d => batch.delete(d.ref));
+          snap.forEach(d => {
+            batch.delete(d.ref);
+            // Also delete related investment if it exists
+            if (d.data().investmentId) {
+              batch.delete(doc(db, 'investments', d.data().investmentId));
+            }
+          });
           await batch.commit();
         } else {
           await deleteDoc(doc(db, 'transactions', id));
+          // Also delete related investment if it exists
+          if (transaction.investmentId) {
+            await deleteDoc(doc(db, 'investments', transaction.investmentId));
+          }
         }
       } catch (error) {
         console.error('Error deleting transaction:', error);
@@ -112,6 +122,10 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
     if (window.confirm(language === 'pt' ? 'Excluir esta transação?' : 'Delete this transaction?')) {
       try {
         await deleteDoc(doc(db, 'transactions', id));
+        // Also delete related investment if it exists
+        if (transaction.investmentId) {
+          await deleteDoc(doc(db, 'investments', transaction.investmentId));
+        }
       } catch (error) {
         console.error('Error deleting transaction:', error);
       }
@@ -146,7 +160,13 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
             where('userId', '==', ownerId)
           );
           const snap = await getDocs(q);
-          snap.forEach(d => batch.delete(d.ref));
+          snap.forEach(d => {
+            batch.delete(d.ref);
+            // Also delete related investment if it exists
+            if (d.data().investmentId) {
+              batch.delete(doc(db, 'investments', d.data().investmentId));
+            }
+          });
         }
       }
 
@@ -155,6 +175,10 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
         const trans = filteredTransactions.find(t => t.id === transId);
         if (!trans?.isInstallment || !trans.installmentGroupId) {
           batch.delete(doc(db, 'transactions', transId));
+          // Also delete related investment if it exists
+          if (trans?.investmentId) {
+            batch.delete(doc(db, 'investments', trans.investmentId));
+          }
         }
       }
 
