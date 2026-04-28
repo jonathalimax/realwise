@@ -500,11 +500,11 @@ export default function InvestmentForm() {
             )}
 
             {/* Planner goal link */}
-            {plannerGoals.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Objetivo do planner
-                </label>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Objetivo do planner
+              </label>
+              {plannerGoals.length > 0 ? (
                 <select
                   value={formData.plannerGoalId}
                   onChange={e => setFormData(prev => ({ ...prev, plannerGoalId: e.target.value }))}
@@ -515,8 +515,14 @@ export default function InvestmentForm() {
                     <option key={g.id} value={g.id}>{g.label}</option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Nenhum objetivo criado no planner. Configure objetivos de investimento na aba "Carteira" do planner.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Ticker — shown only for B3-eligible types */}
             {['stocks', 'fii', 'funds'].includes(formData.type) && (
