@@ -16,24 +16,24 @@ export const CURRENCIES = {
 // All available predefined categories by language
 export const ALL_CATEGORIES_BY_LANG = {
   en: {
-    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Bonus', 'Rental', 'Other']
+    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
+    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Bonus', 'Rental', 'Uncategorized', 'Other']
   },
   pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Presente', 'Bônus', 'Aluguel', 'Outros']
+    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem Categoria', 'Diversos'],
+    income: ['Salário', 'Freelance', 'Investimentos', 'Presente', 'Bônus', 'Aluguel', 'Sem Categoria', 'Outros']
   }
 };
 
 // Default enabled categories (subset of all)
 const DEFAULT_CATEGORIES_BY_LANG = {
   en: {
-    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Other']
+    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
+    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Uncategorized', 'Other']
   },
   pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Presente', 'Outros']
+    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem Categoria', 'Diversos'],
+    income: ['Salário', 'Freelance', 'Investimentos', 'Presente', 'Sem Categoria', 'Outros']
   }
 };
 
@@ -69,6 +69,8 @@ const CATEGORY_TRANSLATION_MAP = {
   'Igreja': 'Church',
   'Investments': 'Investimentos',
   'Investimentos': 'Investments',
+  'Uncategorized': 'Sem Categoria',
+  'Sem Categoria': 'Uncategorized',
   'Other': 'Diversos',
   'Diversos': 'Other',
   // Income categories

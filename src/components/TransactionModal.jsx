@@ -54,8 +54,8 @@ export default function TransactionModal({ isOpen, onClose }) {
 
   const availableGoals = goals.filter(g => !g.completed);
 
-  // When category is '' (fresh form), treat as the first category of current type
-  const effectiveCategory = category || categories[type]?.[0] || '';
+  // Effective category for UI logic (what category is currently selected/showing)
+  const effectiveCategory = category || '';
 
   // Debug logging for effective category and category changes
   useEffect(() => {
@@ -142,7 +142,7 @@ export default function TransactionModal({ isOpen, onClose }) {
     try {
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
       const baseDate = new Date(transactionDate + 'T12:00:00'); // Use noon to avoid timezone issues
-      const baseCategory = category || categories[type][0];
+      const baseCategory = category; // Use selected category as-is, allow empty/"Sem Categoria"
 
       const currentInstallment = Math.max(1, parseInt(currentInstallmentStr) || 1);
       const totalInstallments = Math.max(2, parseInt(totalInstallmentsStr) || 2);

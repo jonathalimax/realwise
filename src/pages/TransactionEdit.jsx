@@ -155,7 +155,7 @@ export default function TransactionEditPage() {
       const baseDate = new Date(transactionDate + 'T12:00:00');
       const selectedGoal = selectedGoalId ? goals.find((g) => g.id === selectedGoalId) : null;
 
-      const finalCategory = category || categories[type][0];
+      const finalCategory = category; // Use selected category as-is, allow empty/"Sem Categoria"
       const isInvestmentCategory =
         finalCategory === 'Investments' || finalCategory === 'Investimentos';
 

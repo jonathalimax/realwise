@@ -48,7 +48,7 @@ export default function TransactionForm() {
       // Find selected goal name for reference
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
       const baseDate = new Date(transactionDate + 'T12:00:00'); // Use noon to avoid timezone issues
-      const baseCategory = category || categories[type][0];
+      const baseCategory = category; // Use selected category as-is, allow empty/"Sem Categoria"
 
       if (isInstallment && totalInstallments >= 2) {
         // Generate all installment transactions
@@ -306,7 +306,7 @@ export default function TransactionForm() {
         </div>
 
         {/* Investment Type (only shown when category is Investments) */}
-        {(category === 'Investments' || (!category && categories[type][0] === 'Investments')) && (
+        {(category === 'Investments' || category === 'Investimentos') && (
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('investments.type')}

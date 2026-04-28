@@ -46,7 +46,6 @@ function NavItem({ path, icon, label, onClick }) {
     >
       {({ isActive }) => (
         <>
-          {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r"></div>}
           <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:text-violet-500'}`} />
           <span className="font-bold text-sm flex-1 uppercase">{label}</span>
         </>
