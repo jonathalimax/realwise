@@ -9,6 +9,8 @@ import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/Inve
 import { useAccess } from '../contexts/AccessContext';
 import { buildUpdatedMetadata } from '../utils/transactionMetadata';
 import CurrencyInput from '../components/ui/CurrencyInput';
+import PercentInput from '../components/ui/PercentInput';
+import usePlannerGoals from './planner/usePlannerGoals';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 export default function TransactionEditPage() {
@@ -27,6 +29,7 @@ export default function TransactionEditPage() {
   const [category, setCategory] = useState('');
   const [transactionDate, setTransactionDate] = useState('');
   const [selectedGoalId, setSelectedGoalId] = useState('');
+  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState('');
   const [selectedBankId, setSelectedBankId] = useState(null);
   const [isIgnored, setIsIgnored] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,6 +52,7 @@ export default function TransactionEditPage() {
   const { goals } = useGoals();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank } = useCards();
   const { addInvestment, updateInvestment, investments } = useInvestments();
+  const plannerGoals = usePlannerGoals();
 
   const availableGoals = goals.filter((g) => !g.completed);
 
@@ -94,6 +98,7 @@ export default function TransactionEditPage() {
       transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0]
     );
     setSelectedGoalId(transaction.goalId || '');
+    setSelectedPlannerGoalId(transaction.plannerGoalId || '');
 
     // Handle both old (bank type) and new (document ID) formats
     if (transaction.bankId) {
@@ -170,6 +175,7 @@ export default function TransactionEditPage() {
         date: baseDate.toISOString(),
         goalId: selectedGoalId || null,
         goalName: selectedGoal?.name || null,
+        plannerGoalId: selectedPlannerGoalId || null,
         bankId: selectedBankId || null,
         paymentMethod: selectedBankId ? paymentMethod : null,
         ignored: isIgnored,
@@ -290,7 +296,7 @@ export default function TransactionEditPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
+      <div className="sticky top-0 z-30 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 h-14 sm:h-16">
             <button
@@ -593,6 +599,37 @@ export default function TransactionEditPage() {
                   )}
                 </div>
               </>
+            )}
+
+            {/* Planner Goal (only shown when category is Investments) */}
+            {(category === 'Investments' || category === 'Investimentos') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'pt' ? 'Objetivo do planner' : 'Planner objective'}
+                </label>
+                {plannerGoals.length > 0 ? (
+                  <select
+                    value={selectedPlannerGoalId}
+                    onChange={e => setSelectedPlannerGoalId(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                  >
+                    <option value="">{language === 'pt' ? 'Nenhum' : 'None'}</option>
+                    {plannerGoals.map(g => (
+                      <option key={g.id} value={g.id}>
+                        {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      {language === 'pt'
+                        ? 'Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.'
+                        : 'No investment objectives configured in planner. Access the planner to create investment objectives in wallet layers.'}
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Bank Selector */}
