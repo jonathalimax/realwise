@@ -15,35 +15,56 @@ export default function usePlannerGoals() {
 
   useEffect(() => {
     if (!ownerId) return;
-    const unsubscribe = onSnapshot(doc(db, 'planner', ownerId), (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
 
-      const walletVersions = data.walletVersions ?? [];
-      if (walletVersions.length > 0) {
-        // Use the most recent wallet version to get all sublayers
-        const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-        const sorted = [...walletVersions].sort((a, b) => a.from.localeCompare(b.from));
-        let activeVersion = null;
-        for (const v of sorted) {
-          if (v.from <= currentMonth) activeVersion = v;
+    let unsubscribe;
+    try {
+      unsubscribe = onSnapshot(
+        doc(db, 'planner', ownerId),
+        (snap) => {
+          if (!snap.exists()) {
+            setGoals([]);
+            return;
+          }
+
+          const data = snap.data();
+          const walletVersions = data.walletVersions ?? [];
+
+          if (walletVersions.length > 0) {
+            // Use the most recent wallet version to get all sublayers
+            const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+            const sorted = [...walletVersions].sort((a, b) => a.from.localeCompare(b.from));
+            let activeVersion = null;
+            for (const v of sorted) {
+              if (v.from <= currentMonth) activeVersion = v;
+            }
+            const version = activeVersion ?? sorted[sorted.length - 1];
+            const sublayers = (version?.layers ?? []).flatMap(layer =>
+              (layer.sublayers ?? []).map(sub => ({
+                id: sub.id,
+                label: sub.label,
+                layerLabel: layer.label,
+              }))
+            );
+            setGoals(sublayers);
+          } else {
+            // Fallback for legacy planner docs without walletVersions
+            const rows = data.savingsRows ?? [];
+            setGoals(rows.map(r => ({ id: r.id, label: r.label, layerLabel: '' })));
+          }
+        },
+        (error) => {
+          console.error('Error loading planner goals:', error);
+          setGoals([]);
         }
-        const version = activeVersion ?? sorted[sorted.length - 1];
-        const sublayers = (version.layers ?? []).flatMap(layer =>
-          (layer.sublayers ?? []).map(sub => ({
-            id: sub.id,
-            label: sub.label,
-            layerLabel: layer.label,
-          }))
-        );
-        setGoals(sublayers);
-      } else {
-        // Fallback for legacy planner docs without walletVersions
-        const rows = data.savingsRows ?? [];
-        setGoals(rows.map(r => ({ id: r.id, label: r.label, layerLabel: '' })));
-      }
-    });
-    return unsubscribe;
+      );
+    } catch (error) {
+      console.error('Error setting up planner goals listener:', error);
+      setGoals([]);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [ownerId]);
 
   return goals;
