@@ -452,6 +452,7 @@ export default function TransactionEditPage() {
                   <div className="space-y-3">
                     {investmentType === 'fixed_income' && (
                       <>
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
@@ -484,7 +485,7 @@ export default function TransactionEditPage() {
                             <option value={RETURN_TYPES.monthly}>{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
                             <option value={RETURN_TYPES.total}>Total</option>
                           </select>
-                        </div>
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -502,11 +503,11 @@ export default function TransactionEditPage() {
                       )}
                     {(investmentType === 'stocks' || investmentType === 'fii') && (
                       <>
-                          <div>
+                        <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Ticker {investmentType === 'fii' ? (language === 'pt' ? '(ex: HGLG11)' : '(e.g. HGLG11)') : (language === 'pt' ? '(ex: PETR4)' : '(e.g. PETR4)')}
                           </label>
-                        <input
+                          <input
                           type="text"
                           value={ticker}
                           onChange={(e) => setTicker(e.target.value.toUpperCase())}
