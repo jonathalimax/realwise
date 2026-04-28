@@ -57,6 +57,13 @@ export default function TransactionModal({ isOpen, onClose }) {
   // When category is '' (fresh form), treat as the first category of current type
   const effectiveCategory = category || categories[type]?.[0] || '';
 
+  // Debug logging
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[TransactionModal] Modal opened. Effective category:', effectiveCategory, 'Category state:', category);
+    }
+  }, [isOpen, effectiveCategory, category]);
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
