@@ -518,7 +518,7 @@ export default function InvestmentForm() {
               ) : (
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                   <p className="text-sm text-amber-700 dark:text-amber-300">
-                    Nenhum objetivo criado no planner. Configure objetivos de investimento na aba "Carteira" do planner.
+                    Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.
                   </p>
                 </div>
               )}
