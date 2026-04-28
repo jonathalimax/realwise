@@ -37,7 +37,7 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
         <button
           onClick={() => onMonthChange(currentMonthKey)}
           title={locale === 'pt-BR' ? 'Mês atual' : 'Current month'}
-          className="text-xs px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-semibold hover:bg-violet-200 dark:hover:bg-violet-800/50 transition-colors"
+          className="text-[10px] px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-black uppercase hover:bg-violet-200 dark:hover:bg-violet-800/50 transition-colors"
         >
           {locale === 'pt-BR' ? 'hoje' : 'today'}
         </button>
@@ -49,7 +49,7 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
         ‹
       </button>
       <span
-        className={`text-sm font-semibold min-w-[52px] text-center capitalize tabular-nums ${
+        className={`text-sm font-bold min-w-[52px] text-center capitalize tabular-nums uppercase ${
           isCurrentMonth ? 'text-violet-600 dark:text-violet-400' : 'text-gray-700 dark:text-gray-300'
         }`}
       >
@@ -79,10 +79,10 @@ export default function PageHeader({ title, showMonth = true, right }) {
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
   return (
-    <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
+    <div className="sticky top-0 z-30 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-14 sm:h-16 gap-3">
-          <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0 flex-1 truncate">
+          <h1 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white pl-12 md:pl-0 flex-1 truncate uppercase tracking-tight">
             {title}
           </h1>
           {showMonth && (

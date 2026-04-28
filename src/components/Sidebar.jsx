@@ -47,7 +47,7 @@ function NavItem({ path, icon, label, onClick }) {
       {({ isActive }) => (
         <>
           <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:text-violet-500'}`} />
-          <span className="font-medium text-sm flex-1">{label}</span>
+          <span className="font-bold text-sm flex-1 uppercase">{label}</span>
         </>
       )}
     </NavLink>
@@ -66,14 +66,14 @@ function PlannerNavItem({ icon, label, isActive, onNavigate }) {
       }`}
     >
       <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:text-violet-500'}`} />
-      <span className="font-medium text-sm flex-1 text-left">{label}</span>
+      <span className="font-bold text-sm flex-1 text-left uppercase">{label}</span>
     </button>
   );
 }
 
 function SectionLabel({ children }) {
   return (
-    <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+    <p className="px-3 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
       {children}
     </p>
   );
@@ -175,7 +175,7 @@ function SidebarContent({
             className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
           >
             <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0" />
-            <span className="font-medium text-sm">{labels.logout}</span>
+            <span className="font-bold text-sm uppercase">{labels.logout}</span>
           </button>
           <button
             onClick={toggleDarkMode}
