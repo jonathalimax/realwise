@@ -423,35 +423,36 @@ export default function TransactionEditPage() {
             {/* Investment Type (only shown when category is Investments) */}
             {(category === 'Investments' || category === 'Investimentos') && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('investments.type')}
-                  </label>
-                  <select
-                    value={investmentType}
-                    onChange={(e) => setInvestmentType(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                      backgroundPosition: 'right 12px center',
-                      backgroundRepeat: 'no-repeat',
-                      backgroundSize: '20px'
-                    }}
-                  >
-                    {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                      <option key={key} value={key}>
-                        {info.icon} {t(`investments.types.${key}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Investment Type Selector - Left side */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('investments.type')}
+                    </label>
+                    <select
+                      value={investmentType}
+                      onChange={(e) => setInvestmentType(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: 'right 12px center',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundSize: '20px'
+                      }}
+                    >
+                      {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                        <option key={key} value={key}>
+                          {info.icon} {t(`investments.types.${key}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Dynamic Investment Fields by type */}
-                <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                  {investmentType === 'fixed_income' && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
+                  {/* Dynamic Investment Fields - Right side */}
+                  <div className="space-y-3">
+                    {investmentType === 'fixed_income' && (
+                      <>
+                          <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
                           </label>
@@ -484,27 +485,27 @@ export default function TransactionEditPage() {
                             <option value={RETURN_TYPES.total}>Total</option>
                           </select>
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
-                        </label>
-                        <input
-                          type="date"
-                          lang={language === 'pt' ? 'pt-BR' : 'en-US'}
-                          value={maturityDate}
-                          onChange={(e) => setMaturityDate(e.target.value)}
-                          className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
-                        />
-                      </div>
-                    </>
-                  )}
-                  {(investmentType === 'stocks' || investmentType === 'fii') && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Ticker {investmentType === 'fii' ? (language === 'pt' ? '(ex: HGLG11)' : '(e.g. HGLG11)') : (language === 'pt' ? '(ex: PETR4)' : '(e.g. PETR4)')}
-                        </label>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
+                          </label>
+                          <input
+                            type="date"
+                            lang={language === 'pt' ? 'pt-BR' : 'en-US'}
+                            value={maturityDate}
+                            onChange={(e) => setMaturityDate(e.target.value)}
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                          />
+                        </div>
+                      </>
+                      )}
+                    {(investmentType === 'stocks' || investmentType === 'fii') && (
+                      <>
+                          <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Ticker {investmentType === 'fii' ? (language === 'pt' ? '(ex: HGLG11)' : '(e.g. HGLG11)') : (language === 'pt' ? '(ex: PETR4)' : '(e.g. PETR4)')}
+                          </label>
                         <input
                           type="text"
                           value={ticker}
@@ -524,12 +525,12 @@ export default function TransactionEditPage() {
                           placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
                           className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                         />
-                      </div>
-                    </>
-                  )}
-                  {investmentType === 'crypto' && (
-                    <>
-                      <div>
+                        </div>
+                      </>
+                    )}
+                    {investmentType === 'crypto' && (
+                      <>
+                        <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
                         </label>
@@ -556,12 +557,12 @@ export default function TransactionEditPage() {
                           placeholder="Binance"
                           className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                         />
-                      </div>
-                    </>
-                  )}
-                  {investmentType === 'funds' && (
-                    <>
-                      <div>
+                        </div>
+                      </>
+                    )}
+                    {investmentType === 'funds' && (
+                      <>
+                        <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
                         </label>
@@ -584,11 +585,11 @@ export default function TransactionEditPage() {
                           placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
                           className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                         />
-                      </div>
-                    </>
-                  )}
-                  {investmentType === 'real_estate' && (
-                    <div>
+                        </div>
+                      </>
+                    )}
+                    {investmentType === 'real_estate' && (
+                      <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {language === 'pt' ? 'Descrição do Imóvel' : 'Property Description'}
                       </label>
@@ -599,8 +600,9 @@ export default function TransactionEditPage() {
                         placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
                         className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                       />
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}
