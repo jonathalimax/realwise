@@ -79,9 +79,9 @@ export default function PageHeader({ title, showMonth = true, right }) {
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
   return (
-    <div className="sticky top-0 z-30 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
+    <div className="sticky top-0 z-30 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-14 sm:h-16 gap-3">
+        <div className="flex items-center h-14 sm:h-16 gap-3 border-b border-gray-200 dark:border-gray-800">
           <h1 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white pl-12 md:pl-0 flex-1 truncate uppercase tracking-tight">
             {title}
           </h1>
