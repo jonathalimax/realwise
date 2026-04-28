@@ -905,7 +905,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                   )}
 
                   {/* Planner Goal - Show for investment transactions */}
-                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                  {(category === 'Investments' || category === 'Investimentos') && (
                     <PlannerGoalSelect
                       value={selectedPlannerGoalId}
                       onChange={setSelectedPlannerGoalId}

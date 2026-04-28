@@ -777,32 +777,36 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </div>
                   )}
 
-                  {/* Planner goal link */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Objetivo do planner
-                    </label>
-                    {plannerGoals.length > 0 ? (
-                      <select
-                        value={selectedPlannerGoalId}
-                        onChange={e => setSelectedPlannerGoalId(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
-                      >
-                        <option value="">Nenhum</option>
-                        {plannerGoals.map(g => (
-                          <option key={g.id} value={g.id}>
-                            {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                        <p className="text-sm text-amber-700 dark:text-amber-300">
-                          Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  {/* Planner goal link (only shown when category is Investments) */}
+                  {(category === 'Investments' || category === 'Investimentos') && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {language === 'pt' ? 'Objetivo do planner' : 'Planner objective'}
+                      </label>
+                      {plannerGoals.length > 0 ? (
+                        <select
+                          value={selectedPlannerGoalId}
+                          onChange={e => setSelectedPlannerGoalId(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                        >
+                          <option value="">{language === 'pt' ? 'Nenhum' : 'None'}</option>
+                          {plannerGoals.map(g => (
+                            <option key={g.id} value={g.id}>
+                              {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <p className="text-sm text-amber-700 dark:text-amber-300">
+                            {language === 'pt'
+                              ? 'Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.'
+                              : 'No investment objectives configured in planner. Access the planner to create investment objectives in wallet layers.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Ignore Toggle */}
                   <button
