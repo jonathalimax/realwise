@@ -117,6 +117,55 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
     }
   };
 
+  const handleBulkDelete = async () => {
+    const confirmMsg = language === 'pt'
+      ? `Excluir ${selectedIds.size} transação(ões)?`
+      : `Delete ${selectedIds.size} transaction(s)?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const batch = writeBatch(db);
+      const installmentGroups = new Set();
+
+      // Collect installment groups that need to be deleted entirely
+      for (const transId of selectedIds) {
+        const trans = filteredTransactions.find(t => t.id === transId);
+        if (trans?.isInstallment && trans.installmentGroupId) {
+          installmentGroups.add(trans.installmentGroupId);
+        }
+      }
+
+      // Delete all installments in the selected groups
+      if (installmentGroups.size > 0) {
+        for (const groupId of installmentGroups) {
+          const q = query(
+            collection(db, 'transactions'),
+            where('installmentGroupId', '==', groupId),
+            where('userId', '==', ownerId)
+          );
+          const snap = await getDocs(q);
+          snap.forEach(d => batch.delete(d.ref));
+        }
+      }
+
+      // Delete non-installment transactions
+      for (const transId of selectedIds) {
+        const trans = filteredTransactions.find(t => t.id === transId);
+        if (!trans?.isInstallment || !trans.installmentGroupId) {
+          batch.delete(doc(db, 'transactions', transId));
+        }
+      }
+
+      await batch.commit();
+      clearSelection();
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error deleting transactions:', error);
+      alert(language === 'pt' ? 'Erro ao excluir transações' : 'Error deleting transactions');
+    }
+  };
+
   const getSortedTransactions = () => {
     return [...transactions].sort((a, b) => {
       let compare = 0;
@@ -249,26 +298,56 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
 
             {/* Actions row */}
             <div className="flex items-center gap-2 sm:gap-3 order-2 sm:order-1">
-              {/* Select All Checkbox - Only for write access */}
+              {/* Select All Checkbox with Label - Only for write access */}
               {canWrite && filteredTransactions.length > 0 && (
                 <button
                   onClick={toggleSelectAll}
-                  className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg flex-shrink-0 border-2 transition-colors
                     ${isAllSelected
                       ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white'
                       : hasSelection
                         ? 'bg-slate-400 border-slate-400'
                         : 'border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600 hover:border-slate-400'
                     }`}
+                  title={isAllSelected ? (language === 'pt' ? 'Desselecionar tudo' : 'Deselect all') : (language === 'pt' ? 'Selecionar tudo' : 'Select all')}
                 >
-                  {(isAllSelected || hasSelection) && (
-                    <svg className="w-3 h-3 text-white dark:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
+                  <div className={`w-4 h-4 rounded flex items-center justify-center border border-current
+                    ${isAllSelected
+                      ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white'
+                      : hasSelection
+                        ? 'bg-slate-400'
+                        : 'border-slate-400 dark:border-slate-300 bg-transparent'
+                    }`}
+                  >
+                    {(isAllSelected || hasSelection) && (
+                      <svg className="w-2.5 h-2.5 text-white dark:text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={`text-xs sm:text-sm font-medium flex-shrink-0 ${
+                    isAllSelected || hasSelection ? 'text-white dark:text-slate-900' : 'text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {language === 'pt' ? 'Selecionar tudo' : 'Select All'}
+                  </span>
                 </button>
               )}
 
+              {/* Bulk Delete Button - Only when items are selected */}
+              {canWrite && hasSelection && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors flex-shrink-0"
+                  title={language === 'pt' ? `Excluir ${selectedIds.size} transação(ões)` : `Delete ${selectedIds.size} transaction(s)`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span className="text-xs sm:text-sm font-medium">
+                    {language === 'pt' ? `Excluir (${selectedIds.size})` : `Delete (${selectedIds.size})`}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>
