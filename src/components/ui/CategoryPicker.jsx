@@ -17,8 +17,8 @@ export default function CategoryPicker({ isOpen, onClose, onSelect, currentCateg
     const dropdownHeight = dropdown.offsetHeight;
     const dropdownWidth = dropdown.offsetWidth;
 
-    // Position above anchor (upward direction)
-    const top = rect.top - dropdownHeight - 8;
+    // Position below anchor (downward direction)
+    const top = rect.bottom + 8;
     const left = Math.max(8, Math.min(rect.left, window.innerWidth - dropdownWidth - 8));
 
     dropdown.style.top = `${top}px`;
