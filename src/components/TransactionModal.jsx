@@ -453,36 +453,33 @@ export default function TransactionModal({ isOpen, onClose }) {
                   </div>
 
                   {/* Investment Type (only shown when category is Investments) */}
-                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                  {(category === 'Investments' || category === 'Investimentos') && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('investments.type')}
                       </label>
-                      <div className="grid grid-cols-5 gap-2">
+                      <select
+                        value={investmentType}
+                        onChange={(e) => setInvestmentType(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 12px center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '20px'
+                        }}
+                      >
                         {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setInvestmentType(key)}
-                            className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
-                              investmentType === key
-                                ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
-                                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                            }`}
-                            title={t(`investments.types.${key}`)}
-                          >
-                            <span>{info.icon}</span>
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
-                              {t(`investments.types.${key}`)}
-                            </span>
-                          </button>
+                          <option key={key} value={key}>
+                            {info.icon} {t(`investments.types.${key}`)}
+                          </option>
                         ))}
-                      </div>
+                      </select>
                     </div>
                   )}
 
                   {/* Dynamic Investment Fields (only when Investments category is selected) */}
-                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                  {(category === 'Investments' || category === 'Investimentos') && (
                     <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                       {/* fixed_income fields */}
                       {investmentType === 'fixed_income' && (
@@ -904,8 +901,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                     </div>
                   )}
 
-                  {/* Planner Goal - Show for investment transactions */}
-                  {(category === 'Investments' || category === 'Investimentos') && (
+                  {/* Planner Goal - Show for investment expense transactions */}
+                  {(type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
                     <PlannerGoalSelect
                       value={selectedPlannerGoalId}
                       onChange={setSelectedPlannerGoalId}
