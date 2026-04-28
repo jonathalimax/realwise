@@ -36,7 +36,7 @@ function AllocationBar({ label, values }) {
   const names = ['Necessidades', 'Poupança', 'Desejos'];
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">{label}</p>
+      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">{label}</p>
       <div className="flex h-3 rounded-full overflow-hidden gap-px">
         {values.map((v, i) => (
           <div key={i} className={`${colors[i]} transition-all`} style={{ width: `${v}%` }} title={`${names[i]}: ${v}%`} />
@@ -69,7 +69,7 @@ function CashFlowRow({ label, value, type, indent }) {
           {label}
         </span>
       </div>
-      <span className={`text-sm tabular-nums font-semibold ${
+      <span className={`text-sm tabular-nums font-bold ${
         isTotal
           ? 'text-violet-600 dark:text-violet-400 text-base'
           : isDeduction
@@ -99,12 +99,12 @@ export default function SistemaTab({
 
       {/* ① Visão Geral */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Visão Geral
         </h3>
         <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
           Sistema financeiro para proteger a família, construir patrimônio e alcançar
-          <span className="font-semibold text-violet-600 dark:text-violet-400"> independência financeira (~R$ 20k/mês)</span>.
+          <span className="font-bold text-violet-600 dark:text-violet-400"> independência financeira (~R$ 20k/mês)</span>.
         </p>
         <div className="flex flex-wrap gap-2">
           {[
@@ -122,7 +122,7 @@ export default function SistemaTab({
 
       {/* ② Arquitetura em Camadas */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Arquitetura em Camadas
         </h3>
         <div className="space-y-2">
@@ -132,7 +132,7 @@ export default function SistemaTab({
               <div key={label} className={`rounded-xl p-3 border ${s.card} flex gap-3 items-start`}>
                 <div className={`rounded-lg p-1.5 text-base shrink-0 ${s.icon}`}>{icon}</div>
                 <div>
-                  <p className={`text-sm font-semibold ${s.title}`}>{label}</p>
+                  <p className={`text-sm font-bold ${s.title}`}>{label}</p>
                   <p className={`text-xs mt-0.5 ${s.text}`}>{text}</p>
                 </div>
               </div>
@@ -143,7 +143,7 @@ export default function SistemaTab({
 
       {/* ③ Fluxo de Caixa — live */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
           Fluxo de Caixa
         </h3>
         <p className="text-xs text-gray-400 mb-3">
@@ -162,7 +162,7 @@ export default function SistemaTab({
 
       {/* ④ Distribuição Atual vs Meta */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
           Distribuição: Atual vs Meta
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -191,7 +191,7 @@ export default function SistemaTab({
 
       {/* ⑤ Regras de Ouro */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Regras de Ouro
         </h3>
         <ol className="space-y-2">
@@ -208,7 +208,7 @@ export default function SistemaTab({
 
       {/* ⑥ Próximos Passos */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Próximos Passos
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -221,7 +221,7 @@ export default function SistemaTab({
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</p>
                 {note && <p className="text-xs text-gray-400 mt-0.5">{note}</p>}
               </div>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColor}`}>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor}`}>
                 {status}
               </span>
             </div>

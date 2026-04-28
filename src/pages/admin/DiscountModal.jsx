@@ -85,7 +85,7 @@ export default function DiscountModal({ lead, functions, onClose }) {
             <button
               onClick={handleGenerate}
               disabled={status === 'loading'}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg"
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-sm font-bold rounded-lg"
             >
               {status === 'loading' ? 'Gerando...' : 'Gerar Link'}
             </button>

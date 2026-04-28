@@ -101,7 +101,7 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
     <div className="space-y-4">
       {/* Input card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Parâmetros do Patrimônio
         </h3>
         <div className="grid grid-cols-2 gap-3">
@@ -127,7 +127,7 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {summaryItems.map(p => (
           <div key={p.years} className="bg-violet-50 dark:bg-violet-900/20 rounded-2xl p-3 border border-violet-100 dark:border-violet-800 text-center">
-            <p className="text-xs font-semibold text-violet-500 uppercase">{p.years} anos</p>
+            <p className="text-xs font-bold text-violet-500 uppercase">{p.years} anos</p>
             <p className="text-base font-bold text-violet-700 dark:text-violet-300 tabular-nums">
               {formatBRL.format(p.total)}
             </p>
@@ -140,7 +140,7 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
 
       {/* Stacked bar chart */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Evolução do Patrimônio Projetado
         </h3>
 
@@ -176,15 +176,15 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
       {/* Breakdown table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Detalhamento por categoria</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Detalhamento por categoria</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Categoria</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Categoria</th>
                 {SUMMARY_YEARS.map(y => (
-                  <th key={y} className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">{y}a</th>
+                  <th key={y} className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">{y}a</th>
                 ))}
               </tr>
             </thead>

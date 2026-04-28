@@ -11,7 +11,7 @@ export default function WalletCards({ onManageCards }) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
             {language === 'pt' ? 'Minhas Carteiras' : 'My Wallets'}
           </h3>
         </div>
@@ -44,7 +44,7 @@ export default function WalletCards({ onManageCards }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Minhas Carteiras' : 'My Wallets'}
         </h3>
         {canWrite && (
@@ -77,7 +77,7 @@ export default function WalletCards({ onManageCards }) {
               <div className="relative z-10">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{bankInfo.icon}</span>
-                  <span className="text-white font-semibold text-sm truncate">
+                  <span className="text-white font-bold text-sm truncate">
                     {userBank.cardName || bankInfo.name}
                   </span>
                 </div>

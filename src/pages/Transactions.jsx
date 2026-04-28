@@ -196,7 +196,7 @@ export default function TransactionsPage() {
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
               {t('transactionList.title')}
             </h1>
           </div>
@@ -223,7 +223,7 @@ export default function TransactionsPage() {
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-semibold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize"
+                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-bold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize"
               >
                 {availableMonths.map(month => (
                   <option key={month} value={month} className="capitalize">
@@ -447,7 +447,7 @@ export default function TransactionsPage() {
         {/* Transactions List */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white capitalize">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
             <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">

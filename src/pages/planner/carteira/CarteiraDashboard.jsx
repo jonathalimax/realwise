@@ -97,7 +97,7 @@ export default function CarteiraDashboard({
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs text-gray-500 dark:text-gray-400">Foco atual</p>
           {focusSub && focusColors && (
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${focusColors.badge}`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${focusColors.badge}`}>
               {focusSub.icon}
             </span>
           )}

@@ -189,7 +189,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <h3 className="font-semibold text-gray-900 dark:text-white truncate">{goal.name}</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white truncate">{goal.name}</h3>
                 {linkedInvestments.length > 0 && (
                   <span className="flex-shrink-0 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-full flex items-center gap-0.5">
                     <span>📈</span>
@@ -578,7 +578,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                     {GOAL_ICONS[selectedGoalForFunds.icon]}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{selectedGoalForFunds.name}</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedGoalForFunds.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {(() => {
                         const fundsInvestmentValue = getGoalInvestmentValue(selectedGoalForFunds.id);
@@ -633,7 +633,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                     <span className="font-medium text-emerald-700 dark:text-emerald-300">+ {formatCurrency(fundAmount)}</span>
                   </div>
                   <div className="flex justify-between items-center text-base mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700">
-                    <span className="font-semibold text-emerald-800 dark:text-emerald-200">{t('goals.newTotal')}:</span>
+                    <span className="font-bold text-emerald-800 dark:text-emerald-200">{t('goals.newTotal')}:</span>
                     <span className="font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency((selectedGoalForFunds.currentAmount || 0) + fundAmount)}</span>
                   </div>
                 </div>
@@ -661,7 +661,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                     {GOAL_ICONS[selectedGoalForTransactions.icon]}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{selectedGoalForTransactions.name}</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedGoalForTransactions.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {(() => {
                         const transInvestmentValue = getGoalInvestmentValue(selectedGoalForTransactions.id);
@@ -733,7 +733,7 @@ export default function GoalsModal({ isOpen, onClose, transactions = [] }) {
                               })}
                             </p>
                           </div>
-                          <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 ml-3">
+                          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 ml-3">
                             +{formatCurrency(trans.amount)}
                           </span>
                         </div>

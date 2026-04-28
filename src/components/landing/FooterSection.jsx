@@ -32,7 +32,7 @@ export default function FooterSection() {
             <Link to="/checkout">
               <Button
                 size="lg"
-                className="h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
+                className="h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
               >
                 {t('footer.cta')}
                 <ArrowRight className="ml-3 h-6 w-6" />
@@ -51,7 +51,7 @@ export default function FooterSection() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
                 <span className="text-white font-bold text-lg">M</span>
               </div>
-              <span className="font-semibold text-lg">Moneywise</span>
+              <span className="font-bold text-lg">Moneywise</span>
             </div>
 
             {/* Links */}

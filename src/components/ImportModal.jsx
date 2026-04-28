@@ -121,7 +121,7 @@ function TransactionRowContent({ trans, locale, language, formatCurrency, toggle
               )}
             </div>
             {/* Amount */}
-            <p className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
+            <p className={`font-bold whitespace-nowrap flex-shrink-0 text-sm
               ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
               {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans._isGroup ? trans._totalAmount : trans.amount)}
             </p>
@@ -167,7 +167,7 @@ function TransactionRowContent({ trans, locale, language, formatCurrency, toggle
               </div>
             </div>
             <div className="text-right">
-              <p className={`text-sm font-semibold whitespace-nowrap flex-shrink-0
+              <p className={`text-sm font-bold whitespace-nowrap flex-shrink-0
                 ${trans.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 {trans.type === 'income' ? '+' : '-'}{formatCurrency(trans._isGroup ? trans._totalAmount : trans.amount)}
               </p>
@@ -865,7 +865,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     <ModalWrapper embedded={embedded} isMobile={isMobile}>
       {/* Header */}
       <div className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700 ${isMobile ? 'bg-white dark:bg-gray-800' : ''}`}>
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{t('import.title')}</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{t('import.title')}</h2>
         <button
           onClick={handleClose}
           className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -1192,7 +1192,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </span>
-                      <span className="text-sm font-semibold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
+                      <span className="text-sm font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
                         {language === 'pt' ? 'Transações Duplicadas' : 'Duplicate Transactions'} ({sortedTransactions.duplicates.length})
                       </span>
                     </div>
@@ -1245,7 +1245,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 </svg>
                 {t('common.back')}
               </button>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                 {language === 'pt' ? 'Editar Transacao' : 'Edit Transaction'}
               </h3>
             </div>
@@ -1528,7 +1528,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('import.complete')}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('import.complete')}</h3>
 
             {/* Show different messages based on upload mode */}
             {importResult ? (
@@ -1612,7 +1612,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               {step === 'uploading'
                 ? (language === 'pt' ? 'Enviando...' : 'Uploading...')
                 : (language === 'pt' ? 'Processando...' : 'Processing...')}

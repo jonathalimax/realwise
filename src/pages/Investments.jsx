@@ -22,7 +22,7 @@ function SubTabs({ active, onChange }) {
         <button
           key={t.value}
           onClick={() => onChange(t.value)}
-          className={`flex-1 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
+          className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-colors ${
             active === t.value
               ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -137,7 +137,7 @@ export default function InvestmentsPage() {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="font-semibold text-gray-900 dark:text-white text-sm truncate">{investment.name}</span>
+              <span className="font-bold text-gray-900 dark:text-white text-sm truncate">{investment.name}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${BADGE_COLORS[investment.type] || 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
                 {t(`investments.types.${investment.type}`)}
               </span>
@@ -207,7 +207,7 @@ export default function InvestmentsPage() {
                   .map(([key, info]) => (
                     <div key={key} className="flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl px-3 py-2 border border-gray-100 dark:border-gray-700 text-center min-w-[80px]">
                       <p className="text-lg mb-0.5">{info.icon}</p>
-                      <p className="text-xs font-semibold text-gray-900 dark:text-white tabular-nums">{formatCurrency(totalsByType[key].value)}</p>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(totalsByType[key].value)}</p>
                       <p className="text-[10px] text-gray-400 dark:text-gray-500">{t(`investments.types.${key}`)}</p>
                     </div>
                   ))}

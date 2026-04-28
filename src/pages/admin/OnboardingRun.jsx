@@ -109,7 +109,7 @@ export default function OnboardingRun({ db, functions }) {
         <button
           onClick={handleStart}
           disabled={starting || runStatus === 'running' || runStatus === 'success'}
-          className="px-4 py-2 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg"
+          className="px-4 py-2 bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg"
         >
           {starting ? 'Starting...' : runStatus === 'running' ? 'Running...' : runStatus === 'success' ? 'Completed' : 'Start Onboarding'}
         </button>

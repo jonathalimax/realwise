@@ -65,7 +65,7 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
       <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {language === 'pt' ? 'Editar Transações' : 'Edit Transactions'}
           </h2>
           <button

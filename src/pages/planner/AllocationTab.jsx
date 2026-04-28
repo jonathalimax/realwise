@@ -23,7 +23,7 @@ function InnerTabs({ tabs, active, onChange }) {
         <button
           key={t.value}
           onClick={() => onChange(t.value)}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${
             active === t.value
               ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -138,7 +138,7 @@ export default function AllocationTab({
                   copyFromPreviousMonth();
                 }
               }} 
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
             >
               📥 Copiar do mês anterior
             </button>
@@ -148,7 +148,7 @@ export default function AllocationTab({
                   resetMonthAllocation();
                 }
               }} 
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm"
             >
               🔄 Resetar
             </button>
@@ -318,7 +318,7 @@ export default function AllocationTab({
                       />
                     </div>
                     {pct > 0 && (
-                      <span className="text-xs font-semibold text-gray-400 tabular-nums">
+                      <span className="text-xs font-bold text-gray-400 tabular-nums">
                         = {formatBRL.format(limit)}
                       </span>
                     )}

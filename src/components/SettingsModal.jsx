@@ -264,7 +264,7 @@ export default function SettingsModal({ isOpen, onClose }) {
             <div className="space-y-6">
               {/* Language */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('settings.language')}</h3>
+                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">{t('settings.language')}</h3>
                 <div className="space-y-2">
                   {Object.entries(languages).map(([code, { name }]) => (
                     <button
@@ -294,7 +294,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
               {/* Currency */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('settings.currency')}</h3>
+                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">{t('settings.currency')}</h3>
                 <div className="space-y-2">
                   {Object.entries(CURRENCIES).map(([code, { symbol, name }]) => (
                     <button
@@ -325,7 +325,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
               {/* PWA Install */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                   {language === 'pt' ? 'Instalar Aplicativo' : 'Install Application'}
                 </h3>
                 <div className="flex justify-center py-2">
@@ -399,7 +399,7 @@ export default function SettingsModal({ isOpen, onClose }) {
             <div className="space-y-8">
               {/* Expense Categories */}
               <div>
-                <h3 className="font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-rose-500"></span>
                   {t('settings.expenseCategories')}
                 </h3>
@@ -472,7 +472,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
               {/* Income Categories */}
               <div>
-                <h3 className="font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
                   {t('settings.incomeCategories')}
                 </h3>

@@ -143,7 +143,7 @@ export default function CardsModal({ isOpen, onClose }) {
             {bankInfo.icon}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white">{displayName}</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white">{displayName}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">{subtitleName}</p>
 
             {userBank.hasCredit ? (
@@ -262,7 +262,7 @@ export default function CardsModal({ isOpen, onClose }) {
                     💵
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                    <h3 className="font-bold text-gray-900 dark:text-white">
                       {language === 'pt' ? 'Dinheiro' : 'Cash'}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">

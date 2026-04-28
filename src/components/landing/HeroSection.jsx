@@ -72,7 +72,7 @@ export default function HeroSection() {
             <Link to="/checkout">
               <Button
                 size="lg"
-                className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
+                className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
               >
                 {t('hero.cta')}
                 <ArrowRight className="ml-3 h-6 w-6" />

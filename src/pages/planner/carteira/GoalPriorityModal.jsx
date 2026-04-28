@@ -87,7 +87,7 @@ Schema: {
         <p className="text-xs text-gray-500 dark:text-gray-400">Ordene seus objetivos por prioridade. A IA vai balancear sua carteira respeitando essa ordem.</p>
 
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Arraste para reordenar</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Arraste para reordenar</p>
           <div className="space-y-2">
             {orderedSublayers.map((sub, i) => (
               <div
@@ -101,7 +101,7 @@ Schema: {
                 <span className="text-gray-300 dark:text-gray-500 text-sm">⠿</span>
                 <span className="text-base">{sub.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{sub.label}</p>
+                  <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{sub.label}</p>
                   <p className="text-xs text-gray-400">{sub.layerLabel}{sub.goalTarget > 0 ? ` · meta ${formatBRL.format(sub.goalTarget)}` : ''}</p>
                 </div>
                 <span className="text-xs font-bold text-gray-300 dark:text-gray-500 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-md px-2 py-0.5">#{i + 1}</span>
@@ -111,7 +111,7 @@ Schema: {
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Contexto adicional <span className="font-normal">(opcional)</span></label>
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Contexto adicional <span className="font-normal">(opcional)</span></label>
           <textarea
             value={context}
             onChange={e => setContext(e.target.value)}

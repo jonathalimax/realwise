@@ -76,7 +76,7 @@ export default function BenefitsSection() {
               <div className="inline-flex items-center justify-center w-10 sm:w-12 h-10 sm:h-12 rounded-lg sm:rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 mb-2 sm:mb-4 group-hover:scale-110 transition-transform duration-300">
                 <benefit.icon className="w-5 sm:w-6 h-5 sm:h-6" />
               </div>
-              <h3 className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1">{benefit.title}</h3>
+              <h3 className="font-bold text-xs sm:text-sm mb-0.5 sm:mb-1">{benefit.title}</h3>
               <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{benefit.description}</p>
             </motion.div>
           ))}

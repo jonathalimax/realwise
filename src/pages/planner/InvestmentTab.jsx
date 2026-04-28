@@ -242,14 +242,14 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
           POUPANÇA &amp; RESERVAS — FASE 1 vs FASE 2
         </h2>
         <p className="text-sm text-violet-200 leading-relaxed">
-          <span className="text-amber-300 font-semibold">FASE 1:</span> antecipação carro = {formatBRL.format(carInitialBoleto)}/mês → carro quitado.{' '}
-          <span className="text-emerald-300 font-semibold">FASE 2:</span> parcela do carro ({formatBRL.format(carMonthlyPayment)}) migra 100% para poupança.
+          <span className="text-amber-300 font-bold">FASE 1:</span> antecipação carro = {formatBRL.format(carInitialBoleto)}/mês → carro quitado.{' '}
+          <span className="text-emerald-300 font-bold">FASE 2:</span> parcela do carro ({formatBRL.format(carMonthlyPayment)}) migra 100% para poupança.
           Aposentadoria começa desde o início — nunca pausar.
         </p>
       </div>
 
       {/* Phase banner */}
-      <div className={`rounded-xl p-3 border text-xs font-semibold ${
+      <div className={`rounded-xl p-3 border text-xs font-bold ${
         isPhase2ForSelectedMonth
           ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
           : 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400'
@@ -265,16 +265,16 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-700 dark:bg-slate-800 text-white">
-                <th className="px-4 py-3 text-left font-semibold">Destino</th>
-                <th className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${!isPhase2ForSelectedMonth ? 'ring-2 ring-inset ring-amber-400' : 'opacity-60'}`}>
+                <th className="px-4 py-3 text-left font-bold">Destino</th>
+                <th className={`px-4 py-3 text-right font-bold whitespace-nowrap ${!isPhase2ForSelectedMonth ? 'ring-2 ring-inset ring-amber-400' : 'opacity-60'}`}>
                   FASE 1
                 </th>
-                <th className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${isPhase2ForSelectedMonth ? 'ring-2 ring-inset ring-emerald-400' : 'opacity-60'}`}>
+                <th className={`px-4 py-3 text-right font-bold whitespace-nowrap ${isPhase2ForSelectedMonth ? 'ring-2 ring-inset ring-emerald-400' : 'opacity-60'}`}>
                   FASE 2
                 </th>
-                <th className="px-4 py-3 text-right font-semibold whitespace-nowrap hidden sm:table-cell">Retorno/mês</th>
-                <th className="px-4 py-3 text-left font-semibold hidden md:table-cell">Tipo</th>
-                <th className="px-4 py-3 text-left font-semibold hidden lg:table-cell">Onde Guardar</th>
+                <th className="px-4 py-3 text-right font-bold whitespace-nowrap hidden sm:table-cell">Retorno/mês</th>
+                <th className="px-4 py-3 text-left font-bold hidden md:table-cell">Tipo</th>
+                <th className="px-4 py-3 text-left font-bold hidden lg:table-cell">Onde Guardar</th>
                 <th className="px-4 py-3 w-8" />
               </tr>
             </thead>
@@ -282,7 +282,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
               {/* Carro (auto-computed, read-only) */}
               <tr className="border-t border-gray-100 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/10">
                 <td className="px-4 py-2.5">
-                  <span className="font-semibold text-red-600 dark:text-red-400">
+                  <span className="font-bold text-red-600 dark:text-red-400">
                     Amortização Extra Carro (boleto)
                   </span>
                 </td>
@@ -441,7 +441,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Classes de Ativos — Investimentos Livres</h3>
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Classes de Ativos — Investimentos Livres</h3>
             {pctValid ? (
               <Badge variant="default">✓ 100%</Badge>
             ) : (
@@ -459,10 +459,10 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Classe</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">% Carteira</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Retorno</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Veículo</th>
+                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">Classe</th>
+                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">% Carteira</th>
+                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">Retorno</th>
+                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">Veículo</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -483,13 +483,13 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
 
       {/* Projections */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Projeções de Patrimônio (Invest. Livres: {formatBRL.format(livresPhase2 ?? poupancaValue)}/mês)
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {investmentProjections.map(p => (
             <div key={p.years} className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-3 border border-violet-100 dark:border-violet-800 text-center">
-              <p className="text-xs font-semibold text-violet-500 uppercase">{p.years} anos</p>
+              <p className="text-xs font-bold text-violet-500 uppercase">{p.years} anos</p>
               <p className="text-base font-bold text-violet-700 dark:text-violet-300 tabular-nums">
                 {formatBRL.format(p.FV)}
               </p>
@@ -505,7 +505,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-base">✨</span>
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Análise com Gemini AI</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Análise com Gemini AI</h3>
         </div>
 
         {!geminiApiKey ? (
@@ -542,7 +542,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
 
                 {geminiSuggestion.risks?.length > 0 && (
                   <div className="px-4 py-2 border-b border-violet-200 dark:border-violet-800">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Riscos identificados:</p>
+                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Riscos identificados:</p>
                     <div className="flex flex-wrap gap-1.5">
                       {geminiSuggestion.risks.map((r, i) => (
                         <span key={i} className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full">
@@ -558,10 +558,10 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-violet-100 dark:bg-violet-900/40">
-                        <th className="px-4 py-2 text-left text-xs font-semibold text-violet-700 dark:text-violet-300">Classe</th>
-                        <th className="px-4 py-2 text-center text-xs font-semibold text-violet-700 dark:text-violet-300">Atual</th>
-                        <th className="px-4 py-2 text-center text-xs font-semibold text-violet-700 dark:text-violet-300">Sugerido</th>
-                        <th className="px-4 py-2 text-center text-xs font-semibold text-violet-700 dark:text-violet-300">Δ</th>
+                        <th className="px-4 py-2 text-left text-xs font-bold text-violet-700 dark:text-violet-300">Classe</th>
+                        <th className="px-4 py-2 text-center text-xs font-bold text-violet-700 dark:text-violet-300">Atual</th>
+                        <th className="px-4 py-2 text-center text-xs font-bold text-violet-700 dark:text-violet-300">Sugerido</th>
+                        <th className="px-4 py-2 text-center text-xs font-bold text-violet-700 dark:text-violet-300">Δ</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -576,7 +576,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
                             <td className="px-4 py-2 text-center tabular-nums text-gray-600 dark:text-gray-400">
                               {s.currentPct}%
                             </td>
-                            <td className="px-4 py-2 text-center tabular-nums font-semibold text-gray-700 dark:text-gray-300">
+                            <td className="px-4 py-2 text-center tabular-nums font-bold text-gray-700 dark:text-gray-300">
                               {s.suggestedPct}%
                             </td>
                             <td className={`px-4 py-2 text-center tabular-nums font-bold ${
@@ -619,7 +619,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
             {/* Raw fallback if JSON parse fails */}
             {geminiRawFallback && (
               <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Análise Gemini</p>
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Análise Gemini</p>
                 <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {geminiRawFallback}
                 </div>

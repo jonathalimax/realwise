@@ -139,7 +139,7 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
                     <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
                       {item.label}
                     </span>
-                    <span className="font-semibold text-gray-900 dark:text-white text-sm ml-2">
+                    <span className="font-bold text-gray-900 dark:text-white text-sm ml-2">
                       {formatCurrency(item.value)}
                     </span>
                   </div>

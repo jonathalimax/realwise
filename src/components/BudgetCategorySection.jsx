@@ -98,7 +98,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h3>
         {canWrite && (
@@ -118,7 +118,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {language === 'pt' ? 'Total do mês' : 'Monthly total'}
             </span>
-            <span className="text-sm font-semibold">
+            <span className="text-sm font-bold">
               <span className={totalSpent > totalBudget ? 'text-rose-600' : 'text-gray-900 dark:text-white'}>
                 {formatCurrency(totalSpent)}
               </span>
@@ -168,7 +168,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1 min-w-0 flex-1">
-                        <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-base truncate">
+                        <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base truncate">
                           {category.name}
                         </span>
                         {/* Show percentage badge */}
@@ -210,7 +210,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                       </div>
 
                       {category.hasLimit && (
-                        <span className={`text-[9px] sm:text-xs font-semibold ${statusColors.text} min-w-[45px] sm:min-w-[70px] text-right`}>
+                        <span className={`text-[9px] sm:text-xs font-bold ${statusColors.text} min-w-[45px] sm:min-w-[70px] text-right`}>
                           {category.budgetPercentage.toFixed(0)}%
                         </span>
                       )}

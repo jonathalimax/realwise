@@ -30,7 +30,7 @@ export default function NotificationsPage() {
       <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
               {language === 'pt' ? 'Notificações' : 'Notifications'}
             </h1>
           </div>
@@ -48,7 +48,7 @@ export default function NotificationsPage() {
                   : <BellSlashIcon className="w-6 h-6 text-gray-400" />}
               </div>
               <div>
-                <h2 className="font-semibold text-gray-900 dark:text-white">
+                <h2 className="font-bold text-gray-900 dark:text-white">
                   {language === 'pt' ? 'Notificações Push' : 'Push Notifications'}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -83,7 +83,7 @@ export default function NotificationsPage() {
         {/* Pending bills list */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-white">
+            <h3 className="font-bold text-gray-900 dark:text-white">
               {language === 'pt' ? 'Contas pendentes' : 'Pending bills'}
               <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                 ({billsWithReminders.length})

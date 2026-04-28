@@ -44,7 +44,7 @@ function TabsTrigger({ value, className = "", children, ...props }) {
       aria-selected={isSelected}
       data-state={isSelected ? "active" : "inactive"}
       onClick={() => context?.onValueChange(value)}
-      className={`inline-flex items-center justify-center whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-full px-6 py-2 text-sm font-bold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
         isSelected
           ? "bg-white text-slate-900 shadow-md dark:bg-slate-700 dark:text-white"
           : "text-slate-600 hover:text-slate-900 hover:bg-white/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700/50"

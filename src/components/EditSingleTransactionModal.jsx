@@ -307,7 +307,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
             >
               <Dialog.Panel className="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-xl font-bold text-gray-900 dark:text-white">
                     {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
                   </Dialog.Title>
                   <button
@@ -885,7 +885,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       </svg>
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-gray-900 dark:text-white text-base mb-1">
+                      <p className="font-bold text-gray-900 dark:text-white text-base mb-1">
                         {language === 'pt' ? 'Editar parcelas' : 'Edit installments'}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">

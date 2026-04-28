@@ -295,7 +295,7 @@ export default function SettingsPage() {
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
               {t('settings.title')}
             </h1>
           </div>
@@ -354,7 +354,7 @@ export default function SettingsPage() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 dark:text-white truncate">{currentUser?.displayName || '—'}</p>
+                <p className="font-bold text-gray-900 dark:text-white truncate">{currentUser?.displayName || '—'}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{currentUser?.email}</p>
               </div>
             </div>
@@ -386,7 +386,7 @@ export default function SettingsPage() {
                 </button>
               ) : (
                 <div className="px-5 py-4 space-y-3">
-                  <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">
+                  <p className="text-sm font-bold text-rose-600 dark:text-rose-400">
                     {language === 'pt' ? 'Tem certeza? Esta ação é irreversível.' : 'Are you sure? This action is irreversible.'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -427,7 +427,7 @@ export default function SettingsPage() {
           <div className="space-y-8">
             {/* Expense Categories */}
             <div>
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-rose-500"></span>
                 {t('settings.expenseCategories')}
               </h3>
@@ -500,7 +500,7 @@ export default function SettingsPage() {
 
             {/* Income Categories */}
             <div>
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
                 {t('settings.incomeCategories')}
               </h3>
@@ -757,7 +757,7 @@ export default function SettingsPage() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                    <h3 className="font-bold text-gray-900 dark:text-white">
                       {language === 'pt' ? 'Lembretes de contas por email' : 'Bill reminders by email'}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

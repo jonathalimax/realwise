@@ -34,7 +34,7 @@ export default function RuleComparison({ transactions, totalIncome }) {
         onClick={handleClick}
         className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md hover:border-violet-200 dark:hover:border-violet-700 transition-all border border-gray-100 dark:border-gray-700"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{title}</h3>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{title}</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">{t('budget.noIncomeYet')}</p>
       </div>
     );
@@ -45,7 +45,7 @@ export default function RuleComparison({ transactions, totalIncome }) {
       onClick={handleClick}
       className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md hover:border-violet-200 dark:hover:border-violet-700 transition-all border border-gray-100 dark:border-gray-700"
     >
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{title}</h3>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{title}</h3>
 
       <div className="space-y-4">
         {rules.map(({ key, label, target }) => {
@@ -63,7 +63,7 @@ export default function RuleComparison({ transactions, totalIncome }) {
                   <span className="text-xs text-gray-400 dark:text-gray-500">({target}%)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold text-gray-900 dark:text-white">
+                  <span className="text-base font-bold text-gray-900 dark:text-white">
                     {data.percentage.toFixed(0)}%
                   </span>
                   {isOver ? (

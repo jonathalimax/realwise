@@ -59,7 +59,7 @@ export default function PlannerSummaryCard() {
       className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md hover:border-violet-200 dark:hover:border-violet-700 transition-all"
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Planejamento' : 'Planning'}
         </h2>
         <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -72,7 +72,7 @@ export default function PlannerSummaryCard() {
           <div key={row.label} className="flex items-center gap-3">
             <div className={`flex-1 flex items-center justify-between px-3 py-2 rounded-xl ${row.light}`}>
               <span className="text-sm font-medium">{row.label}</span>
-              <span className="text-sm font-semibold tabular-nums">{formatCurrency(row.value)}</span>
+              <span className="text-sm font-bold tabular-nums">{formatCurrency(row.value)}</span>
             </div>
             <span className="text-xs text-gray-400 dark:text-gray-500 w-8 text-right tabular-nums">
               {row.pct}%

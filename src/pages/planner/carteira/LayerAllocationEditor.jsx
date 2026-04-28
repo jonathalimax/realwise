@@ -50,7 +50,7 @@ export default function LayerAllocationEditor({ layers, poupancaValue, onUpdateL
               <div className="flex items-center gap-3 min-w-0">
                 <span className="text-lg flex-shrink-0">{layer.icon}</span>
                 <div className="min-w-0">
-                  <div className={`text-sm font-semibold truncate ${colors.tileText}`}>{layer.label}</div>
+                  <div className={`text-sm font-bold truncate ${colors.tileText}`}>{layer.label}</div>
                   <div className="text-xs text-violet-500 dark:text-violet-400 font-medium tabular-nums">
                     {formatBRL.format(monthly)}/mês
                   </div>

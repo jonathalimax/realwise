@@ -347,7 +347,7 @@ export default function ExpensesPage() {
         {/* Transactions List */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white capitalize">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
             <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">

@@ -52,7 +52,7 @@ export default function BetaSection() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button
                 size="lg"
-                className="h-11 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:scale-105"
+                className="h-11 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:scale-105"
               >
                 {t('beta.cta')}
                 <ArrowRight className="ml-2 h-4 sm:h-5 w-4 sm:w-5" />
@@ -84,7 +84,7 @@ export default function BetaSection() {
                 <div className="w-20 h-20 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center mx-auto mb-6">
                   <MessageSquare className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{t('beta.feedbackTitle') || 'Your voice matters'}</h3>
+                <h3 className="text-xl font-bold mb-3">{t('beta.feedbackTitle') || 'Your voice matters'}</h3>
                 <p className="text-slate-600 dark:text-slate-400 max-w-xs mx-auto">
                   {t('beta.feedbackDesc') || 'Submit ideas, vote on features, and help us build the finance tracker you need.'}
                 </p>

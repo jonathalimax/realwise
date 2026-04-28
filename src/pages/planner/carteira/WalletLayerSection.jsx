@@ -99,7 +99,7 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
         <div className="flex items-center gap-1.5 shrink-0">
           {geminiApiKey && (
             <button onClick={handleResearch} disabled={aiLoading}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors">
+              className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors">
               {aiLoading ? '...' : '✨'}
             </button>
           )}
@@ -120,7 +120,7 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
           <p className="text-xs text-rose-700 dark:text-rose-300">Excluir camada <strong>{layer.label}</strong> e todos os seus sublayers?</p>
           <div className="flex gap-2 shrink-0">
             <button onClick={() => { onDeleteLayer(); setConfirmDelete(false); }}
-              className="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-semibold">Confirmar</button>
+              className="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold">Confirmar</button>
             <button onClick={() => setConfirmDelete(false)}
               className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs">Cancelar</button>
           </div>
@@ -137,9 +137,9 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
               {aiResult.goalRecommendations?.map(rec => (
                 <div key={rec.goalId} className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{rec.goalLabel}</p>
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{rec.goalLabel}</p>
                     <button onClick={() => handleApplyGoal(rec.goalId, rec.instruments)}
-                      className="text-xs px-2 py-0.5 bg-violet-600 hover:bg-violet-700 text-white rounded-md font-semibold transition-colors">Aplicar</button>
+                      className="text-xs px-2 py-0.5 bg-violet-600 hover:bg-violet-700 text-white rounded-md font-bold transition-colors">Aplicar</button>
                   </div>
                   {rec.instruments?.map((inst, i) => {
                     const tc = INSTRUMENT_TYPE_COLORS[inst.type] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';

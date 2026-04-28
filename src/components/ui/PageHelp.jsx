@@ -34,7 +34,7 @@ export default function PageHelp({ title, text, hasFab = false }) {
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{text}</p>
             <button
               onClick={() => setOpen(false)}
-              className="mt-4 w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="mt-4 w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Entendi
             </button>

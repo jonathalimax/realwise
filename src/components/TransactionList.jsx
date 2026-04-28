@@ -400,7 +400,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                         </div>
                         {/* Amount */}
                         <p
-                          className={`font-semibold whitespace-nowrap flex-shrink-0 text-sm
+                          className={`font-bold whitespace-nowrap flex-shrink-0 text-sm
                             ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
                         >
                           {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
@@ -462,7 +462,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                         </div>
                         {/* Amount */}
                         <p
-                          className={`font-semibold whitespace-nowrap flex-shrink-0 text-base
+                          className={`font-bold whitespace-nowrap flex-shrink-0 text-base
                             ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
                         >
                           {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
@@ -549,7 +549,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
               <span className="text-rose-600 dark:text-rose-400 font-medium">
                 -{formatCurrency(monthTotals.expense)}
               </span>
-              <span className={`font-semibold ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <span className={`font-bold ${monthTotals.income - monthTotals.expense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 = {formatCurrency(monthTotals.income - monthTotals.expense)}
               </span>
             </div>

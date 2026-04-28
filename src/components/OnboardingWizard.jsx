@@ -71,7 +71,7 @@ export default function OnboardingWizard({ profile, onDismiss }) {
               <span className="text-sm">🚀</span>
             </div>
             <div>
-              <p className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wide">
+              <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wide">
                 Primeiros passos
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -96,7 +96,7 @@ export default function OnboardingWizard({ profile, onDismiss }) {
         {/* Current step */}
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
               {current.title}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
@@ -105,7 +105,7 @@ export default function OnboardingWizard({ profile, onDismiss }) {
           </div>
           <button
             onClick={handleAction}
-            className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold transition-colors"
+            className="flex-shrink-0 px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold transition-colors"
           >
             Começar
           </button>

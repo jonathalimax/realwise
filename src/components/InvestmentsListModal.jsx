@@ -132,7 +132,7 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate flex-1">
+                <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate flex-1">
                   {investment.name}
                 </h3>
                 <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap flex-shrink-0">
@@ -184,7 +184,7 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
       <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
             {language === 'pt' ? 'Investimentos' : 'Investments'}
           </h2>
           <button

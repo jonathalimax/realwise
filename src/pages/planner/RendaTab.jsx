@@ -11,7 +11,7 @@ function SummaryRow({ label, value, highlight, negative }) {
       <span className={`text-sm ${highlight ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
         {label}
       </span>
-      <span className={`text-sm font-semibold tabular-nums ${
+      <span className={`text-sm font-bold tabular-nums ${
         highlight
           ? 'text-violet-600 dark:text-violet-400 text-base'
           : negative
@@ -73,19 +73,19 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
         <div className="flex justify-end">
           <button
             onClick={copyFromPreviousMonth}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
           >
             📥 Copiar do mês anterior
           </button>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             Salário Líquido
           </h3>
           <CurrencyInput
             value={salarioBruto}
             onChange={v => updateSalarioBruto(v)}
-            className="px-3 py-3 text-lg font-semibold"
+            className="px-3 py-3 text-lg font-bold"
           />
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
             Este valor será usado como base de alocação no planejador.
@@ -105,7 +105,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
               copyFromPreviousMonth();
             }
           }}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
         >
           📥 Copiar do mês anterior
         </button>
@@ -113,25 +113,25 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
 
       {/* Salário Bruto */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Salário / Renda Bruta
         </h3>
         <CurrencyInput
           value={salarioBruto}
           onChange={v => updateSalarioBruto(v)}
-          className="px-3 py-3 text-lg font-semibold"
+          className="px-3 py-3 text-lg font-bold"
         />
       </div>
 
       {/* Deductions */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Deduções
           </h3>
           <button
             onClick={startAdd}
-            className="text-xs font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+            className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
           >
             + Adicionar
           </button>
@@ -205,7 +205,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
 
       {/* Summary */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
           Resumo
         </h3>
         <SummaryRow label="Renda Bruta" value={salarioBruto} />
@@ -255,14 +255,14 @@ function DeductionEditRow({ draft, setDraft, onSave, onCancel, salarioBruto }) {
       <div className="flex justify-end gap-2 pt-1">
         <button
           onClick={onCancel}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Cancelar
         </button>
         <button
           onClick={onSave}
           disabled={!draft.label.trim()}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           Salvar
         </button>

@@ -182,7 +182,7 @@ export default function InvestmentForm() {
             >
               <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               {mode === 'add' && t('investments.newInvestment')}
               {mode === 'edit' && t('investments.editInvestment')}
               {mode === 'withdraw' && t('investments.withdraw')}
@@ -203,7 +203,7 @@ export default function InvestmentForm() {
                   {getInvestmentType(investment.type).icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{investment.name}</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-lg">{investment.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {t('investments.currentAmount')}: {formatCurrency(getCurrentValue(investment))}
                   </p>
@@ -282,7 +282,7 @@ export default function InvestmentForm() {
                     <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
                       {language === 'pt' ? 'Impostos estimados no resgate:' : 'Estimated taxes on withdrawal:'}
                     </p>
-                    <p className="text-base text-amber-800 dark:text-amber-200 font-semibold">
+                    <p className="text-base text-amber-800 dark:text-amber-200 font-bold">
                       IOF + IR: ~{formatCurrency(estimatedTaxes)}
                     </p>
                   </div>
@@ -344,7 +344,7 @@ export default function InvestmentForm() {
               <button
                 onClick={handleWithdraw}
                 disabled={!withdrawAmount || withdrawAmount <= 0 || withdrawAmount > getCurrentValue(investment) || loading}
-                className="w-full py-3.5 bg-emerald-500 text-white text-base font-semibold rounded-xl
+                className="w-full py-3.5 bg-emerald-500 text-white text-base font-bold rounded-xl
                   hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {loading
@@ -563,7 +563,7 @@ export default function InvestmentForm() {
               <button
                 type="submit"
                 disabled={!formData.name.trim() || (!id && !formData.initialAmount) || loading}
-                className="w-full py-3.5 bg-blue-500 text-white text-base font-semibold rounded-xl
+                className="w-full py-3.5 bg-blue-500 text-white text-base font-bold rounded-xl
                   hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {loading ? (language === 'pt' ? 'Salvando...' : 'Saving...') : (id ? t('common.save') : t('investments.addInvestment'))}
@@ -574,7 +574,7 @@ export default function InvestmentForm() {
                 <button
                   type="button"
                   onClick={() => navigate(`/investments/${id}/withdraw`)}
-                  className="w-full py-3.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-base font-semibold rounded-xl border-2 border-emerald-200 dark:border-emerald-800
+                  className="w-full py-3.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-base font-bold rounded-xl border-2 border-emerald-200 dark:border-emerald-800
                     hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
                 >
                   {t('investments.withdraw')}
@@ -609,7 +609,7 @@ export default function InvestmentForm() {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    className="w-full py-3.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-base font-semibold rounded-xl border-2 border-red-200 dark:border-red-800
+                    className="w-full py-3.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-base font-bold rounded-xl border-2 border-red-200 dark:border-red-800
                       hover:bg-red-100 dark:hover:bg-red-900/50 transition"
                   >
                     {t('common.delete')} {t('investments.title').slice(0, -1)}

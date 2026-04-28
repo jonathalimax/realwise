@@ -512,7 +512,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                     {getInvestmentType(selectedInvestmentForUpdate.type).icon}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{selectedInvestmentForUpdate.name}</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedInvestmentForUpdate.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {t('investments.initialAmount')}: {formatCurrency(selectedInvestmentForUpdate.initialAmount)}
                     </p>
@@ -573,7 +573,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                     {getInvestmentType(selectedInvestmentForWithdraw.type).icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{selectedInvestmentForWithdraw.name}</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedInvestmentForWithdraw.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {t('investments.currentAmount')}: {formatCurrency(getCurrentValue(selectedInvestmentForWithdraw))}
                     </p>

@@ -102,7 +102,7 @@ export default function BillsSummaryCard({ selectedMonth }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
         {language === 'pt' ? 'Contas do Mês' : 'Monthly Bills'}
       </h3>
 

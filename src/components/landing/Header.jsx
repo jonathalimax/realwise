@@ -10,7 +10,7 @@ export default function Header() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <span className="text-white font-bold text-lg">M</span>
           </div>
-          <span className="font-semibold text-lg">Moneywise</span>
+          <span className="font-bold text-lg">Moneywise</span>
         </div>
         
         <div className="flex items-center gap-2">

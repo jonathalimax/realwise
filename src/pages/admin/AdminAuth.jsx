@@ -57,7 +57,7 @@ export default function AdminAuth({ error: externalError }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-2 text-sm"
+          className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg px-4 py-2 text-sm"
         >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>

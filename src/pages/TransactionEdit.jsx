@@ -300,7 +300,7 @@ export default function TransactionEditPage() {
             >
               <ArrowLeftIcon className="w-5 h-5" />
             </button>
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
             </h1>
           </div>
@@ -750,7 +750,7 @@ export default function TransactionEditPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <p className="font-semibold text-gray-900 dark:text-white">
+                    <p className="font-bold text-gray-900 dark:text-white">
                       {language === 'pt' ? 'Editar parcelas' : 'Edit installments'}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">

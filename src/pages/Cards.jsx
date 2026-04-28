@@ -102,7 +102,7 @@ export default function CardsPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{displayName}</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white text-sm">{displayName}</h3>
               {userBank.hasCredit ? (
                 <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
                   {language === 'pt' ? 'Crédito' : 'Credit'}
@@ -430,7 +430,7 @@ export default function CardsPage() {
                   💵
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">
                     {language === 'pt' ? 'Dinheiro' : 'Cash'}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">

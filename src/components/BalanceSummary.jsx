@@ -99,18 +99,18 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick, 
       <div className="md:hidden">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('balance.totalBalance')}</p>
-          <p className={`text-2xl font-semibold ${summary.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
+          <p className={`text-2xl font-bold ${summary.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
             {formatCurrency(summary.balance)}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4 text-center">
           <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-3">
             <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">{t('balance.income')}</p>
-            <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(summary.totalIncome)}</p>
+            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">+{formatCurrency(summary.totalIncome)}</p>
           </div>
           <div className="bg-rose-50 dark:bg-rose-900/30 rounded-lg p-3">
             <p className="text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide">{t('balance.expenses')}</p>
-            <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">-{formatCurrency(summary.totalExpenses)}</p>
+            <p className="text-lg font-bold text-rose-600 dark:text-rose-400">-{formatCurrency(summary.totalExpenses)}</p>
           </div>
         </div>
         {hasInvestments && (
@@ -121,7 +121,7 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick, 
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('investments.portfolioValue')}</p>
-                        <p className="text-xl font-semibold text-blue-600">{formatCurrency(portfolioValue)}</p>
+                        <p className="text-xl font-bold text-blue-600">{formatCurrency(portfolioValue)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <p className={`text-sm font-medium ${portfolioGrowth >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
@@ -154,7 +154,7 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick, 
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{card.title}</p>
-                  <p className={`text-2xl sm:text-3xl font-semibold ${card.color}`}>
+                  <p className={`text-2xl sm:text-3xl font-bold ${card.color}`}>
                     {formatCurrency(card.value)}
                   </p>
                   {card.subtitle && (

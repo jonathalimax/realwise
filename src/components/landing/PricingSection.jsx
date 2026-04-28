@@ -98,7 +98,7 @@ export default function PricingSection() {
                   <Link to="/checkout">
                     <Button
                       size="lg"
-                      className="w-full lg:w-auto h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
+                      className="w-full lg:w-auto h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
                     >
                       {t('pricing.cta')}
                       <ArrowRight className="ml-3 h-6 w-6" />
@@ -121,21 +121,21 @@ export default function PricingSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mt-16"
         >
-          <h3 className="text-xl font-semibold mb-6 text-center">{t('pricing.why.title')}</h3>
+          <h3 className="text-xl font-bold mb-6 text-center">{t('pricing.why.title')}</h3>
           <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
             <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <Globe className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-              <p className="font-semibold text-slate-700 dark:text-slate-200">{t('pricing.why1.title')}</p>
+              <p className="font-bold text-slate-700 dark:text-slate-200">{t('pricing.why1.title')}</p>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why1.desc')}</p>
             </div>
             <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <Lock className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-              <p className="font-semibold text-slate-700 dark:text-slate-200">{t('pricing.why2.title')}</p>
+              <p className="font-bold text-slate-700 dark:text-slate-200">{t('pricing.why2.title')}</p>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why2.desc')}</p>
             </div>
             <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <Infinity className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-              <p className="font-semibold text-slate-700 dark:text-slate-200">{t('pricing.why3.title')}</p>
+              <p className="font-bold text-slate-700 dark:text-slate-200">{t('pricing.why3.title')}</p>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why3.desc')}</p>
             </div>
           </div>

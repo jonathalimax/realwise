@@ -251,7 +251,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
               <span className="truncate">{formatDueDate(bill.dueDate)}</span>
             </div>
             {getBillAmount(bill) > 0 && (
-              <p className="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-gray-200 mt-0.5">
+              <p className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-200 mt-0.5">
                 {formatCurrency(getBillAmount(bill))}
               </p>
             )}
@@ -332,7 +332,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
     if (displayBills.length === 0 && totalBillsCount === 0) {
       return (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
             {language === 'pt' ? 'Contas a Pagar' : 'Bills to Pay'}
           </h3>
           <div className="text-center py-6 sm:py-8">
@@ -353,7 +353,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
       <>
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
               {language === 'pt' ? 'Contas a Pagar' : 'Bills to Pay'}
             </h3>
             {displayBills.length > 0 && (
@@ -403,7 +403,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowAllBills(false)} />
             <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
               <div className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                   {language === 'pt' ? 'Todas as Contas' : 'All Bills'}
                 </h2>
                 <button
@@ -448,7 +448,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
                 <div className="space-y-4">
                   {overdueBills.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
+                      <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Vencidas' : 'Overdue'}
                       </h3>
                       <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
@@ -461,7 +461,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
                   {upcomingBills.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
+                      <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Próximas (7 dias)' : 'Upcoming (7 days)'}
                       </h3>
                       <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
@@ -474,7 +474,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
                   {otherPendingBills.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
+                      <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Outras Pendentes' : 'Other Pending'}
                       </h3>
                       <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
@@ -487,7 +487,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
                   {paidBills.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
+                      <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Pagas recentemente' : 'Recently Paid'}
                       </h3>
                       <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
@@ -510,7 +510,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Gerenciar Contas' : 'Manage Bills'}
         </h2>
       </div>
@@ -551,7 +551,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
       <div className="space-y-4">
         {(statusFilter === 'all' || statusFilter === 'overdue') && overdueBills.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
+            <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Vencidas' : 'Overdue'}
             </h3>
             <div className="space-y-1">
@@ -564,7 +564,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
         {(statusFilter === 'all' || statusFilter === 'pending') && upcomingBills.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
+            <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Próximas (7 dias)' : 'Upcoming (7 days)'}
             </h3>
             <div className="space-y-1">
@@ -577,7 +577,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
         {(statusFilter === 'all' || statusFilter === 'pending') && otherPendingBills.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
+            <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Pendentes' : 'Pending'}
             </h3>
             <div className="space-y-1">
@@ -590,7 +590,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
         {(statusFilter === 'all' || statusFilter === 'paid') && paidBills.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
+            <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
               {language === 'pt' ? 'Pagas recentemente' : 'Recently Paid'}
             </h3>
             <div className="space-y-1">

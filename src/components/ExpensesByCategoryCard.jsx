@@ -67,7 +67,7 @@ export default function ExpensesByCategoryCard({ transactions }) {
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h2>
         <span className="text-xs text-gray-400 dark:text-gray-500">{formatCurrency(total)}</span>
@@ -84,7 +84,7 @@ export default function ExpensesByCategoryCard({ transactions }) {
               <span className="text-xs text-gray-600 dark:text-gray-300 truncate">
                 {row.icon} {row.category}
               </span>
-              <span className="text-xs font-semibold text-gray-900 dark:text-white tabular-nums ml-2">
+              <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums ml-2">
                 {row.pct.toFixed(0)}%
               </span>
             </div>

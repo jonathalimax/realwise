@@ -114,7 +114,7 @@ export default function GastosTab({
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeTab === tab.value
                 ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -132,7 +132,7 @@ export default function GastosTab({
             <SpendingChart transactions={monthTx} />
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
               Tendência — últimos 6 meses por categoria
             </h3>
             <CategoryTrendChart allTx={allTx} last6Months={last6Months} getMonthKey={getPaymentMonthKey} />
@@ -146,7 +146,7 @@ export default function GastosTab({
           {/* Allocation reference with limits breakdown */}
           {liquidezFinal > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+              <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
                 Referência de alocação — {selectedMonth}
               </h3>
               <div className="grid grid-cols-3 gap-3">
@@ -163,7 +163,7 @@ export default function GastosTab({
                   const allocPct = target > 0 ? Math.min((allocated / target) * 100, 100) : 0;
                   return (
                     <div key={label} className={`rounded-xl p-3 border ${theme.card}`}>
-                      <p className={`text-xs font-semibold mb-0.5 ${theme.title}`}>{emoji} {label}</p>
+                      <p className={`text-xs font-bold mb-0.5 ${theme.title}`}>{emoji} {label}</p>
                       <p className={`text-base font-bold tabular-nums ${theme.amount}`}>{formatBRL.format(target)}</p>
 
                       <div className={`w-full h-1 rounded-full mt-2 mb-1.5 ${theme.bar}`}>
@@ -182,7 +182,7 @@ export default function GastosTab({
                         </div>
                         <div className="flex justify-between text-xs">
                           <span className={theme.sub}>Livre</span>
-                          <span className={`tabular-nums font-semibold ${isOver ? 'text-rose-500' : theme.free}`}>
+                          <span className={`tabular-nums font-bold ${isOver ? 'text-rose-500' : theme.free}`}>
                             {isOver ? '−' : ''}{formatBRL.format(Math.abs(free))}
                           </span>
                         </div>
@@ -197,7 +197,7 @@ export default function GastosTab({
           {/* Per-category limits + rule assignment */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Limites & Classificação</h3>
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Limites & Classificação</h3>
               <p className="text-xs text-gray-400 mt-0.5">
                 Limites recorrentes para todos os meses. Classifique cada categoria para o relatório de alocação.
               </p>
@@ -258,7 +258,7 @@ export default function GastosTab({
                             <div className="flex-1">
                               <BudgetProgressBar pct={pct} colorClass={colors.bg} />
                             </div>
-                            <span className={`text-xs font-semibold tabular-nums w-10 text-right shrink-0 ${colors.text}`}>
+                            <span className={`text-xs font-bold tabular-nums w-10 text-right shrink-0 ${colors.text}`}>
                               {pct.toFixed(0)}%
                             </span>
                           </>

@@ -70,7 +70,7 @@ export default function EmailModal({ user, functions, onClose }) {
           <button
             onClick={handleSend}
             disabled={status === 'sending' || status === 'sent'}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold rounded-lg"
           >
             {status === 'sending' ? 'Enviando...' : 'Enviar'}
           </button>

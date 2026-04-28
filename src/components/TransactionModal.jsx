@@ -324,7 +324,7 @@ export default function TransactionModal({ isOpen, onClose }) {
             >
               <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
                     {t('transactionForm.addTransaction')}
                   </Dialog.Title>
                   <button

@@ -38,7 +38,7 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
     <div className="space-y-4">
       {/* Inputs */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Parâmetros do Financiamento
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -80,7 +80,7 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
       </div>
 
       {/* Phase banner */}
-      <div className={`rounded-xl p-3 border text-xs font-semibold ${
+      <div className={`rounded-xl p-3 border text-xs font-bold ${
         isPhase2ForSelectedMonth
           ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
           : 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400'
@@ -94,15 +94,15 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-violet-50 dark:bg-violet-900/20 rounded-2xl p-3 border border-violet-100 dark:border-violet-800 text-center">
-          <p className="text-xs text-violet-500 font-semibold uppercase">Quitado em</p>
+          <p className="text-xs text-violet-500 font-bold uppercase">Quitado em</p>
           <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{totalMonths} meses</p>
         </div>
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 border border-gray-100 dark:border-gray-700 text-center">
-          <p className="text-xs text-gray-500 font-semibold uppercase">Total parcelas</p>
+          <p className="text-xs text-gray-500 font-bold uppercase">Total parcelas</p>
           <p className="text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums">{formatBRL.format(totalParcelas)}</p>
         </div>
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 border border-gray-100 dark:border-gray-700 text-center">
-          <p className="text-xs text-gray-500 font-semibold uppercase">Total boletos</p>
+          <p className="text-xs text-gray-500 font-bold uppercase">Total boletos</p>
           <p className="text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums">{formatBRL.format(totalBoletos)}</p>
         </div>
       </div>
@@ -113,12 +113,12 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Mês</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Parcela</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Boleto antecip.</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Total</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Restantes</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Boleto</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Mês</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Parcela</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Boleto antecip.</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Total</th>
+                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">Restantes</th>
+                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">Boleto</th>
               </tr>
             </thead>
             <tbody>

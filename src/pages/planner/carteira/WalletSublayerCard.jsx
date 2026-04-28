@@ -39,7 +39,7 @@ export default function WalletSublayerCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-lg shrink-0">{sublayer.icon}</span>
-          <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{sublayer.label}</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{sublayer.label}</span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${INSTRUMENT_TYPE_COLORS[sublayer.type] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
@@ -95,13 +95,13 @@ export default function WalletSublayerCard({
                   <span className="text-xs text-gray-700 dark:text-gray-300 font-medium truncate">{inv.name}</span>
                   {inv.bank && <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${colors.chip}`}>{inv.bank}</span>}
                 </div>
-                <span className="text-xs tabular-nums font-semibold text-gray-700 dark:text-gray-300 ml-2 shrink-0">{formatBRL.format(getCurrentValue(inv))}</span>
+                <span className="text-xs tabular-nums font-bold text-gray-700 dark:text-gray-300 ml-2 shrink-0">{formatBRL.format(getCurrentValue(inv))}</span>
               </div>
             ))}
             {taggedTxs.map(tx => (
               <div key={tx.id} className="flex items-center justify-between rounded-lg px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700/50">
                 <span className="text-xs text-gray-700 dark:text-gray-300 font-medium truncate">{tx.description}</span>
-                <span className="text-xs tabular-nums font-semibold text-gray-700 dark:text-gray-300 ml-2 shrink-0">{formatBRL.format(tx.amount)}</span>
+                <span className="text-xs tabular-nums font-bold text-gray-700 dark:text-gray-300 ml-2 shrink-0">{formatBRL.format(tx.amount)}</span>
               </div>
             ))}
           </>
@@ -112,7 +112,7 @@ export default function WalletSublayerCard({
       <div className="space-y-1.5 pt-1 border-t border-gray-100 dark:border-gray-700">
         <div className="flex justify-between text-xs">
           <span className="text-gray-500 dark:text-gray-400">Atual</span>
-          <span className="tabular-nums font-semibold text-gray-900 dark:text-white">{formatBRL.format(currentBalance)}</span>
+          <span className="tabular-nums font-bold text-gray-900 dark:text-white">{formatBRL.format(currentBalance)}</span>
         </div>
         <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
           <span>Retorno bruto</span>
@@ -132,7 +132,7 @@ export default function WalletSublayerCard({
               <div className={`h-2 rounded-full transition-all ${colors.bar}`} style={{ width: `${progressPct}%` }} />
             </div>
             {goalReached ? (
-              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 text-center">Meta atingida! 🎉</p>
+              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 text-center">Meta atingida! 🎉</p>
             ) : (
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>Faltam</span>
@@ -147,7 +147,7 @@ export default function WalletSublayerCard({
       {/* Footer: monthly contribution */}
       <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700">
         <span>Aporte este mês</span>
-        <span className="tabular-nums font-semibold text-gray-700 dark:text-gray-300">{formatBRL.format(monthlyContrib)}</span>
+        <span className="tabular-nums font-bold text-gray-700 dark:text-gray-300">{formatBRL.format(monthlyContrib)}</span>
       </div>
     </div>
   );

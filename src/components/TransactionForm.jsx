@@ -204,7 +204,7 @@ export default function TransactionForm() {
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('transactionForm.addTransaction')}</h2>
+      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t('transactionForm.addTransaction')}</h2>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Type Toggle */}

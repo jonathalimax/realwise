@@ -153,7 +153,7 @@ export default function TransferScript() {
         <button
           onClick={handleRun}
           disabled={!clientEmail || runStatus === 'running'}
-          className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg"
+          className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-lg"
         >
           {runStatus === 'running' ? 'Running...' : 'Run Transfer'}
         </button>
@@ -161,7 +161,7 @@ export default function TransferScript() {
           href={consoleUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-4 py-2 bg-blue-800 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg"
+          className="px-4 py-2 bg-blue-800 hover:bg-blue-700 text-white text-sm font-bold rounded-lg"
         >
           Open in Console ↗
         </a>
@@ -170,20 +170,20 @@ export default function TransferScript() {
       {/* Run result */}
       {runStatus === 'done' && (
         <div className="bg-emerald-900/30 border border-emerald-800 rounded-xl p-4 text-sm text-emerald-300 space-y-1">
-          <p className="font-semibold">✓ Transfer complete</p>
+          <p className="font-bold">✓ Transfer complete</p>
           <p>{runResult.clientEmail} is now owner of <code>{runResult.projectId}</code></p>
           {runResult.billingError && <p className="text-yellow-400 text-xs mt-1">⚠ {runResult.billingError}</p>}
         </div>
       )}
       {runStatus === 'console' && (
         <div className="bg-amber-900/30 border border-amber-800 rounded-xl p-4 text-sm text-amber-300 space-y-2">
-          <p className="font-semibold">⚠ Invitation required (Spark plan)</p>
+          <p className="font-bold">⚠ Invitation required (Spark plan)</p>
           <p className="text-xs">{runResult.message}</p>
           <a
             href={runResult.consoleUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg"
+            className="inline-block px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold rounded-lg"
           >
             Open IAM Console ↗
           </a>
@@ -197,7 +197,7 @@ export default function TransferScript() {
       )}
       {runStatus === 'error' && (
         <div className="bg-red-900/30 border border-red-800 rounded-xl p-4 text-sm text-red-300">
-          <p className="font-semibold">✗ Transfer failed</p>
+          <p className="font-bold">✗ Transfer failed</p>
           <p className="text-xs mt-1">{runResult?.message}</p>
         </div>
       )}
