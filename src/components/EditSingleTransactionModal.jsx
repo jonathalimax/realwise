@@ -778,11 +778,11 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   )}
 
                   {/* Planner goal link */}
-                  {plannerGoals.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Objetivo do planner
-                      </label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Objetivo do planner
+                    </label>
+                    {plannerGoals.length > 0 ? (
                       <select
                         value={selectedPlannerGoalId}
                         onChange={e => setSelectedPlannerGoalId(e.target.value)}
@@ -795,8 +795,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           </option>
                         ))}
                       </select>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Ignore Toggle */}
                   <button
