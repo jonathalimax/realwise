@@ -5,6 +5,7 @@ import { deleteDoc, doc, updateDoc, collection, query, where, getDocs, writeBatc
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
+import { formatDateBR } from '../utils/dateFormatter';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 import { saveUserCategorizationRule } from '../services/categorizationService';
@@ -463,7 +464,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                       <div className="flex items-center justify-between mt-1.5 gap-2">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0">
-                            {new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                            {formatDateBR(transaction.date)}
                           </span>
                           {/* Tappable Category Badge */}
                           <button
@@ -520,7 +521,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             <span className="flex-shrink-0">
-                              {new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                              {formatDateBR(transaction.date)}
                             </span>
                             <span className="text-slate-300 dark:text-slate-600">•</span>
                             {/* Tappable Category Badge - Desktop */}
