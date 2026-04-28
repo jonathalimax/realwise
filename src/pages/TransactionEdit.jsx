@@ -422,32 +422,6 @@ export default function TransactionEditPage() {
 
             {/* Investment Type (only shown when category is Investments) */}
             {(category === 'Investments' || category === 'Investimentos') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('investments.type')}
-                </label>
-                <select
-                  value={investmentType}
-                  onChange={(e) => setInvestmentType(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 12px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '20px'
-                  }}
-                >
-                  {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                    <option key={key} value={key}>
-                      {info.icon} {t(`investments.types.${key}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Investment Type (only shown when category is Investments) */}
-            {(category === 'Investments' || category === 'Investimentos') && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
