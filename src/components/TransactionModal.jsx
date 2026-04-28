@@ -57,16 +57,22 @@ export default function TransactionModal({ isOpen, onClose }) {
   // When category is '' (fresh form), treat as the first category of current type
   const effectiveCategory = category || categories[type]?.[0] || '';
 
-  // Debug logging for effective category
+  // Debug logging for effective category and category changes
   useEffect(() => {
-    console.log('[TransactionModal] Effective category:', effectiveCategory, '| Category:', category, '| Type:', type);
-    console.log('[TransactionModal] Condition check:', {
+    console.log('[TransactionModal] Category changed to:', category, '| Effective:', effectiveCategory, '| Type:', type);
+  }, [category]);
+
+  useEffect(() => {
+    console.log('[TransactionModal] Effective category:', effectiveCategory);
+    console.log('[TransactionModal] Planner condition will be:', {
       effectiveCategory,
       isInvestments: effectiveCategory === 'Investments',
       isInvestimentos: effectiveCategory === 'Investimentos',
-      conditionMet: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos')
+      conditionMet: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos'),
+      shouldShowPlanner: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos'),
+      plannerGoalsCount: plannerGoals.length
     });
-  }, [effectiveCategory, category, type]);
+  }, [effectiveCategory, plannerGoals.length]);
 
   // Reset form when modal opens
   useEffect(() => {
