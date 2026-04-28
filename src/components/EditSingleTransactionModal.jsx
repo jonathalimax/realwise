@@ -345,72 +345,78 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </button>
                   </div>
 
-                  {/* Amount */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.amount')}
-                    </label>
-                    <CurrencyInput value={amount} onChange={setAmount} />
+                  {/* Row 1: Amount + Date */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Amount */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.amount')}
+                      </label>
+                      <CurrencyInput value={amount} onChange={setAmount} />
+                    </div>
+
+                    {/* Date */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.date')}
+                      </label>
+                      <input
+                        type="date"
+                        lang={language === 'pt' ? 'pt-BR' : 'en-US'}
+                        value={transactionDate}
+                        onChange={(e) => setTransactionDate(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200"
+                      />
+                    </div>
                   </div>
 
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.description')}
-                    </label>
-                    <input
-                      type="text"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200"
-                      placeholder={t('transactionForm.descriptionPlaceholder')}
-                    />
-                  </div>
+                  {/* Row 2: Description + Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.description')}
+                      </label>
+                      <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white placeholder-gray-400
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200"
+                        placeholder={t('transactionForm.descriptionPlaceholder')}
+                      />
+                    </div>
 
-                  {/* Date */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.date')}
-                    </label>
-                    <input
-                      type="date"
-                      lang={language === 'pt' ? 'pt-BR' : 'en-US'}
-                      value={transactionDate}
-                      onChange={(e) => setTransactionDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.category')}
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200 appearance-none cursor-pointer pr-10"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                        backgroundPosition: 'right 12px center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundSize: '20px'
-                      }}
-                    >
-                      {categories[type].map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                    {/* Category */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.category')}
+                      </label>
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200 appearance-none cursor-pointer pr-10"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 12px center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '20px'
+                        }}
+                      >
+                        {categories[type].map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Investment Type (only shown when category is Investments) */}
@@ -675,45 +681,77 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </>
                   )}
 
-                  {/* Bank Selector */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {language === 'pt' ? 'Banco' : 'Bank'}
-                    </label>
-                    <select
-                      value={selectedBankId || 'cash'}
-                      onChange={(e) => {
-                        const newBankId = e.target.value === 'cash' ? null : e.target.value;
-                        setSelectedBankId(newBankId);
-                        if (newBankId) {
-                          const bank = findUserBank(newBankId);
-                          setPaymentMethod(bank?.hasCredit ? 'credit' : 'debit');
-                        } else {
-                          setPaymentMethod('credit');
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200 appearance-none cursor-pointer pr-10"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                        backgroundPosition: 'right 12px center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundSize: '20px'
-                      }}
-                    >
-                      <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
-                      {userBanks.map((userBank) => {
-                        const bankInfo = getBankInfo(userBank.bankId);
-                        const displayName = getBankDisplayName(userBank);
-                        return (
-                          <option key={userBank.id} value={userBank.id}>
-                            {bankInfo.icon} {displayName}
-                          </option>
-                        );
-                      })}
-                    </select>
+                  {/* Row 3: Bank + Ignore */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Bank Selector */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {language === 'pt' ? 'Banco' : 'Bank'}
+                      </label>
+                      <select
+                        value={selectedBankId || 'cash'}
+                        onChange={(e) => {
+                          const newBankId = e.target.value === 'cash' ? null : e.target.value;
+                          setSelectedBankId(newBankId);
+                          if (newBankId) {
+                            const bank = findUserBank(newBankId);
+                            setPaymentMethod(bank?.hasCredit ? 'credit' : 'debit');
+                          } else {
+                            setPaymentMethod('credit');
+                          }
+                        }}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200 appearance-none cursor-pointer pr-10"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 12px center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '20px'
+                        }}
+                      >
+                        <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
+                        {userBanks.map((userBank) => {
+                          const bankInfo = getBankInfo(userBank.bankId);
+                          const displayName = getBankDisplayName(userBank);
+                          return (
+                            <option key={userBank.id} value={userBank.id}>
+                              {bankInfo.icon} {displayName}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* Ignore Toggle */}
+                    <div className="flex flex-col justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsIgnored(!isIgnored)}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          isIgnored
+                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
+                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">🚫</span>
+                          <div className="text-left">
+                            <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                              {t('transactionForm.ignoreTransaction')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
+                          isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
+                        }`}>
+                          <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            isIgnored ? 'translate-x-5' : 'translate-x-0'
+                          }`} />
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Payment Method Selector */}
@@ -804,36 +842,6 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       )}
                     </div>
                   )}
-
-                  {/* Ignore Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setIsIgnored(!isIgnored)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                      isIgnored
-                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">🚫</span>
-                      <div className="text-left">
-                        <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                          {t('transactionForm.ignoreTransaction')}
-                        </span>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {t('transactionForm.ignoreTransactionHint')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                      isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
-                    }`}>
-                      <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                        isIgnored ? 'translate-x-5' : 'translate-x-0'
-                      }`} />
-                    </div>
-                  </button>
 
                   {transaction?.isInstallment && (
                     <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
