@@ -17,6 +17,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [pickerTransaction, setPickerTransaction] = useState(null);
+  const [pickerAnchorEl, setPickerAnchorEl] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const highlightRef = useRef(null);
 
@@ -266,6 +267,7 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
   const openCategoryPicker = (transaction, e) => {
     e.stopPropagation();
     setPickerTransaction(transaction);
+    setPickerAnchorEl(e.currentTarget);
   };
 
   return (
@@ -646,10 +648,14 @@ export default function TransactionList({ transactions = [], selectedMonth, comp
       {/* Category Picker */}
       <CategoryPicker
         isOpen={!!pickerTransaction}
-        onClose={() => setPickerTransaction(null)}
+        onClose={() => {
+          setPickerTransaction(null);
+          setPickerAnchorEl(null);
+        }}
         onSelect={handleQuickCategoryChange}
         currentCategory={pickerTransaction?.category}
         type={pickerTransaction?.type || 'expense'}
+        anchorEl={pickerAnchorEl}
       />
     </div>
   );
