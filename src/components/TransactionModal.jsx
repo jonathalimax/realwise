@@ -895,13 +895,22 @@ export default function TransactionModal({ isOpen, onClose }) {
                     </div>
                   )}
 
+                  {/* DEBUG: Show effective category */}
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
+                    Debug: effectiveCategory = "{effectiveCategory}" | category = "{category}" | type = "{type}"
+                  </div>
+
                   {/* Planner Goal - Show for investment transactions */}
-                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') ? (
                     <PlannerGoalSelect
                       value={selectedPlannerGoalId}
                       onChange={setSelectedPlannerGoalId}
                       selectClassName="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
                     />
+                  ) : (
+                    <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs">
+                      Condition failed: "{effectiveCategory}" is not Investments or Investimentos
+                    </div>
                   )}
 
                   {/* Recurrence Toggle */}
