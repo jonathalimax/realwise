@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import PageHelp from '@/components/ui/PageHelp';
 import { useBills } from '../contexts/BillsContext';
@@ -7,48 +8,20 @@ import { useMonth } from '../contexts/MonthContext';
 import BillsList from '../components/BillsList';
 import BillModal from '../components/BillModal';
 import PageHeader from '../components/PageHeader';
-import { PlusIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 export default function BillsPage() {
   const { language, billReminders, updateBillReminders } = useSettings();
   const { bills } = useBills();
   const { canWrite } = useAccess();
   const { selectedMonth } = useMonth();
+  const [searchParams] = useSearchParams();
   const [showBillModal, setShowBillModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const s = searchParams.get('status');
+    return ['all', 'pending', 'paid', 'overdue'].includes(s) ? s : 'all';
+  });
 
-  const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-
-  const billsStats = useMemo(() => {
-    const monthBills = bills.filter(bill => {
-      if (!bill.dueDate) return false;
-      const date = new Date(bill.dueDate);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      return key === selectedMonth;
-    });
-
-    const paid = monthBills.filter(b => b.status === 'paid');
-    const pending = monthBills.filter(b => b.status === 'pending');
-    const overdue = monthBills.filter(b => {
-      if (b.status === 'paid') return false;
-      const dueDate = new Date(b.dueDate);
-      return dueDate < new Date();
-    });
-
-    const totalAmount = monthBills.reduce((sum, b) => sum + (b.amount || 0), 0);
-    const paidAmount = paid.reduce((sum, b) => sum + (b.amount || 0), 0);
-    const pendingAmount = pending.reduce((sum, b) => sum + (b.amount || 0), 0);
-
-    return { paid, pending, overdue, totalAmount, paidAmount, pendingAmount, total: monthBills.length };
-  }, [bills, selectedMonth]);
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: language === 'pt' ? 'BRL' : 'USD'
-    }).format(amount);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -94,60 +67,6 @@ export default function BillsPage() {
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                <ClockIcon className="w-4 h-4 text-gray-500" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Total' : 'Total'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">{billsStats.total}</p>
-            <p className="text-xs text-gray-500">{formatCurrency(billsStats.totalAmount)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                <ClockIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Pendentes' : 'Pending'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{billsStats.pending.length}</p>
-            <p className="text-xs text-gray-500">{formatCurrency(billsStats.pendingAmount)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                <CheckCircleIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Pagas' : 'Paid'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{billsStats.paid.length}</p>
-            <p className="text-xs text-gray-500">{formatCurrency(billsStats.paidAmount)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <ExclamationTriangleIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Atrasadas' : 'Overdue'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-red-600 dark:text-red-400">{billsStats.overdue.length}</p>
           </div>
         </div>
 
