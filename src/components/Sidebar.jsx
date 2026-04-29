@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import { useSettings } from '../contexts/SettingsContext';
+import { useFeature } from '../contexts/ClientConfigContext';
 import {
   HomeIcon,
   BanknotesIcon,
@@ -19,30 +20,18 @@ import {
   TagIcon,
 } from '@heroicons/react/24/outline';
 
-const navigationGroups = [
-  [
-    { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
-  ],
-  [
-    { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
-    { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
-    { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
-  ],
-  [
-    { name: 'Planning', namePt: 'Planejador', href: '/planner', icon: ChartBarIcon },
-    { name: 'Expenses by Category', namePt: 'Despesas por Categoria', href: '/planner?tab=rastreamento', icon: TagIcon },
-    { name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon },
-  ],
-  [
-    { name: 'Import', namePt: 'Importar', href: '/import', icon: DocumentArrowDownIcon },
-    { name: 'Help', namePt: 'Ajuda', href: '/help', icon: QuestionMarkCircleIcon },
-    { name: 'Settings', namePt: 'Configurações', href: '/settings', icon: Cog6ToothIcon },
-  ],
-];
-
 function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) {
+  const location = useLocation();
   const handleLinkClick = () => {
     if (mobileClose) mobileClose();
+  };
+
+  const isItemActive = (item) => {
+    if (item.href.includes('?')) {
+      const [path, search] = item.href.split('?');
+      return location.pathname === path && location.search === '?' + search;
+    }
+    return location.pathname === item.href;
   };
 
   return (
@@ -85,12 +74,13 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) 
                   key={item.name}
                   to={item.href}
                   onClick={handleLinkClick}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-wide
-                    ${isActive
-                      ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`
-                  }
+                  className={() => {
+                    const active = isItemActive(item);
+                    return `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-wide
+                      ${active
+                        ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
+                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`;
+                  }}
                 >
                   <item.icon className="w-5 h-5" />
                   {language === 'pt' ? item.namePt : item.name}
@@ -119,6 +109,28 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { language } = useSettings();
   const navigate = useNavigate();
+  const hasGoals = useFeature('goals');
+
+  const navigationGroups = [
+    [
+      { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
+    ],
+    [
+      { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
+      { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
+      { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
+    ],
+    [
+      { name: 'Planning', namePt: 'Planejador', href: '/planner', icon: ChartBarIcon },
+      { name: 'Expenses by Category', namePt: 'Despesas por Categoria', href: '/planner?tab=rastreamento', icon: TagIcon },
+      ...(hasGoals ? [{ name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon }] : []),
+    ],
+    [
+      { name: 'Import', namePt: 'Importar', href: '/import', icon: DocumentArrowDownIcon },
+      { name: 'Help', namePt: 'Ajuda', href: '/help', icon: QuestionMarkCircleIcon },
+      { name: 'Settings', namePt: 'Configurações', href: '/settings', icon: Cog6ToothIcon },
+    ],
+  ];
 
   useEffect(() => {
     const handleToggle = () => setMobileOpen(prev => !prev);
