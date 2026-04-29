@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -31,7 +31,7 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) 
       const [path, search] = item.href.split('?');
       return location.pathname === path && location.search === '?' + search;
     }
-    return location.pathname === item.href;
+    return location.pathname.replace(/\/$/, '') === item.href;
   };
 
   return (
@@ -111,7 +111,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const hasGoals = useFeature('goals');
 
-  const navigationGroups = [
+  const navigationGroups = useMemo(() => [
     [
       { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
     ],
@@ -130,7 +130,7 @@ export default function Sidebar() {
       { name: 'Help', namePt: 'Ajuda', href: '/help', icon: QuestionMarkCircleIcon },
       { name: 'Settings', namePt: 'Configurações', href: '/settings', icon: Cog6ToothIcon },
     ],
-  ];
+  ], [hasGoals]);
 
   useEffect(() => {
     const handleToggle = () => setMobileOpen(prev => !prev);
