@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { logoutAndRedirect } from '../lib/auth/logout';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
@@ -136,12 +136,7 @@ export default function Dashboard() {
   }, [refreshKey, ownerId]); // Add ownerId to dependencies
 
   const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    await logoutAndRedirect();
   };
 
   const availableMonths = useMemo(() => {

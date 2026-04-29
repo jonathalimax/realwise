@@ -9,7 +9,7 @@ import { extractClientId } from './config/clientConfig';
 import Auth from './components/Auth';
 import Layout from './components/Layout';
 import { SettingsProvider } from './contexts/SettingsContext';
-import { AccessProvider } from './contexts/AccessContext';
+import { AccessProvider, useAccess } from './contexts/AccessContext';
 import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
 import { BillsProvider } from './contexts/BillsContext';
@@ -48,6 +48,17 @@ const PageLoader = () => (
   </div>
 );
 
+function AuthenticatedShell({ children }) {
+  const { loading, ownerId } = useAccess();
+  if (loading || !ownerId) return <PageLoader />;
+  return children;
+}
+
+function RedirectToGlobalLogin() {
+  useEffect(() => { window.location.replace('/login'); }, []);
+  return <PageLoader />;
+}
+
 function AuthenticatedApp() {
   const hasGoals = useFeature('goals');
   const hasInvestments = useFeature('investments');
@@ -55,7 +66,8 @@ function AuthenticatedApp() {
   return (
     <AccessProvider>
       <SettingsProvider>
-        <MonthProvider>
+        <AuthenticatedShell>
+          <MonthProvider>
           {/* InvestmentProvider and GoalsProvider stay in the tree always —
               Dashboard.jsx uses useInvestments() even when the investments page
               is hidden, so the context must be present. */}
@@ -99,7 +111,8 @@ function AuthenticatedApp() {
               </BudgetProvider>
             </CardsProvider>
           </GoalsProvider>
-        </MonthProvider>
+          </MonthProvider>
+        </AuthenticatedShell>
       </SettingsProvider>
     </AccessProvider>
   );
@@ -129,7 +142,7 @@ function AppRouter() {
       />
       {user
         ? <Route path="/*" element={<AuthenticatedApp />} />
-        : <Route path="*" element={<Navigate to="/login" replace />} />
+        : <Route path="*" element={<RedirectToGlobalLogin />} />
       }
     </Routes>
   );

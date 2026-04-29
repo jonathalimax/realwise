@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { logoutAndRedirect } from '../lib/auth/logout';
 import { useSettings } from '../contexts/SettingsContext';
 import { useFeature, useClientConfig } from '../contexts/ClientConfigContext';
 import {
@@ -217,12 +218,7 @@ export default function Sidebar() {
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    await logoutAndRedirect();
   };
 
   const getParentRoute = () => {

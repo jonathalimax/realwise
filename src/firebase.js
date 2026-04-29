@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator, clearIndexedDbPersistence, terminate } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, terminate } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -25,7 +25,6 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
       const staleDb = getFirestore(existing);
       try {
         await terminate(staleDb);
-        await clearIndexedDbPersistence(staleDb);
       } catch (_) {
         // Best-effort: ignore errors during cleanup
       }
@@ -34,6 +33,9 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
       // Same project — reuse existing app.
       app = existing;
       auth = getAuth(app);
+      await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
+        setPersistence(auth, browserLocalPersistence)
+      );
       db = getFirestore(app);
       storage = getStorage(app);
       functions = getFunctions(app);
@@ -43,6 +45,9 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
 
   app = initializeApp(firebaseConfig, appName);
   auth = getAuth(app);
+  await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
+    setPersistence(auth, browserLocalPersistence)
+  );
   db = getFirestore(app);
   storage = getStorage(app);
   functions = getFunctions(app);

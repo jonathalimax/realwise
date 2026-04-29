@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { auth, db } from '../firebase';
 import {
   GoogleAuthProvider,
   signInWithPopup,
-  getRedirectResult,
   signOut
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -53,34 +52,6 @@ export default function Auth() {
     }
   };
 
-  // Clear any stale redirect state left by a previous incomplete signInWithRedirect.
-  // getRedirectResult returns null immediately when there's no pending redirect.
-  // If it hangs (stale state), the 4s timeout unsticks the UI.
-  useEffect(() => {
-    setLoading(true);
-    const timeout = setTimeout(() => setLoading(false), 4000);
-
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (!result) return;
-        const isAllowed = await checkEmailAllowed(result.user.email);
-        if (!isAllowed) {
-          await signOut(auth);
-          setError(language === 'pt'
-            ? 'Acesso não autorizado. Entre em contato com o administrador.'
-            : 'Access not authorized. Please contact the administrator.');
-        }
-      })
-      .catch((err) => {
-        setError(getErrorMessage(err.code));
-      })
-      .finally(() => {
-        clearTimeout(timeout);
-        setLoading(false);
-      });
-
-    return () => clearTimeout(timeout);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -88,6 +59,9 @@ export default function Auth() {
 
     try {
       const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+      provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
       const isAllowed = await checkEmailAllowed(result.user.email);
       if (!isAllowed) {

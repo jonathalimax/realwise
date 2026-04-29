@@ -3,7 +3,8 @@ import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
 import { OWNER_EMAIL, useAccess } from '../contexts/AccessContext';
 import { db, auth } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
+import { deleteUser, onAuthStateChanged } from 'firebase/auth';
+import { logoutAndRedirect } from '../lib/auth/logout';
 import InstallPWAButton from '../components/ui/InstallPWAButton';
 import { checkAIQuota } from '../services/aiCategorizationService';
 
@@ -170,7 +171,7 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    await logoutAndRedirect();
   };
 
   const handleDeleteAccount = async () => {
