@@ -113,17 +113,17 @@ export default function CardsPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span>{subtitleName}</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {subtitleName}
               {userBank.hasCredit && (
                 <>
-                  <span>•</span>
-                  <span>{t('cards.closingDay')}: {userBank.closingDay}</span>
-                  <span>•</span>
-                  <span>{t('cards.paymentDay')}: {userBank.paymentDay}</span>
+                  {' · '}
+                  {language === 'pt'
+                    ? `Fecha dia ${userBank.closingDay} · Paga dia ${userBank.paymentDay}`
+                    : `Closes ${userBank.closingDay} · Due ${userBank.paymentDay}`}
                 </>
               )}
-            </div>
+            </p>
           </div>
           <div className="flex items-center">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
