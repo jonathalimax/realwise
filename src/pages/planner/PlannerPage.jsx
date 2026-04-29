@@ -25,6 +25,12 @@ const PLANNER_HELP = {
   rastreamento: 'Acompanhe quanto do seu orçamento foi utilizado em cada categoria no mês selecionado.',
 };
 
+const PLANNER_TITLES = {
+  renda: 'Renda',
+  allocation: 'Alocação',
+  rastreamento: 'Gastos por Categoria',
+};
+
 export default function PlannerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedMonth } = useMonth();
@@ -61,7 +67,7 @@ export default function PlannerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <PageHeader title="Planejador Financeiro" />
+      <PageHeader title={PLANNER_TITLES[activeTab] ?? 'Planejador Financeiro'} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 space-y-4">
         {isLoading ? (
           <PlannerSkeleton />

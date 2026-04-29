@@ -151,7 +151,7 @@ export default function DashboardPage() {
             <BillsSummaryCard selectedMonth={selectedMonth} />
 
             {/* Expenses by category */}
-            <ExpensesByCategoryCard transactions={monthlyTransactions} />
+            <ExpensesByCategoryCard transactions={monthlyTransactions} selectedMonth={selectedMonth} />
           </div>
         </div>
       </main>

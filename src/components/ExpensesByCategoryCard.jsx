@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
+import { useBudget } from '../contexts/BudgetContext';
+import usePlannerState, { getActivePlannerVersion } from '../pages/planner/usePlannerState';
+import { computeNetSalary } from '../pages/planner/rendaCalc';
 
 const COLORS = [
   '#8B5CF6', '#EC4899', '#06B6D4', '#F59E0B',
@@ -28,9 +31,30 @@ const CATEGORY_ICONS = {
   'Investments': '📈', 'Investimentos': '📈',
 };
 
-export default function ExpensesByCategoryCard({ transactions }) {
+export default function ExpensesByCategoryCard({ transactions, selectedMonth }) {
   const { language, formatCurrency } = useSettings();
+  const { getTemplateBudget } = useBudget();
+  const { state: plannerStateData } = usePlannerState();
   const navigate = useNavigate();
+
+  const templateBudget = getTemplateBudget();
+  const categoryBudgets = useMemo(
+    () => templateBudget?.categoryBudgets ?? {},
+    [templateBudget]
+  );
+
+  const plannerVersion = useMemo(
+    () => getActivePlannerVersion(plannerStateData?.plannerVersions, selectedMonth),
+    [plannerStateData?.plannerVersions, selectedMonth]
+  );
+  const liquidezFinal = useMemo(
+    () => computeNetSalary(plannerVersion?.salarioBruto, plannerVersion?.salarioDeductions),
+    [plannerVersion]
+  );
+  const categoryPct = useMemo(
+    () => plannerVersion?.categoryBudgetsPct ?? {},
+    [plannerVersion]
+  );
 
   const { rows, total } = useMemo(() => {
     const spending = {};
@@ -45,17 +69,25 @@ export default function ExpensesByCategoryCard({ transactions }) {
 
     const rows = Object.entries(spending)
       .filter(([, v]) => v > 0)
-      .map(([cat, amount], i) => ({
-        category: cat,
-        amount,
-        pct: (amount / total) * 100,
-        icon: CATEGORY_ICONS[cat] || '💰',
-        color: COLORS[i % COLORS.length],
-      }))
+      .map(([cat, amount], i) => {
+        const pctValue = categoryPct[cat] ?? 0;
+        const pctLimit = pctValue > 0 ? liquidezFinal * (pctValue / 100) : 0;
+        const templateLimit = categoryBudgets[cat] ?? 0;
+        const limit = pctLimit > 0 ? pctLimit : templateLimit;
+        const pct = limit > 0 ? (amount / limit) * 100 : 0;
+        return {
+          category: cat,
+          amount,
+          limit,
+          pct,
+          icon: CATEGORY_ICONS[cat] || '💰',
+          color: COLORS[i % COLORS.length],
+        };
+      })
       .sort((a, b) => b.amount - a.amount);
 
     return { rows, total };
-  }, [transactions]);
+  }, [transactions, categoryBudgets, categoryPct, liquidezFinal]);
 
   if (rows.length === 0) return null;
 
@@ -85,13 +117,22 @@ export default function ExpensesByCategoryCard({ transactions }) {
                 {row.icon} {row.category}
               </span>
               <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums ml-2">
-                {row.pct.toFixed(0)}%
+                {row.limit > 0 ? (
+                  <>
+                    {formatCurrency(row.amount)} / {formatCurrency(row.limit)} ({row.pct.toFixed(0)}%)
+                  </>
+                ) : (
+                  formatCurrency(row.amount)
+                )}
               </span>
             </div>
             <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full"
-                style={{ width: `${row.pct}%`, backgroundColor: row.color }}
+                style={{
+                  width: `${Math.min(row.pct, 100)}%`,
+                  backgroundColor: row.color
+                }}
               />
             </div>
           </button>
