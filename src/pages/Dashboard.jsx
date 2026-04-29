@@ -49,8 +49,7 @@ export default function DashboardPage() {
   useInvestments();
 
   const handleOpenCards = () => {
-    if (isMobile) navigate('/cards');
-    else setShowCards(true);
+    navigate('/settings?tab=banks');
   };
 
   const handleOpenInvestmentsList = () => {
