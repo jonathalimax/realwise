@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BarChart } from '@mui/x-charts/BarChart';
+import { ChartsTooltip } from '@mui/x-charts/ChartsTooltip';
 import { useSettings } from '@/contexts/SettingsContext';
 
 // Top N categories to show in the trend chart
@@ -120,7 +121,9 @@ export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) 
           slotProps={{ legend: { hidden: true } }}
           sx={sxDark}
           margin={{ top: 10, right: 10, bottom: 30, left: 55 }}
-        />
+        >
+          <ChartsTooltip trigger="axis" />
+        </BarChart>
       </div>
     </div>
   );

@@ -8,11 +8,8 @@ import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
 import { buildUpdatedMetadata } from '../utils/transactionMetadata';
-import { formatDateBR } from '../utils/dateFormatter';
 import CurrencyInput from '../components/ui/CurrencyInput';
-import PercentInput from '../components/ui/PercentInput';
-import usePlannerGoals from './planner/usePlannerGoals';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../components/PageHeader';
 
 export default function TransactionEditPage() {
   const { ownerId } = useAccess();
@@ -30,7 +27,6 @@ export default function TransactionEditPage() {
   const [category, setCategory] = useState('');
   const [transactionDate, setTransactionDate] = useState('');
   const [selectedGoalId, setSelectedGoalId] = useState('');
-  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState('');
   const [selectedBankId, setSelectedBankId] = useState(null);
   const [isIgnored, setIsIgnored] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,7 +49,6 @@ export default function TransactionEditPage() {
   const { goals } = useGoals();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank } = useCards();
   const { addInvestment, updateInvestment, investments } = useInvestments();
-  const plannerGoals = usePlannerGoals();
 
   const availableGoals = goals.filter((g) => !g.completed);
 
@@ -99,7 +94,6 @@ export default function TransactionEditPage() {
       transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0]
     );
     setSelectedGoalId(transaction.goalId || '');
-    setSelectedPlannerGoalId(transaction.plannerGoalId || '');
 
     // Handle both old (bank type) and new (document ID) formats
     if (transaction.bankId) {
@@ -161,7 +155,7 @@ export default function TransactionEditPage() {
       const baseDate = new Date(transactionDate + 'T12:00:00');
       const selectedGoal = selectedGoalId ? goals.find((g) => g.id === selectedGoalId) : null;
 
-      const finalCategory = category; // Use selected category as-is, allow empty/"Sem Categoria"
+      const finalCategory = category || categories[type][0];
       const isInvestmentCategory =
         finalCategory === 'Investments' || finalCategory === 'Investimentos';
 
@@ -176,7 +170,6 @@ export default function TransactionEditPage() {
         date: baseDate.toISOString(),
         goalId: selectedGoalId || null,
         goalName: selectedGoal?.name || null,
-        plannerGoalId: selectedPlannerGoalId || null,
         bankId: selectedBankId || null,
         paymentMethod: selectedBankId ? paymentMethod : null,
         ignored: isIgnored,
@@ -296,23 +289,10 @@ export default function TransactionEditPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-30 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 h-14 sm:h-16">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label={language === 'pt' ? 'Voltar' : 'Go back'}
-            >
-              <ArrowLeftIcon className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-              {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
-            </h1>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
+        showMonth={false}
+      />
 
       {/* Form */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -344,116 +324,111 @@ export default function TransactionEditPage() {
               </button>
             </div>
 
-            {/* Row 1: Amount + Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.amount')}
-                </label>
-                <CurrencyInput value={amount} onChange={setAmount} />
-              </div>
-
-              {/* Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.date')}
-                </label>
-                <input
-                  type="date"
-                  lang={language === 'pt' ? 'pt-BR' : 'en-US'}
-                  value={transactionDate}
-                  onChange={(e) => setTransactionDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                    text-gray-900 dark:text-white
-                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                    transition-all duration-200"
-                />
-              </div>
+            {/* Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('transactionForm.amount')}
+              </label>
+              <CurrencyInput value={amount} onChange={setAmount} />
             </div>
 
-            {/* Row 2: Description + Category (+ Type if investment) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.description')}
-                </label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400
-                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                    transition-all duration-200"
-                  placeholder={t('transactionForm.descriptionPlaceholder')}
-                />
-              </div>
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('transactionForm.description')}
+              </label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                  text-gray-900 dark:text-white placeholder-gray-400
+                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                  transition-all duration-200"
+                placeholder={t('transactionForm.descriptionPlaceholder')}
+              />
+            </div>
 
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('transactionForm.category')}
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                    text-gray-900 dark:text-white
-                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                    transition-all duration-200 appearance-none cursor-pointer pr-10"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 12px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '20px',
-                  }}
-                >
-                  {categories[type].map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('transactionForm.date')}
+              </label>
+              <input
+                type="date"
+                lang={language === 'pt' ? 'pt-BR' : 'en-US'}
+                value={transactionDate}
+                onChange={(e) => setTransactionDate(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                  text-gray-900 dark:text-white
+                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                  transition-all duration-200"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('transactionForm.category')}
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                  text-gray-900 dark:text-white
+                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                  transition-all duration-200 appearance-none cursor-pointer pr-10"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 12px center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '20px',
+                }}
+              >
+                {categories[type].map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Investment Type (only shown when category is Investments) */}
             {(category === 'Investments' || category === 'Investimentos') && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Investment Type Selector - Left side */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('investments.type')}
-                    </label>
-                    <select
-                      value={investmentType}
-                      onChange={(e) => setInvestmentType(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                        backgroundPosition: 'right 12px center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundSize: '20px'
-                      }}
-                    >
-                      {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                        <option key={key} value={key}>
-                          {info.icon} {t(`investments.types.${key}`)}
-                        </option>
-                      ))}
-                    </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('investments.type')}
+                  </label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setInvestmentType(key)}
+                        className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
+                          investmentType === key
+                            ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
+                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        }`}
+                        title={t(`investments.types.${key}`)}
+                      >
+                        <span>{info.icon}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                          {t(`investments.types.${key}`)}
+                        </span>
+                      </button>
+                    ))}
                   </div>
+                </div>
 
-                  {/* Dynamic Investment Fields - Right side */}
-                  <div className="space-y-3">
-                    {investmentType === 'fixed_income' && (
-                      <>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
+                {/* Dynamic Investment Fields by type */}
+                <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  {investmentType === 'fixed_income' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
                           </label>
@@ -485,29 +460,29 @@ export default function TransactionEditPage() {
                             <option value={RETURN_TYPES.monthly}>{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
                             <option value={RETURN_TYPES.total}>Total</option>
                           </select>
-                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
-                          </label>
-                          <input
-                            type="date"
-                            lang={language === 'pt' ? 'pt-BR' : 'en-US'}
-                            value={maturityDate}
-                            onChange={(e) => setMaturityDate(e.target.value)}
-                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
-                          />
-                        </div>
-                      </>
-                      )}
-                    {(investmentType === 'stocks' || investmentType === 'fii') && (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Ticker {investmentType === 'fii' ? (language === 'pt' ? '(ex: HGLG11)' : '(e.g. HGLG11)') : (language === 'pt' ? '(ex: PETR4)' : '(e.g. PETR4)')}
-                          </label>
-                          <input
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
+                        </label>
+                        <input
+                          type="date"
+                          lang={language === 'pt' ? 'pt-BR' : 'en-US'}
+                          value={maturityDate}
+                          onChange={(e) => setMaturityDate(e.target.value)}
+                          className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {(investmentType === 'stocks' || investmentType === 'fii') && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Ticker {investmentType === 'fii' ? (language === 'pt' ? '(ex: HGLG11)' : '(e.g. HGLG11)') : (language === 'pt' ? '(ex: PETR4)' : '(e.g. PETR4)')}
+                        </label>
+                        <input
                           type="text"
                           value={ticker}
                           onChange={(e) => setTicker(e.target.value.toUpperCase())}
@@ -526,12 +501,12 @@ export default function TransactionEditPage() {
                           placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
                           className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                         />
-                        </div>
-                      </>
-                    )}
-                    {investmentType === 'crypto' && (
-                      <>
-                        <div>
+                      </div>
+                    </>
+                  )}
+                  {investmentType === 'crypto' && (
+                    <>
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
                         </label>
@@ -558,12 +533,12 @@ export default function TransactionEditPage() {
                           placeholder="Binance"
                           className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                         />
-                        </div>
-                      </>
-                    )}
-                    {investmentType === 'funds' && (
-                      <>
-                        <div>
+                      </div>
+                    </>
+                  )}
+                  {investmentType === 'funds' && (
+                    <>
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
                         </label>
@@ -586,11 +561,11 @@ export default function TransactionEditPage() {
                           placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
                           className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                         />
-                        </div>
-                      </>
-                    )}
-                    {investmentType === 'real_estate' && (
-                      <div>
+                      </div>
+                    </>
+                  )}
+                  {investmentType === 'real_estate' && (
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {language === 'pt' ? 'Descrição do Imóvel' : 'Property Description'}
                       </label>
@@ -601,109 +576,42 @@ export default function TransactionEditPage() {
                         placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
                         className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200"
                       />
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
 
-            {/* Planner Goal (only shown when category is Investments and type is expense) */}
-            {(type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {language === 'pt' ? 'Objetivo do planner' : 'Planner objective'}
-                </label>
-                {plannerGoals.length > 0 ? (
-                  <select
-                    value={selectedPlannerGoalId}
-                    onChange={e => setSelectedPlannerGoalId(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
-                  >
-                    <option value="">{language === 'pt' ? 'Nenhum' : 'None'}</option>
-                    {plannerGoals.map(g => (
-                      <option key={g.id} value={g.id}>
-                        {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                      {language === 'pt'
-                        ? 'Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.'
-                        : 'No investment objectives configured in planner. Access the planner to create investment objectives in wallet layers.'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Row 3: Bank + Ignore */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Bank Selector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {language === 'pt' ? 'Banco' : 'Bank'}
-                </label>
-                <select
-                  value={selectedBankId || 'cash'}
-                  onChange={(e) => setSelectedBankId(e.target.value === 'cash' ? null : e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                    text-gray-900 dark:text-white
-                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                    transition-all duration-200 appearance-none cursor-pointer pr-10"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                    backgroundPosition: 'right 12px center',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundSize: '20px',
-                  }}
-                >
-                  <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
-                  {userBanks.map((userBank) => {
-                    const bankInfo = getBankInfo(userBank.bankId);
-                    const displayName = getBankDisplayName(userBank);
-                    return (
-                      <option key={userBank.id} value={userBank.id}>
-                        {bankInfo.icon} {displayName}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              {/* Ignore Toggle */}
-              <div className="flex items-end">
-                <button
-                  type="button"
-                  onClick={() => setIsIgnored(!isIgnored)}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                    isIgnored
-                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">🚫</span>
-                    <div className="text-left">
-                      <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {t('transactionForm.ignoreTransaction')}
-                      </span>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {t('transactionForm.ignoreTransactionHint')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                    isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
-                  }`}>
-                    <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                      isIgnored ? 'translate-x-5' : 'translate-x-0'
-                    }`} />
-                  </div>
-                </button>
-              </div>
+            {/* Bank Selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {language === 'pt' ? 'Banco' : 'Bank'}
+              </label>
+              <select
+                value={selectedBankId || 'cash'}
+                onChange={(e) => setSelectedBankId(e.target.value === 'cash' ? null : e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                  text-gray-900 dark:text-white
+                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                  transition-all duration-200 appearance-none cursor-pointer pr-10"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                  backgroundPosition: 'right 12px center',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: '20px',
+                }}
+              >
+                <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
+                {userBanks.map((userBank) => {
+                  const bankInfo = getBankInfo(userBank.bankId);
+                  const displayName = getBankDisplayName(userBank);
+                  return (
+                    <option key={userBank.id} value={userBank.id}>
+                      {bankInfo.icon} {displayName}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
 
             {/* Payment Method */}
@@ -766,6 +674,46 @@ export default function TransactionEditPage() {
               </div>
             )}
 
+            {/* Ignore Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsIgnored(!isIgnored)}
+              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                isIgnored
+                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🚫</span>
+                <div className="text-left">
+                  <span
+                    className={`text-sm font-medium ${
+                      isIgnored
+                        ? 'text-amber-700 dark:text-amber-300'
+                        : 'text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    {t('transactionForm.ignoreTransaction')}
+                  </span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('transactionForm.ignoreTransactionHint')}
+                  </p>
+                </div>
+              </div>
+              <div
+                className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
+                  isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    isIgnored ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </button>
+
             {transaction?.isInstallment && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
                 <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -789,7 +737,7 @@ export default function TransactionEditPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <p className="font-bold text-gray-900 dark:text-white">
+                    <p className="font-semibold text-gray-900 dark:text-white">
                       {language === 'pt' ? 'Editar parcelas' : 'Edit installments'}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">

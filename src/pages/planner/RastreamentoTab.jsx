@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
@@ -9,6 +10,7 @@ import CategoryTrendChart from './CategoryTrendChart';
 export default function RastreamentoTab({ selectedMonth }) {
   const { ownerId } = useAccess();
   const { getPaymentMonthKey } = useCards();
+  const navigate = useNavigate();
   const [allTx, setAllTx] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +36,14 @@ export default function RastreamentoTab({ selectedMonth }) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }), [selectedMonth]);
 
+  const handleCategoryClick = (category) => {
+    sessionStorage.setItem('expenses_categoryFilter', category);
+    sessionStorage.removeItem('expenses_bankFilter');
+    sessionStorage.removeItem('expenses_paymentMethodFilter');
+    sessionStorage.setItem('expenses_viewMode', 'payment');
+    navigate('/expenses');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -45,13 +55,13 @@ export default function RastreamentoTab({ selectedMonth }) {
   return (
     <div className="space-y-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Gastos por categoria — {selectedMonth}
         </h3>
-        <SpendingChart transactions={monthTx} selectedMonth={selectedMonth} />
+        <SpendingChart transactions={monthTx} onCategoryClick={handleCategoryClick} />
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Tendência — últimos 6 meses por categoria
         </h3>
         <CategoryTrendChart allTx={allTx} last6Months={last6Months} getMonthKey={getPaymentMonthKey} />

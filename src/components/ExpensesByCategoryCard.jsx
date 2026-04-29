@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useBudget } from '../contexts/BudgetContext';
-import usePlannerState, { getActivePlannerVersion } from '../pages/planner/usePlannerState';
-import { computeNetSalary } from '../pages/planner/rendaCalc';
+import { useMonth } from '../contexts/MonthContext';
 
 const COLORS = [
   '#8B5CF6', '#EC4899', '#06B6D4', '#F59E0B',
@@ -29,32 +28,18 @@ const CATEGORY_ICONS = {
   'Church': '⛪', 'Igreja': '⛪',
   'Other': '📦', 'Diversos': '📦',
   'Investments': '📈', 'Investimentos': '📈',
+  'Refund': '↩️', 'Reembolso': '↩️',
+  'Uncategorized': '❓', 'Sem categoria': '❓',
 };
 
-export default function ExpensesByCategoryCard({ transactions, selectedMonth }) {
+export default function ExpensesByCategoryCard({ transactions }) {
   const { language, formatCurrency } = useSettings();
-  const { getTemplateBudget } = useBudget();
-  const { state: plannerStateData } = usePlannerState();
+  const { getBudgetForMonth, getTemplateBudget, getStatusColor, getBudgetStatus } = useBudget();
+  const { selectedMonth } = useMonth();
   const navigate = useNavigate();
 
-  const templateBudget = getTemplateBudget();
-  const categoryBudgets = useMemo(
-    () => templateBudget?.categoryBudgets ?? {},
-    [templateBudget]
-  );
-
-  const plannerVersion = useMemo(
-    () => getActivePlannerVersion(plannerStateData?.plannerVersions, selectedMonth),
-    [plannerStateData?.plannerVersions, selectedMonth]
-  );
-  const liquidezFinal = useMemo(
-    () => computeNetSalary(plannerVersion?.salarioBruto, plannerVersion?.salarioDeductions),
-    [plannerVersion]
-  );
-  const categoryPct = useMemo(
-    () => plannerVersion?.categoryBudgetsPct ?? {},
-    [plannerVersion]
-  );
+  const budget = getBudgetForMonth(selectedMonth) || getTemplateBudget();
+  const categoryBudgets = budget?.categoryBudgets || {};
 
   const { rows, total } = useMemo(() => {
     const spending = {};
@@ -70,71 +55,85 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
     const rows = Object.entries(spending)
       .filter(([, v]) => v > 0)
       .map(([cat, amount], i) => {
-        const pctValue = categoryPct[cat] ?? 0;
-        const pctLimit = pctValue > 0 ? liquidezFinal * (pctValue / 100) : 0;
-        const templateLimit = categoryBudgets[cat] ?? 0;
-        const limit = pctLimit > 0 ? pctLimit : templateLimit;
-        const pct = limit > 0 ? (amount / limit) * 100 : 0;
+        const limit = categoryBudgets[cat] || 0;
+        // If limit exists, pct is spent/limit. Else, pct is spent/total.
+        const pct = limit > 0 ? (amount / limit) * 100 : (amount / total) * 100;
+        const status = limit > 0 ? getBudgetStatus(amount, limit) : 'none';
+        const statusColors = getStatusColor(status);
+
         return {
           category: cat,
           amount,
-          limit,
           pct,
+          limit,
+          status,
+          barColor: limit > 0 ? statusColors.bg : COLORS[i % COLORS.length],
           icon: CATEGORY_ICONS[cat] || '💰',
-          color: COLORS[i % COLORS.length],
         };
       })
       .sort((a, b) => b.amount - a.amount);
 
     return { rows, total };
-  }, [transactions, categoryBudgets, categoryPct, liquidezFinal]);
+  }, [transactions, categoryBudgets, getBudgetStatus, getStatusColor, total]);
 
   if (rows.length === 0) return null;
 
   const handleCategoryClick = (category) => {
     sessionStorage.setItem('expenses_categoryFilter', category);
+    sessionStorage.removeItem('expenses_bankFilter');
+    sessionStorage.removeItem('expenses_paymentMethodFilter');
+    sessionStorage.setItem('expenses_viewMode', 'payment');
     navigate('/expenses');
   };
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h2>
-        <span className="text-xs text-gray-400 dark:text-gray-500">{formatCurrency(total)}</span>
+        <span className="text-xs font-semibold text-gray-400 dark:text-gray-500">{formatCurrency(total)}</span>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-x-6 gap-y-4">
         {rows.map((row) => (
           <button
             key={row.category}
             onClick={() => handleCategoryClick(row.category)}
-            className="w-full text-left hover:opacity-80 active:scale-[0.99] transition-all"
+            className="w-full text-left hover:opacity-80 active:scale-[0.99] transition-all group"
           >
-            <div className="flex justify-between mb-1">
-              <span className="text-xs text-gray-600 dark:text-gray-300 truncate">
-                {row.icon} {row.category}
+            <div className="flex justify-between mb-1.5 items-end">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex items-center gap-1.5">
+                <span className="text-base leading-none">{row.icon}</span>
+                {row.category}
               </span>
-              <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums ml-2">
-                {row.limit > 0 ? (
-                  <>
-                    {formatCurrency(row.amount)} / {formatCurrency(row.limit)} ({row.pct.toFixed(0)}%)
-                  </>
-                ) : (
-                  formatCurrency(row.amount)
+              <div className="flex items-baseline gap-1">
+                <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums">
+                  {row.pct.toFixed(0)}%
+                </span>
+                {row.limit > 0 && (
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                    / {formatCurrency(row.limit)}
+                  </span>
                 )}
-              </span>
+              </div>
             </div>
-            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full"
+                className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.min(row.pct, 100)}%`,
-                  backgroundColor: row.color
+                  backgroundColor: row.barColor
                 }}
               />
             </div>
+            {row.pct > 100 && row.limit > 0 && (
+              <div className="mt-1 flex justify-end">
+                <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tight animate-pulse">
+                  {language === 'pt' ? 'Limite excedido' : 'Limit exceeded'}
+                </span>
+              </div>
+            )}
           </button>
         ))}
       </div>

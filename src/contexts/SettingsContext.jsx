@@ -17,11 +17,11 @@ export const CURRENCIES = {
 export const ALL_CATEGORIES_BY_LANG = {
   en: {
     expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Bonus', 'Rental', 'Uncategorized', 'Other']
+    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Bonus', 'Rental', 'Other']
   },
   pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem Categoria', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Presente', 'Bônus', 'Aluguel', 'Sem Categoria', 'Outros']
+    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
+    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Bônus', 'Aluguel', 'Outros']
   }
 };
 
@@ -29,11 +29,11 @@ export const ALL_CATEGORIES_BY_LANG = {
 const DEFAULT_CATEGORIES_BY_LANG = {
   en: {
     expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Uncategorized', 'Other']
+    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Other']
   },
   pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem Categoria', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Presente', 'Sem Categoria', 'Outros']
+    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
+    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Outros']
   }
 };
 
@@ -69,15 +69,17 @@ const CATEGORY_TRANSLATION_MAP = {
   'Igreja': 'Church',
   'Investments': 'Investimentos',
   'Investimentos': 'Investments',
-  'Uncategorized': 'Sem Categoria',
-  'Sem Categoria': 'Uncategorized',
   'Other': 'Diversos',
   'Diversos': 'Other',
+  'Uncategorized': 'Sem categoria',
+  'Sem categoria': 'Uncategorized',
   // Income categories
   'Salary': 'Salário',
   'Salário': 'Salary',
   'Freelance': 'Freelance',
   'Investment': 'Investimentos',
+  'Refund': 'Reembolso',
+  'Reembolso': 'Refund',
   'Gift': 'Presente',
   'Presente': 'Gift',
   'Bonus': 'Bônus',

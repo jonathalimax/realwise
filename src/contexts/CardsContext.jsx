@@ -322,8 +322,8 @@ export function CardsProvider({ children }) {
     }
 
     // Otherwise, add a number based on creation order
-    const index = sameBankTypeWithoutName.findIndex(b => b.id === userBank.id) + 1;
-    return `${baseName} (${index})`;
+    const index = sameBankTypeWithoutName.findIndex(b => b.id === userBank.id);
+    return index === 0 ? baseName : `${baseName} (${index + 1})`;
   };
 
   const getBankColor = (bankId) => {

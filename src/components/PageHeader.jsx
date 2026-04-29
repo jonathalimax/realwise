@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMonth } from '../contexts/MonthContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { auth } from '../firebase';
+import { Bars3Icon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const getNow = () => new Date();
 const getCurrentMonthKey = () => {
@@ -27,7 +30,6 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
   const label = useMemo(() => {
     const d = new Date(y, m - 1, 1);
     const monthStr = d.toLocaleDateString(locale, { month: 'short' });
-    // Show year only when viewing a different year
     return y !== currentYear ? `${monthStr} ${y}` : monthStr;
   }, [y, m, locale, currentYear]);
 
@@ -49,7 +51,7 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
         ‹
       </button>
       <span
-        className={`text-sm font-bold min-w-[52px] text-center capitalize tabular-nums uppercase ${
+        className={`text-sm font-bold min-w-[52px] text-center capitalize tabular-nums ${
           isCurrentMonth ? 'text-violet-600 dark:text-violet-400' : 'text-gray-700 dark:text-gray-300'
         }`}
       >
@@ -65,34 +67,76 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
   );
 }
 
-/**
- * Shared sticky page header with title + optional compact month nav.
- *
- * Props:
- *  title       – page title string
- *  showMonth   – show the month navigator (default true)
- *  right       – optional React element rendered after the month nav (e.g. a close button)
- */
 export default function PageHeader({ title, showMonth = true, right }) {
   const { selectedMonth, setSelectedMonth } = useMonth();
   const { language } = useSettings();
+  const location = useLocation();
+  const navigate = useNavigate();
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
+  const isDashboard = location.pathname.includes('/dashboard');
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  
+  // Logic to determine if we should show a back button instead of hamburger
+  const isNestedRoute = pathParts.length > 1 && !['dashboard', 'income', 'expenses', 'bills', 'cards', 'planning', 'budget', 'goals', 'import', 'help', 'settings'].includes(pathParts[pathParts.length - 1]);
+
+  const toggleSidebar = () => {
+    window.dispatchEvent(new CustomEvent('toggle-sidebar'));
+  };
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const displayTitle = useMemo(() => {
+    if (!isDashboard) return title;
+    const user = auth.currentUser;
+    if (!user) return title;
+    const firstName = user.displayName ? user.displayName.split(' ')[0] : null;
+    return language === 'pt' 
+      ? (firstName ? `Olá, ${firstName}` : 'Olá novamente') 
+      : (firstName ? `Hi, ${firstName}` : 'Hi again');
+  }, [isDashboard, title, language]);
+
   return (
-    <div className="sticky top-0 z-30 backdrop-blur-sm">
+    <div className="sticky top-0 z-30 transition-colors bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-14 sm:h-16 gap-3 border-b border-gray-200 dark:border-gray-800">
-          <h1 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white pl-12 md:pl-0 flex-1 truncate uppercase tracking-tight">
-            {title}
+        <div className="flex items-center h-14 sm:h-16 gap-3">
+          {/* Mobile Navigation Toggle / Back */}
+          <div className="md:hidden flex-shrink-0">
+            {isNestedRoute ? (
+              <button
+                onClick={handleBack}
+                className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                aria-label="Back"
+              >
+                <ArrowLeftIcon className="w-6 h-6" />
+              </button>
+            ) : (
+              <button
+                onClick={toggleSidebar}
+                className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                aria-label="Menu"
+              >
+                <Bars3Icon className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+
+          <h1 className="text-xl font-black text-gray-900 dark:text-white flex-1 truncate uppercase tracking-tight">
+            {displayTitle}
           </h1>
-          {showMonth && (
-            <CompactMonthNav
-              selectedMonth={selectedMonth}
-              onMonthChange={setSelectedMonth}
-              locale={locale}
-            />
-          )}
-          {right}
+
+          <div className="flex items-center gap-2">
+            {showMonth && (
+              <CompactMonthNav
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                locale={locale}
+              />
+            )}
+            {right}
+          </div>
         </div>
       </div>
     </div>
