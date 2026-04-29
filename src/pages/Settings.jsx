@@ -353,7 +353,7 @@ export default function SettingsPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {activeTab === 'general' && (
-          <div className="space-y-6 max-w-2xl">
+          <div className="space-y-6">
             {/* Profile */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center flex-shrink-0">
@@ -810,9 +810,7 @@ export default function SettingsPage() {
         )}
 
         {activeTab === 'banks' && (
-          <div className="p-4 sm:p-6">
-            <BanksTabContent />
-          </div>
+          <BanksTabContent />
         )}
       </div>
     </div>

@@ -9,13 +9,12 @@ import {
   HomeIcon,
   BanknotesIcon,
   ChartBarIcon,
+  ChartPieIcon,
   ArrowTrendingUpIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
-  DocumentArrowDownIcon,
   BellIcon,
-  QuestionMarkCircleIcon,
   PuzzlePieceIcon,
   TagIcon,
 } from '@heroicons/react/24/outline';
@@ -31,7 +30,15 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) 
       const [path, search] = item.href.split('?');
       return location.pathname === path && location.search === '?' + search;
     }
-    return location.pathname.replace(/\/$/, '') === item.href;
+    return location.pathname.replace(/\/$/, '') === item.href && location.search === '';
+  };
+
+  const navLinkClass = (item) => {
+    const active = isItemActive(item);
+    return `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-wide
+      ${active
+        ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
+        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`;
   };
 
   return (
@@ -64,23 +71,19 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) 
       {/* Nav Links */}
       <nav className="flex-1 px-4 overflow-y-auto">
         {navigationGroups.map((group, groupIndex) => (
-          <div key={groupIndex}>
-            {groupIndex > 0 && (
-              <hr className="my-2 border-gray-100 dark:border-gray-800" />
+          <div key={groupIndex} className={groupIndex > 0 ? 'mt-4' : ''}>
+            {group.label && (
+              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-3 pb-1">
+                {language === 'pt' ? group.labelPt : group.label}
+              </p>
             )}
             <div className="space-y-1">
-              {group.map((item) => (
+              {group.items.map((item) => (
                 <NavLink
                   key={item.name}
                   to={item.href}
                   onClick={handleLinkClick}
-                  className={() => {
-                    const active = isItemActive(item);
-                    return `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-wide
-                      ${active
-                        ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
-                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`;
-                  }}
+                  className={() => navLinkClass(item)}
                 >
                   <item.icon className="w-5 h-5" />
                   {language === 'pt' ? item.namePt : item.name}
@@ -92,7 +95,15 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) 
       </nav>
 
       {/* Footer Actions */}
-      <div className="p-4 mt-auto border-t border-gray-100 dark:border-gray-800">
+      <div className="p-4 mt-auto border-t border-gray-100 dark:border-gray-800 space-y-1">
+        <NavLink
+          to="/settings"
+          onClick={handleLinkClick}
+          className={() => navLinkClass({ href: '/settings' })}
+        >
+          <Cog6ToothIcon className="w-5 h-5" />
+          {language === 'pt' ? 'Configurações' : 'Settings'}
+        </NavLink>
         <button
           onClick={onSignOut}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all uppercase tracking-wide"
@@ -110,27 +121,41 @@ export default function Sidebar() {
   const { language } = useSettings();
   const navigate = useNavigate();
   const hasGoals = useFeature('goals');
+  const hasInvestments = useFeature('investments');
 
   const navigationGroups = useMemo(() => [
-    [
-      { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
-    ],
-    [
-      { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
-      { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
-      { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
-    ],
-    [
-      { name: 'Planning', namePt: 'Planejador', href: '/planner', icon: ChartBarIcon },
-      { name: 'Expenses by Category', namePt: 'Despesas por Categoria', href: '/planner?tab=rastreamento', icon: TagIcon },
-      ...(hasGoals ? [{ name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon }] : []),
-    ],
-    [
-      { name: 'Import', namePt: 'Importar', href: '/import', icon: DocumentArrowDownIcon },
-      { name: 'Help', namePt: 'Ajuda', href: '/help', icon: QuestionMarkCircleIcon },
-      { name: 'Settings', namePt: 'Configurações', href: '/settings', icon: Cog6ToothIcon },
-    ],
-  ], [hasGoals]);
+    {
+      label: 'Overview',
+      labelPt: 'Visão Geral',
+      items: [
+        { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
+      ],
+    },
+    {
+      items: [
+        { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
+        { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
+        { name: 'Expenses by Category', namePt: 'Gastos por Categoria', href: '/planner?tab=rastreamento', icon: TagIcon },
+      ],
+    },
+    {
+      label: 'Planning',
+      labelPt: 'Planejamento',
+      items: [
+        { name: 'Income', namePt: 'Renda', href: '/planner?tab=renda', icon: BanknotesIcon },
+        { name: 'Allocation', namePt: 'Alocação', href: '/planner?tab=alocacao', icon: ChartPieIcon },
+        ...(hasInvestments ? [{ name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: ChartBarIcon }] : []),
+        ...(hasGoals ? [{ name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon }] : []),
+      ],
+    },
+    {
+      label: 'Payments',
+      labelPt: 'Pagamentos',
+      items: [
+        { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
+      ],
+    },
+  ], [hasGoals, hasInvestments]);
 
   useEffect(() => {
     const handleToggle = () => setMobileOpen(prev => !prev);
