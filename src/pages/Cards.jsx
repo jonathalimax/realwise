@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import PageHeader from '../components/PageHeader';
 
-export default function CardsPage() {
+export function BanksTabContent() {
   const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, getBankDisplayName } = useCards();
   const { t, language } = useSettings();
 
@@ -396,30 +397,7 @@ export default function CardsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <PageHeader
-        title={
-          view === 'list'
-            ? (language === 'pt' ? 'Meus Bancos' : 'My Banks')
-            : editingBank
-              ? (language === 'pt' ? 'Editar Banco' : 'Edit Bank')
-              : (language === 'pt' ? 'Adicionar Banco' : 'Add Bank')
-        }
-        showMonth={false}
-        right={view === 'form' ? (
-          <button
-            onClick={() => { setView('list'); resetForm(); }}
-            className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        ) : null}
-      />
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* List View */}
         {view === 'list' && (
           <div className="space-y-2">
@@ -636,4 +614,14 @@ export default function CardsPage() {
       )}
     </div>
   );
+}
+
+export default function CardsPage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate('/settings?tab=banks', { replace: true });
+  }, [navigate]);
+
+  return null;
 }

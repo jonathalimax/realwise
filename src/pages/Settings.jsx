@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
 import { OWNER_EMAIL, useAccess } from '../contexts/AccessContext';
 import { db, auth } from '../firebase';
@@ -7,8 +8,10 @@ import { deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import InstallPWAButton from '../components/ui/InstallPWAButton';
 import { checkAIQuota } from '../services/aiCategorizationService';
+import { BanksTabContent } from './Cards';
 
 export default function SettingsPage() {
+  const [searchParams] = useSearchParams();
   const {
     currency,
     updateCurrency,
@@ -31,6 +34,11 @@ export default function SettingsPage() {
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [newIncomeCategory, setNewIncomeCategory] = useState('');
   const [activeTab, setActiveTab] = useState('categories');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'banks') setActiveTab('banks');
+  }, [searchParams]);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -335,6 +343,16 @@ export default function SettingsPage() {
             }`}
           >
             {language === 'pt' ? 'Notificações' : 'Notifications'}
+          </button>
+          <button
+            onClick={() => setActiveTab('banks')}
+            className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
+              activeTab === 'banks'
+                ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            {language === 'pt' ? 'Bancos' : 'Banks'}
           </button>
         </div>
       </div>
@@ -778,6 +796,12 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'banks' && (
+          <div className="p-4 sm:p-6">
+            <BanksTabContent />
           </div>
         )}
       </div>
