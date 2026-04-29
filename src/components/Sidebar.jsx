@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { logoutAndRedirect } from '../lib/auth/logout';
@@ -7,7 +7,6 @@ import { useSettings } from '../contexts/SettingsContext';
 import {
   HomeIcon,
   BanknotesIcon,
-  ChartPieIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
   Cog6ToothIcon,
@@ -109,7 +108,7 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) 
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all uppercase tracking-wide"
         >
           <ArrowRightOnRectangleIcon className="w-5 h-5" />
-          Sair
+          {language === 'pt' ? 'Sair' : 'Sign out'}
         </button>
       </div>
     </div>
@@ -120,7 +119,6 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { language } = useSettings();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const handleToggle = () => setMobileOpen(prev => !prev);
