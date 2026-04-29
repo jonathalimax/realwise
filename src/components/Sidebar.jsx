@@ -28,13 +28,11 @@ const navigation = [
   { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
   { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
   { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
-  { name: 'Cards', namePt: 'Cartões', href: '/cards', icon: CreditCardIcon },
   { name: 'Planning', namePt: 'Planejador', href: '/planning', icon: ChartBarIcon },
   { name: 'Budget', namePt: 'Orçamento', href: '/budget', icon: ChartPieIcon },
   { name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon },
   { name: 'Import', namePt: 'Importar', href: '/import', icon: DocumentArrowDownIcon },
   { name: 'Help', namePt: 'Ajuda', href: '/help', icon: QuestionMarkCircleIcon },
-  { name: 'Settings', namePt: 'Ajustes', href: '/settings', icon: Cog6ToothIcon },
 ];
 
 function SidebarContent({ navigation, language, onSignOut, mobileClose }) {
@@ -55,7 +53,12 @@ function SidebarContent({ navigation, language, onSignOut, mobileClose }) {
           <span className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Moneywise</span>
           {auth.currentUser && (
             <p className="text-[10px] font-bold text-violet-500 truncate uppercase tracking-widest leading-none mt-0.5">
-              {auth.currentUser.displayName || auth.currentUser.email?.split('@')[0]}
+              {(() => {
+                const user = auth.currentUser;
+                if (!user) return null;
+                const firstName = user.displayName?.split(' ')[0];
+                return firstName ? `Olá, ${firstName}` : 'Olá novamente';
+              })()}
             </p>
           )}
         </div>
@@ -89,6 +92,19 @@ function SidebarContent({ navigation, language, onSignOut, mobileClose }) {
       {/* Footer Actions */}
       <div className="p-4 mt-auto border-t border-gray-100 dark:border-gray-800 space-y-2">
         <div className="flex items-center justify-between px-2 mb-2">
+          <NavLink
+            to="/settings"
+            title="Configurações"
+            className={({ isActive }) =>
+              `p-2 rounded-xl transition-colors ${
+                isActive
+                  ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`
+            }
+          >
+            <Cog6ToothIcon className="w-5 h-5" />
+          </NavLink>
           <LanguageToggle />
           <ThemeToggle />
         </div>
