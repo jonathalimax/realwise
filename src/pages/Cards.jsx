@@ -595,25 +595,24 @@ export function BanksTabContent() {
             </button>
           </form>
         )}
+
+        {/* Edit Bank Modal */}
+        <EditBankModal />
+
+        {/* FAB — only on list view */}
+        {view === 'list' && (
+          <button
+            onClick={() => handleOpenForm()}
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+            aria-label={language === 'pt' ? 'Adicionar Banco' : 'Add Bank'}
+          >
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        )}
       </div>
-
-      {/* Edit Bank Modal */}
-      <EditBankModal />
-
-      {/* FAB — only on list view */}
-      {view === 'list' && (
-        <button
-          onClick={() => handleOpenForm()}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
-          aria-label={language === 'pt' ? 'Adicionar Banco' : 'Add Bank'}
-        >
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      )}
-    </div>
-  );
+    );
 }
 
 export default function CardsPage() {
