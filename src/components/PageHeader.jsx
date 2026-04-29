@@ -101,9 +101,9 @@ export default function PageHeader({ title, showMonth = true, right }) {
   return (
     <div className="sticky top-0 z-30 transition-colors bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-14 sm:h-16 gap-3">
+        <div className="relative flex items-center h-14 sm:h-16 px-0">
           {/* Mobile Navigation Toggle / Back */}
-          <div className="md:hidden flex-shrink-0">
+          <div className="md:hidden flex-shrink-0 z-10">
             {isNestedRoute ? (
               <button
                 onClick={handleBack}
@@ -123,11 +123,11 @@ export default function PageHeader({ title, showMonth = true, right }) {
             )}
           </div>
 
-          <h1 className="text-xl font-black text-gray-900 dark:text-white flex-1 truncate uppercase tracking-tight">
+          <h1 className="absolute inset-x-0 text-center pointer-events-none sm:static sm:text-left sm:flex-1 sm:pointer-events-auto sm:truncate text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
             {displayTitle}
           </h1>
 
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 z-10 flex-shrink-0">
             {showMonth && (
               <CompactMonthNav
                 selectedMonth={selectedMonth}
