@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../firebase';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import { useSettings } from '../contexts/SettingsContext';
-import { useCards } from '../contexts/CardsContext';
 import {
   HomeIcon,
   BanknotesIcon,
-  CreditCardIcon,
   ChartPieIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
@@ -18,26 +17,31 @@ import {
   BellIcon,
   QuestionMarkCircleIcon,
   PuzzlePieceIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline';
-import { LanguageToggle } from './LanguageToggle';
-import ThemeToggle from './ThemeToggle';
-import WhatsAppButton from './WhatsAppButton';
 
-const navigation = [
-  { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
-  { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
-  { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
-  { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
-  { name: 'Planning', namePt: 'Planejador', href: '/planning', icon: ChartBarIcon },
-  { name: 'Budget', namePt: 'Orçamento', href: '/budget', icon: ChartPieIcon },
-  { name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon },
-  { name: 'Import', namePt: 'Importar', href: '/import', icon: DocumentArrowDownIcon },
-  { name: 'Help', namePt: 'Ajuda', href: '/help', icon: QuestionMarkCircleIcon },
+const navigationGroups = [
+  [
+    { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
+  ],
+  [
+    { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
+    { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
+    { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
+  ],
+  [
+    { name: 'Planning', namePt: 'Planejador', href: '/planner', icon: ChartBarIcon },
+    { name: 'Expenses by Category', namePt: 'Despesas por Categoria', href: '/planner?tab=rastreamento', icon: TagIcon },
+    { name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon },
+  ],
+  [
+    { name: 'Import', namePt: 'Importar', href: '/import', icon: DocumentArrowDownIcon },
+    { name: 'Help', namePt: 'Ajuda', href: '/help', icon: QuestionMarkCircleIcon },
+    { name: 'Settings', namePt: 'Configurações', href: '/settings', icon: Cog6ToothIcon },
+  ],
 ];
 
-function SidebarContent({ navigation, language, onSignOut, mobileClose }) {
-  const { userBanks, getBankInfo, getBankDisplayName } = useCards();
-
+function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) {
   const handleLinkClick = () => {
     if (mobileClose) mobileClose();
   };
@@ -70,51 +74,42 @@ function SidebarContent({ navigation, language, onSignOut, mobileClose }) {
       </div>
 
       {/* Nav Links */}
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            onClick={handleLinkClick}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-wide
-              ${isActive
-                ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`
-            }
-          >
-            <item.icon className="w-5 h-5" />
-            {language === 'pt' ? item.namePt : item.name}
-          </NavLink>
+      <nav className="flex-1 px-4 overflow-y-auto">
+        {navigationGroups.map((group, groupIndex) => (
+          <div key={groupIndex}>
+            {groupIndex > 0 && (
+              <hr className="my-2 border-gray-100 dark:border-gray-800" />
+            )}
+            <div className="space-y-1">
+              {group.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  onClick={handleLinkClick}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-wide
+                    ${isActive
+                      ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`
+                  }
+                >
+                  <item.icon className="w-5 h-5" />
+                  {language === 'pt' ? item.namePt : item.name}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
       {/* Footer Actions */}
-      <div className="p-4 mt-auto border-t border-gray-100 dark:border-gray-800 space-y-2">
-        <div className="flex items-center justify-between px-2 mb-2">
-          <NavLink
-            to="/settings"
-            title="Configurações"
-            className={({ isActive }) =>
-              `p-2 rounded-xl transition-colors ${
-                isActive
-                  ? 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`
-            }
-          >
-            <Cog6ToothIcon className="w-5 h-5" />
-          </NavLink>
-          <LanguageToggle />
-          <ThemeToggle />
-        </div>
-        <WhatsAppButton />
+      <div className="p-4 mt-auto border-t border-gray-100 dark:border-gray-800">
         <button
           onClick={onSignOut}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all uppercase tracking-wide"
         >
           <ArrowRightOnRectangleIcon className="w-5 h-5" />
-          {language === 'pt' ? 'Sair' : 'Sign Out'}
+          Sair
         </button>
       </div>
     </div>
@@ -138,7 +133,7 @@ export default function Sidebar() {
   };
 
   const sharedProps = {
-    navigation,
+    navigationGroups,
     language,
     onSignOut: handleSignOut,
   };
