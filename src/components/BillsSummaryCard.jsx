@@ -91,7 +91,9 @@ export default function BillsSummaryCard({ selectedMonth }) {
   const paidBills = monthBills.filter(b => b.status === 'paid').length;
   const pendingBills = totalBills - paidBills;
 
-  const handleClick = () => navigate('/bills');
+  const handlePendingClick = () => navigate('/bills?status=pending');
+  const handlePaidClick = () => navigate('/bills?status=paid');
+  const handleTotalClick = () => navigate('/bills');
 
   if (loading) {
     return (
@@ -105,17 +107,20 @@ export default function BillsSummaryCard({ selectedMonth }) {
   }
 
   return (
-    <div
-      onClick={handleClick}
-      className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-[0.98] group"
-    >
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Contas do Mês' : 'Monthly Bills'}
         </h3>
-        <svg className="w-5 h-5 text-gray-300 group-hover:text-violet-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
+        <button
+          onClick={handleTotalClick}
+          className="p-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          aria-label={language === 'pt' ? 'Ver todas as contas' : 'View all bills'}
+        >
+          <svg className="w-5 h-5 text-gray-400 hover:text-violet-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
 
       {totalBills === 0 ? (
@@ -129,7 +134,10 @@ export default function BillsSummaryCard({ selectedMonth }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/30 rounded-xl p-4">
+          <button
+            onClick={handlePendingClick}
+            className="w-full text-left bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/30 rounded-xl p-4 hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ClockIcon className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -139,11 +147,14 @@ export default function BillsSummaryCard({ selectedMonth }) {
               </div>
               <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{pendingBills}</p>
             </div>
-          </div>
+          </button>
 
           {paidBills > 0 && (
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4">
-              <div className="flex items-center justify-between">
+            <button
+              onClick={handlePaidClick}
+              className="w-full text-left bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 hover:shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <CheckCircleIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
@@ -154,13 +165,13 @@ export default function BillsSummaryCard({ selectedMonth }) {
                   {paidBills}
                 </span>
               </div>
-              <div className="mt-2 h-2 bg-emerald-200 dark:bg-emerald-900/50 rounded-full overflow-hidden">
+              <div className="h-2 bg-emerald-200 dark:bg-emerald-900/50 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full transition-all duration-500"
                   style={{ width: `${(paidBills / totalBills) * 100}%` }}
                 />
               </div>
-            </div>
+            </button>
           )}
         </div>
       )}
