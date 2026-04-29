@@ -55,19 +55,12 @@ export default function ExpensesByCategoryCard({ transactions }) {
     const rows = Object.entries(spending)
       .filter(([, v]) => v > 0)
       .map(([cat, amount], i) => {
-        const limit = categoryBudgets[cat] || 0;
-        // If limit exists, pct is spent/limit. Else, pct is spent/total.
-        const pct = limit > 0 ? (amount / limit) * 100 : (amount / total) * 100;
-        const status = limit > 0 ? getBudgetStatus(amount, limit) : 'none';
-        const statusColors = getStatusColor(status);
+        const pct = total > 0 ? (amount / total) * 100 : 0;
 
         return {
           category: cat,
           amount,
           pct,
-          limit,
-          status,
-          barColor: limit > 0 ? statusColors.bg : COLORS[i % COLORS.length],
           icon: CATEGORY_ICONS[cat] || '💰',
         };
       })
@@ -107,15 +100,13 @@ export default function ExpensesByCategoryCard({ transactions }) {
                 <span className="text-base leading-none">{row.icon}</span>
                 {row.category}
               </span>
-              <div className="flex items-baseline gap-1">
+              <div className="flex flex-col items-end gap-0.5">
                 <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums">
+                  {formatCurrency(row.amount)}
+                </span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
                   {row.pct.toFixed(0)}%
                 </span>
-                {row.limit > 0 && (
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
-                    / {formatCurrency(row.limit)}
-                  </span>
-                )}
               </div>
             </div>
             <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
@@ -123,17 +114,10 @@ export default function ExpensesByCategoryCard({ transactions }) {
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.min(row.pct, 100)}%`,
-                  backgroundColor: row.barColor
+                  backgroundColor: COLORS[rows.findIndex(r => r.category === row.category) % COLORS.length]
                 }}
               />
             </div>
-            {row.pct > 100 && row.limit > 0 && (
-              <div className="mt-1 flex justify-end">
-                <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tight animate-pulse">
-                  {language === 'pt' ? 'Limite excedido' : 'Limit exceeded'}
-                </span>
-              </div>
-            )}
           </button>
         ))}
       </div>
