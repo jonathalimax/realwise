@@ -10,7 +10,6 @@ import Auth from './components/Auth';
 import Layout from './components/Layout';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AccessProvider, useAccess } from './contexts/AccessContext';
-import { LanguageProvider } from './components/LanguageToggle';
 import { CardsProvider } from './contexts/CardsContext';
 import { BudgetProvider } from './contexts/BudgetContext';
 import { BillsProvider } from './contexts/BillsContext';
@@ -197,21 +196,17 @@ function App() {
 
   if (window.location.pathname === '/') {
     return (
-      <LanguageProvider>
-        <Suspense fallback={<PageLoader />}>
-          <LandingPage />
-        </Suspense>
-      </LanguageProvider>
+      <Suspense fallback={<PageLoader />}>
+        <LandingPage />
+      </Suspense>
     );
   }
 
   if (window.location.pathname === '/purchase-success') {
     return (
-      <LanguageProvider>
-        <Suspense fallback={<PageLoader />}>
-          <PurchaseSuccessPage />
-        </Suspense>
-      </LanguageProvider>
+      <Suspense fallback={<PageLoader />}>
+        <PurchaseSuccessPage />
+      </Suspense>
     );
   }
 

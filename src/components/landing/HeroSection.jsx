@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Monitor, Smartphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/components/LanguageToggle';
 import { Link } from 'react-router-dom';
+import { t } from '@/lib/ptTranslations';
 
 const screenshots = [
   { src: '/dashboard-overview.png', alt: 'Dashboard Overview' },
@@ -11,7 +11,6 @@ const screenshots = [
 ];
 
 export default function HeroSection() {
-  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Auto-rotate every 5 seconds
