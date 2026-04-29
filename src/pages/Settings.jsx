@@ -39,7 +39,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'banks') setActiveTab('banks');
+    const validTabs = ['general', 'categories', 'banks'];
+    if (tab && validTabs.includes(tab)) setActiveTab(tab);
   }, [searchParams]);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -422,7 +423,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Logout + Delete */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:items-start">
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <button
                   onClick={handleSignOut}
