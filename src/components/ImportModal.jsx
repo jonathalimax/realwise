@@ -514,7 +514,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           <div className="flex flex-col gap-6">
             <div>
               <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">{language === 'pt' ? 'Banco de Destino' : 'Target Bank'}</label>
-              <select value={selectedBankId || ''} onChange={handleBankSelect} className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:ring-2 focus:ring-violet-500 appearance-none shadow-sm">
+              <select value={selectedBankId || ''} onChange={handleBankSelect} className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:ring-2 focus:ring-violet-500 appearance-none shadow-sm">
                 <option value="">💵 {language === 'pt' ? 'Dinheiro / Sem banco' : 'Cash / No bank'}</option>
                 {userBanks.map((ub) => <option key={ub.id} value={ub.id}>{getBankInfo(ub.bankId).icon} {getBankDisplayName(ub)}</option>)}
               </select>
@@ -608,11 +608,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               </div>
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('transactionForm.description')}</label>
-                <input type="text" value={editingTransaction.description} onChange={(e) => setEditingTransaction(prev => ({ ...prev, description: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-0 rounded-xl text-sm font-semibold" />
+                <input type="text" value={editingTransaction.description} onChange={(e) => setEditingTransaction(prev => ({ ...prev, description: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 text-slate-900 dark:text-white border-0 rounded-xl text-sm font-semibold" />
               </div>
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('transactionForm.category')}</label>
-                <select value={editingTransaction.category} onChange={(e) => setEditingTransaction(prev => ({ ...prev, category: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-0 rounded-xl text-sm font-semibold appearance-none">
+                <select value={editingTransaction.category} onChange={(e) => setEditingTransaction(prev => ({ ...prev, category: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 text-slate-900 dark:text-white border-0 rounded-xl text-sm font-semibold appearance-none">
                   {categories[editingTransaction.type].map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>

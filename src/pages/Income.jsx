@@ -119,6 +119,63 @@ export default function IncomePage() {
             </h3>
           </div>
 
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 animate-fade-in">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Category */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{t('charts.category')}</label>
+                  <select
+                    value={selectedCategoryFilter}
+                    onChange={(e) => handleSetCategoryFilter(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
+                    {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordenar' : 'Sort'}</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSetSortBy(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
+                    <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
+                  </select>
+                </div>
+
+                {/* Order */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordem' : 'Order'}</label>
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => handleSetSortOrder(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
+                    <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
+                  </select>
+                </div>
+              </div>
+
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={() => {
+                    handleSetCategoryFilter('all');
+                  }}
+                  className="w-full py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                  {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
+                </button>
+              )}
+            </div>
+          )}
+
           <TransactionList
             transactions={filteredTransactions}
             selectedMonth={selectedMonth}
@@ -147,63 +204,6 @@ export default function IncomePage() {
               </button>
             }
           />
-
-          {/* Filters Panel */}
-          {showFilters && (
-            <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 animate-fade-in">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Category */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{t('charts.category')}</label>
-                  <select
-                    value={selectedCategoryFilter}
-                    onChange={(e) => handleSetCategoryFilter(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
-                    {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                </div>
-
-                {/* Sort */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordenar' : 'Sort'}</label>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => handleSetSortBy(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
-                    <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
-                  </select>
-                </div>
-
-                {/* Order */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordem' : 'Order'}</label>
-                  <select
-                    value={sortOrder}
-                    onChange={(e) => handleSetSortOrder(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
-                    <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
-                  </select>
-                </div>
-              </div>
-
-              {activeFiltersCount > 0 && (
-                <button
-                  onClick={() => {
-                    handleSetCategoryFilter('all');
-                  }}
-                  className="w-full py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                  {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </main>
 
