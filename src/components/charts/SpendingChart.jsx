@@ -180,35 +180,14 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
                     <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
                       {item.label}
                     </span>
-                    <span className="font-bold text-gray-900 dark:text-white text-sm ml-2 tabular-nums">
-                      {hasLimit
-                        ? `${formatCurrency(item.value)} / ${formatCurrency(item.limit)}`
-                        : formatCurrency(item.value)}
-                    </span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500 ease-out"
-                        style={{
-                          width: `${Math.min(percentage, 100)}%`,
-                          background: hasLimit
-                            ? (percentage > 100
-                                ? 'linear-gradient(90deg, #fb7185, #e11d48)'
-                                : `linear-gradient(90deg, ${color.light}, ${color.main})`)
-                            : 'transparent',
-                        }}
-                      />
+                    <div className="flex flex-col items-end gap-0.5 ml-2">
+                      <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums">
+                        {formatCurrency(item.value)}
+                      </span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                        {total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '—'}
+                      </span>
                     </div>
-                    <span className={`text-xs font-medium w-12 text-right tabular-nums ${
-                      hasLimit && percentage > 100
-                        ? 'text-rose-500'
-                        : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                      {hasLimit ? `${percentage.toFixed(0)}%` : '—'}
-                    </span>
                   </div>
                 </div>
               </div>
