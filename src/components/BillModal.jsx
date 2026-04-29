@@ -149,7 +149,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90dvh] overflow-hidden">
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-800 dark:text-white">
             {bill ? (language === 'pt' ? 'Editar Conta' : 'Edit Bill') : (language === 'pt' ? 'Nova Conta' : 'New Bill')}
@@ -164,7 +164,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <form onSubmit={handleSubmit} className="bill-modal-form p-4 sm:p-6 landscape:p-3 overflow-y-auto max-h-[calc(90dvh-140px)]">
           <div className="space-y-4">
             {/* Name */}
             <div>
@@ -414,6 +414,17 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
           )}
         </div>
       </div>
+
+      <style>{`
+        @media (orientation: landscape) and (max-height: 500px) {
+          .bill-modal-form > div > div {
+            margin-bottom: 0.5rem;
+          }
+          .bill-modal-form label {
+            margin-bottom: 0.125rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
