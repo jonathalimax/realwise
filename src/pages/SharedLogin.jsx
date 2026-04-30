@@ -38,6 +38,13 @@ export default function SharedLogin() {
     if (!email) throw new Error('No email returned from Google');
     const username = email.split('@')[0];
 
+    // In dev, the getCustomToken cloud function needs a real service account which
+    // isn't available locally — redirect to the per-client login instead.
+    if (import.meta.env.DEV) {
+      window.location.href = `/${username}/login`;
+      return;
+    }
+
     let token;
     try {
       const getCustomToken = httpsCallable(functions, 'getCustomToken');
@@ -60,8 +67,6 @@ export default function SharedLogin() {
     }
     const userConfig = await configRes.json();
 
-    // Use the same app name that ClientConfigContext will use after redirect,
-    // so Firebase Auth can find the persisted custom-token session in IndexedDB.
     const userAppName = username;
     const existingUserApp = getApps().find((a) => a.name === userAppName);
     const userApp = existingUserApp ?? initializeApp(userConfig.firebase, userAppName);

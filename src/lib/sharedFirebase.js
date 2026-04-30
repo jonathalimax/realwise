@@ -3,8 +3,8 @@
 // Exported instances are lazily initialised on first call to initSharedFirebase().
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFunctions } from 'firebase/functions';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const APP_NAME = 'shared';
 
@@ -29,8 +29,13 @@ export async function initSharedFirebase() {
   const config = await res.json();
 
   const app = initializeApp(config.firebase, APP_NAME);
-  return {
-    auth: getAuth(app),
-    functions: getFunctions(app),
-  };
+  const auth = getAuth(app);
+  const functions = getFunctions(app);
+
+  if (import.meta.env.DEV) {
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+  }
+
+  return { auth, functions };
 }

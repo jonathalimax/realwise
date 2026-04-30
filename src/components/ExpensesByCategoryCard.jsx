@@ -67,7 +67,7 @@ export default function ExpensesByCategoryCard({ transactions }) {
       .sort((a, b) => b.amount - a.amount);
 
     return { rows, total };
-  }, [transactions, categoryBudgets, getBudgetStatus, getStatusColor, total]);
+  }, [transactions, categoryBudgets, getBudgetStatus, getStatusColor]);
 
   if (rows.length === 0) return null;
 
