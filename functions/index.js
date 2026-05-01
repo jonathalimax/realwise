@@ -700,6 +700,107 @@ async function sendBillReminderEmail(transporter, from, to, name, billGroups) {
   await transporter.sendMail({ from, to, subject, html });
 }
 /**
+ * Trigger a real bill reminder email for a specific user email address.
+ * Runs the same logic as scheduledBillReminders but for one user only.
+ * Usage: /triggerBillReminder?email=your@email.com
+ */
+exports.triggerBillReminder = functions
+  .runWith({ secrets: [emailUserSecret, emailPasswordSecret] })
+  .https.onRequest(async (req, res) => {
+    const { email } = req.query;
+    if (!email) return res.status(400).send('Missing email parameter');
+
+    try {
+      const emailUser = emailUserSecret.value();
+      const emailPass = emailPasswordSecret.value();
+      if (!emailUser || !emailPass) return res.status(500).send('Email secrets not configured');
+
+      // Find user by email
+      const authUser = await admin.auth().getUserByEmail(email);
+      const userId = authUser.uid;
+
+      const now = new Date();
+      const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
+      const nextWeek = new Date(); nextWeek.setDate(nextWeek.getDate() + 7); nextWeek.setHours(23, 59, 59, 999);
+      const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const billsSnap = await db.collection('bills')
+        .where('userId', '==', userId)
+        .where('status', '==', 'pending')
+        .get();
+
+      const billGroups = { overdue: [], dueToday: [], upcoming: [] };
+      for (const doc of billsSnap.docs) {
+        const data = doc.data();
+        if (!data.dueDate) continue;
+        const due = data.dueDate.toDate ? data.dueDate.toDate() : new Date(data.dueDate);
+        if (due < thirtyDaysAgo) continue;
+        if (due < new Date(now.getFullYear(), now.getMonth(), now.getDate())) billGroups.overdue.push({ id: doc.id, ...data });
+        else if (due <= endOfToday) billGroups.dueToday.push({ id: doc.id, ...data });
+        else if (due <= nextWeek) billGroups.upcoming.push({ id: doc.id, ...data });
+      }
+
+      // Normalize dates and days overdue
+      for (const list of [billGroups.overdue, billGroups.dueToday, billGroups.upcoming]) {
+        for (const bill of list) {
+          const billDue = bill.dueDate.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
+          bill.dueDate = billDue.toISOString();
+          if (billDue < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+            bill.daysOverdue = Math.max(0, Math.floor((now - billDue) / (1000 * 60 * 60 * 24)));
+          }
+        }
+      }
+
+      // Enrich card bills
+      try {
+        const transactionsSnap = await db.collection('transactions')
+          .where('userId', '==', userId)
+          .where('date', '>=', new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString())
+          .get();
+        const userTransactions = transactionsSnap.docs.map(d => d.data());
+        const userBanksSnap = await db.collection('userBanks').where('userId', '==', userId).get();
+        const userBanks = userBanksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        for (const list of [billGroups.overdue, billGroups.dueToday, billGroups.upcoming]) {
+          for (const bill of list) {
+            if (bill.category === 'credit_card' && bill.linkedBankId) {
+              const bank = userBanks.find(b => b.id === bill.linkedBankId);
+              if (bank && bank.hasCredit) {
+                const billDue = new Date(bill.dueDate);
+                const closingDay = bank.closingDay || 10;
+                const cycleEnd = new Date(billDue); cycleEnd.setDate(closingDay);
+                if (cycleEnd > billDue) cycleEnd.setMonth(cycleEnd.getMonth() - 1);
+                const cycleStart = new Date(cycleEnd); cycleStart.setMonth(cycleStart.getMonth() - 1); cycleStart.setDate(cycleStart.getDate() + 1);
+                const cycleTxs = userTransactions.filter(tx => {
+                  if (tx.cardId !== bill.linkedBankId || tx.type !== 'expense') return false;
+                  const txDate = new Date(tx.date);
+                  return txDate >= cycleStart && txDate <= cycleEnd;
+                });
+                bill.cardOutcomesAmount = cycleTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                bill.cardOutcomesCount = cycleTxs.length;
+              }
+            }
+          }
+        }
+      } catch (enrichErr) {
+        console.error('Enrichment error in triggerBillReminder:', enrichErr);
+      }
+
+      const settingsDoc = await db.collection('settings').doc(userId).get();
+      const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
+
+      const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: emailUser, pass: emailPass } });
+      await sendBillReminderEmail(transporter, emailUser, email, userName || 'Cliente', billGroups);
+
+      const total = billGroups.overdue.length + billGroups.dueToday.length + billGroups.upcoming.length;
+      res.send(`✅ E-mail enviado para ${email} com ${total} conta(s): ${billGroups.overdue.length} atrasada(s), ${billGroups.dueToday.length} hoje, ${billGroups.upcoming.length} próxima(s).`);
+    } catch (err) {
+      console.error('triggerBillReminder error:', err);
+      res.status(500).send('Erro: ' + err.message);
+    }
+  });
+
+/**
  * TEMPORARY: Test function to send email templates
  * Usage: /testEmail?email=your@email.com&type=welcome|access|reminder
  */
@@ -725,10 +826,14 @@ exports.testEmail = functions
       html = accessGrantedTemplate('Usuário Teste');
     } else {
       subject = 'Teste: Lembrete de Contas';
+      const testNow = new Date();
+      const yesterday = new Date(testNow); yesterday.setDate(yesterday.getDate() - 3);
+      const tomorrow = new Date(testNow); tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextWeekDate = new Date(testNow); nextWeekDate.setDate(nextWeekDate.getDate() + 5);
       html = billReminderTemplate('Usuário Teste', {
-        overdue: [{ name: 'Aluguel Atrasado', amount: 1500.00 }],
-        dueToday: [{ name: 'Internet', amount: 99.90 }],
-        upcoming: [{ name: 'Energia', amount: 250.00 }, { name: 'Netflix', amount: 55.90 }]
+        overdue: [{ name: 'Aluguel', amount: 1500.00, dueDate: yesterday.toISOString(), daysOverdue: 3 }],
+        dueToday: [{ name: 'Internet', amount: 99.90, dueDate: testNow.toISOString() }],
+        upcoming: [{ name: 'Energia', amount: 250.00, dueDate: tomorrow.toISOString() }, { name: 'Netflix', amount: 55.90, dueDate: nextWeekDate.toISOString() }]
       });
     }
 

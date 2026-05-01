@@ -148,28 +148,28 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
     upcomingCount > 0 ? `<span style="background:#1e3a5f;color:#93c5fd;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;">${upcomingCount} PRÓXIMA${upcomingCount > 1 ? 'S' : ''}</span>` : '',
   ].filter(Boolean).join('');
 
-  const renderRows = (items, dotColor, amountColor) => {
+  const renderRows = (items, dotColor, amountColor, isOverdue) => {
     if (!items || items.length === 0) return '';
     return items.map(item => {
       const displayAmount = getDisplayAmount(item);
-      const overdueLabel = item.daysOverdue ? `· ${item.daysOverdue}d atraso` : '';
+      const dateLabel = isOverdue && item.daysOverdue
+        ? `Venceu ${formatDate(item.dueDate)} · <span style="color:#ef4444;">${item.daysOverdue}d atraso</span>`
+        : `Vence ${formatDate(item.dueDate)}`;
       const isCreditCard = item.category === 'credit_card';
       const cardLabel = isCreditCard && item.cardOutcomesCount > 0
         ? `<div style="font-size:10px;color:#64748b;margin-top:2px;">💳 ${item.cardOutcomesCount} lançamento${item.cardOutcomesCount > 1 ? 's' : ''} no ciclo</div>`
         : '';
       return `
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #1e293b;vertical-align:top;">
-            <div style="display:flex;align-items:flex-start;gap:10px;">
-              <div style="width:7px;height:7px;border-radius:50%;background:${dotColor};margin-top:5px;flex-shrink:0;"></div>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:#f1f5f9;">${item.name || 'Sem nome'}</div>
-                <div style="font-size:11px;color:#64748b;margin-top:1px;">Vence ${formatDate(item.dueDate)} ${overdueLabel}</div>
-                ${cardLabel}
-              </div>
-            </div>
+          <td width="8" style="padding:10px 0 10px 12px;border-bottom:1px solid #1e293b;vertical-align:top;">
+            <div style="width:7px;height:7px;border-radius:50%;background:${dotColor};margin-top:4px;"></div>
           </td>
-          <td style="padding:10px 12px;border-bottom:1px solid #1e293b;text-align:right;vertical-align:top;">
+          <td style="padding:10px 8px;border-bottom:1px solid #1e293b;vertical-align:top;">
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">${item.name || 'Sem nome'}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">${dateLabel}</div>
+            ${cardLabel}
+          </td>
+          <td style="padding:10px 12px 10px 4px;border-bottom:1px solid #1e293b;text-align:right;vertical-align:top;white-space:nowrap;">
             <span style="font-size:13px;font-weight:700;color:${amountColor};">${formatCurrency(displayAmount)}</span>
           </td>
         </tr>
@@ -178,44 +178,56 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
   };
 
   const allRows = [
-    renderRows(overdue, '#ef4444', '#fca5a5'),
-    renderRows(dueToday, '#f59e0b', '#fdba74'),
-    renderRows(upcoming, '#3b82f6', '#93c5fd'),
+    renderRows(overdue, '#ef4444', '#fca5a5', true),
+    renderRows(dueToday, '#f59e0b', '#fdba74', false),
+    renderRows(upcoming, '#3b82f6', '#93c5fd', false),
   ].join('');
 
   return `
-    <div style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;max-width:600px;margin:0 auto;background:#0f172a;border-radius:10px;overflow:hidden;">
-      <!-- Header -->
-      <div style="padding:24px 24px 16px;background:#0f172a;">
-        <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Moneywise</div>
-        <div style="color:#f1f5f9;font-size:20px;font-weight:700;line-height:1.3;margin-bottom:4px;">${name}, aqui estão suas contas</div>
-        <div style="color:#64748b;font-size:12px;margin-bottom:14px;">${today}</div>
-        <div>${chips}</div>
-      </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f172a;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+      <tr><td align="center" style="padding:20px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0f172a;border-radius:10px;overflow:hidden;">
 
-      <!-- Bill rows -->
-      <div style="background:#0f172a;padding:0 12px;">
-        <table style="width:100%;border-collapse:collapse;background:#1e293b;border-radius:8px;overflow:hidden;">
-          ${allRows}
+          <!-- Header -->
+          <tr><td style="padding:24px 24px 16px;background:#0f172a;">
+            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Moneywise</div>
+            <div style="color:#f1f5f9;font-size:20px;font-weight:700;line-height:1.3;margin-bottom:4px;">${name}, aqui estão suas contas</div>
+            <div style="color:#64748b;font-size:12px;margin-bottom:14px;">${today}</div>
+            <div>${chips}</div>
+          </td></tr>
+
+          <!-- Bill rows -->
+          <tr><td style="padding:0 12px;background:#0f172a;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:8px;overflow:hidden;">
+              ${allRows}
+            </table>
+          </td></tr>
+
+          <!-- Total -->
+          <tr><td style="padding:0;background:#0f172a;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:14px 24px;color:#94a3b8;font-size:12px;border-top:1px solid #1e293b;">Total pendente</td>
+                <td style="padding:14px 24px;text-align:right;border-top:1px solid #1e293b;">
+                  <span style="color:#10b981;font-size:18px;font-weight:800;">${formatCurrency(grandTotal)}</span>
+                </td>
+              </tr>
+            </table>
+          </td></tr>
+
+          <!-- CTA -->
+          <tr><td style="padding:4px 24px 24px;text-align:center;background:#0f172a;">
+            <a href="https://moneywise.web.app" style="display:inline-block;padding:12px 32px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:700;">Ver Contas no Moneywise →</a>
+          </td></tr>
+
+          <!-- Footer -->
+          <tr><td style="padding:16px 24px;text-align:center;border-top:1px solid #1e293b;font-size:11px;color:#475569;background:#0f172a;">
+            © ${new Date().getFullYear()} Moneywise · Você recebe este e-mail porque tem lembretes ativos.
+          </td></tr>
+
         </table>
-      </div>
-
-      <!-- Total -->
-      <div style="padding:14px 24px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #1e293b;margin-top:12px;">
-        <span style="color:#94a3b8;font-size:12px;">Total pendente</span>
-        <span style="color:#10b981;font-size:18px;font-weight:800;">${formatCurrency(grandTotal)}</span>
-      </div>
-
-      <!-- CTA -->
-      <div style="text-align:center;padding:0 24px 24px;">
-        <a href="https://moneywise.web.app" style="display:inline-block;padding:11px 28px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:700;">Ver Contas no Moneywise →</a>
-      </div>
-
-      <!-- Footer -->
-      <div style="text-align:center;padding:16px 24px;border-top:1px solid #1e293b;font-size:11px;color:#475569;">
-        © ${new Date().getFullYear()} Moneywise · Você recebe este e-mail porque tem lembretes ativos.
-      </div>
-    </div>
+      </td></tr>
+    </table>
   `;
 };
 
