@@ -527,6 +527,9 @@ exports.scheduledBillReminders = functions
       nextWeek.setDate(nextWeek.getDate() + 7);
       nextWeek.setHours(23, 59, 59, 999);
 
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
       const billsSnap = await db.collection('bills')
         .where('status', '==', 'pending')
         .get();
@@ -535,9 +538,12 @@ exports.scheduledBillReminders = functions
       for (const doc of billsSnap.docs) {
         const data = doc.data();
         if (!data.userId || !data.dueDate) continue;
-        
+
         const due = data.dueDate.toDate ? data.dueDate.toDate() : new Date(data.dueDate);
-        
+
+        // Ignore ghost bills older than 30 days — these are likely stale data
+        if (due < thirtyDaysAgo) continue;
+
         // Categorize
         let category = '';
         if (due < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
@@ -578,7 +584,20 @@ exports.scheduledBillReminders = functions
           // Get name from settings if available
           const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
 
-          // Enrich bills with additional info for the email
+          // Normalize dueDate and daysOverdue before enrichment so template always has valid data
+          const allListsBase = [billGroups.overdue, billGroups.dueToday, billGroups.upcoming];
+          for (const list of allListsBase) {
+            for (const bill of list) {
+              const billDue = bill.dueDate.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
+              bill.dueDate = billDue.toISOString();
+              if (!bill.amount) console.warn(`Bill ${bill.id} has no amount field`);
+              if (billDue < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                bill.daysOverdue = Math.max(0, Math.floor((now - billDue) / (1000 * 60 * 60 * 24)));
+              }
+            }
+          }
+
+          // Enrich bills with card transaction totals
           try {
             // Fetch Transactions (last 45 days to cover most billing cycles)
             const transactionsSnap = await db.collection('transactions')
@@ -596,14 +615,9 @@ exports.scheduledBillReminders = functions
             const allLists = [billGroups.overdue, billGroups.dueToday, billGroups.upcoming];
             for (const list of allLists) {
               for (const bill of list) {
-                const billDue = bill.dueDate.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
-                bill.dueDate = billDue.toISOString(); // Normalize for template
+                const billDue = new Date(bill.dueDate); // already normalized above
 
-                // Days overdue
-                if (billDue < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-                  const diffTime = now - billDue;
-                  bill.daysOverdue = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
-                }
+                // Days overdue already set above
 
                 // Card outcomes
                 if (bill.category === 'credit_card' && bill.linkedBankId) {
@@ -666,11 +680,20 @@ exports.scheduledBillReminders = functions
   });
 
 async function sendBillReminderEmail(transporter, from, to, name, billGroups) {
-  const totalPending = billGroups.overdue.length + billGroups.dueToday.length;
-  
+  const formatTotalCurrency = (val) => {
+    const num = parseFloat(val);
+    return `R$ ${(isNaN(num) ? 0 : num).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+  };
+
+  const allBills = [...billGroups.overdue, ...billGroups.dueToday, ...billGroups.upcoming];
+  const grandTotal = allBills.reduce((sum, b) => {
+    const amt = b.cardOutcomesAmount != null ? b.cardOutcomesAmount : (b.amount || 0);
+    return sum + amt;
+  }, 0);
+
   const subject = billGroups.overdue.length > 0
-    ? `⚠️ Atenção: Você tem ${billGroups.overdue.length} conta(s) atrasada(s)`
-    : `📅 Lembrete: ${billGroups.dueToday.length} conta(s) vencendo hoje`;
+    ? `⚠️ ${billGroups.overdue.length} conta(s) atrasada(s) · ${formatTotalCurrency(grandTotal)}`
+    : `📅 Vence hoje · ${formatTotalCurrency(grandTotal)}`;
 
   const html = billReminderTemplate(name, billGroups);
 
