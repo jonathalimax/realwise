@@ -1,9 +1,6 @@
 import React from 'react';
 import ThemeToggle from '@/components/ThemeToggle';
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
-
-export default function Header({ onBuy }) {
+export default function Header() {
   const scrollTo = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -47,14 +44,6 @@ export default function Header({ onBuy }) {
           >
             Entrar
           </button>
-          <Button
-            size="sm"
-            onClick={onBuy}
-            className="h-9 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105"
-          >
-            Comprar agora
-            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-          </Button>
         </div>
       </div>
     </header>
