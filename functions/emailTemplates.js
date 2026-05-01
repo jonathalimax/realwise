@@ -161,10 +161,10 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
         : '';
       return `
         <tr class="bill-row">
-          <td width="8" style="padding:10px 0 10px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top;">
+          <td width="8" style="padding:10px 0 10px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top;">
             <div style="width:7px;height:7px;border-radius:50%;background:${dotColor};margin-top:4px;"></div>
           </td>
-          <td class="bill-cell" style="padding:10px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top;">
+          <td class="bill-cell" style="padding:10px 8px;border-bottom:1px solid #e2e8f0;vertical-align:top;">
             <div class="bill-name" style="font-size:13px;font-weight:600;color:#1e293b;">${item.name || 'Sem nome'}</div>
             <div class="bill-sub" style="font-size:11px;color:#6b7280;margin-top:2px;">${dateLabel}</div>
             ${cardLabel}
@@ -186,50 +186,47 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
   return `
     <style>
       @media (prefers-color-scheme: dark) {
-        .email-outer { background-color: #0f172a !important; }
-        .email-card  { background-color: #0f172a !important; }
-        .email-header { background-color: #0f172a !important; }
-        .email-title { color: #f1f5f9 !important; }
-        .email-date  { color: #64748b !important; }
-        .bill-table  { background-color: #1e293b !important; }
-        .bill-row td { border-bottom-color: #334155 !important; }
-        .bill-name   { color: #f1f5f9 !important; }
-        .bill-sub    { color: #94a3b8 !important; }
-        .bill-cell   { border-bottom-color: #334155 !important; }
-        .total-row td { border-top-color: #334155 !important; }
-        .total-label { color: #94a3b8 !important; }
-        .footer-cell { color: #475569 !important; border-top-color: #1e293b !important; }
+        .email-title   { color: #f1f5f9 !important; }
+        .email-date    { color: #64748b !important; }
+        .bill-table    { background-color: #1e293b !important; }
+        .bill-row td   { border-bottom-color: #334155 !important; }
+        .bill-name     { color: #f1f5f9 !important; }
+        .bill-sub      { color: #94a3b8 !important; }
+        .bill-cell     { border-bottom-color: #334155 !important; }
+        .total-row td  { border-top-color: #334155 !important; }
+        .total-label   { color: #94a3b8 !important; }
+        .footer-cell   { color: #475569 !important; border-top-color: #334155 !important; }
         .chip-overdue  { background:#450a0a !important; color:#fca5a5 !important; }
         .chip-today    { background:#422006 !important; color:#fdba74 !important; }
         .chip-upcoming { background:#1e3a5f !important; color:#93c5fd !important; }
         .amount-overdue { color:#fca5a5 !important; }
       }
     </style>
-    <table class="email-outer" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f6;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
-      <tr><td align="center" style="padding:20px 0;">
-        <table class="email-card" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+      <tr><td align="center" style="padding:20px 12px;">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
-          <!-- Header -->
-          <tr><td class="email-header" style="padding:24px 24px 16px;background:#ffffff;">
-            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Moneywise</div>
-            <div class="email-title" style="color:#1e293b;font-size:20px;font-weight:700;line-height:1.3;margin-bottom:4px;">${name}, aqui estão suas contas</div>
+          <!-- Header — transparent, blends with email bg -->
+          <tr><td style="padding:8px 12px 16px;">
+            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Moneywise</div>
+            <div class="email-title" style="color:#1e293b;font-size:22px;font-weight:700;line-height:1.3;margin-bottom:4px;">${name}, aqui estão suas contas</div>
             <div class="email-date" style="color:#6b7280;font-size:12px;margin-bottom:14px;">${today}</div>
             <div>${chips}</div>
           </td></tr>
 
-          <!-- Bill rows -->
-          <tr><td style="padding:0 12px;background:#ffffff;" class="email-header">
-            <table class="bill-table" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:8px;overflow:hidden;">
+          <!-- Bill rows — subtle card background -->
+          <tr><td style="padding:0 0 4px;">
+            <table class="bill-table" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;border-radius:10px;overflow:hidden;">
               ${allRows}
             </table>
           </td></tr>
 
           <!-- Total -->
-          <tr><td style="padding:0;background:#ffffff;" class="email-header">
+          <tr><td>
             <table width="100%" cellpadding="0" cellspacing="0" class="total-row">
               <tr>
-                <td class="total-label" style="padding:14px 24px;color:#6b7280;font-size:12px;border-top:1px solid #e5e7eb;">Total pendente</td>
-                <td style="padding:14px 24px;text-align:right;border-top:1px solid #e5e7eb;">
+                <td class="total-label" style="padding:14px 12px;color:#6b7280;font-size:12px;border-top:1px solid #e2e8f0;">Total pendente</td>
+                <td style="padding:14px 12px;text-align:right;border-top:1px solid #e2e8f0;">
                   <span style="color:#10b981;font-size:18px;font-weight:800;">${formatCurrency(grandTotal)}</span>
                 </td>
               </tr>
@@ -237,12 +234,12 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
           </td></tr>
 
           <!-- CTA -->
-          <tr><td style="padding:4px 24px 24px;text-align:center;background:#ffffff;" class="email-header">
+          <tr><td style="padding:8px 0 20px;text-align:center;">
             <a href="https://moneywise.web.app" style="display:inline-block;padding:12px 32px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:700;">Ver Contas no Moneywise →</a>
           </td></tr>
 
           <!-- Footer -->
-          <tr><td class="footer-cell" style="padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;background:#ffffff;">
+          <tr><td class="footer-cell" style="padding:0 12px 20px;text-align:center;font-size:11px;color:#9ca3af;border-top:none;">
             © ${new Date().getFullYear()} Moneywise · Você recebe este e-mail porque tem lembretes ativos.
           </td></tr>
 
