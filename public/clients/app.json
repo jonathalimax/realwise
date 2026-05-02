@@ -1,8 +1,8 @@
 {
-  "clientName": "Moneywise",
+  "clientName": "Realwise",
   "firebase": {
     "apiKey": "AIzaSyDqSsb3LqJi9NJdo3VOuEkBX-vIzLzWIxE",
-    "authDomain": "moneywise-ad9ec.firebaseapp.com",
+    "authDomain": "realwise.com.br",
     "projectId": "moneywise-ad9ec",
     "storageBucket": "moneywise-ad9ec.firebasestorage.app",
     "messagingSenderId": "111194799118",

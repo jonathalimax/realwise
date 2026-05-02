@@ -3,7 +3,7 @@
 // Does NOT rely on ClientConfigProvider or the per-client firebase.js bindings.
 
 import { useState, useEffect, useRef } from 'react';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
@@ -85,8 +85,34 @@ export default function SharedLogin() {
 
     try {
       const { auth, functions } = sharedRef.current;
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      const apiKey = auth.app.options.apiKey;
+      const authDomain = auth.app.options.authDomain;
+      const protocol = authDomain.includes('localhost') ? 'http' : 'https';
+      const popupUrl = `${protocol}://${authDomain}/__/auth/handler?apiKey=${apiKey}`;
+
+      const popup = window.open(popupUrl, 'firebase-auth-popup', 'width=500,height=600,left=400,top=100');
+
+      const idToken = await new Promise((resolve, reject) => {
+        const onMessage = (event) => {
+          if (event.data?.type === 'lf-google-auth') {
+            window.removeEventListener('message', onMessage);
+            clearInterval(closedCheck);
+            resolve(event.data.idToken);
+          }
+        };
+        window.addEventListener('message', onMessage);
+
+        const closedCheck = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(closedCheck);
+            window.removeEventListener('message', onMessage);
+            reject(new Error('Popup closed'));
+          }
+        }, 500);
+      });
+
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(auth, credential);
       await handlePostSignIn(result.user.email, functions);
     } catch (err) {
       console.error('[SharedLogin] auth error', err);

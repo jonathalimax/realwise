@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { extractClientId } from './config/clientConfig';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
@@ -225,10 +226,14 @@ function App() {
     );
   }
 
+  const clientId = extractClientId(window.location.hostname)
+    || window.location.pathname.split('/').filter(Boolean)[0]
+    || '';
+
   return (
     <ClientConfigProvider>
       <PWAInstallProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={`/${clientId}`}>
           <AppRouter />
         </BrowserRouter>
       </PWAInstallProvider>

@@ -15,10 +15,14 @@ export function ClientConfigProvider({ children }) {
         if (import.meta.env.DEV) {
           cfg = buildDevConfig();
         } else {
-          const clientId = extractClientId(window.location.hostname);
+          const clientId = extractClientId(window.location.hostname)
+            || window.location.pathname.split('/').filter(Boolean)[0];
           cfg = await fetchClientConfig(clientId);
         }
-        const clientId = import.meta.env.DEV ? 'dev' : extractClientId(window.location.hostname);
+        const clientId = import.meta.env.DEV
+          ? 'dev'
+          : extractClientId(window.location.hostname)
+            || window.location.pathname.split('/').filter(Boolean)[0];
         await initializeFirebase(cfg.firebase, clientId);
         setConfig(cfg);
       } catch (err) {
