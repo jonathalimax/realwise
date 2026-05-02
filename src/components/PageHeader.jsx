@@ -90,12 +90,13 @@ export default function PageHeader({ title, showMonth = true, right }) {
 
   const displayTitle = useMemo(() => {
     if (!isDashboard) return title;
-    const user = auth.currentUser;
-    if (!user) return title;
-    const firstName = user.displayName ? user.displayName.split(' ')[0] : null;
-    return language === 'pt' 
-      ? (firstName ? `Olá, ${firstName}` : 'Olá novamente') 
-      : (firstName ? `Hi, ${firstName}` : 'Hi again');
+    console.log('[PageHeader] auth.currentUser:', {
+      uid: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      displayName: auth.currentUser?.displayName,
+      photoURL: auth.currentUser?.photoURL,
+    });
+    return language === 'pt' ? 'Painel' : 'Dashboard';
   }, [isDashboard, title, language]);
 
   return (

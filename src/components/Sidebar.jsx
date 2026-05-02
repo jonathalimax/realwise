@@ -1,25 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import { useSettings } from '../contexts/SettingsContext';
-import { useFeature } from '../contexts/ClientConfigContext';
+import { useAccess } from '../contexts/AccessContext';
 import {
   HomeIcon,
   BanknotesIcon,
-  ChartBarIcon,
   ChartPieIcon,
   ArrowTrendingUpIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
   BellIcon,
-  PuzzlePieceIcon,
   TagIcon,
 } from '@heroicons/react/24/outline';
 
-function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) {
+function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, currentUser }) {
   const location = useLocation();
   const handleLinkClick = () => {
     if (mobileClose) mobileClose();
@@ -50,14 +46,11 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose }) 
         </div>
         <div className="min-w-0">
           <span className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Moneywise</span>
-          {auth.currentUser && (
+          {currentUser && (
             <p className="text-[10px] font-bold text-violet-500 truncate uppercase tracking-widest leading-none mt-0.5">
-              {(() => {
-                const user = auth.currentUser;
-                if (!user) return null;
-                const firstName = user.displayName?.split(' ')[0];
-                return firstName ? `Olá, ${firstName}` : 'Olá novamente';
-              })()}
+              {currentUser.displayName?.split(' ')[0]
+                ? `Olá, ${currentUser.displayName.split(' ')[0]}`
+                : 'Olá novamente'}
             </p>
           )}
         </div>
@@ -120,42 +113,27 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { language } = useSettings();
   const navigate = useNavigate();
-  const hasGoals = useFeature('goals');
-  const hasInvestments = useFeature('investments');
+  const { currentUser } = useAccess();
 
   const navigationGroups = useMemo(() => [
     {
-      label: 'Overview',
-      labelPt: 'Visão Geral',
       items: [
-        { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
-      ],
-    },
-    {
-      items: [
-        { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
-        { name: 'Expenses', namePt: 'Saída', href: '/expenses', icon: ArrowTrendingUpIcon },
-        { name: 'Expenses by Category', namePt: 'Gastos por Categoria', href: '/planner?tab=rastreamento', icon: TagIcon },
-      ],
-    },
-    {
-      label: 'Planning',
-      labelPt: 'Planejamento',
-      items: [
+        { name: 'Dashboard', namePt: 'Dashboard', href: '/dashboard', icon: HomeIcon },
         { name: 'Income', namePt: 'Renda', href: '/planner?tab=renda', icon: BanknotesIcon },
-        { name: 'Allocation', namePt: 'Alocação', href: '/planner?tab=alocacao', icon: ChartPieIcon },
-        ...(hasInvestments ? [{ name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: ChartBarIcon }] : []),
-        ...(hasGoals ? [{ name: 'Goals', namePt: 'Metas', href: '/goals', icon: PuzzlePieceIcon }] : []),
-      ],
-    },
-    {
-      label: 'Payments',
-      labelPt: 'Pagamentos',
-      items: [
+        { name: 'Allocation', namePt: 'Allocation', href: '/planner?tab=alocacao', icon: ChartPieIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
       ],
     },
-  ], [hasGoals, hasInvestments]);
+    {
+      label: 'Transactions',
+      labelPt: 'Transações',
+      items: [
+        { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
+        { name: 'Expenses', namePt: 'Saídas', href: '/expenses', icon: ArrowTrendingUpIcon },
+        { name: 'Spending', namePt: 'Gastos', href: '/planner?tab=rastreamento', icon: TagIcon },
+      ],
+    },
+  ], []);
 
   useEffect(() => {
     const handleToggle = () => setMobileOpen(prev => !prev);
@@ -171,6 +149,7 @@ export default function Sidebar() {
     navigationGroups,
     language,
     onSignOut: handleSignOut,
+    currentUser,
   };
 
   return (

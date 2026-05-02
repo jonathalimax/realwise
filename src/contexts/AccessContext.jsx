@@ -87,7 +87,8 @@ export function AccessProvider({ children }) {
       isReadOnly,
       isOwner,
       ownerId, // The UID whose data should be viewed
-      loading
+      loading,
+      currentUser,
     }}>
       {children}
     </AccessContext.Provider>

@@ -153,7 +153,9 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {data.map((item, index) => {
           const hasLimit = item.limit > 0;
-          const percentage = hasLimit ? (item.value / item.limit) * 100 : 0;
+          const pct = hasLimit ? (item.value / item.limit) * 100 : (total > 0 ? (item.value / total) * 100 : 0);
+          const isOver = hasLimit && pct > 100;
+          const barWidth = Math.min(pct, 100);
           const color = COLORS[index % COLORS.length];
 
           return (
@@ -162,7 +164,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
               onClick={() => goToCategory(item.label)}
               className="w-full group text-left"
             >
-              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 group-hover:bg-gray-100 dark:group-hover:bg-gray-700/70 transition-all duration-200">
                 {/* Icon */}
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
@@ -184,10 +186,19 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
                       <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums">
                         {formatCurrency(item.value)}
                       </span>
-                      <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
-                        {total > 0 ? `${((item.value / total) * 100).toFixed(0)}%` : '—'}
+                      <span className={`text-[10px] tabular-nums ${isOver ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {pct.toFixed(0)}%{hasLimit ? ` / ${formatCurrency(item.limit)}` : ''}
                       </span>
                     </div>
+                  </div>
+                  <div className="h-1.5 bg-gray-200 dark:bg-gray-600/50 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${barWidth}%`,
+                        backgroundColor: isOver ? '#EF4444' : color.main,
+                      }}
+                    />
                   </div>
                 </div>
               </div>
