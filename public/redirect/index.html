@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Redirecting…</title></head>
+<body>
+<script>
+  (function () {
+    var m = location.pathname.match(/^\/([^/]+)(\/.*)?$/);
+    var tenant = m ? m[1] : 'app';
+    var rest = (m && m[2]) ? m[2] : '/';
+    location.replace('https://' + tenant + '.realwise.com.br' + rest + location.search + location.hash);
+  })();
+</script>
+<noscript>
+  <p>Please enable JavaScript to be redirected, or visit
+  <a href="https://realwise.com.br">realwise.com.br</a>.</p>
+</noscript>
+</body>
+</html>
