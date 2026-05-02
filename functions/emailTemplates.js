@@ -85,7 +85,7 @@ exports.welcomeTemplate = (name) => getBaseTemplate({
 /**
  * Template 2: Access Granted (Green Light)
  */
-exports.accessGrantedTemplate = (name, loginUrl = 'https://realwise.com.br') => getBaseTemplate({
+exports.accessGrantedTemplate = (name, loginUrl = 'https://app.realwise.com.br') => getBaseTemplate({
   title: `Luz Verde, ${name}! Tudo pronto. 🟢`,
   subtitle: 'Seu acesso ao Realwise foi liberado. Você já pode começar.',
   body: `
@@ -223,7 +223,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
 /**
  * Template 4: Accept Migration
  */
-exports.acceptMigrationTemplate = (name, migrationUrl = 'https://realwise.com.br') => getBaseTemplate({
+exports.acceptMigrationTemplate = (name, migrationUrl = 'https://app.realwise.com.br') => getBaseTemplate({
   title: `Seu acesso foi migrado, ${name} 🔄`,
   subtitle: 'Realizamos uma migração para uma infraestrutura melhorada.',
   body: `
