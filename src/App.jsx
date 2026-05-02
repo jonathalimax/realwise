@@ -5,7 +5,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
 import { GoalsProvider } from './contexts/GoalsContext';
 import { InvestmentProvider } from './contexts/InvestmentContext';
-import { extractClientId } from './config/clientConfig';
 import Auth from './components/Auth';
 import Layout from './components/Layout';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -150,7 +149,7 @@ function AppRouter() {
 
 // FirebaseAuthHandler handles /__/auth/handler popup — same logic as before,
 // kept outside BrowserRouter because the auth handler URL doesn't follow the
-// /{clientId}/... pattern and must match the absolute path.
+// subdomain-based routing pattern and must match the absolute path.
 function FirebaseAuthHandler() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -226,12 +225,10 @@ function App() {
     );
   }
 
-  const clientId = extractClientId(window.location.pathname);
-
   return (
     <ClientConfigProvider>
       <PWAInstallProvider>
-        <BrowserRouter basename={`/${clientId}`}>
+        <BrowserRouter>
           <AppRouter />
         </BrowserRouter>
       </PWAInstallProvider>
