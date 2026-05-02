@@ -129,7 +129,7 @@ async function sendPurchaseEmail({ name, email, whatsapp, amountTotal }) {
   await transporter.sendMail({
     from: user,
     to: 'jonathalimax@gmail.com',
-    subject: `💰 Nova Compra Moneywise — ${amountStr}`,
+    subject: `💰 Nova Compra Realwise — ${amountStr}`,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
         <div style="background:linear-gradient(135deg,#10b981,#059669);padding:20px;border-radius:12px 12px 0 0">
@@ -172,7 +172,7 @@ async function sendPurchaseEmail({ name, email, whatsapp, amountTotal }) {
       await transporter.sendMail({
         from: user,
         to: email,
-        subject: 'Bem-vindo ao Moneywise! 🚀',
+        subject: 'Bem-vindo ao Realwise! 🚀',
         html: welcomeTemplate(name || 'Cliente'),
       });
       console.log(`Welcome email sent to ${email}`);

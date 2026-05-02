@@ -1,6 +1,6 @@
 {
-  "name": "moneywise-functions",
-  "description": "Cloud Functions for Moneywise",
+  "name": "realwise-functions",
+  "description": "Cloud Functions for Realwise",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",

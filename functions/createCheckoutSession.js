@@ -66,7 +66,7 @@ exports.createCheckoutSession = functions
                 currency: 'brl',
                 unit_amount: 47988, // R$479,88 in centavos
                 product_data: {
-                  name: 'Moneywise — Acesso Vitalício',
+                  name: 'Realwise — Acesso Vitalício',
                   description: 'Acesso completo, suporte vitalício, sem mensalidade.',
                 },
               },
@@ -84,12 +84,12 @@ exports.createCheckoutSession = functions
             whatsapp: whatsapp.trim(),
             email: emailLower,
           },
-          success_url: clientId
-            ? `https://mymoneywise.web.app/${clientId}/purchase-success`
-            : 'https://mymoneywise.web.app/purchase-success',
-          cancel_url: clientId
-            ? `https://mymoneywise.web.app/${clientId}/`
-            : 'https://mymoneywise.web.app/',
+          success_url: clientId && clientId !== 'app'
+            ? `https://${clientId}.realwise.com.br/purchase-success`
+            : 'https://app.realwise.com.br/purchase-success',
+          cancel_url: clientId && clientId !== 'app'
+            ? `https://${clientId}.realwise.com.br/`
+            : 'https://app.realwise.com.br/',
         });
 
         res.json({ url: session.url });

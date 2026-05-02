@@ -31,7 +31,7 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
 
         <!-- Brand -->
         <tr><td style="padding:0 4px 16px;">
-          <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Moneywise</div>
+          <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Realwise</div>
         </td></tr>
 
         <!-- Title -->
@@ -48,13 +48,13 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
         ${cta ? `
         <!-- CTA -->
         <tr><td style="padding:24px 4px 8px;text-align:center;">
-          <a href="${ctaUrl || 'https://moneywise.web.app'}" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">${cta}</a>
+          <a href="${ctaUrl || 'https://realwise.com.br'}" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">${cta}</a>
         </td></tr>
         ` : ''}
 
         <!-- Footer -->
         <tr><td class="mw-footer" style="padding:24px 4px 8px;text-align:center;font-size:11px;color:#9ca3af;">
-          © ${new Date().getFullYear()} Moneywise · ${footerNote || 'Todos os direitos reservados.'}
+          © ${new Date().getFullYear()} Realwise · ${footerNote || 'Todos os direitos reservados.'}
         </td></tr>
 
       </table>
@@ -66,7 +66,7 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
  * Template 1: Welcome & Next Steps
  */
 exports.welcomeTemplate = (name) => getBaseTemplate({
-  title: `Bem-vindo ao Moneywise, ${name}! 🚀`,
+  title: `Bem-vindo ao Realwise, ${name}! 🚀`,
   subtitle: 'Sua jornada para uma vida financeira mais organizada começa agora.',
   body: `
     <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
@@ -77,17 +77,17 @@ exports.welcomeTemplate = (name) => getBaseTemplate({
         <div>💬 <strong>Dúvidas?</strong> Basta responder a este e-mail.</div>
       </div>
     </div>
-    <div class="mw-body-text" style="font-size:13px;color:#4b5563;">Obrigado por confiar no Moneywise!<br><br>Equipe Moneywise</div>
+    <div class="mw-body-text" style="font-size:13px;color:#4b5563;">Obrigado por confiar no Realwise!<br><br>Equipe Realwise</div>
   `,
-  footerNote: 'Você está recebendo este e-mail porque se cadastrou no Moneywise.',
+  footerNote: 'Você está recebendo este e-mail porque se cadastrou no Realwise.',
 });
 
 /**
  * Template 2: Access Granted (Green Light)
  */
-exports.accessGrantedTemplate = (name, loginUrl = 'https://mymoneywise.web.app') => getBaseTemplate({
+exports.accessGrantedTemplate = (name, loginUrl = 'https://realwise.com.br') => getBaseTemplate({
   title: `Luz Verde, ${name}! Tudo pronto. 🟢`,
-  subtitle: 'Seu acesso ao Moneywise foi liberado. Você já pode começar.',
+  subtitle: 'Seu acesso ao Realwise foi liberado. Você já pode começar.',
   body: `
     <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;">
       <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.7;">
@@ -97,7 +97,7 @@ exports.accessGrantedTemplate = (name, loginUrl = 'https://mymoneywise.web.app')
   `,
   cta: 'Acessar o Sistema Agora',
   ctaUrl: loginUrl,
-  footerNote: 'Você está recebendo este e-mail porque é um cliente Moneywise.',
+  footerNote: 'Você está recebendo este e-mail porque é um cliente Realwise.',
 });
 
 /**
@@ -182,7 +182,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
 
           <!-- Brand -->
           <tr><td style="padding:0 4px 16px;">
-            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Moneywise</div>
+            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Realwise</div>
           </td></tr>
 
           <!-- Title + chips -->
@@ -206,12 +206,12 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
 
           <!-- CTA -->
           <tr><td style="padding:20px 4px 8px;text-align:center;">
-            <a href="https://moneywise.web.app" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">Ver Contas no Moneywise →</a>
+            <a href="https://realwise.com.br" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">Ver Contas no Realwise →</a>
           </td></tr>
 
           <!-- Footer -->
           <tr><td class="mw-footer" style="padding:24px 4px 8px;text-align:center;font-size:11px;color:#9ca3af;">
-            © ${new Date().getFullYear()} Moneywise · Você recebe este e-mail porque tem lembretes ativos.
+            © ${new Date().getFullYear()} Realwise · Você recebe este e-mail porque tem lembretes ativos.
           </td></tr>
 
         </table>
@@ -223,7 +223,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
 /**
  * Template 4: Accept Migration
  */
-exports.acceptMigrationTemplate = (name, migrationUrl = 'https://moneywise.web.app') => getBaseTemplate({
+exports.acceptMigrationTemplate = (name, migrationUrl = 'https://realwise.com.br') => getBaseTemplate({
   title: `Seu acesso foi migrado, ${name} 🔄`,
   subtitle: 'Realizamos uma migração para uma infraestrutura melhorada.',
   body: `
@@ -238,5 +238,5 @@ exports.acceptMigrationTemplate = (name, migrationUrl = 'https://moneywise.web.a
   `,
   cta: 'Aceitar Migração e Acessar',
   ctaUrl: migrationUrl,
-  footerNote: 'Você está recebendo este e-mail porque é um cliente Moneywise.',
+  footerNote: 'Você está recebendo este e-mail porque é um cliente Realwise.',
 });

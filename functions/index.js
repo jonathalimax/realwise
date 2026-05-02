@@ -71,9 +71,9 @@ const sendPurchaseNotification = async (purchaseData) => {
   const adminEmail = 'jonathalimax@gmail.com';
 
   const mailOptions = {
-    from: functions.config().email?.user || 'noreply@mymoneywise.web.app',
+    from: functions.config().email?.user || 'noreply@realwise.com.br',
     to: adminEmail,
-    subject: `💰 Nova Compra - Moneywise - R$ ${purchaseData.amount.toFixed(2)}`,
+    subject: `💰 Nova Compra - Realwise - R$ ${purchaseData.amount.toFixed(2)}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; border-radius: 12px 12px 0 0;">
@@ -118,7 +118,7 @@ const sendPurchaseNotification = async (purchaseData) => {
         </div>
 
         <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
-          Moneywise - Sistema de Finanças Pessoais
+          Realwise - Sistema de Finanças Pessoais
         </p>
       </div>
     `,
@@ -205,7 +205,7 @@ exports.processPayment = functions.https.onRequest((req, res) => {
       const paymentData = {
         transaction_amount: parseFloat(transaction_amount),
         token: token,
-        description: 'Moneywise - Acesso Completo',
+        description: 'Realwise - Acesso Completo',
         installments: parseInt(installments) || 1,
         payment_method_id: payment_method_id,
         issuer_id: issuer_id,
@@ -275,11 +275,11 @@ async function grantAccessAndNotify(email, name, couponCode) {
     // Send notification email
     const transporter = getEmailTransporter();
     if (transporter) {
-      const from = functions.config().email?.user || 'contato@mymoneywise.web.app';
+      const from = functions.config().email?.user || 'contato@realwise.com.br';
       await transporter.sendMail({
         from,
         to: email,
-        subject: 'Luz Verde! Seu acesso ao Moneywise foi liberado 🟢',
+        subject: 'Luz Verde! Seu acesso ao Realwise foi liberado 🟢',
         html: accessGrantedTemplate(name || 'Cliente'),
       });
       console.log(`Access granted email sent to ${email}`);
@@ -813,7 +813,7 @@ exports.testEmail = functions
   const transporter = getEmailTransporter();
   if (!transporter) return res.status(500).send('Email not configured in Firebase');
 
-  const from = functions.config().email?.user || 'contato@mymoneywise.web.app';
+  const from = functions.config().email?.user || 'contato@realwise.com.br';
   let html = '';
   let subject = '';
 

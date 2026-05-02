@@ -16,7 +16,7 @@ const db = admin.firestore();
 
 const TEMPLATE_MAP = {
   welcome: (fields) => ({
-    subject: 'Bem-vindo ao Moneywise!',
+    subject: 'Bem-vindo ao Realwise!',
     html: welcomeTemplate(fields.name || 'Cliente'),
   }),
   access_granted: (fields) => ({

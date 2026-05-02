@@ -1,7 +1,7 @@
 // functions/onboardUser.js
 //
 // Callable Cloud Function — runs the 9-step Firebase project provisioning
-// for a new Moneywise user, streaming real-time log entries to Firestore.
+// for a new Realwise user, streaming real-time log entries to Firestore.
 //
 // Caller must be authenticated and their email must exist in admins/{email}.
 //
@@ -123,7 +123,7 @@ exports.onboardUser = functions
     if (!(await step(1, `Create Firebase project for ${username}`, async () => {
       // TODO: POST https://firebase.googleapis.com/v1beta1/projects
       // using a service account access token with `firebase.projects.create` permission.
-      // Payload: { projectId: `limas-finance-${username}`, displayName: `Moneywise - ${username}` }
+      // Payload: { projectId: `limas-finance-${username}`, displayName: `Realwise - ${username}` }
       // Poll the returned LRO until done === true before proceeding.
       return `Firebase project limas-finance-${username} creation queued (implement via Management API)`;
     }))) return;
@@ -140,8 +140,8 @@ exports.onboardUser = functions
     // ── Step 3: Create service account ─────────────────────────────────────
     if (!(await step(3, 'Create service account', async () => {
       // TODO: POST https://iam.googleapis.com/v1/projects/{projectId}/serviceAccounts
-      //   { accountId: 'moneywise-admin', serviceAccount: { displayName: 'Moneywise Admin' } }
-      return `Service account moneywise-admin created for ${username}`;
+      //   { accountId: 'realwise-admin', serviceAccount: { displayName: 'Realwise Admin' } }
+      return `Service account realwise-admin created for ${username}`;
     }))) return;
 
     // ── Step 4: Grant IAM roles to service account ──────────────────────────

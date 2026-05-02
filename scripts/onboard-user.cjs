@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/onboard-user.js
 //
-// Provisions a complete Firebase project for a new Moneywise user.
+// Provisions a complete Firebase project for a new Realwise user.
 //
 // Usage:
 //   node scripts/onboard-user.js <email> [billingAccountId]
@@ -65,9 +65,9 @@ if (!email || !email.includes('@')) {
 
 // Sanitise username: lowercase, alphanumeric only
 const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-const projectId = `moneywise-${username}`;
+const projectId = `realwise-${username}`;
 const billingAccountId = process.argv[3] || process.env.BILLING_ACCOUNT_ID || '01F570-F17CDE-9379F7';
-const sharedProjectId = process.env.SHARED_PROJECT_ID || 'moneywise-ad9ec';
+const sharedProjectId = process.env.SHARED_PROJECT_ID || 'realwise-ad9ec';
 const repoRoot = path.resolve(__dirname, '..');
 
 console.log('\nOnboarding user:', email);
@@ -139,7 +139,7 @@ async function main() {
   console.log('[1/9] Creating GCP project...');
   try {
     await resourceManager.projects.create({
-      requestBody: { projectId, name: `Moneywise ${username}` },
+      requestBody: { projectId, name: `Realwise ${username}` },
     });
     console.log('    Created project', projectId);
   } catch (err) {
@@ -283,7 +283,7 @@ async function main() {
   try {
     const createOp = await firebaseApi.projects.webApps.create({
       parent: `projects/${projectId}`,
-      requestBody: { displayName: `Moneywise ${username}` },
+      requestBody: { displayName: `Realwise ${username}` },
     });
     let opName = createOp.data.name;
     let appData;
@@ -312,7 +312,7 @@ async function main() {
 
   // ── Step 6: Create service account ───────────────────────────────────────
   console.log('[6/9] Creating service account...');
-  const saId = 'moneywise-admin';
+  const saId = 'realwise-admin';
   const saEmail = `${saId}@${projectId}.iam.gserviceaccount.com`;
 
   try {
@@ -320,7 +320,7 @@ async function main() {
       name: `projects/${projectId}`,
       requestBody: {
         accountId: saId,
-        serviceAccount: { displayName: 'Moneywise Admin' },
+        serviceAccount: { displayName: 'Realwise Admin' },
       },
     });
     console.log('    Service account created:', saEmail);
@@ -456,8 +456,8 @@ service cloud.firestore {
 
   await admin.app('client').delete();
 
-  // ── Step 9c: Authorize mymoneywise.web.app in client Auth settings ────────
-  console.log('[9c] Authorizing mymoneywise.web.app in client Auth...');
+  // ── Step 9c: Authorize realwise.com.br in client Auth settings ────────
+  console.log('[9c] Authorizing realwise.com.br in client Auth...');
   try {
     const { data: authConfig } = await authClient.request({
       url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
@@ -465,7 +465,7 @@ service cloud.firestore {
       headers: { 'x-goog-user-project': projectId },
     });
     const existing = authConfig.authorizedDomains || [];
-    const toAdd = 'mymoneywise.web.app';
+    const toAdd = 'realwise.com.br';
     if (!existing.includes(toAdd)) {
       await authClient.request({
         url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`,
@@ -474,7 +474,7 @@ service cloud.firestore {
         headers: { 'x-goog-user-project': projectId },
         data: { authorizedDomains: [...existing, toAdd] },
       });
-      console.log('    mymoneywise.web.app authorized');
+      console.log('    realwise.com.br authorized');
     } else {
       console.log('    Already authorized — skipping');
     }
@@ -485,7 +485,7 @@ service cloud.firestore {
   // ── Step 10: Write public/clients/{username}.json + deploy ────────────────
   console.log('[10/11] Writing client config + deploying hosting...');
   const clientConfig = {
-    clientName: 'Moneywise',
+    clientName: 'Realwise',
     firebase: sdkConfig,
     features: {
       investments: true,
@@ -515,8 +515,8 @@ service cloud.firestore {
   console.log('    Lead state → active');
 
   console.log('\nOnboarding complete for', email);
-  console.log('  Login URL :', 'https://mymoneywise.web.app/login');
-  console.log('  Dashboard :', `https://mymoneywise.web.app/${username}/dashboard\n`);
+  console.log('  Login URL :', `https://${username}.realwise.com.br/login`);
+  console.log('  Dashboard :', `https://${username}.realwise.com.br/dashboard\n`);
 }
 
 main().catch((err) => {

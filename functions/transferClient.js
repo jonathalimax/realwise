@@ -6,9 +6,9 @@ const db = admin.firestore();
 
 // Client project map — add new clients here as you onboard them
 const CLIENT_PROJECTS = {
-  jonathalimax:         'moneywise-jonathalimax',
-  carloscalzadillar:    'moneywise-carloscalzadillar',
-  palomabandeiramatos5: 'moneywise-palomabandeiramatos5',
+  jonathalimax:         'realwise-jonathalimax',
+  carloscalzadillar:    'realwise-carloscalzadillar',
+  palomabandeiramatos5: 'realwise-palomabandeiramatos5',
 };
 
 async function getAccessToken() {

@@ -57,7 +57,7 @@ exports.createDiscountCheckout = functions
               currency: 'brl',
               unit_amount: 47988,
               product_data: {
-                name: 'Moneywise — Acesso Vitalício',
+                name: 'Realwise — Acesso Vitalício',
                 description: 'Acesso completo, suporte vitalício, sem mensalidade.',
               },
             },
@@ -67,8 +67,8 @@ exports.createDiscountCheckout = functions
         payment_method_types: ['card'],
         payment_method_options: { card: { installments: { enabled: true } } },
         metadata: { email: emailLower, discountPct: String(discountPct), couponId: coupon.id },
-        success_url: 'https://mymoneywise.web.app/purchase-success',
-        cancel_url: 'https://mymoneywise.web.app/',
+        success_url: 'https://realwise.com.br/purchase-success',
+        cancel_url: 'https://realwise.com.br/',
       });
     } catch (sessionErr) {
       await stripe.coupons.del(coupon.id).catch(() => {});
