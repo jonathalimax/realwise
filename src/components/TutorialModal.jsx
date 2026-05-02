@@ -7,7 +7,7 @@ import { XMarkIcon, ChevronRightIcon, ChevronLeftIcon } from '@heroicons/react/2
 const STEPS = [
   {
     icon: '👋',
-    title: { pt: 'Bem-vindo ao Moneywise!', en: 'Welcome to Moneywise!' },
+    title: { pt: 'Bem-vindo ao Realwise!', en: 'Welcome to Realwise!' },
     description: {
       pt: 'Veja como configurar tudo em 3 passos simples para começar a controlar suas finanças.',
       en: 'Here\'s how to get set up in 3 simple steps so you can start managing your finances.',

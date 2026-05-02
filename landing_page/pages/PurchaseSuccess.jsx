@@ -18,7 +18,7 @@ export default function PurchaseSuccess() {
 
         <h1 className="text-3xl font-bold mb-4">Pagamento confirmado!</h1>
         <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
-          Obrigado pela compra! Em até <strong>24 horas</strong> você receberá um e-mail com as instruções de acesso e configuração do seu Moneywise.
+          Obrigado pela compra! Em até <strong>24 horas</strong> você receberá um e-mail com as instruções de acesso e configuração do seu Realwise.
         </p>
 
         <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 mb-8">

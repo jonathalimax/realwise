@@ -46,7 +46,7 @@ export default function FooterSection({ onBuy }) {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
               <span className="text-white font-bold">M</span>
             </div>
-            <span className="font-semibold">Moneywise</span>
+            <span className="font-semibold">Realwise</span>
           </div>
 
           <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500 dark:text-slate-400">

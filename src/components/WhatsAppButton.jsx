@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const WHATSAPP_NUMBER = '5585992265544';
-const DEFAULT_MESSAGE = 'Olá! Gostaria de saber mais sobre o Moneywise.';
+const DEFAULT_MESSAGE = 'Olá! Gostaria de saber mais sobre o Realwise.';
 
 export default function WhatsAppButton({ message = DEFAULT_MESSAGE }) {
   const encodedMessage = encodeURIComponent(message);

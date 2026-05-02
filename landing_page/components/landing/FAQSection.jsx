@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 const faqs = [
   {
     question: 'O que acontece depois que eu pagar?',
-    answer: 'Em até 24h você receberá um e-mail com as instruções de acesso e configuração do seu Moneywise. Seu banco de dados Firebase será configurado individualmente — seus dados ficarão no seu próprio projeto Google.',
+    answer: 'Em até 24h você receberá um e-mail com as instruções de acesso e configuração do seu Realwise. Seu banco de dados Firebase será configurado individualmente — seus dados ficarão no seu próprio projeto Google.',
   },
   {
     question: 'Meus dados ficam seguros?',
@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     question: 'Funciona no celular?',
-    answer: 'Sim. O Moneywise é um PWA (Progressive Web App) — você pode instalar no Android ou iOS direto pelo navegador e acessar de qualquer dispositivo.',
+    answer: 'Sim. O Realwise é um PWA (Progressive Web App) — você pode instalar no Android ou iOS direto pelo navegador e acessar de qualquer dispositivo.',
   },
   {
     question: 'Posso importar meu extrato bancário?',

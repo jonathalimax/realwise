@@ -59,7 +59,7 @@ function DonationsContent() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
               <span className="text-white font-bold text-sm">M</span>
             </div>
-            <span className="font-semibold">Moneywise</span>
+            <span className="font-semibold">Realwise</span>
           </div>
           <ThemeToggle />
         </div>

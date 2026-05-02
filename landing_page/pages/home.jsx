@@ -3,7 +3,7 @@ import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
 import PainPointsSection from '../components/landing/PainPointsSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
-import WhyMoneywiseSection from '../components/landing/WhyMoneywiseSection';
+import WhyRealwiseSection from '../components/landing/WhyRealwiseSection';
 import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import FooterSection from '../components/landing/FooterSection';
@@ -19,7 +19,7 @@ export default function Home() {
         <HeroSection onBuy={() => setCheckoutOpen(true)} />
         <PainPointsSection />
         <FeaturesSection />
-        <WhyMoneywiseSection />
+        <WhyRealwiseSection />
         <PricingSection onBuy={() => setCheckoutOpen(true)} />
         <FAQSection />
         <FooterSection onBuy={() => setCheckoutOpen(true)} />

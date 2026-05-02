@@ -70,7 +70,7 @@ export default function AdminApp() {
     <BrowserRouter basename="/admin">
       <div className="min-h-screen bg-gray-950 text-gray-100">
         <nav className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center gap-3">
-          <span className="font-bold text-emerald-400 text-lg mr-3">Moneywise Admin</span>
+          <span className="font-bold text-emerald-400 text-lg mr-3">Realwise Admin</span>
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
           <NavLink to="transfer" className={navLinkClass}>Transfer</NavLink>
           <button

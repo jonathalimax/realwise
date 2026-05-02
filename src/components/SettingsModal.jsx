@@ -712,8 +712,8 @@ export default function SettingsModal({ isOpen, onClose }) {
                     </p>
                     <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                       {language === 'pt'
-                        ? 'Instale o Moneywise no seu dispositivo para uma experiência mais rápida e integrada.'
-                        : 'Install Moneywise on your device for a faster, more integrated experience.'}
+                        ? 'Instale o Realwise no seu dispositivo para uma experiência mais rápida e integrada.'
+                        : 'Install Realwise on your device for a faster, more integrated experience.'}
                     </p>
                   </div>
                 </div>

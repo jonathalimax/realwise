@@ -45,7 +45,7 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
           <span className="text-white text-xl">💰</span>
         </div>
         <div className="min-w-0">
-          <span className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Moneywise</span>
+          <span className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Realwise</span>
           {currentUser && (
             <p className="text-[10px] font-bold text-violet-500 truncate uppercase tracking-widest leading-none mt-0.5">
               {currentUser.displayName?.split(' ')[0]

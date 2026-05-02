@@ -120,7 +120,7 @@ export default function HeroSection() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="max-w-md mx-auto h-6 rounded-md bg-slate-700 flex items-center px-3">
-                    <span className="text-xs text-slate-400">blimwallet.com</span>
+                    <span className="text-xs text-slate-400">realwisewallet.com</span>
                   </div>
                 </div>
               </div>

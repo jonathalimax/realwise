@@ -5,9 +5,9 @@ import { httpsCallable } from 'firebase/functions';
 import { adminDb, adminFunctions } from './AdminApp';
 
 const CLIENTS = [
-  { id: 'jonathalimax',         projectId: 'moneywise-jonathalimax' },
-  { id: 'carloscalzadillar',    projectId: 'moneywise-carloscalzadillar' },
-  { id: 'palomabandeiramatos5', projectId: 'moneywise-palomabandeiramatos5' },
+  { id: 'jonathalimax',         projectId: 'realwise-jonathalimax' },
+  { id: 'carloscalzadillar',    projectId: 'realwise-carloscalzadillar' },
+  { id: 'palomabandeiramatos5', projectId: 'realwise-palomabandeiramatos5' },
 ];
 
 export default function TransferScript() {

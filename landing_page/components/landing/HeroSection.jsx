@@ -92,7 +92,7 @@ export default function HeroSection({ onBuy }) {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="max-w-md mx-auto h-6 rounded-md bg-slate-700 flex items-center px-3">
-                    <span className="text-xs text-slate-400">moneywise.web.app</span>
+                    <span className="text-xs text-slate-400">realwise.com.br</span>
                   </div>
                 </div>
               </div>

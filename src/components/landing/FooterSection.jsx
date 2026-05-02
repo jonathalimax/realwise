@@ -51,7 +51,7 @@ export default function FooterSection() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
                 <span className="text-white font-bold text-lg">M</span>
               </div>
-              <span className="font-bold text-lg">Moneywise</span>
+              <span className="font-bold text-lg">Realwise</span>
             </div>
 
             {/* Links */}
