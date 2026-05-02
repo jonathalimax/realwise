@@ -1,14 +1,17 @@
-const RESERVED_PATHS = ['__', 'api', 'clients', 'purchase-success', 'login'];
+const RESERVED = new Set(['app', 'www', 'realwise', 'localhost']);
 
 /**
- * Extracts the client identifier from the URL pathname.
- * e.g. '/clienta/dashboard' → 'clienta'
- * Falls back to 'app' for root or reserved paths.
+ * Extracts the client identifier from the hostname.
+ * e.g. 'jonathalimax.realwise.com.br' → 'jonathalimax'
+ * e.g. 'jonathalimax.localhost:5173'  → 'jonathalimax'
+ * Returns null for apex, reserved subdomains, and bare localhost.
  */
-export function extractClientId(pathname) {
-  const segments = pathname.split('/').filter(Boolean);
-  const first = segments[0];
-  if (!first || RESERVED_PATHS.includes(first)) return 'app';
+export function extractClientId(hostname) {
+  const host = hostname.split(':')[0]; // strip port
+  const parts = host.split('.');
+  const first = parts[0];
+  if (RESERVED.has(first)) return null;
+  if (parts.length < 2) return null;
   return first;
 }
 

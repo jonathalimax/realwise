@@ -2,32 +2,36 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { extractClientId, fetchClientConfig, buildDevConfig } from './clientConfig';
 
 describe('extractClientId', () => {
-  it('extracts first segment from a nested path', () => {
-    expect(extractClientId('/clienta/dashboard')).toBe('clienta');
+  it('extracts subdomain from a tenant hostname', () => {
+    expect(extractClientId('jonathalimax.realwise.com.br')).toBe('jonathalimax');
   });
 
-  it('extracts first segment from a top-level client path', () => {
-    expect(extractClientId('/clienta')).toBe('clienta');
+  it('extracts subdomain from a tenant hostname with port', () => {
+    expect(extractClientId('jonathalimax.localhost:5173')).toBe('jonathalimax');
   });
 
-  it('returns app when path is root', () => {
-    expect(extractClientId('/')).toBe('app');
+  it('returns null for apex domain', () => {
+    expect(extractClientId('realwise.com.br')).toBeNull();
   });
 
-  it('returns app when path is empty string', () => {
-    expect(extractClientId('')).toBe('app');
+  it('returns null for www subdomain', () => {
+    expect(extractClientId('www.realwise.com.br')).toBeNull();
   });
 
-  it('returns app when first segment is a known non-client path', () => {
-    expect(extractClientId('/__/auth/handler')).toBe('app');
+  it('returns null for app subdomain', () => {
+    expect(extractClientId('app.realwise.com.br')).toBeNull();
   });
 
-  it('returns app when first segment is purchase-success', () => {
-    expect(extractClientId('/purchase-success')).toBe('app');
+  it('returns null for bare localhost', () => {
+    expect(extractClientId('localhost')).toBeNull();
   });
 
-  it('returns app when first segment is login', () => {
-    expect(extractClientId('/login')).toBe('app');
+  it('returns null for bare localhost with port', () => {
+    expect(extractClientId('localhost:5173')).toBeNull();
+  });
+
+  it('extracts tenant from *.localhost for local dev', () => {
+    expect(extractClientId('jonathalimax.localhost:5173')).toBe('jonathalimax');
   });
 });
 
