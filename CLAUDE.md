@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Moneywise** is a multi-client personal finance SaaS PWA built with React 19, Vite, and Tailwind CSS v4. One codebase and one Firebase Hosting deployment (`moneywise.web.app`) serves many clients — each with their own isolated Firebase project (Auth + Firestore) and per-client feature flags.
+**Realwise** is a multi-client personal finance SaaS PWA built with React 19, Vite, and Tailwind CSS v4. One codebase and one Firebase Hosting deployment (`realwise.com.br`) serves many clients — each with their own isolated Firebase project (Auth + Firestore) and per-client feature flags.
 
-- URL pattern: `moneywise.web.app/{clientId}/dashboard`
+- URL pattern: `{clientId}.realwise.com.br/dashboard`
 - Client config is fetched at runtime from `public/clients/{clientId}.json`
 - Firebase is initialized lazily (not at module load time)
 
@@ -28,6 +28,13 @@ firebase deploy --only functions    # Deploy cloud functions
 firebase functions:config:set ...   # Set config values
 ```
 
+### Local tenant testing
+
+- Dev server runs at `http://localhost:5173` (uses Vite env vars — no real tenant)
+- To test a specific tenant locally: `http://{clientId}.localhost:5173/dashboard`  
+  (Chrome/Firefox/Safari on macOS resolve `*.localhost` without `/etc/hosts` changes)
+- Shared login locally: `http://app.localhost:5173/login`
+
 ### Adding a new client
 
 1. Create their Firebase project
@@ -39,7 +46,7 @@ firebase functions:config:set ...   # Set config values
 
 ### Multi-Client Routing
 
-- `src/config/clientConfig.js` — `extractClientId(pathname)` reads the first URL segment
+- `src/config/clientConfig.js` — `extractClientId(hostname)` reads the first hostname label (e.g. `jonathalimax` from `jonathalimax.realwise.com.br`)
 - `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json`, calls `initializeFirebase()`, renders spinner until ready
 - `src/firebase.js` — exports live bindings (`auth`, `db`, `storage`, `functions`) initialized by `ClientConfigContext`
 - `src/App.jsx` — sets `BrowserRouter basename="/{clientId}"` so all internal routes resolve correctly
