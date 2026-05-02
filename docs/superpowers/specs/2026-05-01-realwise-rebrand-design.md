@@ -14,7 +14,7 @@ The underlying Firebase project (`moneywise-ad9ec`) and per-client Firebase proj
 ## 1. Assumptions
 
 1. `realwise.com.br` is registered at registro.br and DNS is editable but not yet pointing anywhere.
-2. Google Workspace will be created for `realwise.com.br` so `contato@realwise.com.br` is a real mailbox with an App Password (Nodemailer-compatible). If the user opts for a Gmail alias instead, the secret values change but no code changes.
+2. `contato@realwise.com.br` is hosted on **Umbler** (mailbox already provisioned). Nodemailer connects via Umbler's SMTP (`smtp.umbler.com`, port 587, STARTTLS) using the mailbox password. No Google Workspace involved.
 3. Firebase project `moneywise-ad9ec` remains the hosting project and is **not renamed** (Firebase project IDs are immutable). All client Firebase projects remain unchanged.
 4. URL layout:
    - `realwise.com.br` (apex) → marketing landing page
@@ -72,15 +72,26 @@ export function extractClientId(hostname) {
 | A | `@` | (Firebase IPs) | Apex landing |
 | A | `*` | (Firebase IPs) | Wildcard tenants |
 | TXT | `@` | (Firebase verify token) | Domain verification |
-| MX | `@` | Google Workspace MX set | Email |
-| TXT | `@` | SPF: `v=spf1 include:_spf.google.com ~all` | Email auth |
-| TXT | `google._domainkey` | DKIM from Workspace | Email auth |
+| MX | `@` | Umbler MX records (from Umbler panel) | Email |
+| TXT | `@` | SPF: `v=spf1 include:_spf.umbler.com ~all` (confirm exact value in Umbler panel) | Email auth |
+| TXT | `umbler._domainkey` (or as instructed) | DKIM record from Umbler panel | Email auth |
 
 ### 2.3 Email Sender
 
-- New secrets:
+- New / updated secrets (Firebase Secret Manager):
   - `EMAIL_USER=contato@realwise.com.br`
-  - `EMAIL_PASSWORD=<workspace app password>`
+  - `EMAIL_PASSWORD=<umbler mailbox password>`
+  - `EMAIL_HOST=smtp.umbler.com` (confirm exact host in Umbler panel)
+  - `EMAIL_PORT=587`
+- Nodemailer transport in `functions/index.js` switches from the Gmail preset to explicit SMTP:
+  ```js
+  nodemailer.createTransport({
+    host: EMAIL_HOST.value(),
+    port: Number(EMAIL_PORT.value()),
+    secure: false,            // STARTTLS on 587
+    auth: { user: EMAIL_USER.value(), pass: EMAIL_PASSWORD.value() }
+  })
+  ```
 - All Nodemailer `from:` lines updated to `Realwise <contato@realwise.com.br>`.
 - Email templates (`functions/emailTemplates.js`) re-branded: logo text, footer, "Moneywise" → "Realwise", any in-template URL → `https://realwise.com.br`.
 
@@ -159,11 +170,11 @@ Update `README.md` with:
 
 | Service | Action |
 |---------|--------|
-| registro.br / Cloudflare | Add A, wildcard A, MX, SPF, DKIM, TXT verification |
+| registro.br DNS | Add A, wildcard A, MX (Umbler), SPF, DKIM, TXT verification |
 | Firebase Hosting console | Add custom domains `realwise.com.br`, `*.realwise.com.br` |
 | Each client Firebase project | Add authorized domains; update OAuth consent screen |
-| Google Workspace | Create `contato@realwise.com.br`; generate App Password |
-| Firebase secrets | `firebase functions:secrets:set EMAIL_USER` and `EMAIL_PASSWORD` |
+| Umbler panel | Confirm `contato@realwise.com.br` mailbox exists; copy SMTP host + DKIM/SPF records |
+| Firebase secrets | `firebase functions:secrets:set EMAIL_USER`, `EMAIL_PASSWORD`, `EMAIL_HOST`, `EMAIL_PORT` |
 | Stripe Dashboard | Update webhook endpoint if pointed at hosting domain (cloud-functions URLs unchanged) |
 | Meta WhatsApp Cloud | Update webhook URL if pointed at hosting domain |
 
@@ -171,7 +182,7 @@ Update `README.md` with:
 
 ## 6. Cutover Order
 
-1. **DNS & Workspace** (slow propagation — start first): register Workspace, add MX/SPF/DKIM, register A/wildcard records pointing to Firebase.
+1. **DNS & mailbox** (slow propagation — start first): grab Umbler MX/SPF/DKIM values, add to registro.br DNS along with Firebase A/wildcard records.
 2. **Firebase Hosting custom domains**: verify and provision SSL.
 3. **Code rebrand PR**: rename pass + subdomain routing on `feat/realwise-rebrand` branch; merge after review.
 4. **Deploy preview**: smoke test one tenant subdomain end-to-end (login, dashboard, bills, email send).
