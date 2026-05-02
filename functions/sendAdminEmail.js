@@ -11,6 +11,8 @@ const {
 
 const emailUserSecret = defineSecret('EMAIL_USER');
 const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
+const emailHostSecret = defineSecret('EMAIL_HOST');
+const emailPortSecret = defineSecret('EMAIL_PORT');
 
 const db = admin.firestore();
 
@@ -30,7 +32,7 @@ const TEMPLATE_MAP = {
 };
 
 exports.sendAdminEmail = functions
-  .runWith({ secrets: [emailUserSecret, emailPasswordSecret] })
+  .runWith({ secrets: [emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret] })
   .https.onCall(async (data, context) => {
     // Auth + admin check
     if (!context.auth) {
@@ -59,7 +61,9 @@ exports.sendAdminEmail = functions
     }
 
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: emailHostSecret.value() || 'smtp.umbler.com',
+      port: Number(emailPortSecret.value() || 587),
+      secure: false,
       auth: { user: emailUser, pass: emailPass },
     });
 

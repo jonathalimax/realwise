@@ -4,6 +4,8 @@ const admin = require('firebase-admin');
 
 const emailUserSecret = defineSecret('EMAIL_USER');
 const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
+const emailHostSecret = defineSecret('EMAIL_HOST');
+const emailPortSecret = defineSecret('EMAIL_PORT');
 
 // Initialize Firebase Admin BEFORE importing other modules that depend on it
 admin.initializeApp();
@@ -34,6 +36,8 @@ const getEmailTransporter = () => {
   try {
     const user = emailUserSecret.value();
     const pass = emailPasswordSecret.value();
+    const host = emailHostSecret.value() || 'smtp.umbler.com';
+    const port = Number(emailPortSecret.value() || 587);
 
     if (!user || !pass) {
       console.log('Email secrets not set — skipping email transporter creation');
@@ -41,7 +45,9 @@ const getEmailTransporter = () => {
     }
 
     return nodemailer.createTransport({
-      service: 'gmail',
+      host,
+      port,
+      secure: false,
       auth: { user, pass },
     });
   } catch (err) {
@@ -565,7 +571,9 @@ exports.scheduledBillReminders = functions
       console.log(`Found ${byUser.size} user(s) with pending bills`);
 
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: emailHostSecret.value() || 'smtp.umbler.com',
+        port: Number(emailPortSecret.value() || 587),
+        secure: false,
         auth: { user, pass },
       });
 
@@ -789,7 +797,12 @@ exports.triggerBillReminder = functions
       const settingsDoc = await db.collection('settings').doc(userId).get();
       const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
 
-      const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: emailUser, pass: emailPass } });
+      const transporter = nodemailer.createTransport({
+        host: emailHostSecret.value() || 'smtp.umbler.com',
+        port: Number(emailPortSecret.value() || 587),
+        secure: false,
+        auth: { user: emailUser, pass: emailPass },
+      });
       await sendBillReminderEmail(transporter, emailUser, email, userName || 'Cliente', billGroups);
 
       const total = billGroups.overdue.length + billGroups.dueToday.length + billGroups.upcoming.length;
