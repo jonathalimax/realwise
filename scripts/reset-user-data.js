@@ -32,7 +32,7 @@ for (const arg of process.argv.slice(2)) {
 
 const env = args.env ?? 'local';
 const uid = args.uid;
-const projectId = args.project ?? 'realwise-ad9ec';
+const projectId = args.project ?? 'moneywise-ad9ec';
 
 if (!uid) {
   console.error('Error: --uid=<firebase-user-uid> is required');

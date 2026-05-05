@@ -13,7 +13,7 @@ admin.initializeApp();
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
-const { accessGrantedTemplate, billReminderTemplate } = require('./emailTemplates');
+const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate } = require('./emailTemplates');
 const axios = require('axios');
 
 // Import processor functions (must come after admin.initializeApp())
@@ -510,7 +510,7 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
  * Runs daily at 9 AM Brazil time
  */
 exports.scheduledBillReminders = functions
-  .runWith({ secrets: [emailUserSecret, emailPasswordSecret] })
+  .runWith({ secrets: [emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret] })
   .pubsub
   .schedule('0 9 * * *')
   .timeZone('America/Sao_Paulo')
@@ -518,12 +518,12 @@ exports.scheduledBillReminders = functions
     try {
       console.log('Starting scheduled email bill reminders...');
 
-      const user = emailUserSecret.value();
-      const pass = emailPasswordSecret.value();
-      if (!user || !pass) {
+      const transporter = getEmailTransporter();
+      if (!transporter) {
         console.log('Email secrets not set - aborting reminders');
         return null;
       }
+      const user = emailUserSecret.value();
 
       const now = new Date();
       const endOfToday = new Date();
@@ -569,13 +569,6 @@ exports.scheduledBillReminders = functions
       }
 
       console.log(`Found ${byUser.size} user(s) with pending bills`);
-
-      const transporter = nodemailer.createTransport({
-        host: emailHostSecret.value() || 'smtp.umbler.com',
-        port: Number(emailPortSecret.value() || 587),
-        secure: false,
-        auth: { user, pass },
-      });
 
       let totalSent = 0;
       for (const [userId, billGroups] of byUser) {
@@ -713,15 +706,15 @@ async function sendBillReminderEmail(transporter, from, to, name, billGroups) {
  * Usage: /triggerBillReminder?email=your@email.com
  */
 exports.triggerBillReminder = functions
-  .runWith({ secrets: [emailUserSecret, emailPasswordSecret] })
+  .runWith({ secrets: [emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret] })
   .https.onRequest(async (req, res) => {
     const { email } = req.query;
     if (!email) return res.status(400).send('Missing email parameter');
 
     try {
+      const transporter = getEmailTransporter();
+      if (!transporter) return res.status(500).send('Email secrets not configured');
       const emailUser = emailUserSecret.value();
-      const emailPass = emailPasswordSecret.value();
-      if (!emailUser || !emailPass) return res.status(500).send('Email secrets not configured');
 
       // Find user by email
       const authUser = await admin.auth().getUserByEmail(email);
@@ -797,12 +790,6 @@ exports.triggerBillReminder = functions
       const settingsDoc = await db.collection('settings').doc(userId).get();
       const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
 
-      const transporter = nodemailer.createTransport({
-        host: emailHostSecret.value() || 'smtp.umbler.com',
-        port: Number(emailPortSecret.value() || 587),
-        secure: false,
-        auth: { user: emailUser, pass: emailPass },
-      });
       await sendBillReminderEmail(transporter, emailUser, email, userName || 'Cliente', billGroups);
 
       const total = billGroups.overdue.length + billGroups.dueToday.length + billGroups.upcoming.length;

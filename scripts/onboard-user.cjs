@@ -67,7 +67,7 @@ if (!email || !email.includes('@')) {
 const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
 const projectId = `realwise-${username}`;
 const billingAccountId = process.argv[3] || process.env.BILLING_ACCOUNT_ID || '01F570-F17CDE-9379F7';
-const sharedProjectId = process.env.SHARED_PROJECT_ID || 'realwise-ad9ec';
+const sharedProjectId = process.env.SHARED_PROJECT_ID || 'moneywise-ad9ec';
 const repoRoot = path.resolve(__dirname, '..');
 
 console.log('\nOnboarding user:', email);
