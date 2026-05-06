@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { initializeFirebase } from '../firebase';
-import { extractClientId, fetchClientConfig, buildDevConfig } from '../config/clientConfig';
+import { extractClientId, fetchClientConfig } from '../config/clientConfig';
 
 const ClientConfigContext = createContext(null);
 
@@ -11,22 +11,21 @@ export function ClientConfigProvider({ children }) {
   useEffect(() => {
     async function load() {
       try {
+        // In DEV, fetch /clients/app.json (same as SharedLogin) instead of
+        // reading .env.development. This guarantees the projectId matches the
+        // 'shared' Firebase app already initialized by SharedLogin, so we
+        // reuse its Auth instance and stay signed in.
         let cfg;
+        let appName;
         if (import.meta.env.DEV) {
-          cfg = buildDevConfig();
+          cfg = await fetchClientConfig('app');
+          appName = 'shared';
         } else {
           const clientId = extractClientId(window.location.hostname)
             || window.location.pathname.split('/').filter(Boolean)[0];
           cfg = await fetchClientConfig(clientId);
+          appName = clientId;
         }
-        // In DEV, reuse the same app name 'shared' that SharedLogin initializes,
-        // so the per-client AppRouter sees the user that was signed in via Google.
-        // Both apps connect to the same emulator and now use the same projectId
-        // (moneywise-ad9ec), so firebase.js will reuse the existing app instance.
-        const appName = import.meta.env.DEV
-          ? 'shared'
-          : extractClientId(window.location.hostname)
-            || window.location.pathname.split('/').filter(Boolean)[0];
         await initializeFirebase(cfg.firebase, appName);
         setConfig(cfg);
       } catch (err) {

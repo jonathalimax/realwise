@@ -53,9 +53,24 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
   functions = getFunctions(app);
 
   if (import.meta.env.DEV) {
-    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectFunctionsEmulator(functions, 'localhost', 5001);
+    // Idempotent emulator connection — `connectAuthEmulator` throws
+    // `auth/emulator-config-failed` when the Auth instance has already been
+    // used or already has an emulator binding. That's fine — already connected.
+    try {
+      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    } catch (e) {
+      if (e?.code !== 'auth/emulator-config-failed') throw e;
+    }
+    try {
+      connectFirestoreEmulator(db, 'localhost', 8080);
+    } catch (e) {
+      // Firestore throws when reconnecting to the same emulator — ignore.
+    }
+    try {
+      connectFunctionsEmulator(functions, 'localhost', 5001);
+    } catch (e) {
+      // Functions reconnection is harmless to ignore.
+    }
     console.log('[Firebase] Connected to Emulator Suite');
   }
 }
