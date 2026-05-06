@@ -1,5 +1,6 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { FieldValue } = require('firebase-admin/firestore');
 
 const db = admin.firestore();
 const storage = admin.storage();
@@ -47,7 +48,7 @@ exports.submitImportIssue = functions.https.onCall(async (data, context) => {
   });
 
   await issueRef.set({
-    ts: admin.firestore.FieldValue.serverTimestamp(),
+    ts: FieldValue.serverTimestamp(),
     clientId,
     userEmail,
     userName: userName || '',
@@ -64,7 +65,7 @@ exports.submitImportIssue = functions.https.onCall(async (data, context) => {
     internalNotes: [],
   });
 
-  await rlRef.set({ count: used + 1, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  await rlRef.set({ count: used + 1, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 
   return { ok: true, issueId: issueRef.id };
 });
