@@ -41,7 +41,7 @@ export default function SharedLogin() {
     // In dev, the getCustomToken cloud function needs a real service account which
     // isn't available locally — redirect to the per-client login instead.
     if (import.meta.env.DEV) {
-      window.location.href = `/${username}/login`;
+      window.location.href = `/${username}/dashboard`;
       return;
     }
 
