@@ -16,6 +16,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { useFeature } from '../contexts/ClientConfigContext';
 import CurrencyInput from './ui/CurrencyInput';
 import PlannerGoalSelect from './PlannerGoalSelect';
+import ImportIssueReport from './ImportIssueReport';
 
 function ModalWrapper({ embedded, isMobile, children }) {
   if (embedded) {
@@ -215,6 +216,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const previewWindowScrollRef = useRef(0);
   const shouldRestorePreviewScrollRef = useRef(false);
 
+  const [showReport, setShowReport] = useState(false);
+  const [reportThanks, setReportThanks] = useState(false);
+  const [parseError, setParseError] = useState(null);
+  const [detectedHeaders, setDetectedHeaders] = useState([]);
+
   const [uploadProgress, setUploadProgress] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [isB3Import, setIsB3Import] = useState(false);
@@ -232,8 +238,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
 
   const handleBankSelect = (e) => {
     const val = e.target.value;
-    if (!val) { setSelectedBankId(null); setImportPaymentMethod('debit'); return; }
+    if (!val) { setSelectedBankId(null); setImportPaymentMethod('debit'); setShowReport(false); setReportThanks(false); setParseError(null); return; }
     setSelectedBankId(val);
+    setShowReport(false);
+    setReportThanks(false);
+    setParseError(null);
     const bank = userBanks.find(b => b.id === val);
     if (!bank?.hasCredit) setImportPaymentMethod('debit');
   };
@@ -284,6 +293,9 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       setError('');
       setPdfPassword('');
       setRequiresPdfPassword(false);
+      setShowReport(false);
+      setReportThanks(false);
+      setParseError(null);
     }
   };
 
@@ -323,13 +335,20 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       setInstallmentCount(installments);
       setAiCount(aiCategorized);
       setTransactions(afterHashFilter);
-      setStep('preview');
+
+      if (afterHashFilter.length === 0) {
+        setShowReport(true);
+      } else {
+        setStep('preview');
+      }
     } catch (err) {
       if (err.code === 'PDF_PASSWORD_REQUIRED') {
         setRequiresPdfPassword(true);
         setLoading(false);
         return;
       }
+      setParseError(err);
+      setShowReport(true);
       setError(err.message || 'Failed to parse file');
     } finally {
       setLoading(false);
@@ -493,7 +512,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const handleClose = () => {
     setFile(null); setTransactions([]); setStep('upload'); setError('');
     setDuplicateCount(0); setAiDuplicateCount(0); setInstallmentCount(0); setAiCount(0);
-    setPreviewView('list'); onClose();
+    setPreviewView('list'); setShowReport(false); setReportThanks(false); setParseError(null); setDetectedHeaders([]);
+    onClose();
   };
 
   if (!embedded && !isOpen) return null;
@@ -548,6 +568,28 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 <input type="file" accept=".csv,.xlsx,.xls,.pdf" onChange={handleFileSelect} className="hidden" />
               </label>
             </div>
+
+            {showReport && !reportThanks && (
+              <ImportIssueReport
+                file={file}
+                bankType={selectedBankId || 'auto'}
+                parserUsed={selectedBankId || 'auto'}
+                detectedHeaders={detectedHeaders}
+                errorMessage={parseError?.message}
+                onDone={(res) => {
+                  if (res?.ok) {
+                    setReportThanks(true);
+                  } else if (res?.dismissed) {
+                    setShowReport(false);
+                  }
+                }}
+              />
+            )}
+            {reportThanks && (
+              <div className="rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+                Obrigado! Recebemos seu arquivo, vamos olhar com carinho.
+              </div>
+            )}
           </div>
         )}
 
