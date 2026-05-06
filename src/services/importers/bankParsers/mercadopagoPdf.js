@@ -40,3 +40,7 @@ export function parseMercadoPagoPdf(text) {
   }
   return out;
 }
+
+export function detectMercadoPagoPdf(text) {
+  return /Mercado Pago/i.test(text) && /Vence em|Fatura|Crédito do mês/i.test(text);
+}

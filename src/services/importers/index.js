@@ -14,7 +14,8 @@ import {
   generateTransactionHash,
   generateInstallmentGroupId
 } from '../installments';
-import { parseMercadoPagoPdf } from './bankParsers/mercadopagoPdf';
+import { parseMercadoPagoPdf, detectMercadoPagoPdf } from './bankParsers/mercadopagoPdf';
+import { parseInterPdf, detectInterPdf } from './bankParsers/interPdf';
 import { parseInterStatement, detectInter } from './bankParsers/inter';
 import { parseOfx } from './bankParsers/ofx';
 import { parseItauPdf, detectItauPdf } from './bankParsers/itauPdf';
@@ -50,14 +51,17 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
       err.code = 'PDF_PASSWORD_REQUIRED';
       throw err;
     }
-    let transactions;
+    let transactions = [];
     if (bankType === 'itauPdf' || (bankType === 'auto' && detectItauPdf(text))) {
       transactions = parseItauPdf(text);
     } else if (bankType === 'bradescoPdf' || (bankType === 'auto' && detectBradescoPdf(text))) {
       transactions = parseBradescoPdf(text);
-    } else {
+    } else if (bankType === 'interPdf' || (bankType === 'auto' && detectInterPdf(text))) {
+      transactions = parseInterPdf(text);
+    } else if (bankType === 'mercadopagoPdf' || (bankType === 'auto' && detectMercadoPagoPdf(text))) {
       transactions = parseMercadoPagoPdf(text);
     }
+    // else: no parser matched, transactions stays [] so failed-import UI can kick in
     return await categorizeParsedTransactions(transactions, userId, options);
   } else {
     throw new Error('Unsupported file format. Please use CSV, Excel, or PDF files.');
@@ -297,11 +301,13 @@ export const BANK_OPTIONS = [
   { value: 'auto', label: 'Auto-detect' },
   { value: 'nubank', label: 'Nubank' },
   { value: 'inter', label: 'Banco Inter' },
+  { value: 'interPdf', label: 'Banco Inter (PDF)' },
   { value: 'itau', label: 'Itaú (CSV)' },
   { value: 'itauPdf', label: 'Itaú (PDF)' },
   { value: 'bradesco', label: 'Bradesco (CSV)' },
   { value: 'bradescoPdf', label: 'Bradesco (PDF)' },
   { value: 'mercadopago', label: 'Mercado Pago' },
+  { value: 'mercadopagoPdf', label: 'Mercado Pago (PDF)' },
   { value: 'ofx', label: 'OFX (qualquer banco)' },
   { value: 'generic', label: 'Outro / Genérico' }
 ];
