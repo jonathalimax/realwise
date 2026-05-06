@@ -19,11 +19,15 @@ export function ClientConfigProvider({ children }) {
             || window.location.pathname.split('/').filter(Boolean)[0];
           cfg = await fetchClientConfig(clientId);
         }
-        const clientId = import.meta.env.DEV
-          ? 'dev'
+        // In DEV, reuse the same app name 'shared' that SharedLogin initializes,
+        // so the per-client AppRouter sees the user that was signed in via Google.
+        // Both apps connect to the same emulator and now use the same projectId
+        // (moneywise-ad9ec), so firebase.js will reuse the existing app instance.
+        const appName = import.meta.env.DEV
+          ? 'shared'
           : extractClientId(window.location.hostname)
             || window.location.pathname.split('/').filter(Boolean)[0];
-        await initializeFirebase(cfg.firebase, clientId);
+        await initializeFirebase(cfg.firebase, appName);
         setConfig(cfg);
       } catch (err) {
         console.error('[ClientConfig] Failed to load config:', err);
