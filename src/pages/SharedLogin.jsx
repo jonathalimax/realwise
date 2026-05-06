@@ -102,11 +102,48 @@ export default function SharedLogin() {
       const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
       const DEV_EMAIL = 'jonathalimax@gmail.com';
       const DEV_PASSWORD = 'devpassword';
+      const projectId = auth.app.options.projectId;
+
+      // Helper: forcefully delete the user from the Auth Emulator REST API.
+      // The emulator accepts "Bearer owner" as an admin auth shortcut.
+      const purgeDevUser = async () => {
+        try {
+          const lookupRes = await fetch(
+            `http://localhost:9099/identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer owner' },
+              body: JSON.stringify({ email: [DEV_EMAIL] }),
+            }
+          );
+          const lookup = await lookupRes.json();
+          const localId = lookup?.users?.[0]?.localId;
+          if (!localId) return;
+          await fetch(
+            `http://localhost:9099/identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:delete`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer owner' },
+              body: JSON.stringify({ localId }),
+            }
+          );
+        } catch (purgeErr) {
+          console.warn('[SharedLogin] purge dev user failed', purgeErr);
+        }
+      };
+
       let result;
       try {
         result = await signInWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
       } catch (e) {
-        if (e?.code === 'auth/user-not-found' || e?.code === 'auth/invalid-credential' || e?.code === 'auth/invalid-login-credentials') {
+        const code = e?.code;
+        const recoverableNotFound = code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials';
+        const wrongPassword = code === 'auth/wrong-password';
+        if (recoverableNotFound) {
+          result = await createUserWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
+        } else if (wrongPassword) {
+          // Stale dev user from a previous run with a different password — purge & recreate.
+          await purgeDevUser();
           result = await createUserWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
         } else {
           throw e;
