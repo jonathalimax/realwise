@@ -41,6 +41,15 @@ export default function SharedLogin() {
     // In dev, the getCustomToken cloud function needs a real service account which
     // isn't available locally — redirect to the per-client login instead.
     if (import.meta.env.DEV) {
+      const { getApps: _getApps } = await import('firebase/app');
+      const { getAuth: _getAuth } = await import('firebase/auth');
+      const sharedApp = _getApps().find(a => a.name === 'shared');
+      const sharedAuth = sharedApp ? _getAuth(sharedApp) : null;
+      console.log('[debug-auth] SharedLogin pre-redirect', {
+        uid: sharedAuth?.currentUser?.uid,
+        appName: sharedApp?.name,
+        allApps: _getApps().map(a => a.name),
+      });
       window.location.href = `/${username}/dashboard`;
       return;
     }

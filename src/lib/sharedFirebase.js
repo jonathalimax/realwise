@@ -3,7 +3,7 @@
 // Exported instances are lazily initialised on first call to initSharedFirebase().
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const APP_NAME = 'shared';
@@ -36,6 +36,13 @@ export async function initSharedFirebase() {
     connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
     connectFunctionsEmulator(functions, 'localhost', 5001);
   }
+
+  // Set persistence BEFORE sign-in so it sticks across the page navigation.
+  // firebase.js will skip setPersistence in the reuse branch to avoid clearing
+  // the session after sign-in.
+  await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
+    setPersistence(auth, browserLocalPersistence)
+  );
 
   return { auth, functions };
 }

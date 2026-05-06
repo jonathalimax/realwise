@@ -124,6 +124,7 @@ function AppRouter() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log('[debug-auth] AppRouter onAuthStateChanged', currentUser?.uid ?? 'null', new Date().toISOString());
       setUser(currentUser);
       setLoading(false);
     });

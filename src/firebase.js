@@ -31,11 +31,12 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
       await deleteApp(existing);
     } else {
       // Same project — reuse existing app.
+      // DO NOT call setPersistence here: calling it after sign-in clears the
+      // auth session (hypothesis D). Persistence was already set (or defaults
+      // to browserLocal) when the app was first initialized.
       app = existing;
       auth = getAuth(app);
-      await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
-        setPersistence(auth, browserLocalPersistence)
-      );
+      console.log('[debug-auth] REUSING app', app.name, existing.options.projectId, 'currentUser uid:', auth.currentUser?.uid);
       db = getFirestore(app);
       storage = getStorage(app);
       functions = getFunctions(app);
@@ -45,6 +46,7 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
 
   app = initializeApp(firebaseConfig, appName);
   auth = getAuth(app);
+  console.log('[debug-auth] FIRST INIT app', appName, firebaseConfig.projectId);
   await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
     setPersistence(auth, browserLocalPersistence)
   );
