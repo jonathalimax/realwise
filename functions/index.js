@@ -952,3 +952,5 @@ exports.createDiscountCheckout = createDiscountCheckout;
 
 const { submitImportIssue } = require('./submitImportIssue');
 exports.submitImportIssue = submitImportIssue;
+
+exports.sendImportIssueEmail = require('./sendImportIssueEmail').sendImportIssueEmail;
