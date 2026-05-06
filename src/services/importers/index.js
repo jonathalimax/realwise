@@ -15,6 +15,10 @@ import {
   generateInstallmentGroupId
 } from '../installments';
 import { parseMercadoPagoPdf } from './bankParsers/mercadopagoPdf';
+import { parseInterStatement, detectInter } from './bankParsers/inter';
+import { parseOfx } from './bankParsers/ofx';
+import { parseItauPdf, detectItauPdf } from './bankParsers/itauPdf';
+import { parseBradescoPdf, detectBradescoPdf } from './bankParsers/bradescoPdf';
 import { extractPdfText } from './pdfLoader';
 
 /**
@@ -35,6 +39,10 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
     data = await parseCSV(file);
   } else if (['xlsx', 'xls'].includes(fileExtension)) {
     data = await parseExcel(file);
+  } else if (fileExtension === 'ofx') {
+    const text = await file.text();
+    const transactions = parseOfx(text);
+    return await categorizeParsedTransactions(transactions, userId, options);
   } else if (fileExtension === 'pdf') {
     const { text, requiresPassword } = await extractPdfText(file, options.pdfPassword);
     if (requiresPassword) {
@@ -42,7 +50,14 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
       err.code = 'PDF_PASSWORD_REQUIRED';
       throw err;
     }
-    const transactions = parseMercadoPagoPdf(text);
+    let transactions;
+    if (bankType === 'itauPdf' || (bankType === 'auto' && detectItauPdf(text))) {
+      transactions = parseItauPdf(text);
+    } else if (bankType === 'bradescoPdf' || (bankType === 'auto' && detectBradescoPdf(text))) {
+      transactions = parseBradescoPdf(text);
+    } else {
+      transactions = parseMercadoPagoPdf(text);
+    }
     return await categorizeParsedTransactions(transactions, userId, options);
   } else {
     throw new Error('Unsupported file format. Please use CSV, Excel, or PDF files.');
@@ -59,6 +74,8 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
     const headers = Object.keys(data[0]);
     if (detectNubank(headers)) {
       transactions = parseNubankStatement(data);
+    } else if (detectInter(headers)) {
+      transactions = parseInterStatement(data);
     } else if (detectItau(headers)) {
       transactions = parseItauStatement(data);
     } else if (detectBradesco(headers)) {
@@ -72,6 +89,9 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
     switch (bankType) {
       case 'nubank':
         transactions = parseNubankStatement(data);
+        break;
+      case 'inter':
+        transactions = parseInterStatement(data);
         break;
       case 'itau':
         transactions = parseItauStatement(data);
@@ -104,6 +124,12 @@ function parseCSV(file) {
       if (mpHeaderIndex > 0) {
         content = content.substring(mpHeaderIndex);
       }
+
+      const interHeaderIndex = content.indexOf('Data Lançamento');
+      if (interHeaderIndex > 0) content = content.substring(interHeaderIndex);
+
+      const bradescoHeaderIndex = content.indexOf('Data;Histórico');
+      if (bradescoHeaderIndex > 0) content = content.substring(bradescoHeaderIndex);
 
       // Detect delimiter: Brazilian CSVs often use semicolon
       const firstLine = content.split('\n')[0];
@@ -270,8 +296,12 @@ async function categorizeParsedTransactions(transactions, userId, options) {
 export const BANK_OPTIONS = [
   { value: 'auto', label: 'Auto-detect' },
   { value: 'nubank', label: 'Nubank' },
-  { value: 'itau', label: 'Itaú' },
-  { value: 'bradesco', label: 'Bradesco' },
+  { value: 'inter', label: 'Banco Inter' },
+  { value: 'itau', label: 'Itaú (CSV)' },
+  { value: 'itauPdf', label: 'Itaú (PDF)' },
+  { value: 'bradesco', label: 'Bradesco (CSV)' },
+  { value: 'bradescoPdf', label: 'Bradesco (PDF)' },
   { value: 'mercadopago', label: 'Mercado Pago' },
-  { value: 'generic', label: 'Other / Generic' }
+  { value: 'ofx', label: 'OFX (qualquer banco)' },
+  { value: 'generic', label: 'Outro / Genérico' }
 ];
