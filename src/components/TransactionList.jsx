@@ -281,7 +281,7 @@ export default function TransactionList({
                     </button>
                   )}
 
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-lg
+                  <div className={`hidden sm:flex w-10 h-10 rounded-full items-center justify-center flex-shrink-0 text-lg
                     ${transaction.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}>
                     {getCategoryIcon(transaction.category, transaction.type)}
                   </div>

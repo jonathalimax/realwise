@@ -124,7 +124,7 @@ export default function PageHeader({ title, showMonth = true, right }) {
             )}
           </div>
 
-          <h1 className="absolute inset-x-0 text-center pointer-events-none sm:static sm:text-left sm:flex-1 sm:pointer-events-auto sm:truncate text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+          <h1 className="flex-1 min-w-0 ml-2 truncate text-left sm:flex-1 sm:ml-3 text-lg sm:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
             {displayTitle}
           </h1>
 

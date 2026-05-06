@@ -366,7 +366,7 @@ export default function SettingsPage() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 dark:text-white truncate">{currentUser?.displayName || '—'}</p>
+                <p className="font-bold text-gray-900 dark:text-white truncate">{currentUser?.displayName || currentUser?.email?.split('@')[0] || '—'}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{currentUser?.email}</p>
               </div>
             </div>

@@ -518,32 +518,32 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-6">
         <div className="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-2 sm:p-4">
-          <p className="text-[10px] sm:text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1">
+          <p className="text-[9px] sm:text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide mb-1 leading-tight">
             {language === 'pt' ? 'Vencidas' : 'Overdue'}
           </p>
-          <p className="text-lg sm:text-2xl font-bold text-rose-600 dark:text-rose-400">{overdueBills.length}</p>
-          <p className="text-[10px] sm:text-xs text-rose-500 dark:text-rose-400 mt-0.5 truncate">{formatCurrency(overdueBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
+          <p className="text-base sm:text-2xl font-bold text-rose-600 dark:text-rose-400">{overdueBills.length}</p>
+          <p className="text-[9px] sm:text-xs text-rose-500 dark:text-rose-400 mt-0.5 break-words leading-tight">{formatCurrency(overdueBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-2 sm:p-4">
-          <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">
+          <p className="text-[9px] sm:text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1 leading-tight">
             {language === 'pt' ? 'Próximas' : 'Upcoming'}
           </p>
-          <p className="text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{upcomingBills.length}</p>
-          <p className="text-[10px] sm:text-xs text-amber-500 dark:text-amber-400 mt-0.5 truncate">{formatCurrency(upcomingBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
+          <p className="text-base sm:text-2xl font-bold text-amber-600 dark:text-amber-400">{upcomingBills.length}</p>
+          <p className="text-[9px] sm:text-xs text-amber-500 dark:text-amber-400 mt-0.5 break-words leading-tight">{formatCurrency(upcomingBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2 sm:p-4">
-          <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">
+          <p className="text-[9px] sm:text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1 leading-tight">
             {language === 'pt' ? 'Pendentes' : 'Pending'}
           </p>
-          <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{otherPendingBills.length}</p>
-          <p className="text-[10px] sm:text-xs text-blue-500 dark:text-blue-400 mt-0.5 truncate">{formatCurrency(otherPendingBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
+          <p className="text-base sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{otherPendingBills.length}</p>
+          <p className="text-[9px] sm:text-xs text-blue-500 dark:text-blue-400 mt-0.5 break-words leading-tight">{formatCurrency(otherPendingBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
         <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-2 sm:p-4">
-          <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">
+          <p className="text-[9px] sm:text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 leading-tight">
             {language === 'pt' ? 'Pagas' : 'Paid'}
           </p>
-          <p className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{paidBills.length}</p>
-          <p className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-0.5 truncate">{formatCurrency(paidBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
+          <p className="text-base sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{paidBills.length}</p>
+          <p className="text-[9px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-0.5 break-words leading-tight">{formatCurrency(paidBills.reduce((s, b) => s + getBillAmount(b), 0))}</p>
         </div>
       </div>
 

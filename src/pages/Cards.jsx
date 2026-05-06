@@ -114,7 +114,7 @@ export function BanksTabContent() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
               {subtitleName}
               {userBank.hasCredit && (
                 <>
@@ -397,7 +397,7 @@ export function BanksTabContent() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
+    <div className="pb-8">
         {/* List View */}
         {view === 'list' && (
           <div className="space-y-2">

@@ -127,9 +127,7 @@ export default function AllocationTab({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Plano Mestre</h2>
-            {isValid
-              ? <Badge variant="default" className="bg-emerald-500">✓ 100%</Badge>
-              : <Badge variant="destructive">Soma: {allocationTotal}%</Badge>}
+            {!isValid && <Badge variant="destructive">Soma: {allocationTotal}%</Badge>}
           </div>
           <div className="flex items-center gap-2">
             <button 

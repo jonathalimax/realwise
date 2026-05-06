@@ -144,15 +144,15 @@ export default function InvestmentsPage() {
             </div>
 
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                 {investment.bank && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs">{bankIcon}</span>
+                  <div className="flex items-center gap-1 min-w-0 max-w-[100px]">
+                    <span className="text-xs flex-shrink-0">{bankIcon}</span>
                     <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{bankDisplayName}</span>
                   </div>
                 )}
                 {purchaseDate && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">{purchaseDate}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{purchaseDate}</span>
                 )}
               </div>
               <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums flex-shrink-0">
@@ -167,7 +167,7 @@ export default function InvestmentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <PageHeader title={language === 'pt' ? 'Investimentos' : 'Investments'} />
+      <PageHeader title={language === 'pt' ? 'Carteira' : 'Investments'} />
 
       <div className="max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8 pt-4 space-y-4">
         {/* Summary card */}

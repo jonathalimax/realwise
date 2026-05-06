@@ -28,7 +28,7 @@ const PLANNER_HELP = {
 const PLANNER_TITLES = {
   renda: 'Renda',
   allocation: 'Alocação',
-  rastreamento: 'Gastos por Categoria',
+  rastreamento: 'Gastos',
 };
 
 export default function PlannerPage() {

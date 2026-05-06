@@ -379,7 +379,21 @@ export default function InvestmentForm() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   {t('investments.type')}
                 </label>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {/* Dropdown on mobile, icon grid on desktop */}
+                <div className="sm:hidden">
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                  >
+                    {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                      <option key={key} value={key}>
+                        {info.icon} {t(`investments.types.${key}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="hidden sm:grid grid-cols-5 gap-3">
                   {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
                     <button
                       key={key}
@@ -393,7 +407,7 @@ export default function InvestmentForm() {
                       title={t(`investments.types.${key}`)}
                     >
                       <span>{info.icon}</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 w-full text-center leading-tight px-0.5 line-clamp-2">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 w-full text-center leading-tight px-0.5 line-clamp-2">
                         {t(`investments.types.${key}`)}
                       </span>
                     </button>

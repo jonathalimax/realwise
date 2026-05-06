@@ -401,7 +401,21 @@ export default function TransactionEditPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t('investments.type')}
                   </label>
-                  <div className="grid grid-cols-5 gap-2">
+                  {/* Dropdown on mobile, icon grid on desktop */}
+                  <div className="sm:hidden">
+                    <select
+                      value={investmentType}
+                      onChange={(e) => setInvestmentType(e.target.value)}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+                    >
+                      {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                        <option key={key} value={key}>
+                          {info.icon} {t(`investments.types.${key}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="hidden sm:grid grid-cols-5 gap-2">
                     {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
                       <button
                         key={key}
