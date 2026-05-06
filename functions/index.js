@@ -949,3 +949,6 @@ const { createDiscountCheckout } = require('./createDiscountCheckout');
 const { transferClient } = require('./transferClient');
 exports.transferClient = transferClient;
 exports.createDiscountCheckout = createDiscountCheckout;
+
+const { submitImportIssue } = require('./submitImportIssue');
+exports.submitImportIssue = submitImportIssue;
