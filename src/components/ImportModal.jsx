@@ -3,7 +3,7 @@ import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { parseFile } from '../services/importers';
+import { parseFile, BANK_OPTIONS } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useGoals } from '../contexts/GoalsContext';
@@ -216,6 +216,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const previewWindowScrollRef = useRef(0);
   const shouldRestorePreviewScrollRef = useRef(false);
 
+  const [bankType, setBankType] = useState('auto');
   const [showReport, setShowReport] = useState(false);
   const [reportThanks, setReportThanks] = useState(false);
   const [parseError, setParseError] = useState(null);
@@ -308,7 +309,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       const aiOptions = geminiApiKey ? { apiKey: geminiApiKey, categories } : {};
       if (pdfPassword) aiOptions.pdfPassword = pdfPassword;
 
-      const parsed = await parseFile(file, 'auto', userId, aiOptions);
+      const parsed = await parseFile(file, bankType, userId, aiOptions);
 
       let hashDuplicates = 0;
       let installments = 0;
@@ -337,6 +338,10 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       setTransactions(afterHashFilter);
 
       if (afterHashFilter.length === 0) {
+        const selectedOpt = BANK_OPTIONS.find((o) => o.value === bankType);
+        if (selectedOpt?.status === 'manual') {
+          setParseError(new Error(`Banco "${selectedOpt.label}" ainda não tem parser automático. Envie o arquivo para o time analisar.`));
+        }
         setShowReport(true);
       } else {
         setStep('preview');
@@ -512,7 +517,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const handleClose = () => {
     setFile(null); setTransactions([]); setStep('upload'); setError('');
     setDuplicateCount(0); setAiDuplicateCount(0); setInstallmentCount(0); setAiCount(0);
-    setPreviewView('list'); setShowReport(false); setReportThanks(false); setParseError(null); setDetectedHeaders([]);
+    setPreviewView('list'); setShowReport(false); setReportThanks(false); setParseError(null); setDetectedHeaders([]); setBankType('auto');
     onClose();
   };
 
@@ -544,6 +549,24 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                   <button onClick={() => setImportPaymentMethod('credit')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${importPaymentMethod === 'credit' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}>💳 CARTÃO</button>
                 </div>
               )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">{language === 'pt' ? 'Banco do Arquivo' : 'File Bank'}</label>
+              <div className="relative">
+                <select
+                  value={bankType}
+                  onChange={(e) => { setBankType(e.target.value); setShowReport(false); setReportThanks(false); setParseError(null); }}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:ring-2 focus:ring-violet-500 appearance-none shadow-sm"
+                >
+                  {BANK_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}{opt.status === 'manual' ? '  ·  Manual' : ''}
+                    </option>
+                  ))}
+                </select>
+                <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </div>
             </div>
 
             <div>
@@ -614,7 +637,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               {sortedTransactions.duplicates.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <button onClick={() => setIsDuplicatesExpanded(!isDuplicatesExpanded)} className="w-full flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-                    <span className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">⚠️ Duplicadas ({sortedTransactions.duplicates.length})</span>
+                    <span className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Duplicadas ({sortedTransactions.duplicates.length})</span>
                     <svg className={`w-4 h-4 text-amber-500 transition-transform ${isDuplicatesExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {isDuplicatesExpanded && (

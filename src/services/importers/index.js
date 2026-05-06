@@ -107,7 +107,8 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
         transactions = parseMercadopagoStatement(data);
         break;
       default:
-        transactions = parseGenericStatement(data);
+        // Unsupported / manual bank — leave empty so failed-import flow triggers.
+        transactions = [];
     }
   }
 
@@ -297,17 +298,20 @@ async function categorizeParsedTransactions(transactions, userId, options) {
   return processedTransactions;
 }
 
+// Each option includes a `status` indicating whether we have a built-in parser.
+// 'auto'   — built-in parser exists
+// 'manual' — bank is recognized but no parser yet; selecting it triggers the
+//            failed-import reporting flow so the user can send us their file
 export const BANK_OPTIONS = [
-  { value: 'auto', label: 'Auto-detect' },
-  { value: 'nubank', label: 'Nubank' },
-  { value: 'inter', label: 'Banco Inter' },
-  { value: 'interPdf', label: 'Banco Inter (PDF)' },
-  { value: 'itau', label: 'Itaú (CSV)' },
-  { value: 'itauPdf', label: 'Itaú (PDF)' },
-  { value: 'bradesco', label: 'Bradesco (CSV)' },
-  { value: 'bradescoPdf', label: 'Bradesco (PDF)' },
-  { value: 'mercadopago', label: 'Mercado Pago' },
-  { value: 'mercadopagoPdf', label: 'Mercado Pago (PDF)' },
-  { value: 'ofx', label: 'OFX (qualquer banco)' },
-  { value: 'generic', label: 'Outro / Genérico' }
+  { value: 'auto',          label: 'Detectar automaticamente', status: 'auto' },
+  { value: 'nubank',        label: 'Nubank',                   status: 'auto' },
+  { value: 'itau',          label: 'Itaú',                     status: 'auto' },
+  { value: 'bradesco',      label: 'Bradesco',                 status: 'auto' },
+  { value: 'inter',         label: 'Banco Inter',              status: 'auto' },
+  { value: 'mercadopago',   label: 'Mercado Pago',             status: 'auto' },
+  { value: 'bancodobrasil', label: 'Banco do Brasil',          status: 'manual' },
+  { value: 'caixa',         label: 'Caixa Econômica Federal',  status: 'manual' },
+  { value: 'santander',     label: 'Santander',                status: 'manual' },
+  { value: 'ofx',           label: 'OFX (qualquer banco)',     status: 'auto' },
+  { value: 'custom',        label: 'Outro banco',              status: 'manual' },
 ];
