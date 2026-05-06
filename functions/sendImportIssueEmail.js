@@ -6,7 +6,7 @@ const nodemailer = require('nodemailer');
 const emailUserSecret = defineSecret('EMAIL_USER');
 const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
 
-const ADMIN_EMAIL = 'jonathalimax@gmail.com';
+const ADMIN_EMAIL = 'suporte@realwise.com.br';
 const APP_BASE_URL = 'https://app.realwise.com.br';
 
 exports.sendImportIssueEmail = functions
