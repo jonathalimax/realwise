@@ -99,7 +99,11 @@ export default function SharedLogin() {
     setLoading(true);
     try {
       const { auth, functions } = sharedRef.current;
-      const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
+      const { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } = await import('firebase/auth');
+      // Clear any stale auth state — the emulator may have been restarted
+      // since IndexedDB was last written, leaving us with a token for a UID
+      // that no longer exists ("Internal state invariant broken").
+      await signOut(auth).catch(() => {});
       const DEV_EMAIL = 'jonathalimax@gmail.com';
       const DEV_PASSWORD = 'devpassword';
       const projectId = auth.app.options.projectId;
