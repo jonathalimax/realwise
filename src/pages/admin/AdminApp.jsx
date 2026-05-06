@@ -9,6 +9,8 @@ import AdminAuth from './AdminAuth';
 const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
 const OnboardingRun = lazy(() => import('./OnboardingRun'));
 const TransferScript = lazy(() => import('./TransferScript'));
+const ImportIssues = lazy(() => import('./ImportIssues'));
+const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 
 let adminDb = null;
 let adminAuth = null;
@@ -73,6 +75,7 @@ export default function AdminApp() {
           <span className="font-bold text-emerald-400 text-lg mr-3">Realwise Admin</span>
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
           <NavLink to="transfer" className={navLinkClass}>Transfer</NavLink>
+          <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
           <button
             onClick={() => signOut(adminAuth)}
             className="ml-auto text-sm text-gray-500 hover:text-red-400"
@@ -86,6 +89,8 @@ export default function AdminApp() {
             <Route path="leads" element={<LeadsDashboard db={adminDb} functions={adminFunctions} />} />
             <Route path="transfer" element={<TransferScript />} />
             <Route path="onboarding/:runId" element={<OnboardingRun db={adminDb} functions={adminFunctions} />} />
+            <Route path="import-issues" element={<ImportIssues db={adminDb} />} />
+            <Route path="import-issues/:id" element={<ImportIssueDetail db={adminDb} />} />
             <Route path="*" element={<Navigate to="leads" replace />} />
           </Routes>
         </Suspense>
