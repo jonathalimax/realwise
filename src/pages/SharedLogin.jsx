@@ -93,6 +93,33 @@ export default function SharedLogin() {
     window.location.href = `/${username}/dashboard`;
   };
 
+  const handleDevEmulatorSignIn = async () => {
+    if (!sharedRef.current) return;
+    setError('');
+    setLoading(true);
+    try {
+      const { auth, functions } = sharedRef.current;
+      const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
+      const DEV_EMAIL = 'jonathalimax@gmail.com';
+      const DEV_PASSWORD = 'devpassword';
+      let result;
+      try {
+        result = await signInWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
+      } catch (e) {
+        if (e?.code === 'auth/user-not-found' || e?.code === 'auth/invalid-credential' || e?.code === 'auth/invalid-login-credentials') {
+          result = await createUserWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
+        } else {
+          throw e;
+        }
+      }
+      await handlePostSignIn(result.user.email, functions);
+    } catch (err) {
+      console.error('[SharedLogin] dev sign-in error', err);
+      setError('Falha no sign-in dev: ' + (err?.message || 'unknown'));
+      setLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     if (!sharedRef.current) return;
     setError('');
@@ -215,6 +242,26 @@ export default function SharedLogin() {
             )}
             Continuar com Google
           </button>
+
+          {import.meta.env.DEV && (
+            <>
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                <span className="text-xs text-gray-400">DEV</span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+              </div>
+              <button
+                onClick={handleDevEmulatorSignIn}
+                disabled={loading}
+                className="w-full py-3 border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30
+                  rounded-xl font-medium text-amber-700 dark:text-amber-300
+                  hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Entrando...' : 'Entrar como jonathalimax (DEV emulator)'}
+              </button>
+            </>
+          )}
 
           <p className="text-center mt-8 text-sm text-gray-400">
             Acesso restrito a usuários cadastrados
