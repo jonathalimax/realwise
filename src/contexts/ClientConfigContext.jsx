@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { initializeFirebase } from '../firebase';
 import { extractClientId, fetchClientConfig } from '../config/clientConfig';
+import { devMark } from '../lib/devMarker';
 
 const ClientConfigContext = createContext(null);
 
@@ -11,6 +12,7 @@ export function ClientConfigProvider({ children }) {
   useEffect(() => {
     async function load() {
       try {
+        devMark('ClientConfig: load() start');
         // In DEV, fetch /clients/app.json (same as SharedLogin) instead of
         // reading .env.development. This guarantees the projectId matches the
         // 'shared' Firebase app already initialized by SharedLogin, so we
@@ -27,8 +29,10 @@ export function ClientConfigProvider({ children }) {
           appName = clientId;
         }
         await initializeFirebase(cfg.firebase, appName);
+        devMark('ClientConfig: initialized');
         setConfig(cfg);
       } catch (err) {
+        devMark('ClientConfig ERR: ' + (err?.message || 'unknown'));
         console.error('[ClientConfig] Failed to load config:', err);
         setError(err.message);
       }

@@ -8,6 +8,7 @@ import { httpsCallable } from 'firebase/functions';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { initSharedFirebase } from '../lib/sharedFirebase';
+import { devMark } from '../lib/devMarker';
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -35,6 +36,7 @@ export default function SharedLogin() {
   }, []);
 
   const handlePostSignIn = async (email, functions) => {
+    devMark('SharedLogin: signed in as ' + email);
     if (!email) throw new Error('No email returned from Google');
     const username = email.split('@')[0];
 
@@ -50,6 +52,10 @@ export default function SharedLogin() {
         appName: sharedApp?.name,
         allApps: _getApps().map(a => a.name),
       });
+      sessionStorage.setItem('__rw_dev_auth_uid', sharedAuth?.currentUser?.uid ?? '');
+      sessionStorage.setItem('__rw_dev_auth_email', email ?? '');
+      sessionStorage.setItem('__rw_dev_auth_at', String(Date.now()));
+      devMark('SharedLogin: navigating to /' + username + '/dashboard');
       window.location.href = `/${username}/dashboard`;
       return;
     }

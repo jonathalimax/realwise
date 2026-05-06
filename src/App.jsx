@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { extractClientId } from './config/clientConfig';
 import { auth } from './firebase';
@@ -15,6 +15,7 @@ import { BudgetProvider } from './contexts/BudgetContext';
 import { BillsProvider } from './contexts/BillsContext';
 import { PWAInstallProvider } from './contexts/PWAInstallContext';
 import { MonthProvider } from './contexts/MonthContext';
+import { devMark } from './lib/devMarker';
 
 // Lazy-loaded page components (code splitting — each page is its own chunk)
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -123,12 +124,54 @@ function AppRouter() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let resolved = false;
+    let devTimer = null;
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       console.log('[debug-auth] AppRouter onAuthStateChanged', currentUser?.uid ?? 'null', new Date().toISOString());
-      setUser(currentUser);
+      devMark('AppRouter: auth state ' + (currentUser?.uid ?? 'null'));
+
+      if (resolved) {
+        setUser(currentUser);
+        return;
+      }
+
+      if (currentUser) {
+        resolved = true;
+        if (devTimer) clearTimeout(devTimer);
+        setUser(currentUser);
+        setLoading(false);
+        return;
+      }
+
+      // null on first callback — check dev sessionStorage fallback
+      if (import.meta.env.DEV) {
+        const flagAt = parseInt(sessionStorage.getItem('__rw_dev_auth_at') || '0');
+        const fresh = Date.now() - flagAt < 60_000;
+        if (fresh) {
+          devMark('AppRouter: null user but fresh session flag — waiting up to 3s');
+          // Wait up to 3s for auth to rehydrate (next non-null onAuthStateChanged)
+          devTimer = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              devMark('AppRouter: 3s timeout reached — giving up, setting null');
+              setUser(null);
+              setLoading(false);
+            }
+          }, 3000);
+          return; // Do NOT resolve yet; wait for next callback
+        }
+      }
+
+      resolved = true;
+      setUser(null);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+      if (devTimer) clearTimeout(devTimer);
+    };
   }, []);
 
   if (loading) {

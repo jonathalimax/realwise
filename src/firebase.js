@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp, deleteApp } from 'firebase/app';
+import { devMark } from './lib/devMarker';
 import { getAuth, connectAuthEmulator, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, terminate } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -36,6 +37,7 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
       // to browserLocal) when the app was first initialized.
       app = existing;
       auth = getAuth(app);
+      devMark('firebase REUSE app=' + appName + ' uid=' + (auth.currentUser?.uid ?? 'null'));
       console.log('[debug-auth] REUSING app', app.name, existing.options.projectId, 'currentUser uid:', auth.currentUser?.uid);
       db = getFirestore(app);
       storage = getStorage(app);
@@ -46,6 +48,7 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
 
   app = initializeApp(firebaseConfig, appName);
   auth = getAuth(app);
+  devMark('firebase FIRST INIT app=' + appName);
   console.log('[debug-auth] FIRST INIT app', appName, firebaseConfig.projectId);
   await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
     setPersistence(auth, browserLocalPersistence)
