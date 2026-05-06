@@ -16,6 +16,7 @@ import {
 } from '../installments';
 import { parseMercadoPagoPdf, detectMercadoPagoPdf } from './bankParsers/mercadopagoPdf';
 import { parseInterPdf, detectInterPdf } from './bankParsers/interPdf';
+import { parseInterFaturaPdf, detectInterFaturaPdf } from './bankParsers/interFaturaPdf';
 import { parseInterStatement, detectInter } from './bankParsers/inter';
 import { parseOfx } from './bankParsers/ofx';
 import { parseItauPdf, detectItauPdf } from './bankParsers/itauPdf';
@@ -56,6 +57,8 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
       transactions = parseItauPdf(text);
     } else if (bankType === 'bradescoPdf' || (bankType === 'auto' && detectBradescoPdf(text))) {
       transactions = parseBradescoPdf(text);
+    } else if (bankType === 'interFaturaPdf' || (bankType === 'auto' && detectInterFaturaPdf(text))) {
+      transactions = parseInterFaturaPdf(text);
     } else if (bankType === 'interPdf' || (bankType === 'auto' && detectInterPdf(text))) {
       transactions = parseInterPdf(text);
     } else if (bankType === 'mercadopagoPdf' || (bankType === 'auto' && detectMercadoPagoPdf(text))) {
@@ -308,6 +311,7 @@ export const BANK_OPTIONS = [
   { value: 'itau',          label: 'Itaú',                     status: 'auto' },
   { value: 'bradesco',      label: 'Bradesco',                 status: 'auto' },
   { value: 'inter',         label: 'Banco Inter',              status: 'auto' },
+  { value: 'interFaturaPdf', label: 'Banco Inter — Fatura',   status: 'auto' },
   { value: 'mercadopago',   label: 'Mercado Pago',             status: 'auto' },
   { value: 'bancodobrasil', label: 'Banco do Brasil',          status: 'manual' },
   { value: 'caixa',         label: 'Caixa Econômica Federal',  status: 'manual' },

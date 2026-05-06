@@ -579,7 +579,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       </div>
                       <p className="text-sm font-bold truncate max-w-full px-4">{file.name}</p>
-                      <button onClick={(e) => {e.preventDefault(); setFile(null);}} className="text-xs text-rose-500 font-bold uppercase underline">remover</button>
+                      <button onClick={(e) => {e.preventDefault(); setFile(null); setPdfPassword(''); setRequiresPdfPassword(false);}} className="text-xs text-rose-500 font-bold uppercase underline">remover</button>
                     </div>
                   ) : (
                     <>
@@ -591,6 +591,25 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 <input type="file" accept=".csv,.xlsx,.xls,.pdf" onChange={handleFileSelect} className="hidden" />
               </label>
             </div>
+
+            {requiresPdfPassword && (
+              <div className="mt-3 p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                  Esse PDF é protegido por senha.
+                </p>
+                <input
+                  type="password"
+                  value={pdfPassword}
+                  onChange={(e) => setPdfPassword(e.target.value)}
+                  placeholder="Senha do PDF"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
+                  autoFocus
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  A senha não é armazenada — usada apenas para abrir o arquivo.
+                </p>
+              </div>
+            )}
 
             {showReport && !reportThanks && (
               <ImportIssueReport

@@ -86,5 +86,7 @@ export function parseInterPdf(text) {
 }
 
 export function detectInterPdf(text) {
+  // Avoid matching the credit-card fatura which has "Despesas da fatura"
+  if (/Despesas da fatura/i.test(text)) return false;
   return /Banco Inter/i.test(text) && /Saldo do dia|Pix recebido|Pagamento efetuado/i.test(text);
 }
