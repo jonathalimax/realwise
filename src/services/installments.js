@@ -47,7 +47,8 @@ export function generateInstallmentTransactions(baseTransaction, currentInstallm
 
   // Clean the description to remove installment info and add our own format
   let cleanDescription = baseTransaction.description
-    .replace(/\s*parcela\s*\d+\s*[/de]\s*\d+/gi, '')
+    .replace(/\s*\(\s*parcela\s*\d+\s*(?:\/|de)\s*\d+\s*\)/gi, '')
+    .replace(/\s*parcela\s*\d+\s*(?:\/|de)\s*\d+/gi, '')
     .replace(/\s*\(\d+[/]\d+\)/g, '')
     .replace(/\s*\d+\s*[/]\s*\d+\s*(?:parcelas?)?/gi, '')
     .replace(/\s*\d+\s*de\s*\d+\s*(?:parcelas?|x)?/gi, '')
@@ -81,7 +82,8 @@ export function generateInstallmentTransactions(baseTransaction, currentInstallm
 export function generateInstallmentGroupId(transaction) {
   // Clean the description to remove installment info for a stable group ID
   let cleanDescription = (transaction.description || '')
-    .replace(/\s*parcela\s*\d+\s*[/de]\s*\d+/gi, '')
+    .replace(/\s*\(\s*parcela\s*\d+\s*(?:\/|de)\s*\d+\s*\)/gi, '')
+    .replace(/\s*parcela\s*\d+\s*(?:\/|de)\s*\d+/gi, '')
     .replace(/\s*\(\d+[/]\d+\)/g, '')
     .replace(/\s*\d+\s*[/]\s*\d+\s*(?:parcelas?)?/gi, '')
     .replace(/\s*\d+\s*de\s*\d+\s*(?:parcelas?|x)?/gi, '')
