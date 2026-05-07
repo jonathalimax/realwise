@@ -2,8 +2,8 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, signOut, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, doc, getDoc, connectFirestoreEmulator } from 'firebase/firestore';
 import AdminAuth from './AdminAuth';
 
 const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
@@ -20,11 +20,19 @@ async function initAdminFirebase() {
   if (adminAuth) return { auth: adminAuth, db: adminDb };
   const res = await fetch('/clients/app.json');
   const config = await res.json();
+  const isNew = !getApps().find(a => a.name === 'admin');
   const app = getApps().find(a => a.name === 'admin') ?? initializeApp(config.firebase, 'admin');
   adminAuth = getAuth(app);
   adminDb = getFirestore(app);
-  const { getFunctions } = await import('firebase/functions');
+  const { getFunctions, connectFunctionsEmulator } = await import('firebase/functions');
   adminFunctions = getFunctions(app);
+
+  if (isNew && import.meta.env.DEV) {
+    // Idempotent: ignore reconnect errors when this app shares state with another
+    try { connectAuthEmulator(adminAuth, 'http://localhost:9099', { disableWarnings: true }); } catch (_) {}
+    try { connectFirestoreEmulator(adminDb, 'localhost', 8080); } catch (_) {}
+    try { connectFunctionsEmulator(adminFunctions, 'localhost', 5001); } catch (_) {}
+  }
   return { auth: adminAuth, db: adminDb, functions: adminFunctions };
 }
 
