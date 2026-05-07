@@ -131,7 +131,7 @@ Frontend (`.env`) — only used in dev. Production uses runtime config from `pub
 - `VITE_FIREBASE_*` — Firebase configuration (dev only)
 
 Functions (Firebase Secret Manager via `defineSecret`, set with `firebase functions:secrets:set <NAME>`):
-- `EMAIL_USER` / `EMAIL_PASSWORD` — Umbler SMTP credentials. Sender display name is `"Realwise" <EMAIL_USER>`. The username part of `EMAIL_USER` (before `@`) is used as the `clientId` to build email deep-links, e.g. `jonathalimax@umbler.com` → `https://jonathalimax.realwise.com.br/jonathalimax/bills`.
+- `EMAIL_USER` / `EMAIL_PASSWORD` — Umbler SMTP credentials. Sender display name is always `"Realwise" <EMAIL_USER>`. Bill reminder deep-links (e.g. `https://jonathalimax.realwise.com.br/jonathalimax/bills`) are built from the **recipient's** email username, not the sender's.
 - `EMAIL_HOST` / `EMAIL_PORT` — Umbler SMTP host/port (defaults: `smtp.umbler.com` / `587`)
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — Stripe integration
 - `whatsapp.access_token` / `whatsapp.phone_number_id` / `whatsapp.verify_token` — WhatsApp Cloud API (still on legacy `functions.config()`)
