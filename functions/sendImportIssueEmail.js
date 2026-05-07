@@ -5,12 +5,17 @@ const nodemailer = require('nodemailer');
 
 const emailUserSecret = defineSecret('EMAIL_USER');
 const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
+const emailHostSecret = defineSecret('EMAIL_HOST');
+const emailPortSecret = defineSecret('EMAIL_PORT');
 
 const ADMIN_EMAIL = 'suporte@realwise.com.br';
 const APP_BASE_URL = 'https://app.realwise.com.br';
 
 exports.sendImportIssueEmail = functions
-  .runWith({ secrets: [emailUserSecret, emailPasswordSecret], memory: '512MB' })
+  .runWith({
+    secrets: [emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret],
+    memory: '512MB',
+  })
   .firestore.document('importIssues/{issueId}')
   .onCreate(async (snap, context) => {
     const issue = snap.data();
@@ -20,7 +25,9 @@ exports.sendImportIssueEmail = functions
     const fileBuf = (await admin.storage().bucket().file(issue.storagePath).download())[0];
 
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: emailHostSecret.value() || 'smtp.umbler.com',
+      port: Number(emailPortSecret.value() || 587),
+      secure: false,
       auth: { user: emailUserSecret.value(), pass: emailPasswordSecret.value() },
     });
 
