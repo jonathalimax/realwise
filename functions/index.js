@@ -524,6 +524,8 @@ exports.scheduledBillReminders = functions
         return null;
       }
       const user = emailUserSecret.value();
+      const clientId = user.split('@')[0];
+      const billsUrl = `https://${clientId}.realwise.com.br/${clientId}/bills`;
 
       const now = new Date();
       const endOfToday = new Date();
@@ -651,7 +653,7 @@ exports.scheduledBillReminders = functions
             // Continue anyway with basic bill info
           }
 
-          await sendBillReminderEmail(transporter, user, authUser.email, userName || 'Cliente', billGroups);
+          await sendBillReminderEmail(transporter, user, authUser.email, userName || 'Cliente', billGroups, billsUrl);
 
           // Log reminders
           const batch = db.batch();
@@ -680,7 +682,7 @@ exports.scheduledBillReminders = functions
     }
   });
 
-async function sendBillReminderEmail(transporter, from, to, name, billGroups) {
+async function sendBillReminderEmail(transporter, from, to, name, billGroups, billsUrl = 'https://realwise.com.br') {
   const formatTotalCurrency = (val) => {
     const num = parseFloat(val);
     return `R$ ${(isNaN(num) ? 0 : num).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
@@ -696,9 +698,9 @@ async function sendBillReminderEmail(transporter, from, to, name, billGroups) {
     ? `⚠️ ${billGroups.overdue.length} conta(s) atrasada(s) · ${formatTotalCurrency(grandTotal)}`
     : `📅 Vence hoje · ${formatTotalCurrency(grandTotal)}`;
 
-  const html = billReminderTemplate(name, billGroups);
+  const html = billReminderTemplate(name, billGroups, billsUrl);
 
-  await transporter.sendMail({ from, to, subject, html });
+  await transporter.sendMail({ from: `"Realwise" <${from}>`, to, subject, html });
 }
 /**
  * Trigger a real bill reminder email for a specific user email address.
@@ -715,6 +717,8 @@ exports.triggerBillReminder = functions
       const transporter = getEmailTransporter();
       if (!transporter) return res.status(500).send('Email secrets not configured');
       const emailUser = emailUserSecret.value();
+      const clientId = emailUser.split('@')[0];
+      const billsUrl = `https://${clientId}.realwise.com.br/${clientId}/bills`;
 
       // Find user by email
       const authUser = await admin.auth().getUserByEmail(email);
@@ -790,7 +794,7 @@ exports.triggerBillReminder = functions
       const settingsDoc = await db.collection('settings').doc(userId).get();
       const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
 
-      await sendBillReminderEmail(transporter, emailUser, email, userName || 'Cliente', billGroups);
+      await sendBillReminderEmail(transporter, emailUser, email, userName || 'Cliente', billGroups, billsUrl);
 
       const total = billGroups.overdue.length + billGroups.dueToday.length + billGroups.upcoming.length;
       res.send(`✅ E-mail enviado para ${email} com ${total} conta(s): ${billGroups.overdue.length} atrasada(s), ${billGroups.dueToday.length} hoje, ${billGroups.upcoming.length} próxima(s).`);

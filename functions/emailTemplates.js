@@ -103,7 +103,7 @@ exports.accessGrantedTemplate = (name, loginUrl = 'https://app.realwise.com.br')
 /**
  * Template 3: Bill Reminders — adaptive dark/light
  */
-exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
+exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }, ctaUrl = 'https://realwise.com.br') => {
   const formatCurrency = (val) => {
     const num = parseFloat(val);
     if (isNaN(num)) return '—';
@@ -206,7 +206,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }) => {
 
           <!-- CTA -->
           <tr><td style="padding:20px 4px 8px;text-align:center;">
-            <a href="https://realwise.com.br" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">Ver Contas no Realwise →</a>
+            <a href="${ctaUrl}" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">Ver Contas no Realwise →</a>
           </td></tr>
 
           <!-- Footer -->
