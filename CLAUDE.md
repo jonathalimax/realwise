@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Realwise** is a multi-client personal finance SaaS PWA built with React 19, Vite, and Tailwind CSS v4. One codebase and one Firebase Hosting deployment (`realwise.com.br`) serves many clients — each with their own isolated Firebase project (Auth + Firestore) and per-client feature flags.
 
-- URL pattern: `{clientId}.realwise.com.br/dashboard`
+- URL pattern: `realwise.com.br/{clientId}/dashboard` (path-based routing — no subdomains)
 - Client config is fetched at runtime from `public/clients/{clientId}.json`
 - Firebase is initialized lazily (not at module load time)
 
@@ -31,9 +31,7 @@ firebase functions:config:set ...   # Set config values
 ### Local tenant testing
 
 - Dev server runs at `http://localhost:5173` (uses Vite env vars — no real tenant)
-- To test a specific tenant locally: `http://{clientId}.localhost:5173/dashboard`  
-  (Chrome/Firefox/Safari on macOS resolve `*.localhost` without `/etc/hosts` changes)
-- Shared login locally: `http://app.localhost:5173/login`
+- To test a specific tenant locally: `http://localhost:5173/{clientId}/dashboard`
 
 ### Adding a new client
 
@@ -46,7 +44,7 @@ firebase functions:config:set ...   # Set config values
 
 ### Multi-Client Routing
 
-- `src/config/clientConfig.js` — `extractClientId(hostname)` reads the first hostname label (e.g. `jonathalimax` from `jonathalimax.realwise.com.br`)
+- `src/config/clientConfig.js` — `extractClientId(pathname)` reads the first path segment (e.g. `jonathalimax` from `realwise.com.br/jonathalimax/dashboard`)
 - `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json`, calls `initializeFirebase()`, renders spinner until ready
 - `src/firebase.js` — exports live bindings (`auth`, `db`, `storage`, `functions`) initialized by `ClientConfigContext`
 - `src/App.jsx` — sets `BrowserRouter basename="/{clientId}"` so all internal routes resolve correctly
@@ -131,7 +129,7 @@ Frontend (`.env`) — only used in dev. Production uses runtime config from `pub
 - `VITE_FIREBASE_*` — Firebase configuration (dev only)
 
 Functions (Firebase Secret Manager via `defineSecret`, set with `firebase functions:secrets:set <NAME>`):
-- `EMAIL_USER` / `EMAIL_PASSWORD` — Umbler SMTP credentials. Sender display name is always `"Realwise" <EMAIL_USER>`. Bill reminder deep-links (e.g. `https://jonathalimax.realwise.com.br/jonathalimax/bills`) are built from the **recipient's** email username, not the sender's.
+- `EMAIL_USER` / `EMAIL_PASSWORD` — Umbler SMTP credentials. Sender display name is always `"Realwise" <EMAIL_USER>`. Bill reminder deep-links (e.g. `https://realwise.com.br/jonathalimax/bills`) are built from the **recipient's** email username (before `@`), not the sender's.
 - `EMAIL_HOST` / `EMAIL_PORT` — Umbler SMTP host/port (defaults: `smtp.umbler.com` / `587`)
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — Stripe integration
 - `whatsapp.access_token` / `whatsapp.phone_number_id` / `whatsapp.verify_token` — WhatsApp Cloud API (still on legacy `functions.config()`)

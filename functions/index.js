@@ -652,7 +652,7 @@ exports.scheduledBillReminders = functions
           }
 
           const clientId = authUser.email.split('@')[0];
-          const billsUrl = `https://${clientId}.realwise.com.br/${clientId}/bills`;
+          const billsUrl = `https://realwise.com.br/${clientId}/bills`;
           await sendBillReminderEmail(transporter, user, authUser.email, userName || 'Cliente', billGroups, billsUrl);
 
           // Log reminders
@@ -718,7 +718,7 @@ exports.triggerBillReminder = functions
       if (!transporter) return res.status(500).send('Email secrets not configured');
       const emailUser = emailUserSecret.value();
       const clientId = email.split('@')[0];
-      const billsUrl = `https://${clientId}.realwise.com.br/${clientId}/bills`;
+      const billsUrl = `https://realwise.com.br/${clientId}/bills`;
 
       // Find user by email
       const authUser = await admin.auth().getUserByEmail(email);
