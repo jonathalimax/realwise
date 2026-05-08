@@ -108,8 +108,7 @@ fi
 
 # Step 6 — Deploy bill reminders to client project
 echo ""
-echo "→ Deploying scheduledBillReminders to $PROJECT_ID..."
-firebase deploy --only functions:scheduledBillReminders --project "$PROJECT_ID"
+"$(dirname "$0")/deploy-client-functions.sh" --project "$PROJECT_ID"
 echo "✓ Bill reminders deployed."
 
 # Step 7 — Grant client SA Secret Manager access (SA now exists after deploy)
