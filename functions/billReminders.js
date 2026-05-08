@@ -86,7 +86,7 @@ async function collectUserBillGroups(clientDb, userId) {
         cycleStart.setDate(cycleStart.getDate() + 1);
 
         const cycleTxs = transactions.filter(tx => {
-          if (tx.cardId !== bill.linkedBankId || tx.type !== 'expense') return false;
+          if (tx.bankId !== bill.linkedBankId || tx.type !== 'expense') return false;
           const txDate = new Date(tx.date);
           return txDate >= cycleStart && txDate <= cycleEnd;
         });
