@@ -31,6 +31,7 @@ const NotificationsPage = lazy(() => import('./pages/Notifications'));
 const ImportPage = lazy(() => import('./pages/Import'));
 const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlannerPage = lazy(() => import('./pages/planner/PlannerPage'));
+const PlanningPage = lazy(() => import('./pages/Planning'));
 
 // Feature-flagged pages (only imported when flags are enabled)
 const GoalsPage = lazy(() => import('./pages/Goals'));
@@ -83,6 +84,7 @@ function AuthenticatedApp() {
                           <Route index element={<Navigate to="/dashboard" replace />} />
                           <Route path="dashboard" element={<DashboardPage />} />
                           <Route path="planner" element={<PlannerPage />} />
+                          <Route path="planning" element={<PlanningPage />} />
                           <Route path="expenses" element={<ExpensesPage />} />
                           <Route path="income" element={<IncomePage />} />
                           <Route path="bills" element={<BillsPage />} />

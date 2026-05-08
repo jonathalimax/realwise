@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
@@ -8,7 +8,9 @@ import { useMonth } from '../contexts/MonthContext';
 import TransactionList from '../components/TransactionList';
 import TransactionModal from '../components/TransactionModal';
 import PageHeader from '../components/PageHeader';
-import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { AdjustmentsHorizontalIcon, PlusIcon, ListBulletIcon, ChartPieIcon } from '@heroicons/react/24/outline';
+
+const ExpensesChartsView = lazy(() => import('../components/expenses/ExpensesChartsView'));
 
 export default function ExpensesPage() {
   const { t, language } = useSettings();
@@ -26,6 +28,9 @@ export default function ExpensesPage() {
   const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem('expenses_sortOrder') ?? 'desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [displayMode, setDisplayMode] = useState(() => sessionStorage.getItem('expenses_displayMode') ?? 'list');
+
+  const handleSetDisplayMode = (v) => { sessionStorage.setItem('expenses_displayMode', v); setDisplayMode(v); };
 
   const handleSetViewMode = (v) => { sessionStorage.setItem('expenses_viewMode', v); setViewMode(v); };
   const handleSetBankFilter = (v) => { sessionStorage.setItem('expenses_bankFilter', v); setSelectedBankFilter(v); };
@@ -171,9 +176,50 @@ export default function ExpensesPage() {
             <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
+
+            {/* List / Charts segmented toggle */}
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-700 rounded-xl">
+              <button
+                onClick={() => handleSetDisplayMode('list')}
+                aria-label={language === 'pt' ? 'Lista' : 'List'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  displayMode === 'list'
+                    ? 'bg-white dark:bg-slate-600 text-violet-600 dark:text-violet-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <ListBulletIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">{language === 'pt' ? 'Lista' : 'List'}</span>
+              </button>
+              <button
+                onClick={() => handleSetDisplayMode('charts')}
+                aria-label={language === 'pt' ? 'Gráficos' : 'Charts'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  displayMode === 'charts'
+                    ? 'bg-white dark:bg-slate-600 text-violet-600 dark:text-violet-400 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <ChartPieIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">{language === 'pt' ? 'Gráficos' : 'Charts'}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Filters Panel */}
+          {/* Charts view */}
+          {displayMode === 'charts' && (
+            <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" /></div>}>
+              <ExpensesChartsView
+                transactions={filteredTransactions}
+                formatCurrency={formatCurrency}
+                language={language}
+              />
+            </Suspense>
+          )}
+
+          {/* Filters Panel — only shown in list mode */}
+          {displayMode === 'list' && (
+          <>{/* Filters Panel */}
           {showFilters && (
             <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 animate-fade-in">
               <div>
@@ -309,6 +355,8 @@ export default function ExpensesPage() {
               </button>
             }
           />
+          </>
+          )}
 
         </div>
       </main>

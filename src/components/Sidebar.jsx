@@ -12,7 +12,8 @@ import {
   ArrowRightOnRectangleIcon,
   XMarkIcon,
   BellIcon,
-  TagIcon,
+  BuildingLibraryIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, currentUser }) {
@@ -118,19 +119,11 @@ export default function Sidebar() {
   const navigationGroups = useMemo(() => [
     {
       items: [
-        { name: 'Dashboard', namePt: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-        { name: 'Income', namePt: 'Renda', href: '/planner?tab=renda', icon: BanknotesIcon },
-        { name: 'Allocation', namePt: 'Allocation', href: '/planner?tab=alocacao', icon: ChartPieIcon },
+        { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
+        { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
+        { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
-      ],
-    },
-    {
-      label: 'Transactions',
-      labelPt: 'Transações',
-      items: [
-        { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
-        { name: 'Expenses', namePt: 'Saídas', href: '/expenses', icon: ArrowTrendingUpIcon },
-        { name: 'Spending', namePt: 'Gastos', href: '/planner?tab=rastreamento', icon: TagIcon },
+        { name: 'Banks', namePt: 'Bancos', href: '/cards', icon: BuildingLibraryIcon },
       ],
     },
   ], []);
