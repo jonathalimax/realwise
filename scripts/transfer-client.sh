@@ -91,23 +91,7 @@ if [[ -n "$OPERATOR_EMAIL" && "$OPERATOR_EMAIL" != "(unset)" && "$REMOVE_SELF" !
   echo "✓ Deploy-only roles granted (no Firestore access)."
 fi
 
-# Step 5 — Grant client SA access to shared project Secret Manager (for SMTP credentials)
-# The App Engine SA (used as Cloud Functions Gen 1 runtime) is created on first functions deploy.
-# We attempt the grant here; if the SA doesn't exist yet, re-run after the first deploy.
-CLIENT_SA="${PROJECT_ID}@appspot.gserviceaccount.com"
-echo "→ Granting $CLIENT_SA Secret Manager access on moneywise-ad9ec..."
-if gcloud projects add-iam-policy-binding moneywise-ad9ec \
-  --member="serviceAccount:$CLIENT_SA" \
-  --role="roles/secretmanager.secretAccessor" \
-  --quiet 2>/dev/null; then
-  echo "✓ Client functions can now read shared SMTP secrets."
-else
-  echo "⚠  SA $CLIENT_SA not found — it will be created on first functions deploy."
-  echo "   After deploying, run:"
-  echo "   ./scripts/grant-client-secret-access.sh --project $PROJECT_ID"
-fi
-
-# Step 7 — Optionally remove self
+# Step 5 — Optionally remove self
 if [[ "$REMOVE_SELF" == true ]]; then
   SELF_EMAIL=$(gcloud config get-value account 2>/dev/null)
   if [[ -n "$SELF_EMAIL" && "$SELF_EMAIL" != "(unset)" ]]; then
@@ -122,15 +106,22 @@ if [[ "$REMOVE_SELF" == true ]]; then
   fi
 fi
 
+# Step 6 — Deploy bill reminders to client project
 echo ""
-echo "✓ Transfer complete for $PROJECT_ID → $CLIENT_EMAIL"
+echo "→ Deploying scheduledBillReminders to $PROJECT_ID..."
+firebase deploy --only functions:scheduledBillReminders --project "$PROJECT_ID"
+echo "✓ Bill reminders deployed."
+
+# Step 7 — Grant client SA Secret Manager access (SA now exists after deploy)
+CLIENT_SA="${PROJECT_ID}@appspot.gserviceaccount.com"
+echo "→ Granting $CLIENT_SA Secret Manager access on moneywise-ad9ec..."
+gcloud projects add-iam-policy-binding moneywise-ad9ec \
+  --member="serviceAccount:$CLIENT_SA" \
+  --role="roles/secretmanager.secretAccessor" \
+  --quiet
+echo "✓ Client functions can now read shared SMTP secrets."
+
 echo ""
-echo "  Next steps:"
-echo ""
-echo "  1. Deploy bill reminders to the client project:"
-echo "     firebase deploy --only functions:scheduledBillReminders --project $PROJECT_ID"
-echo ""
-echo "  2. Grant client functions access to shared SMTP secrets (run after deploy):"
-echo "     ./scripts/grant-client-secret-access.sh --project $PROJECT_ID"
+echo "✓ Onboarding complete for $PROJECT_ID → $CLIENT_EMAIL"
 echo ""
 echo "  IAM Console: https://console.cloud.google.com/iam-admin/iam?project=$PROJECT_ID"
