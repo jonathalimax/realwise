@@ -73,7 +73,37 @@ fi
 
 echo "✓ Owner role granted."
 
-# Step 4 — Optionally remove self
+# Step 4 — Grant Realwise operator deploy-only access (no Firestore)
+OPERATOR_EMAIL=$(gcloud config get-value account 2>/dev/null)
+if [[ -n "$OPERATOR_EMAIL" && "$OPERATOR_EMAIL" != "(unset)" && "$REMOVE_SELF" != true ]]; then
+  echo "→ Granting deploy-only roles to $OPERATOR_EMAIL on $PROJECT_ID..."
+  for ROLE in \
+    roles/cloudfunctions.developer \
+    roles/firebasehosting.admin \
+    roles/cloudbuild.builds.editor \
+    roles/artifactregistry.writer \
+    roles/iam.serviceAccountUser; do
+    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+      --member="user:$OPERATOR_EMAIL" \
+      --role="$ROLE" \
+      --quiet
+  done
+  echo "✓ Deploy-only roles granted (no Firestore access)."
+fi
+
+# Step 5 — Grant shared project service account cross-project data access
+echo "→ Granting moneywise service account Firestore + Auth access on $PROJECT_ID..."
+for ROLE in \
+  roles/datastore.user \
+  roles/firebaseauth.admin; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$ADMIN_SA" \
+    --role="$ROLE" \
+    --quiet
+done
+echo "✓ Service account can now query $PROJECT_ID Firestore and Auth."
+
+# Step 6 — Optionally remove self
 if [[ "$REMOVE_SELF" == true ]]; then
   SELF_EMAIL=$(gcloud config get-value account 2>/dev/null)
   if [[ -n "$SELF_EMAIL" && "$SELF_EMAIL" != "(unset)" ]]; then
@@ -90,5 +120,10 @@ fi
 
 echo ""
 echo "✓ Transfer complete for $PROJECT_ID → $CLIENT_EMAIL"
+echo ""
+echo "  Next: add an entry to the shared clients registry in Firestore:"
+echo "  https://console.firebase.google.com/project/moneywise-ad9ec/firestore"
+echo "  Collection: clients  |  Document ID: <clientId>"
+echo "  Fields: projectId (string), clientId (string), active (boolean = true)"
 echo ""
 echo "  IAM Console: https://console.cloud.google.com/iam-admin/iam?project=$PROJECT_ID"
