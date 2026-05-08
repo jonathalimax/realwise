@@ -57,21 +57,6 @@ export default function TransactionModal({ isOpen, onClose }) {
   // Effective category for UI logic (what category is currently selected/showing)
   const effectiveCategory = category || '';
 
-  // Debug logging for effective category and category changes
-  useEffect(() => {
-    console.log('[TransactionModal] Category changed to:', category, '| Effective:', effectiveCategory, '| Type:', type);
-  }, [category]);
-
-  useEffect(() => {
-    console.log('[TransactionModal] Effective category:', effectiveCategory);
-    console.log('[TransactionModal] Planner condition will be:', {
-      effectiveCategory,
-      isInvestments: effectiveCategory === 'Investments',
-      isInvestimentos: effectiveCategory === 'Investimentos',
-      conditionMet: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos'),
-      shouldShowPlanner: (effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos')
-    });
-  }, [effectiveCategory]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -154,7 +139,6 @@ export default function TransactionModal({ isOpen, onClose }) {
           date: baseDate.toISOString()
         });
 
-        console.log('[TransactionModal] Creating installments:', currentInstallment, 'to', totalInstallments);
         let totalInstallmentsCreated = 0;
 
         for (let i = currentInstallment; i <= totalInstallments; i++) {
@@ -223,7 +207,6 @@ export default function TransactionModal({ isOpen, onClose }) {
         if (selectedGoalId) {
           const amountPerInstallment = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
           const totalAmountToAdd = amountPerInstallment * totalInstallmentsCreated;
-          console.log('[TransactionModal] Updating goal', selectedGoalId, 'with total amount:', totalAmountToAdd, '(', totalInstallmentsCreated, 'installments x', amountPerInstallment, ')');
           await addAmountToGoal(selectedGoalId, totalAmountToAdd);
         }
       } else {
@@ -287,7 +270,6 @@ export default function TransactionModal({ isOpen, onClose }) {
         // Investments contribute positively (you're saving money), other expenses subtract
         if (selectedGoalId) {
           const amountToAdd = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
-          console.log('[TransactionModal] Updating goal', selectedGoalId, 'with amount:', amountToAdd);
           await addAmountToGoal(selectedGoalId, amountToAdd);
         }
       }

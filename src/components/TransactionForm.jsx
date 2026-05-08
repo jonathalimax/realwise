@@ -58,7 +58,6 @@ export default function TransactionForm() {
           date: baseDate.toISOString()
         });
 
-        console.log('[TransactionForm] Creating installments:', currentInstallment, 'to', totalInstallments);
         let totalInstallmentsCreated = 0;
 
         for (let i = currentInstallment; i <= totalInstallments; i++) {
@@ -120,7 +119,6 @@ export default function TransactionForm() {
         if (selectedGoalId) {
           const amountPerInstallment = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
           const totalAmountToAdd = amountPerInstallment * totalInstallmentsCreated;
-          console.log('[TransactionForm] Updating goal', selectedGoalId, 'with total amount:', totalAmountToAdd, '(', totalInstallmentsCreated, 'installments x', amountPerInstallment, ')');
           await addAmountToGoal(selectedGoalId, totalAmountToAdd);
         }
       } else {
@@ -177,7 +175,6 @@ export default function TransactionForm() {
         // Investments contribute positively (you're saving money), other expenses subtract
         if (selectedGoalId) {
           const amountToAdd = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
-          console.log('[TransactionForm] Updating goal', selectedGoalId, 'with amount:', amountToAdd);
           await addAmountToGoal(selectedGoalId, amountToAdd);
         }
       }

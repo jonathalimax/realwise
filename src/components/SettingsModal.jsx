@@ -51,7 +51,6 @@ export default function SettingsModal({ isOpen, onClose }) {
 
         // Handle old format (simple array of strings) - auto-migrate to new format
         if (emails.length > 0 && typeof emails[0] === 'string') {
-          console.log('Migrating old email format to new format with roles');
           const converted = emails.map(email => ({ email, role: 'write' }));
           await saveAllowedEmails(converted);
           setAllowedEmails(converted);

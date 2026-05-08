@@ -128,7 +128,6 @@ function AppRouter() {
     let devTimer = null;
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log('[debug-auth] AppRouter onAuthStateChanged', currentUser?.uid ?? 'null', new Date().toISOString());
       devMark('AppRouter: auth state ' + (currentUser?.uid ?? 'null'));
 
       if (resolved) {

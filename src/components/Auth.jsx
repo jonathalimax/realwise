@@ -29,14 +29,12 @@ export default function Auth() {
       const accessDoc = await getDoc(doc(db, 'access', 'allowed_emails'));
       if (!accessDoc.exists()) {
         // If no whitelist exists, allow all (for initial setup)
-        console.log('No whitelist document - allowing access');
         return true;
       }
       const data = accessDoc.data();
       const allowedEmails = data.emails || [];
       // Check if empty list (allow all) or email is in list
       if (allowedEmails.length === 0) {
-        console.log('Whitelist is empty - allowing access');
         return true;
       }
       // Handle both old format (array of strings) and new format (array of objects)
@@ -44,7 +42,6 @@ export default function Auth() {
         const emailStr = typeof e === 'string' ? e : e.email;
         return emailStr?.toLowerCase() === email.toLowerCase();
       });
-      console.log(`Email ${email} allowed: ${isAllowed}`);
       return isAllowed;
     } catch (err) {
       console.error('Error checking access:', err);

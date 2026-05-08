@@ -44,7 +44,6 @@ export default function usePlannerGoals() {
                   layerLabel: layer.label,
                 }))
               );
-              console.log('[usePlannerGoals] Found', sublayers.length, 'sublayers from active version:', sublayers);
               setGoals(sublayers);
             } else {
               console.warn('[usePlannerGoals] No active version found. Versions:', walletVersions.map(v => v.from));
@@ -53,7 +52,6 @@ export default function usePlannerGoals() {
           } else {
             // Fallback for legacy planner docs without walletVersions
             const rows = data.savingsRows ?? [];
-            console.log('[usePlannerGoals] Using fallback savingsRows:', rows.length, 'rows');
             setGoals(rows.map(r => ({ id: r.id, label: r.label, layerLabel: '' })));
           }
         },

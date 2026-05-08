@@ -265,7 +265,6 @@ export async function categorizeWithAI({
   }
 
   if (!quota.available) {
-    console.log(`AI quota exhausted (${quota.used}/${DAILY_FREE_LIMIT}), using fallback`);
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
     if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
       return { category: null, source: 'none', confidence: 0 };
@@ -396,7 +395,6 @@ export async function detectDuplicatesWithAI(newTransactions, existingTransactio
   // Check quota
   const quota = await checkAIQuota(userId);
   if (!quota.available) {
-    console.log('AI quota exhausted, skipping duplicate detection');
     return duplicateIndices;
   }
 

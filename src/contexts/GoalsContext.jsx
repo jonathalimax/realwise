@@ -51,18 +51,13 @@ export function GoalsProvider({ children }) {
 
   // Listen for goals when ownerId is available
   useEffect(() => {
-    console.log('Goals useEffect - ownerId:', ownerId);
-
     if (!ownerId) {
-      console.log('No ownerId, clearing goals');
       setGoals([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    console.log('Setting up goals listener for owner:', ownerId);
-
     const q = query(
       collection(db, 'goals'),
       where('userId', '==', ownerId) // Use ownerId instead of userId
@@ -71,12 +66,10 @@ export function GoalsProvider({ children }) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        console.log('Goals snapshot received:', snapshot.docs.length, 'documents');
         const goalsData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data()
         }));
-        console.log('Goals data:', goalsData);
         // Sort by createdAt
         goalsData.sort((a, b) => {
           const dateA = a.createdAt?.toDate?.() || new Date(0);
@@ -96,9 +89,6 @@ export function GoalsProvider({ children }) {
   }, [ownerId]); // Use ownerId instead of userId
 
   const addGoal = async (goalData) => {
-    console.log('addGoal called with:', goalData);
-    console.log('Current user:', auth.currentUser?.uid);
-
     if (!auth.currentUser) {
       console.error('No authenticated user');
       return null;
@@ -117,10 +107,7 @@ export function GoalsProvider({ children }) {
         createdAt: serverTimestamp(),
         completed: false
       };
-      console.log('Saving goal to Firestore:', newGoal);
-
       const docRef = await addDoc(collection(db, 'goals'), newGoal);
-      console.log('Goal saved with ID:', docRef.id);
       return docRef.id;
     } catch (error) {
       console.error('Error adding goal:', error);
@@ -150,8 +137,6 @@ export function GoalsProvider({ children }) {
   };
 
   const addAmountToGoal = async (goalId, amount) => {
-    console.log('[GoalsContext] addAmountToGoal called - goalId:', goalId, 'amount:', amount);
-
     try {
       // Fetch current goal directly from Firestore to avoid stale state
       const goalDoc = await getDoc(doc(db, 'goals', goalId));
@@ -165,20 +150,11 @@ export function GoalsProvider({ children }) {
       const newAmount = previousAmount + amount;
       const completed = newAmount >= goal.targetAmount;
 
-      console.log('[GoalsContext] Updating goal progress:');
-      console.log('  - Goal:', goal.name);
-      console.log('  - Previous amount:', previousAmount);
-      console.log('  - Amount to add:', amount);
-      console.log('  - New amount:', newAmount);
-      console.log('  - Target amount:', goal.targetAmount);
-      console.log('  - Completed:', completed);
-
       const result = await updateGoal(goalId, {
         currentAmount: newAmount,
         completed
       });
 
-      console.log('[GoalsContext] Update result:', result);
       return result;
     } catch (error) {
       console.error('[GoalsContext] Error updating goal:', error);
@@ -198,17 +174,6 @@ export function GoalsProvider({ children }) {
     // The investment value already represents the total saved amount for this goal
     // Adding currentAmount would double count if user withdrew from investment to goal
     const totalValue = investmentValue > 0 ? investmentValue : (goal.currentAmount || 0);
-
-    // Debug logging - remove after confirming fix works
-    console.log('[GoalProgress Debug]', {
-      goalName: goal.name,
-      goalId: goal.id,
-      targetAmount: goal.targetAmount,
-      currentAmount: goal.currentAmount || 0,
-      investmentValue,
-      totalValue,
-      progress: Math.min((totalValue / goal.targetAmount) * 100, 100)
-    });
 
     return Math.min((totalValue / goal.targetAmount) * 100, 100);
   };

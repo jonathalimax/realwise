@@ -90,12 +90,6 @@ export default function PageHeader({ title, showMonth = true, right }) {
 
   const displayTitle = useMemo(() => {
     if (!isDashboard) return title;
-    console.log('[PageHeader] auth.currentUser:', {
-      uid: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      displayName: auth.currentUser?.displayName,
-      photoURL: auth.currentUser?.photoURL,
-    });
     return language === 'pt' ? 'Painel' : 'Dashboard';
   }, [isDashboard, title, language]);
 

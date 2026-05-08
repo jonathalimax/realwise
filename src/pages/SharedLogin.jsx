@@ -47,11 +47,6 @@ export default function SharedLogin() {
       const { getAuth: _getAuth } = await import('firebase/auth');
       const sharedApp = _getApps().find(a => a.name === 'shared');
       const sharedAuth = sharedApp ? _getAuth(sharedApp) : null;
-      console.log('[debug-auth] SharedLogin pre-redirect', {
-        uid: sharedAuth?.currentUser?.uid,
-        appName: sharedApp?.name,
-        allApps: _getApps().map(a => a.name),
-      });
       sessionStorage.setItem('__rw_dev_auth_uid', sharedAuth?.currentUser?.uid ?? '');
       sessionStorage.setItem('__rw_dev_auth_email', email ?? '');
       sessionStorage.setItem('__rw_dev_auth_at', String(Date.now()));
@@ -87,9 +82,7 @@ export default function SharedLogin() {
     const userApp = existingUserApp ?? initializeApp(userConfig.firebase, userAppName);
     const userAuth = getAuth(userApp);
 
-    console.log('[SharedLogin] signing in with custom token...');
     await signInWithCustomToken(userAuth, token);
-    console.log('[SharedLogin] custom token sign-in succeeded, redirecting...');
     window.location.href = `/${username}/dashboard`;
   };
 

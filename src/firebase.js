@@ -38,7 +38,6 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
       app = existing;
       auth = getAuth(app);
       devMark('firebase REUSE app=' + appName + ' uid=' + (auth.currentUser?.uid ?? 'null'));
-      console.log('[debug-auth] REUSING app', app.name, existing.options.projectId, 'currentUser uid:', auth.currentUser?.uid);
       db = getFirestore(app);
       storage = getStorage(app);
       functions = getFunctions(app);
@@ -49,7 +48,6 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
   app = initializeApp(firebaseConfig, appName);
   auth = getAuth(app);
   devMark('firebase FIRST INIT app=' + appName);
-  console.log('[debug-auth] FIRST INIT app', appName, firebaseConfig.projectId);
   await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
     setPersistence(auth, browserLocalPersistence)
   );
@@ -76,7 +74,6 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
     } catch (e) {
       // Functions reconnection is harmless to ignore.
     }
-    console.log('[Firebase] Connected to Emulator Suite');
   }
 }
 
