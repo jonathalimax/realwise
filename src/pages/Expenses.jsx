@@ -28,7 +28,7 @@ export default function ExpensesPage() {
   const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem('expenses_sortOrder') ?? 'desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [displayMode, setDisplayMode] = useState(() => sessionStorage.getItem('expenses_displayMode') ?? 'list');
+  const [displayMode, setDisplayMode] = useState(() => sessionStorage.getItem('expenses_displayMode') ?? 'charts');
 
   const handleSetDisplayMode = (v) => { sessionStorage.setItem('expenses_displayMode', v); setDisplayMode(v); };
 

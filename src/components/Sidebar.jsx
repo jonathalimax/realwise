@@ -120,10 +120,12 @@ export default function Sidebar() {
     {
       items: [
         { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
+        { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
         { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
         { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
-        { name: 'Banks', namePt: 'Bancos', href: '/cards', icon: BuildingLibraryIcon },
+        { name: 'Investments', namePt: 'Investimentos', href: '/planner?tab=portfolio', icon: CalendarDaysIcon },
+        { name: 'Banks', namePt: 'Bancos', href: '/banks', icon: BuildingLibraryIcon },
       ],
     },
   ], []);
