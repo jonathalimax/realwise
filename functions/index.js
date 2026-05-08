@@ -17,6 +17,7 @@ const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate } = require
 const axios = require('axios');
 
 // Import processor functions (must come after admin.initializeApp())
+const { collectClientUserIds, collectUserBillGroups } = require('./billReminders');
 const importProcessor = require('./importProcessor');
 const { runB3Sync } = require('./b3Sync');
 
@@ -506,8 +507,8 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
 });
 
 /**
- * Scheduled function to send email bill reminders
- * Runs daily at 9 AM Brazil time
+ * Scheduled function to send email bill reminders across all active client projects.
+ * Runs daily at 9 AM Brazil time. Discovers clients from the shared Firestore registry.
  */
 exports.scheduledBillReminders = functions
   .runWith({ secrets: [emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret] })
@@ -515,171 +516,80 @@ exports.scheduledBillReminders = functions
   .schedule('0 9 * * *')
   .timeZone('America/Sao_Paulo')
   .onRun(async () => {
-    try {
-      console.log('Starting scheduled email bill reminders...');
+    console.log('[scheduledBillReminders] Starting...');
 
-      const transporter = getEmailTransporter();
-      if (!transporter) {
-        console.log('Email secrets not set - aborting reminders');
-        return null;
-      }
-      const user = emailUserSecret.value();
-
-      const now = new Date();
-      const endOfToday = new Date();
-      endOfToday.setHours(23, 59, 59, 999);
-      
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      nextWeek.setHours(23, 59, 59, 999);
-
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const billsSnap = await db.collection('bills')
-        .where('status', '==', 'pending')
-        .get();
-
-      const byUser = new Map();
-      for (const doc of billsSnap.docs) {
-        const data = doc.data();
-        if (!data.userId || !data.dueDate) continue;
-
-        const due = data.dueDate.toDate ? data.dueDate.toDate() : new Date(data.dueDate);
-
-        // Ignore ghost bills older than 30 days — these are likely stale data
-        if (due < thirtyDaysAgo) continue;
-
-        // Categorize
-        let category = '';
-        if (due < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-          category = 'overdue';
-        } else if (due <= endOfToday) {
-          category = 'dueToday';
-        } else if (due <= nextWeek) {
-          category = 'upcoming';
-        } else {
-          continue; // Too far in the future
-        }
-
-        if (!byUser.has(data.userId)) {
-          byUser.set(data.userId, { overdue: [], dueToday: [], upcoming: [] });
-        }
-        byUser.get(data.userId)[category].push({ id: doc.id, ...data });
-      }
-
-      console.log(`Found ${byUser.size} user(s) with pending bills`);
-
-      let totalSent = 0;
-      for (const [userId, billGroups] of byUser) {
-        try {
-          // Skip if no overdue or due today (only upcoming doesn't trigger email daily unless we want)
-          if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) continue;
-
-          const settingsDoc = await db.collection('settings').doc(userId).get();
-          if (settingsDoc.exists && settingsDoc.data().billReminders === false) continue;
-
-          const authUser = await admin.auth().getUser(userId);
-          if (!authUser.email) continue;
-
-          // Get name from settings if available
-          const userName = settingsDoc.exists ? (settingsDoc.data().name || authUser.displayName) : authUser.displayName;
-
-          // Normalize dueDate and daysOverdue before enrichment so template always has valid data
-          const allListsBase = [billGroups.overdue, billGroups.dueToday, billGroups.upcoming];
-          for (const list of allListsBase) {
-            for (const bill of list) {
-              const billDue = bill.dueDate.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
-              bill.dueDate = billDue.toISOString();
-              if (!bill.amount) console.warn(`Bill ${bill.id} has no amount field`);
-              if (billDue < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-                bill.daysOverdue = Math.max(0, Math.floor((now - billDue) / (1000 * 60 * 60 * 24)));
-              }
-            }
-          }
-
-          // Enrich bills with card transaction totals
-          try {
-            // Fetch Transactions (last 45 days to cover most billing cycles)
-            const transactionsSnap = await db.collection('transactions')
-              .where('userId', '==', userId)
-              .where('date', '>=', new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString())
-              .get();
-            const userTransactions = transactionsSnap.docs.map(d => d.data());
-
-            // Fetch User Banks (to get closing dates for cards)
-            const userBanksSnap = await db.collection('userBanks')
-              .where('userId', '==', userId)
-              .get();
-            const userBanks = userBanksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-            const allLists = [billGroups.overdue, billGroups.dueToday, billGroups.upcoming];
-            for (const list of allLists) {
-              for (const bill of list) {
-                const billDue = new Date(bill.dueDate); // already normalized above
-
-                // Days overdue already set above
-
-                // Card outcomes
-                if (bill.category === 'credit_card' && bill.linkedBankId) {
-                  const bank = userBanks.find(b => b.id === bill.linkedBankId);
-                  if (bank && bank.hasCredit) {
-                    const closingDay = bank.closingDay || 10;
-                    const cycleEnd = new Date(billDue);
-                    cycleEnd.setDate(closingDay);
-                    // If closing day is after payment day, it likely closed in previous month
-                    if (cycleEnd > billDue) cycleEnd.setMonth(cycleEnd.getMonth() - 1);
-                    
-                    const cycleStart = new Date(cycleEnd);
-                    cycleStart.setMonth(cycleStart.getMonth() - 1);
-                    cycleStart.setDate(cycleStart.getDate() + 1);
-
-                    const cycleTxs = userTransactions.filter(tx => {
-                      if (tx.cardId !== bill.linkedBankId || tx.type !== 'expense') return false;
-                      const txDate = new Date(tx.date);
-                      return txDate >= cycleStart && txDate <= cycleEnd;
-                    });
-
-                    bill.cardOutcomesAmount = cycleTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
-                    bill.cardOutcomesCount = cycleTxs.length;
-                  }
-                }
-              }
-            }
-          } catch (enrichErr) {
-            console.error(`Error enriching bills for user ${userId}:`, enrichErr);
-            // Continue anyway with basic bill info
-          }
-
-          const clientId = authUser.email.split('@')[0];
-          const billsUrl = `https://realwise.com.br/${clientId}/bills`;
-          await sendBillReminderEmail(transporter, user, authUser.email, userName || 'Cliente', billGroups, billsUrl);
-
-          // Log reminders
-          const batch = db.batch();
-          const allBills = [...billGroups.overdue, ...billGroups.dueToday];
-          for (const bill of allBills.slice(0, 10)) {
-            batch.set(db.collection('reminder_logs').doc(), {
-              userId,
-              billId: bill.id,
-              billName: bill.name || bill.description || 'Conta',
-              sentAt: admin.firestore.FieldValue.serverTimestamp(),
-              sentVia: 'email',
-            });
-          }
-          await batch.commit();
-          totalSent++;
-        } catch (err) {
-          console.error(`Error sending email reminders to user ${userId}:`, err);
-        }
-      }
-
-      console.log(`Scheduled email reminders done. Sent ${totalSent} email(s).`);
-      return null;
-    } catch (err) {
-      console.error('Error in scheduledBillReminders:', err);
+    const transporter = getEmailTransporter();
+    if (!transporter) {
+      console.log('[scheduledBillReminders] Email secrets not set — aborting');
       return null;
     }
+    const emailFrom = emailUserSecret.value();
+
+    // Discover active clients from shared Firestore registry
+    const clientsSnap = await db.collection('clients').where('active', '==', true).get();
+    console.log(`[scheduledBillReminders] Found ${clientsSnap.size} active client(s)`);
+
+    let totalSent = 0;
+
+    for (const clientDoc of clientsSnap.docs) {
+      const { projectId, clientId } = clientDoc.data();
+      console.log(`[scheduledBillReminders] Processing client: ${clientId} (${projectId})`);
+
+      try {
+        const appName = `client-${clientId}`;
+        const clientApp = admin.apps.find(a => a.name === appName)
+          || admin.initializeApp({ projectId }, appName);
+        const clientDb = admin.firestore(clientApp);
+        const clientAuth = admin.auth(clientApp);
+
+        const userIds = await collectClientUserIds(clientDb);
+        console.log(`[scheduledBillReminders] ${clientId}: ${userIds.length} user(s) with actionable bills`);
+
+        for (const userId of userIds) {
+          try {
+            const settingsDoc = await clientDb.collection('settings').doc(userId).get();
+            if (settingsDoc.exists && settingsDoc.data().billReminders === false) continue;
+
+            const authUser = await clientAuth.getUser(userId);
+            if (!authUser.email) continue;
+
+            const userName = settingsDoc.exists
+              ? (settingsDoc.data().name || authUser.displayName)
+              : authUser.displayName;
+
+            const billGroups = await collectUserBillGroups(clientDb, userId);
+            if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) continue;
+
+            const billsUrl = `https://realwise.com.br/${authUser.email.split('@')[0]}/bills`;
+            await sendBillReminderEmail(
+              transporter, emailFrom, authUser.email,
+              userName || 'Cliente', billGroups, billsUrl
+            );
+
+            // Log to the client's own Firestore
+            const batch = clientDb.batch();
+            for (const bill of [...billGroups.overdue, ...billGroups.dueToday].slice(0, 10)) {
+              batch.set(clientDb.collection('reminder_logs').doc(), {
+                userId,
+                billId: bill.id,
+                billName: bill.name || bill.description || 'Conta',
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                sentVia: 'email',
+              });
+            }
+            await batch.commit();
+            totalSent++;
+          } catch (userErr) {
+            console.error(`[scheduledBillReminders] Error for user ${userId} in ${clientId}:`, userErr);
+          }
+        }
+      } catch (clientErr) {
+        console.error(`[scheduledBillReminders] Error processing client ${clientId}:`, clientErr);
+      }
+    }
+
+    console.log(`[scheduledBillReminders] Done. Sent ${totalSent} email(s).`);
+    return null;
   });
 
 async function sendBillReminderEmail(transporter, from, to, name, billGroups, billsUrl = 'https://realwise.com.br') {
