@@ -124,7 +124,7 @@ export default function Sidebar() {
         { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
         { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
-        { name: 'Investments', namePt: 'Investimentos', href: '/planner?tab=portfolio', icon: CalendarDaysIcon },
+        { name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: CalendarDaysIcon },
         { name: 'Banks', namePt: 'Bancos', href: '/banks', icon: BuildingLibraryIcon },
       ],
     },

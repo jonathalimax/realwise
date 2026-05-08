@@ -206,8 +206,8 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          {/* Charts view */}
-          {displayMode === 'charts' && (
+          {/* Display mode: show charts OR list (not both) */}
+          {displayMode === 'charts' ? (
             <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" /></div>}>
               <ExpensesChartsView
                 transactions={filteredTransactions}
@@ -215,11 +215,8 @@ export default function ExpensesPage() {
                 language={language}
               />
             </Suspense>
-          )}
-
-          {/* Filters Panel — only shown in list mode */}
-          {displayMode === 'list' && (
-          <>{/* Filters Panel */}
+          ) : (
+            <>{/* Filters Panel — only shown in list mode */}
           {showFilters && (
             <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 animate-fade-in">
               <div>
@@ -356,6 +353,7 @@ export default function ExpensesPage() {
             }
           />
           </>
+            )}
           )}
 
         </div>
