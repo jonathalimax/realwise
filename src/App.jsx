@@ -32,6 +32,7 @@ const ImportPage = lazy(() => import('./pages/Import'));
 const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlannerPage = lazy(() => import('./pages/planner/PlannerPage'));
 const PlanningPage = lazy(() => import('./pages/Planning'));
+const BanksPage = lazy(() => import('./pages/Banks'));
 
 // Feature-flagged pages (only imported when flags are enabled)
 const GoalsPage = lazy(() => import('./pages/Goals'));
@@ -96,6 +97,7 @@ function AuthenticatedApp() {
                           <Route path="help" element={<HelpPage />} />
                           <Route path="notifications" element={<NotificationsPage />} />
                           <Route path="import" element={<ImportPage />} />
+                          <Route path="banks" element={<BanksPage />} />
                           {hasGoals && <Route path="goals" element={<GoalsPage />} />}
                           {hasInvestments && (
                             <>

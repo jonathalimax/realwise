@@ -453,6 +453,11 @@ export default {
     expand: 'Expandir',
   },
 
+  // Banks
+  banks: {
+    title: 'Bancos',
+  },
+
   // PWA
   pwa: {
     install_pwa: 'Instalar App',

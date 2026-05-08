@@ -49,8 +49,11 @@ export default function DashboardPage() {
   useInvestments();
 
   const handleOpenCards = () => {
-    navigate('/settings?tab=banks');
+    navigate('/banks');
   };
+
+  const handleIncomeClick = () => navigate('/income');
+  const handleExpensesClick = () => navigate('/expenses');
 
   const handleOpenInvestmentsList = () => {
     if (isMobile) navigate('/investments');
@@ -123,6 +126,8 @@ export default function DashboardPage() {
             <IncomeVsExpensesCard
               transactions={monthlyTransactions}
               onInvestmentsClick={handleOpenInvestmentsList}
+              onIncomeClick={handleIncomeClick}
+              onExpensesClick={handleExpensesClick}
               carryoverSaldo={carryoverSaldo}
             />
 

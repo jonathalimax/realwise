@@ -3,7 +3,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline';
 
-export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick, carryoverSaldo = 0 }) {
+export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick, onIncomeClick, onExpensesClick, carryoverSaldo = 0 }) {
   const { language, formatCurrency } = useSettings();
   const { investments, getTotalCurrentValue, getTotalGrowth } = useInvestments();
 
@@ -43,7 +43,10 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
 
       <div className="space-y-4">
         {/* Income */}
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+        <button
+          onClick={onIncomeClick}
+          className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 group"
+        >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <ArrowTrendingUpIcon className="w-5 h-5 text-emerald-500" />
@@ -51,14 +54,22 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
                 {language === 'pt' ? 'Receitas' : 'Income'}
               </span>
             </div>
-            <span className="text-2xl font-bold text-emerald-500">
-              {formatCurrency(totalIncome)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-emerald-500">
+                {formatCurrency(totalIncome)}
+              </span>
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
-        </div>
+        </button>
 
         {/* Expenses */}
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+        <button
+          onClick={onExpensesClick}
+          className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 group"
+        >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <ArrowTrendingDownIcon className="w-5 h-5 text-rose-500" />
@@ -66,9 +77,14 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
                 {language === 'pt' ? 'Despesas' : 'Expenses'}
               </span>
             </div>
-            <span className="text-2xl font-bold text-rose-500">
-              {formatCurrency(totalExpenses)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-rose-500">
+                {formatCurrency(totalExpenses)}
+              </span>
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
           {totalIncome > 0 && (
             <div className="mt-2">
@@ -84,7 +100,7 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
               </div>
             </div>
           )}
-        </div>
+        </button>
 
         {/* Saldo anterior — only when there is a non-zero carryover */}
         {carryoverSaldo !== 0 && (
