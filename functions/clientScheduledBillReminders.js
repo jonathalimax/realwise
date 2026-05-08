@@ -70,17 +70,40 @@ exports.scheduledBillReminders = functions
     await Promise.all(userIds.map(async (userId) => {
       try {
         const settingsDoc = await db.collection('settings').doc(userId).get();
-        if (settingsDoc.exists && settingsDoc.data().billReminders === false) return;
+        if (settingsDoc.exists && settingsDoc.data().billReminders === false) {
+          console.log(`[clientBillReminders] Skipping ${userId} — reminders disabled`);
+          return;
+        }
 
-        const authUser = await auth.getUser(userId);
-        if (!authUser.email) return;
+        let authUser;
+        try {
+          authUser = await auth.getUser(userId);
+        } catch (authErr) {
+          console.log(`[clientBillReminders] Skipping ${userId} — Auth lookup failed: ${authErr.message}`);
+          return;
+        }
+        // Owner accounts (custom UID) have no email in Auth — fall back to access/allowed_emails
+        let email = authUser.email;
+        if (!email) {
+          const accessDoc = await db.collection('access').doc('allowed_emails').get();
+          email = accessDoc.exists ? (accessDoc.data().emails || [])[0] : null;
+        }
+        if (!email) {
+          console.log(`[clientBillReminders] Skipping ${userId} — no email in Auth or access list`);
+          return;
+        }
+        authUser = { ...authUser, email };
 
         const userName = settingsDoc.exists
           ? (settingsDoc.data().name || authUser.displayName)
           : authUser.displayName;
 
         const billGroups = await collectUserBillGroups(db, userId);
-        if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) return;
+        console.log(`[clientBillReminders] ${userId}: overdue=${billGroups.overdue.length} dueToday=${billGroups.dueToday.length}`);
+        if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) {
+          console.log(`[clientBillReminders] Skipping ${userId} — no overdue/dueToday bills`);
+          return;
+        }
 
         const billsUrl = `https://realwise.com.br/${authUser.email.split('@')[0]}/bills`;
         await sendBillReminderEmail(transporter, emailFrom, authUser.email, userName || 'Cliente', billGroups, billsUrl);
