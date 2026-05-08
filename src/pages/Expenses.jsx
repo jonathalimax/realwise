@@ -31,7 +31,6 @@ export default function ExpensesPage() {
   const [displayMode, setDisplayMode] = useState(() => sessionStorage.getItem('expenses_displayMode') ?? 'charts');
 
   const handleSetDisplayMode = (v) => { sessionStorage.setItem('expenses_displayMode', v); setDisplayMode(v); };
-
   const handleSetViewMode = (v) => { sessionStorage.setItem('expenses_viewMode', v); setViewMode(v); };
   const handleSetBankFilter = (v) => { sessionStorage.setItem('expenses_bankFilter', v); setSelectedBankFilter(v); };
   const handleSetPaymentMethodFilter = (v) => { sessionStorage.setItem('expenses_paymentMethodFilter', v); setSelectedPaymentMethodFilter(v); };
@@ -158,6 +157,27 @@ export default function ExpensesPage() {
     }).format(amount);
   };
 
+  const filterButton = (
+    <button
+      onClick={() => setShowFilters(!showFilters)}
+      className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
+        showFilters || activeFiltersCount > 0
+          ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20'
+          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+      }`}
+    >
+      <AdjustmentsHorizontalIcon className="w-5 h-5" />
+      <span className="font-bold text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
+      {activeFiltersCount > 0 && (
+        <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-black rounded-full ${
+          showFilters ? 'bg-white text-violet-600' : 'bg-violet-600 text-white'
+        }`}>
+          {activeFiltersCount}
+        </span>
+      )}
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <PageHeader title={language === 'pt' ? 'Saída' : 'Expenses'} />
@@ -170,53 +190,49 @@ export default function ExpensesPage() {
           <p className="text-sm text-white/70 mt-1">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</p>
         </div>
 
-        {/* Transactions List Container */}
+        {/* Transactions Container */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-700">
+          {/* Header row: month label + filter button + segmented toggle */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
 
-            {/* List / Charts segmented toggle */}
-            <div className="flex p-1 bg-slate-100 dark:bg-slate-700 rounded-xl">
-              <button
-                onClick={() => handleSetDisplayMode('list')}
-                aria-label={language === 'pt' ? 'Lista' : 'List'}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  displayMode === 'list'
-                    ? 'bg-white dark:bg-slate-600 text-violet-600 dark:text-violet-400 shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                <ListBulletIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">{language === 'pt' ? 'Lista' : 'List'}</span>
-              </button>
-              <button
-                onClick={() => handleSetDisplayMode('charts')}
-                aria-label={language === 'pt' ? 'Gráficos' : 'Charts'}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                  displayMode === 'charts'
-                    ? 'bg-white dark:bg-slate-600 text-violet-600 dark:text-violet-400 shadow-sm'
-                    : 'text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                <ChartPieIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">{language === 'pt' ? 'Gráficos' : 'Charts'}</span>
-              </button>
+            <div className="flex items-center gap-2">
+              {/* Filter toggle — visible in both modes */}
+              {filterButton}
+
+              {/* List / Charts segmented toggle */}
+              <div className="flex p-1 bg-slate-100 dark:bg-slate-700 rounded-xl">
+                <button
+                  onClick={() => handleSetDisplayMode('list')}
+                  aria-label={language === 'pt' ? 'Lista' : 'List'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    displayMode === 'list'
+                      ? 'bg-white dark:bg-slate-600 text-violet-600 dark:text-violet-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <ListBulletIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{language === 'pt' ? 'Lista' : 'List'}</span>
+                </button>
+                <button
+                  onClick={() => handleSetDisplayMode('charts')}
+                  aria-label={language === 'pt' ? 'Gráficos' : 'Charts'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    displayMode === 'charts'
+                      ? 'bg-white dark:bg-slate-600 text-violet-600 dark:text-violet-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <ChartPieIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{language === 'pt' ? 'Gráficos' : 'Charts'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Display mode: show charts OR list (not both) */}
-          {displayMode === 'charts' ? (
-            <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" /></div>}>
-              <ExpensesChartsView
-                transactions={filteredTransactions}
-                formatCurrency={formatCurrency}
-                language={language}
-              />
-            </Suspense>
-          ) : (
-            <>{/* Filters Panel — only shown in list mode */}
+          {/* Filters Panel — visible for BOTH chart and list views */}
           {showFilters && (
             <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 animate-fade-in">
               <div>
@@ -324,37 +340,26 @@ export default function ExpensesPage() {
             </div>
           )}
 
-          <TransactionList
-            transactions={filteredTransactions}
-            selectedMonth={selectedMonth}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onSuccess={triggerRefresh}
-            hideBulkEdit={true}
-            filterButton={
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
-                  showFilters || activeFiltersCount > 0
-                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                }`}
-              >
-                <AdjustmentsHorizontalIcon className="w-5 h-5" />
-                <span className="font-bold text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
-                {activeFiltersCount > 0 && (
-                  <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-black rounded-full ${
-                    showFilters ? 'bg-white text-violet-600' : 'bg-violet-600 text-white'
-                  }`}>
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
-            }
-          />
-          </>
-            )}
-
+          {/* Content: Charts OR List */}
+          {displayMode === 'charts' ? (
+            <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" /></div>}>
+              <ExpensesChartsView
+                transactions={filteredTransactions}
+                formatCurrency={formatCurrency}
+                language={language}
+              />
+            </Suspense>
+          ) : (
+            <TransactionList
+              transactions={filteredTransactions}
+              selectedMonth={selectedMonth}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSuccess={triggerRefresh}
+              hideBulkEdit={true}
+              filterButton={filterButton}
+            />
+          )}
         </div>
       </main>
 
