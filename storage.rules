@@ -32,6 +32,19 @@ service firebase.storage {
       allow write: if false; // Only Cloud Functions (Admin SDK)
     }
 
+    // Failed-import reports: only admins (or Cloud Functions Admin SDK) can read.
+    // Path: /importIssues/{issueId}/{filename}
+    // Writes happen via the submitImportIssue callable (Admin SDK bypasses rules).
+    // Reads: admins listed in the shared `admins` Firestore collection.
+    function isAdmin() {
+      return isAuthenticated() &&
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.token.email));
+    }
+    match /importIssues/{allPaths=**} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // Default: deny all other access
     match /{allPaths=**} {
       allow read, write: if false;

@@ -1,0 +1,18 @@
+{
+  "clientName": "Realwise",
+  "firebase": {
+    "apiKey": "AIzaSyAGF8tmIzQkc_KMsoeRsCe_5aqZPPARNVM",
+    "authDomain": "moneywise-palomabandeiramatos5.firebaseapp.com",
+    "projectId": "moneywise-palomabandeiramatos5",
+    "storageBucket": "moneywise-palomabandeiramatos5.firebasestorage.app",
+    "messagingSenderId": "931104306135",
+    "appId": "1:931104306135:web:159b0c48d490dec08a1192"
+  },
+  "features": {
+    "investments": true,
+    "goals": false,
+    "b3Sync": false,
+    "whatsapp": false,
+    "salaryBreakdown": true
+  }
+}

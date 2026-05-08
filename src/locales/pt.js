@@ -120,7 +120,7 @@ export default {
 
   // Settings
   settings: {
-    title: 'Configurações',
+    title: 'Configuração',
     currency: 'Moeda',
     language: 'Idioma',
     categories: 'Categorias',
@@ -415,7 +415,8 @@ export default {
       crypto: 'Cripto',
       funds: 'Fundos',
       fii: 'FII',
-      real_estate: 'Imóveis/FIIs',
+      etf: 'ETF',
+      other: 'Outro',
     },
     returnTypes: {
       cdi: '% CDI',

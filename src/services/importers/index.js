@@ -14,6 +14,14 @@ import {
   generateTransactionHash,
   generateInstallmentGroupId
 } from '../installments';
+import { parseMercadoPagoPdf, detectMercadoPagoPdf } from './bankParsers/mercadopagoPdf';
+import { parseInterPdf, detectInterPdf } from './bankParsers/interPdf';
+import { parseInterFaturaPdf, detectInterFaturaPdf } from './bankParsers/interFaturaPdf';
+import { parseInterStatement, detectInter } from './bankParsers/inter';
+import { parseOfx } from './bankParsers/ofx';
+import { parseItauPdf, detectItauPdf } from './bankParsers/itauPdf';
+import { parseBradescoPdf, detectBradescoPdf } from './bankParsers/bradescoPdf';
+import { extractPdfText } from './pdfLoader';
 
 /**
  * Parse a bank statement file and categorize transactions
@@ -25,7 +33,6 @@ import {
  * @param {Object} options.categories - Available categories by type { expense: [], income: [] }
  */
 export async function parseFile(file, bankType = 'auto', userId = null, options = {}) {
-  const { apiKey, categories: availableCategories } = options;
   const fileExtension = file.name.split('.').pop().toLowerCase();
 
   let data = [];
@@ -34,8 +41,33 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
     data = await parseCSV(file);
   } else if (['xlsx', 'xls'].includes(fileExtension)) {
     data = await parseExcel(file);
+  } else if (fileExtension === 'ofx') {
+    const text = await file.text();
+    const transactions = parseOfx(text);
+    return await categorizeParsedTransactions(transactions, userId, options);
+  } else if (fileExtension === 'pdf') {
+    const { text, requiresPassword } = await extractPdfText(file, options.pdfPassword);
+    if (requiresPassword) {
+      const err = new Error('PDF_PASSWORD_REQUIRED');
+      err.code = 'PDF_PASSWORD_REQUIRED';
+      throw err;
+    }
+    let transactions = [];
+    if (bankType === 'itauPdf' || (bankType === 'auto' && detectItauPdf(text))) {
+      transactions = parseItauPdf(text);
+    } else if (bankType === 'bradescoPdf' || (bankType === 'auto' && detectBradescoPdf(text))) {
+      transactions = parseBradescoPdf(text);
+    } else if (bankType === 'interFaturaPdf' || (bankType === 'auto' && detectInterFaturaPdf(text))) {
+      transactions = parseInterFaturaPdf(text);
+    } else if (bankType === 'interPdf' || (bankType === 'auto' && detectInterPdf(text))) {
+      transactions = parseInterPdf(text);
+    } else if (bankType === 'mercadopagoPdf' || (bankType === 'auto' && detectMercadoPagoPdf(text))) {
+      transactions = parseMercadoPagoPdf(text);
+    }
+    // else: no parser matched, transactions stays [] so failed-import UI can kick in
+    return await categorizeParsedTransactions(transactions, userId, options);
   } else {
-    throw new Error('Unsupported file format. Please use CSV or Excel files.');
+    throw new Error('Unsupported file format. Please use CSV, Excel, or PDF files.');
   }
 
   if (data.length === 0) {
@@ -49,6 +81,8 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
     const headers = Object.keys(data[0]);
     if (detectNubank(headers)) {
       transactions = parseNubankStatement(data);
+    } else if (detectInter(headers)) {
+      transactions = parseInterStatement(data);
     } else if (detectItau(headers)) {
       transactions = parseItauStatement(data);
     } else if (detectBradesco(headers)) {
@@ -63,6 +97,9 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
       case 'nubank':
         transactions = parseNubankStatement(data);
         break;
+      case 'inter':
+        transactions = parseInterStatement(data);
+        break;
       case 'itau':
         transactions = parseItauStatement(data);
         break;
@@ -73,123 +110,12 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
         transactions = parseMercadopagoStatement(data);
         break;
       default:
-        transactions = parseGenericStatement(data);
+        // Unsupported / manual bank — leave empty so failed-import flow triggers.
+        transactions = [];
     }
   }
 
-  // Load user categorization rules if userId is provided
-  let userRules = [];
-  if (userId) {
-    try {
-      userRules = await loadUserCategorizationRules(userId);
-    } catch (err) {
-      console.error('Error loading user categorization rules:', err);
-    }
-  }
-
-  // Apply categorization and detect installments
-  const processedTransactions = [];
-  const uncategorizedTransactions = []; // Track transactions needing AI
-
-  for (const t of transactions) {
-    // User rules have higher priority (they're passed first)
-    const categorization = categorizeTransaction(t.description, userRules);
-    const installmentInfo = detectInstallment(t.description);
-
-    // Check if transaction got a real category or just fallback
-    const isUncategorized = !categorization ||
-      categorization.category === 'Diversos' ||
-      categorization.category === 'Other' ||
-      categorization.category === 'Outros';
-
-    const baseTransaction = {
-      ...t,
-      category: categorization?.category || 'Diversos',
-      type: categorization?.type || t.type,
-      autoCategory: !!categorization && !isUncategorized,
-      isUserRule: categorization?.isUserRule || false,
-      needsAI: isUncategorized, // Flag for AI processing
-      hash: generateTransactionHash(t)
-    };
-
-    if (installmentInfo) {
-      // Generate all future installments
-      baseTransaction.installmentGroupId = generateInstallmentGroupId(baseTransaction);
-      const installmentTransactions = generateInstallmentTransactions(
-        baseTransaction,
-        installmentInfo.current,
-        installmentInfo.total
-      );
-
-      // Apply categorization to all installments and mark as auto-generated
-      installmentTransactions.forEach((installment, index) => {
-        installment.hash = generateTransactionHash(installment);
-        installment.autoGenerated = index > 0; // First one is original, rest are auto-generated
-
-        // Only first installment needs AI (others will copy)
-        if (index === 0 && isUncategorized) {
-          uncategorizedTransactions.push(installment);
-        }
-
-        processedTransactions.push(installment);
-      });
-    } else {
-      if (isUncategorized) {
-        uncategorizedTransactions.push(baseTransaction);
-      }
-      processedTransactions.push(baseTransaction);
-    }
-  }
-
-  // Use AI for uncategorized transactions if API key is available
-  if (apiKey && uncategorizedTransactions.length > 0 && availableCategories) {
-    console.log(`Using AI for ${uncategorizedTransactions.length} uncategorized transactions`);
-
-    try {
-      const aiResults = await batchCategorizeWithAI(uncategorizedTransactions, {
-        categories: availableCategories,
-        userId,
-        apiKey,
-        fallbackFn: null // Already tried rule-based
-      });
-
-      // Apply AI results to processed transactions
-      processedTransactions.forEach(t => {
-        if (t.needsAI && aiResults.has(t.description)) {
-          const aiResult = aiResults.get(t.description);
-          t.category = aiResult.category;
-          t.autoCategory = true;
-          t.aiCategorized = aiResult.source === 'ai' || aiResult.source === 'cache';
-          t.categoryConfidence = aiResult.confidence;
-        }
-        delete t.needsAI; // Clean up temporary flag
-      });
-
-      // For installment groups, copy AI category to all installments
-      const installmentGroups = {};
-      processedTransactions.forEach(t => {
-        if (t.installmentGroupId && t.aiCategorized) {
-          installmentGroups[t.installmentGroupId] = t.category;
-        }
-      });
-
-      processedTransactions.forEach(t => {
-        if (t.installmentGroupId && installmentGroups[t.installmentGroupId] && !t.aiCategorized) {
-          t.category = installmentGroups[t.installmentGroupId];
-          t.autoCategory = true;
-        }
-      });
-
-    } catch (err) {
-      console.error('AI categorization failed:', err);
-      // Continue with rule-based results
-    }
-  }
-
-  // Clean up needsAI flag if AI wasn't used
-  processedTransactions.forEach(t => delete t.needsAI);
-
-  return processedTransactions;
+  return await categorizeParsedTransactions(transactions, userId, options);
 }
 
 function parseCSV(file) {
@@ -206,6 +132,12 @@ function parseCSV(file) {
       if (mpHeaderIndex > 0) {
         content = content.substring(mpHeaderIndex);
       }
+
+      const interHeaderIndex = content.indexOf('Data Lançamento');
+      if (interHeaderIndex > 0) content = content.substring(interHeaderIndex);
+
+      const bradescoHeaderIndex = content.indexOf('Data;Histórico');
+      if (bradescoHeaderIndex > 0) content = content.substring(bradescoHeaderIndex);
 
       // Detect delimiter: Brazilian CSVs often use semicolon
       const firstLine = content.split('\n')[0];
@@ -258,11 +190,132 @@ async function parseExcel(file) {
   });
 }
 
+async function categorizeParsedTransactions(transactions, userId, options) {
+  const { apiKey, categories: availableCategories } = options;
+
+  let userRules = [];
+  if (userId) {
+    try {
+      userRules = await loadUserCategorizationRules(userId);
+    } catch (err) {
+      console.error('Error loading user categorization rules:', err);
+    }
+  }
+
+  const processedTransactions = [];
+  const uncategorizedTransactions = [];
+  const processedInstallmentGroups = new Set();
+
+  for (const t of transactions) {
+    const categorization = categorizeTransaction(t.description, userRules);
+    const installmentInfo = detectInstallment(t.description);
+
+    const isUncategorized =
+      !categorization ||
+      categorization.category === 'Diversos' ||
+      categorization.category === 'Other' ||
+      categorization.category === 'Outros' ||
+      categorization.category === 'Sem categoria';
+
+    const baseTransaction = {
+      ...t,
+      category: isUncategorized ? 'Sem categoria' : categorization.category,
+      type: t.type || categorization?.type,
+      autoCategory: !!categorization && !isUncategorized,
+      isUserRule: categorization?.isUserRule || false,
+      needsAI: isUncategorized,
+      hash: generateTransactionHash(t),
+    };
+
+    if (installmentInfo) {
+      const groupId = generateInstallmentGroupId(baseTransaction);
+      if (processedInstallmentGroups.has(groupId)) continue;
+      processedInstallmentGroups.add(groupId);
+      baseTransaction.installmentGroupId = groupId;
+      const installmentTransactions = generateInstallmentTransactions(
+        baseTransaction,
+        installmentInfo.current,
+        installmentInfo.total
+      );
+      installmentTransactions.forEach((installment, index) => {
+        installment.hash = generateTransactionHash(installment);
+        installment.autoGenerated = index > 0;
+        if (index === 0 && isUncategorized) uncategorizedTransactions.push(installment);
+        processedTransactions.push(installment);
+      });
+    } else {
+      if (isUncategorized) uncategorizedTransactions.push(baseTransaction);
+      processedTransactions.push(baseTransaction);
+    }
+  }
+
+  if (apiKey && uncategorizedTransactions.length > 0 && availableCategories) {
+    try {
+      const aiResults = await batchCategorizeWithAI(uncategorizedTransactions, {
+        categories: availableCategories,
+        userId,
+        apiKey,
+        fallbackFn: null,
+      });
+      processedTransactions.forEach((t) => {
+        if (t.needsAI && aiResults.has(t.description)) {
+          const r = aiResults.get(t.description);
+          t.category = r.category;
+          t.autoCategory = true;
+          t.aiCategorized = r.source === 'ai' || r.source === 'cache';
+          t.categoryConfidence = r.confidence;
+        }
+        delete t.needsAI;
+      });
+      const installmentGroups = {};
+      processedTransactions.forEach((t) => {
+        if (t.installmentGroupId && t.aiCategorized)
+          installmentGroups[t.installmentGroupId] = t.category;
+      });
+      processedTransactions.forEach((t) => {
+        if (t.installmentGroupId && installmentGroups[t.installmentGroupId] && !t.aiCategorized) {
+          t.category = installmentGroups[t.installmentGroupId];
+          t.autoCategory = true;
+        }
+      });
+    } catch (err) {
+      console.error('AI categorization failed:', err);
+    }
+  }
+
+  processedTransactions.forEach((t) => {
+    delete t.needsAI;
+    let catSource;
+    if (t.aiCategorized) catSource = 'ai';
+    else if (t.isUserRule) catSource = 'user_rule';
+    else if (t.autoCategory) catSource = 'default_rule';
+    else catSource = null;
+    t.metadata = {
+      catSource,
+      catConfidence: catSource === 'ai' ? (t.categoryConfidence ?? null) : null,
+      isCorrected: false,
+      originalCategory: t.category ?? null,
+    };
+  });
+
+  return processedTransactions;
+}
+
+// Each option includes a `status` indicating whether we have a built-in parser.
+// 'auto'   — built-in parser exists
+// 'manual' — bank is recognized but no parser yet; selecting it triggers the
+//            failed-import reporting flow so the user can send us their file
 export const BANK_OPTIONS = [
-  { value: 'auto', label: 'Auto-detect' },
-  { value: 'nubank', label: 'Nubank' },
-  { value: 'itau', label: 'Itaú' },
-  { value: 'bradesco', label: 'Bradesco' },
-  { value: 'mercadopago', label: 'Mercado Pago' },
-  { value: 'generic', label: 'Other / Generic' }
+  { value: 'auto',          label: 'Detectar automaticamente', status: 'auto' },
+  { value: 'nubank',        label: 'Nubank',                   status: 'auto' },
+  { value: 'itau',          label: 'Itaú',                     status: 'auto' },
+  { value: 'bradesco',      label: 'Bradesco',                 status: 'auto' },
+  { value: 'inter',         label: 'Banco Inter',              status: 'auto' },
+  { value: 'interFaturaPdf', label: 'Banco Inter — Fatura',   status: 'auto' },
+  { value: 'mercadopago',   label: 'Mercado Pago',             status: 'auto' },
+  { value: 'bancodobrasil', label: 'Banco do Brasil',          status: 'manual' },
+  { value: 'caixa',         label: 'Caixa Econômica Federal',  status: 'manual' },
+  { value: 'santander',     label: 'Santander',                status: 'manual' },
+  { value: 'ofx',           label: 'OFX (qualquer banco)',     status: 'auto' },
+  { value: 'custom',        label: 'Outro banco',              status: 'manual' },
 ];

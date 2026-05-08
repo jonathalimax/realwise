@@ -33,7 +33,7 @@ export default function SimulacoesTab({
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeTab === tab.value
                 ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'

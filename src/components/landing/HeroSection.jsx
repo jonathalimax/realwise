@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Monitor, Smartphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useLanguage } from '@/components/LanguageToggle';
 import { Link } from 'react-router-dom';
+import { t } from '@/lib/ptTranslations';
 
 const screenshots = [
   { src: '/dashboard-overview.png', alt: 'Dashboard Overview' },
@@ -11,7 +11,6 @@ const screenshots = [
 ];
 
 export default function HeroSection() {
-  const { t } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Auto-rotate every 5 seconds
@@ -72,7 +71,7 @@ export default function HeroSection() {
             <Link to="/checkout">
               <Button
                 size="lg"
-                className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
+                className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
               >
                 {t('hero.cta')}
                 <ArrowRight className="ml-3 h-6 w-6" />
@@ -121,7 +120,7 @@ export default function HeroSection() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="max-w-md mx-auto h-6 rounded-md bg-slate-700 flex items-center px-3">
-                    <span className="text-xs text-slate-400">blimwallet.com</span>
+                    <span className="text-xs text-slate-400">realwisewallet.com</span>
                   </div>
                 </div>
               </div>

@@ -24,7 +24,8 @@ export const INVESTMENT_TYPES = {
   crypto: { icon: '₿', color: 'orange', label: 'crypto' },
   funds: { icon: '💼', color: 'purple', label: 'funds' },
   fii: { icon: '🏢', color: 'teal', label: 'fii' },
-  real_estate: { icon: '🏠', color: 'amber', label: 'real_estate' },
+  etf: { icon: '🎯', color: 'amber', label: 'etf' },
+  other: { icon: '📦', color: 'indigo', label: 'other' },
 };
 
 // Investment colors (reusing goal colors pattern)
@@ -327,27 +328,6 @@ export function InvestmentProvider({ children }) {
   const getInvestmentsByGoal = (goalId) => {
     const filtered = investments.filter(inv => inv.goalId === goalId && inv.status !== 'closed');
 
-    // Debug logging - remove after confirming fix works
-    console.log('[getInvestmentsByGoal Debug]', {
-      goalId,
-      totalInvestments: investments.length,
-      allInvestmentsForGoal: investments.filter(inv => inv.goalId === goalId).map(inv => ({
-        id: inv.id,
-        name: inv.name,
-        status: inv.status,
-        goalId: inv.goalId,
-        currentAmount: inv.currentAmount,
-        initialAmount: inv.initialAmount
-      })),
-      filteredCount: filtered.length,
-      filteredInvestments: filtered.map(inv => ({
-        id: inv.id,
-        name: inv.name,
-        status: inv.status,
-        currentValue: getCurrentValue(inv)
-      }))
-    });
-
     return filtered;
   };
 
@@ -355,13 +335,6 @@ export function InvestmentProvider({ children }) {
   const getGoalInvestmentValue = (goalId) => {
     const goalInvestments = getInvestmentsByGoal(goalId);
     const total = goalInvestments.reduce((sum, inv) => sum + getCurrentValue(inv), 0);
-
-    // Debug logging - remove after confirming fix works
-    console.log('[getGoalInvestmentValue Debug]', {
-      goalId,
-      investmentCount: goalInvestments.length,
-      totalValue: total
-    });
 
     return total;
   };

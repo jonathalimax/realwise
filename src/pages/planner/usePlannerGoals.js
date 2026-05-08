@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
+import { getActiveVersion } from './carteira/walletVersion';
 
 /**
  * Lightweight hook that reads wallet sublayers from the Firestore planner doc.
@@ -15,35 +16,58 @@ export default function usePlannerGoals() {
 
   useEffect(() => {
     if (!ownerId) return;
-    const unsubscribe = onSnapshot(doc(db, 'planner', ownerId), (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
 
-      const walletVersions = data.walletVersions ?? [];
-      if (walletVersions.length > 0) {
-        // Use the most recent wallet version to get all sublayers
-        const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-        const sorted = [...walletVersions].sort((a, b) => a.from.localeCompare(b.from));
-        let activeVersion = null;
-        for (const v of sorted) {
-          if (v.from <= currentMonth) activeVersion = v;
+    let unsubscribe;
+    try {
+      unsubscribe = onSnapshot(
+        doc(db, 'planner', ownerId),
+        (snap) => {
+          if (!snap.exists()) {
+            console.warn('[usePlannerGoals] Planner document does not exist for', ownerId);
+            setGoals([]);
+            return;
+          }
+
+          const data = snap.data();
+          const walletVersions = data.walletVersions ?? [];
+
+          if (walletVersions.length > 0) {
+            // Use the most recent wallet version to get all sublayers
+            const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+            const activeVersion = getActiveVersion(walletVersions, currentMonth);
+
+            if (activeVersion) {
+              const sublayers = (activeVersion.layers ?? []).flatMap(layer =>
+                (layer.sublayers ?? []).map(sub => ({
+                  id: sub.id,
+                  label: sub.label,
+                  layerLabel: layer.label,
+                }))
+              );
+              setGoals(sublayers);
+            } else {
+              console.warn('[usePlannerGoals] No active version found. Versions:', walletVersions.map(v => v.from));
+              setGoals([]);
+            }
+          } else {
+            // Fallback for legacy planner docs without walletVersions
+            const rows = data.savingsRows ?? [];
+            setGoals(rows.map(r => ({ id: r.id, label: r.label, layerLabel: '' })));
+          }
+        },
+        (error) => {
+          console.error('[usePlannerGoals] Firestore listener error:', error);
+          setGoals([]);
         }
-        const version = activeVersion ?? sorted[sorted.length - 1];
-        const sublayers = (version.layers ?? []).flatMap(layer =>
-          (layer.sublayers ?? []).map(sub => ({
-            id: sub.id,
-            label: sub.label,
-            layerLabel: layer.label,
-          }))
-        );
-        setGoals(sublayers);
-      } else {
-        // Fallback for legacy planner docs without walletVersions
-        const rows = data.savingsRows ?? [];
-        setGoals(rows.map(r => ({ id: r.id, label: r.label, layerLabel: '' })));
-      }
-    });
-    return unsubscribe;
+      );
+    } catch (error) {
+      console.error('[usePlannerGoals] Error setting up listener:', error);
+      setGoals([]);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [ownerId]);
 
   return goals;

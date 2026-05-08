@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
+import PageHelp from '@/components/ui/PageHelp';
 import { Tab } from '@headlessui/react';
 import { ArrowPathIcon, AdjustmentsHorizontalIcon, ArrowLeftIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { auth, db } from '../firebase';
@@ -196,7 +197,7 @@ export default function BudgetPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Page Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 h-14 sm:h-16">
             <button
               onClick={handleClose}
@@ -205,7 +206,7 @@ export default function BudgetPage() {
               <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
             <div>
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                 {t('budget.budgetSettings')}
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 capitalize">
@@ -217,7 +218,7 @@ export default function BudgetPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         {/* Income Summary Card */}
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg mb-6">
           <p className="text-sm text-white/80 mb-1">
@@ -318,7 +319,7 @@ export default function BudgetPage() {
                       <div className={`flex items-center justify-between px-4 py-3 ${colors.light} border-b ${colors.border}`}>
                         <div className="flex items-center gap-2">
                           <span className={`w-3 h-3 rounded-full ${colors.bg}`} />
-                          <span className={`text-sm font-semibold ${colors.text}`}>
+                          <span className={`text-sm font-bold ${colors.text}`}>
                             {label} ({percent}%)
                           </span>
                         </div>
@@ -356,7 +357,7 @@ export default function BudgetPage() {
                   <span className="text-gray-600 dark:text-gray-400">
                     {language === 'pt' ? 'Total Alocado:' : 'Total Allocated:'}
                   </span>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-bold text-gray-900 dark:text-white">
                     {formatCurrency(expenseCategories.reduce((sum, cat) => sum + (categoryBudgets[cat] || 0), 0))}
                   </span>
                 </div>
@@ -379,7 +380,7 @@ export default function BudgetPage() {
                       <div key={key} className={`p-2 sm:p-3 rounded-xl ${colors.light} border ${colors.border}`}>
                         <div className="flex items-center gap-1 mb-2">
                           <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
-                          <span className={`text-[10px] sm:text-xs font-semibold ${colors.text}`}>
+                          <span className={`text-[10px] sm:text-xs font-bold ${colors.text}`}>
                             {label}
                           </span>
                         </div>
@@ -456,7 +457,7 @@ export default function BudgetPage() {
                           {/* Emoji - Hidden on mobile to save space */}
                           <span className="hidden sm:inline text-2xl">{emoji}</span>
                           <div>
-                            <span className={`font-semibold text-sm sm:text-base ${colors.text}`}>{label}</span>
+                            <span className={`font-bold text-sm sm:text-base ${colors.text}`}>{label}</span>
                             <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                               {language === 'pt' ? 'Padrao' : 'Default'}: {defaultVal}%
                             </p>
@@ -492,7 +493,7 @@ export default function BudgetPage() {
                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     )}
-                    <span className={`text-sm font-semibold ${isPercentageValid ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                    <span className={`text-sm font-bold ${isPercentageValid ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
                       {t('budget.currentSum')}: {percentageSum}%
                     </span>
                   </div>
@@ -517,7 +518,7 @@ export default function BudgetPage() {
 
         {/* Save button - Fixed at bottom on mobile */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 sm:relative sm:mt-6 sm:p-0 sm:bg-transparent sm:border-0">
-          <div className="max-w-3xl mx-auto flex gap-3">
+          <div className="max-w-7xl mx-auto flex gap-3">
             <button
               onClick={handleClose}
               className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -527,13 +528,18 @@ export default function BudgetPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-600/25"
+              className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-600/25"
             >
               {saving ? t('common.loading') : t('common.save')}
             </button>
           </div>
         </div>
       </div>
+      <PageHelp
+        title="Orçamento"
+        text="Defina limites de gasto por categoria. A barra mostra quanto você já usou do orçamento do mês. Quando chegar a 100%, você atingiu o limite definido."
+        hasFab={false}
+      />
     </div>
   );
 }

@@ -89,11 +89,35 @@ export const BillsProvider = ({ children }) => {
   // Mark bill as paid
   const markBillAsPaid = async (billId, paidDate = new Date().toISOString()) => {
     try {
+      const sourceBill = bills.find(b => b.id === billId);
+
       await updateDoc(doc(db, 'bills', billId), {
         status: 'paid',
         paidDate: paidDate,
         updatedAt: serverTimestamp()
       });
+
+      // If recurring, create the next instance
+      if (sourceBill && sourceBill.recurrence && sourceBill.recurrence !== 'none') {
+        const shouldCreateNext = !sourceBill.recurrenceEndDate || new Date(sourceBill.recurrenceEndDate) > new Date(sourceBill.dueDate);
+
+        if (shouldCreateNext) {
+          const nextDueDate = calculateNextDueDate(sourceBill.dueDate, sourceBill.recurrence);
+          const nextBill = {
+            ...sourceBill,
+            dueDate: nextDueDate,
+            status: 'pending',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          };
+
+          // Remove the id field to let Firestore generate a new one
+          delete nextBill.id;
+
+          await addDoc(collection(db, 'bills'), nextBill);
+        }
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Error marking bill as paid:', error);

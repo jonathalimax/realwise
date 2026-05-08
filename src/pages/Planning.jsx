@@ -5,6 +5,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useBudget } from '../contexts/BudgetContext';
+import { analytics } from '../services/analyticsService';
 import { useCards } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import BudgetCategorySection from '../components/BudgetCategorySection';
@@ -21,6 +22,7 @@ export default function PlanningPage() {
   const { selectedMonth, setSelectedMonth } = useMonth();
 
   const [transactions, setTransactions] = useState([]);
+  const [transactionsLoaded, setTransactionsLoaded] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -38,10 +40,17 @@ export default function PlanningPage() {
         ...doc.data()
       }));
       setTransactions(data);
+      setTransactionsLoaded(true);
     });
 
     return () => unsubscribe();
   }, [ownerId]);
+
+  useEffect(() => {
+    if (transactionsLoaded && transactions.length === 0 && auth.currentUser) {
+      analytics.emptyStateVisited(auth.currentUser?.uid, { tab: 'planning' });
+    }
+  }, [transactionsLoaded, transactions.length]);
 
   const availableMonths = useMemo(() => {
     const months = new Set();
@@ -108,7 +117,7 @@ export default function PlanningPage() {
       <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
               {language === 'pt' ? 'Planejamento' : 'Planning'}
             </h1>
             <button
@@ -123,7 +132,7 @@ export default function PlanningPage() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {/* Month Selector - Enhanced */}
         <div className="mb-6">
           <MonthSelector

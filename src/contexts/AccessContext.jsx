@@ -1,86 +1,84 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const AccessContext = createContext();
 
 const OWNER_EMAIL = 'jonathalimax@gmail.com';
 
 export function AccessProvider({ children }) {
-  const [userRole, setUserRole] = useState('write'); // Default to write for backward compatibility
-  const [ownerId, setOwnerId] = useState(null); // Track the owner's UID whose data should be viewed
+  const [userRole, setUserRole] = useState('write');
+  const [ownerId, setOwnerId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
+
+  // Track auth state reactively — auth.currentUser is a mutable property that
+  // doesn't trigger React re-renders on its own.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => setCurrentUser(user));
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
-    if (!auth.currentUser) {
+    if (!currentUser) {
       setLoading(false);
       return;
     }
 
-    const currentUserEmail = auth.currentUser.email?.toLowerCase();
+    const currentUserEmail = currentUser.email?.toLowerCase();
 
-    // Owner always has write access and views their own data
     if (currentUserEmail === OWNER_EMAIL) {
       setUserRole('write');
-      setOwnerId(auth.currentUser.uid);
+      setOwnerId(currentUser.uid);
       setLoading(false);
       return;
     }
 
-    // Listen to access control changes in real-time
     const accessRef = doc(db, 'access', 'allowed_emails');
     const unsubscribe = onSnapshot(accessRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         const emails = data.emails || [];
-        const ownerUid = data.ownerId || null; // Get owner's UID from access document
+        const ownerUid = data.ownerId || null;
 
-        // Handle both old format (array of strings) and new format (array of objects)
         if (emails.length > 0) {
           if (typeof emails[0] === 'string') {
-            // Old format - default to write
             const isInList = emails.some(e => e.toLowerCase() === currentUserEmail);
-            setUserRole(isInList ? 'write' : 'write');
-            // If user is in the allowed list and owner's UID is available, use it
-            setOwnerId(isInList && ownerUid ? ownerUid : auth.currentUser.uid);
+            setUserRole('write');
+            setOwnerId(isInList && ownerUid ? ownerUid : currentUser.uid);
           } else {
-            // New format - check for user's role (case-insensitive)
             const userEntry = emails.find(e => e.email?.toLowerCase() === currentUserEmail);
             if (userEntry) {
               setUserRole(userEntry.role || 'write');
-              // All shared users (both read and write) should use the owner's UID to see shared data
-              setOwnerId(ownerUid || auth.currentUser.uid);
+              setOwnerId(ownerUid || currentUser.uid);
             } else {
-              // User not in list - default to write for backward compatibility
               setUserRole('write');
-              setOwnerId(auth.currentUser.uid);
+              setOwnerId(currentUser.uid);
             }
           }
         } else {
-          // Empty list - default to write
           setUserRole('write');
-          setOwnerId(auth.currentUser.uid);
+          setOwnerId(currentUser.uid);
         }
       } else {
-        // No access document - default to write for backward compatibility
         setUserRole('write');
-        setOwnerId(auth.currentUser.uid);
+        setOwnerId(currentUser.uid);
       }
       setLoading(false);
     }, (error) => {
       console.error('Error loading access control:', error);
-      // On error, default to write for safety
       setUserRole('write');
-      setOwnerId(auth.currentUser.uid);
+      setOwnerId(currentUser.uid);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser?.email]);
+  }, [currentUser]);
 
   const canWrite = userRole === 'write';
   const isReadOnly = userRole === 'read';
-  const isOwner = auth.currentUser?.email?.toLowerCase() === OWNER_EMAIL;
+  const isOwner = currentUser?.email?.toLowerCase() === OWNER_EMAIL;
 
   return (
     <AccessContext.Provider value={{
@@ -89,7 +87,8 @@ export function AccessProvider({ children }) {
       isReadOnly,
       isOwner,
       ownerId, // The UID whose data should be viewed
-      loading
+      loading,
+      currentUser,
     }}>
       {children}
     </AccessContext.Provider>

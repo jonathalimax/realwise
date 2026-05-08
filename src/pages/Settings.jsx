@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
 import { OWNER_EMAIL, useAccess } from '../contexts/AccessContext';
 import { db, auth } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { deleteUser, onAuthStateChanged } from 'firebase/auth';
+import { logoutAndRedirect } from '../lib/auth/logout';
 import InstallPWAButton from '../components/ui/InstallPWAButton';
 import { checkAIQuota } from '../services/aiCategorizationService';
+import { BanksTabContent } from './Cards';
 
 export default function SettingsPage() {
+  const [searchParams] = useSearchParams();
   const {
     currency,
     updateCurrency,
@@ -20,6 +25,10 @@ export default function SettingsPage() {
     toggleCategory,
     geminiApiKey,
     updateGeminiApiKey,
+    billReminders,
+    updateBillReminders,
+    darkMode,
+    toggleDarkMode,
     t
   } = useSettings();
   const { ownerId } = useAccess();
@@ -27,6 +36,16 @@ export default function SettingsPage() {
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [newIncomeCategory, setNewIncomeCategory] = useState('');
   const [activeTab, setActiveTab] = useState('general');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const validTabs = ['general', 'categories', 'banks'];
+    if (tab && validTabs.includes(tab)) setActiveTab(tab);
+  }, [searchParams]);
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
 
@@ -49,6 +68,10 @@ export default function SettingsPage() {
       loadAllowedEmails();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, setCurrentUser);
+  }, []);
 
   // Load AI quota and API key
   useEffect(() => {
@@ -156,6 +179,23 @@ export default function SettingsPage() {
       e.email === email ? { ...e, role: newRole } : e
     );
     await saveAllowedEmails(newEmails);
+  };
+
+  const handleSignOut = async () => {
+    await logoutAndRedirect();
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return;
+    setDeletingAccount(true);
+    try {
+      await deleteUser(auth.currentUser);
+    } catch (err) {
+      console.error('Error deleting account:', err);
+      setDeletingAccount(false);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
+    }
   };
 
   const handleAddCategory = async (type) => {
@@ -267,7 +307,7 @@ export default function SettingsPage() {
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
               {t('settings.title')}
             </h1>
           </div>
@@ -298,183 +338,147 @@ export default function SettingsPage() {
             {t('settings.categories')}
           </button>
           <button
-            onClick={() => setActiveTab('access')}
+            onClick={() => setActiveTab('banks')}
             className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === 'access'
+              activeTab === 'banks'
                 ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
-            {language === 'pt' ? 'Acesso' : 'Access'}
+            {language === 'pt' ? 'Bancos' : 'Banks'}
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8 pb-24">
-        {/* General Tab */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         {activeTab === 'general' && (
           <div className="space-y-6">
-            {/* Language */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('settings.language')}</h3>
-              <div className="space-y-2">
-                {Object.entries(languages).map(([code, { name }]) => (
-                  <button
-                    key={code}
-                    onClick={() => updateLanguage(code)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition ${
-                      language === code
-                        ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">
-                        {code === 'en' ? '🇺🇸' : '🇧🇷'}
-                      </span>
-                      <span className="font-medium text-gray-800 dark:text-white">{name}</span>
-                    </div>
-                    {language === code && (
-                      <svg className="w-5 h-5 text-gray-900 dark:text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Currency */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('settings.currency')}</h3>
-              <div className="space-y-2">
-                {Object.entries(CURRENCIES).map(([code, { symbol, name }]) => (
-                  <button
-                    key={code}
-                    onClick={() => updateCurrency(code)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition ${
-                      currency === code
-                        ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-bold text-gray-700 dark:text-gray-200">{symbol}</span>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-800 dark:text-white">{code}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{name}</p>
-                      </div>
-                    </div>
-                    {currency === code && (
-                      <svg className="w-5 h-5 text-gray-900 dark:text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* PWA Install */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'pt' ? 'Instalar Aplicativo' : 'Install Application'}
-              </h3>
-              <div className="flex justify-center py-2">
-                <InstallPWAButton />
-              </div>
-            </div>
-
-            {/* AI Categorization */}
-            <div className="pt-6 border-t border-gray-100 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                <span className="text-lg">🤖</span>
-                {language === 'pt' ? 'Categorização com IA' : 'AI Categorization'}
-                <span className="px-2 py-0.5 text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-full">
-                  {language === 'pt' ? 'Grátis' : 'Free'}
-                </span>
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                {language === 'pt'
-                  ? 'Use IA do Google (Gemini) para categorizar automaticamente suas transações. Limite gratuito: 1.000 por dia.'
-                  : 'Use Google AI (Gemini) to automatically categorize your transactions. Free tier: 1,000/day.'}
-              </p>
-
-              {/* API Key Input */}
-              <div className="space-y-3">
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    value={apiKeyInput}
-                    onChange={(e) => setApiKeyInput(e.target.value)}
-                    placeholder={language === 'pt' ? 'Cole sua chave da API Gemini' : 'Paste your Gemini API key'}
-                    className="w-full px-4 py-3 pr-20 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                      text-gray-900 dark:text-white placeholder-gray-400
-                      focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                      transition-all text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                  >
-                    {showApiKey ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveApiKey}
-                    disabled={!apiKeyInput.trim() || apiKeyInput === geminiApiKey || savingApiKey}
-                    className="flex-1 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-medium
-                      hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {savingApiKey
-                      ? (language === 'pt' ? 'Salvando...' : 'Saving...')
-                      : (language === 'pt' ? 'Salvar Chave' : 'Save Key')}
-                  </button>
-                  {geminiApiKey && (
-                    <button
-                      onClick={handleRemoveApiKey}
-                      disabled={savingApiKey}
-                      className="px-4 py-2.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl text-sm font-medium
-                        hover:bg-rose-200 dark:hover:bg-rose-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {language === 'pt' ? 'Remover' : 'Remove'}
-                    </button>
-                  )}
-                </div>
-
-                {/* Status */}
-                {geminiApiKey ? (
-                  <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                        {language === 'pt' ? 'IA Ativada' : 'AI Enabled'}
-                      </span>
-                    </div>
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                      {language === 'pt' ? `${aiQuota.remaining} restantes hoje` : `${aiQuota.remaining} remaining today`}
-                    </span>
-                  </div>
+            {/* Profile */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center flex-shrink-0">
+                {currentUser?.photoURL ? (
+                  <img src={currentUser.photoURL} alt="" className="w-16 h-16 object-cover" />
                 ) : (
-                  <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {language === 'pt'
-                        ? '📝 Obtenha sua chave grátis em: ai.google.dev'
-                        : '📝 Get your free key at: ai.google.dev'}
+                  <span className="text-2xl font-bold text-violet-600 dark:text-violet-300">
+                    {currentUser?.displayName?.charAt(0)?.toUpperCase() || currentUser?.email?.charAt(0)?.toUpperCase() || '?'}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 dark:text-white truncate">{currentUser?.displayName || currentUser?.email?.split('@')[0] || '—'}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{currentUser?.email}</p>
+              </div>
+            </div>
+
+            {/* Appearance & Notifications */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+              {/* Dark mode */}
+              <div className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {darkMode
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    }
+                  </svg>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {language === 'pt' ? 'Modo escuro' : 'Dark mode'}
+                  </span>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={darkMode}
+                  onClick={toggleDarkMode}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${darkMode ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              {/* Bill reminders */}
+              <div className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <svg className={`w-5 h-5 ${billReminders ? 'text-violet-500' : 'text-gray-500 dark:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                      {language === 'pt' ? 'Lembretes de contas' : 'Bill reminders'}
+                    </span>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {language === 'pt' ? 'Email diário às 9h (Brasília)' : 'Daily email at 9 AM (Brazil)'}
                     </p>
+                  </div>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={billReminders}
+                  onClick={() => updateBillReminders(!billReminders)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${billReminders ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Logout + Delete */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:items-start">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-5 py-4 text-left text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  {language === 'pt' ? 'Sair da conta' : 'Sign out'}
+                </button>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-rose-200 dark:border-rose-800 overflow-hidden">
+                {!showDeleteConfirm ? (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full flex items-center gap-3 px-5 py-4 text-left text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {language === 'pt' ? 'Excluir conta' : 'Delete account'}
+                  </button>
+                ) : (
+                  <div className="px-5 py-4 space-y-3">
+                    <p className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                      {language === 'pt' ? 'Tem certeza? Esta ação é irreversível.' : 'Are you sure? This action is irreversible.'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {language === 'pt' ? 'Digite DELETE para confirmar:' : 'Type DELETE to confirm:'}
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="DELETE"
+                      className="w-full px-3 py-2 text-sm border border-rose-300 dark:border-rose-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleDeleteAccount}
+                        disabled={deleteConfirmText !== 'DELETE' || deletingAccount}
+                        className="flex-1 py-2 text-sm font-medium rounded-lg bg-rose-600 text-white disabled:opacity-40 hover:bg-rose-700 transition-colors"
+                      >
+                        {deletingAccount
+                          ? (language === 'pt' ? 'Excluindo...' : 'Deleting...')
+                          : (language === 'pt' ? 'Confirmar exclusão' : 'Confirm delete')}
+                      </button>
+                      <button
+                        onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                        className="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {language === 'pt' ? 'Cancelar' : 'Cancel'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -487,7 +491,7 @@ export default function SettingsPage() {
           <div className="space-y-8">
             {/* Expense Categories */}
             <div>
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-rose-500"></span>
                 {t('settings.expenseCategories')}
               </h3>
@@ -560,7 +564,7 @@ export default function SettingsPage() {
 
             {/* Income Categories */}
             <div>
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+              <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
                 {t('settings.incomeCategories')}
               </h3>
@@ -803,6 +807,10 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+        )}
+
+        {activeTab === 'banks' && (
+          <BanksTabContent />
         )}
       </div>
     </div>

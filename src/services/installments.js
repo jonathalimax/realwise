@@ -47,17 +47,19 @@ export function generateInstallmentTransactions(baseTransaction, currentInstallm
 
   // Clean the description to remove installment info and add our own format
   let cleanDescription = baseTransaction.description
-    .replace(/\s*parcela\s*\d+\s*[/de]\s*\d+/gi, '')
+    .replace(/\s*\(\s*parcela\s*\d+\s*(?:\/|de)\s*\d+\s*\)/gi, '')
+    .replace(/\s*parcela\s*\d+\s*(?:\/|de)\s*\d+/gi, '')
     .replace(/\s*\(\d+[/]\d+\)/g, '')
     .replace(/\s*\d+\s*[/]\s*\d+\s*(?:parcelas?)?/gi, '')
     .replace(/\s*\d+\s*de\s*\d+\s*(?:parcelas?|x)?/gi, '')
     .trim();
 
-  // Generate transactions for current and remaining installments
-  for (let i = currentInstallment; i <= totalInstallments; i++) {
+  // The date in the fatura is installment 1's date (original purchase).
+  // Generate the FULL schedule from 1 to N, advancing one month per installment.
+  // This shows past installments correctly AND projects future ones.
+  for (let i = 1; i <= totalInstallments; i++) {
     const installmentDate = new Date(baseDate);
-    // Add months for future installments
-    installmentDate.setMonth(installmentDate.getMonth() + (i - currentInstallment));
+    installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
 
     const transaction = {
       ...baseTransaction,
@@ -79,7 +81,18 @@ export function generateInstallmentTransactions(baseTransaction, currentInstallm
  * Generate a unique ID for grouping installments
  */
 export function generateInstallmentGroupId(transaction) {
-  const base = `${transaction.description}-${transaction.amount}-${Date.now()}`;
+  // Clean the description to remove installment info for a stable group ID
+  let cleanDescription = (transaction.description || '')
+    .replace(/\s*\(\s*parcela\s*\d+\s*(?:\/|de)\s*\d+\s*\)/gi, '')
+    .replace(/\s*parcela\s*\d+\s*(?:\/|de)\s*\d+/gi, '')
+    .replace(/\s*\(\d+[/]\d+\)/g, '')
+    .replace(/\s*\d+\s*[/]\s*\d+\s*(?:parcelas?)?/gi, '')
+    .replace(/\s*\d+\s*de\s*\d+\s*(?:parcelas?|x)?/gi, '')
+    .trim()
+    .toLowerCase();
+
+  const amount = Math.round((transaction.amount || 0) * 100);
+  const base = `${cleanDescription}-${amount}`;
   return hashString(base);
 }
 

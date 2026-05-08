@@ -1,70 +1,73 @@
-// Bradesco format variations:
-// Data, Historico, Docto, Credito, Debito, Saldo
-// or
-// Data, Descrição, Valor
+// Bradesco CSV format (real export):
+//   Header: Data;Histórico;Docto.;Crédito (R$);Débito (R$);Saldo (R$)
+//   Empty cell is a single space ' ' when credit/debit doesn't apply.
+//   Date: DD/MM/YYYY ; Amount: BR (1.234,56)
 
-export function parseBradescoStatement(data) {
-  return data.map(row => {
-    // Try Credito/Debito format first
-    let creditoStr = row['Credito'] || row['crédito'] || row['CREDITO'] || '';
-    let debitoStr = row['Debito'] || row['débito'] || row['DEBITO'] || '';
-
-    let amount = 0;
-    let type = 'expense';
-
-    if (creditoStr || debitoStr) {
-      const credito = parseFloat(creditoStr.replace(/\./g, '').replace(',', '.')) || 0;
-      const debito = parseFloat(debitoStr.replace(/\./g, '').replace(',', '.')) || 0;
-
-      if (credito > 0) {
-        amount = credito;
-        type = 'income';
-      } else {
-        amount = debito;
-        type = 'expense';
-      }
-    } else {
-      // Try single Valor format
-      const valorStr = row['Valor'] || row['valor'] || row['VALOR'] || '';
-      const valor = parseFloat(valorStr.replace(/\./g, '').replace(',', '.')) || 0;
-      amount = Math.abs(valor);
-      type = valor < 0 ? 'expense' : 'income';
-    }
-
-    return {
-      date: parseDate(row['Data'] || row['data'] || row['DATA']),
-      amount: amount,
-      type: type,
-      description: row['Historico'] || row['histórico'] || row['HISTORICO'] ||
-                   row['Descrição'] || row['descricao'] || row['Descriçao'] || '',
-      originalId: row['Docto'] || row['docto'] || row['DOCTO'] || ''
-    };
-  }).filter(t => t.amount > 0 && t.description);
+function parseBrAmount(str) {
+  if (str == null) return 0;
+  const cleaned = String(str).replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function parseDate(dateStr) {
   if (!dateStr) return new Date().toISOString();
-
-  // Try DD/MM/YYYY format
-  const parts = dateStr.split('/');
+  const parts = String(dateStr).split('/');
   if (parts.length === 3) {
-    const [day, month, year] = parts;
-    const fullYear = year.length === 2 ? '20' + year : year;
-    return new Date(fullYear, parseInt(month) - 1, parseInt(day)).toISOString();
+    const [d, m, y] = parts;
+    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toISOString();
   }
+  const iso = new Date(dateStr);
+  return isNaN(iso.getTime()) ? new Date().toISOString() : iso.toISOString();
+}
 
-  // Try YYYY-MM-DD format
-  const isoDate = new Date(dateStr);
-  if (!isNaN(isoDate.getTime())) {
-    return isoDate.toISOString();
+function pick(row, names) {
+  for (const n of names) if (row[n] != null && row[n] !== '') return row[n];
+  return '';
+}
+
+const HISTORICO_KEYS = ['Histórico', 'Historico', 'historico', 'histórico', 'HISTORICO'];
+const CREDITO_KEYS = ['Crédito (R$)', 'Credito (R$)', 'Crédito', 'Credito', 'CREDITO'];
+const DEBITO_KEYS = ['Débito (R$)', 'Debito (R$)', 'Débito', 'Debito', 'DEBITO'];
+const DATA_KEYS = ['Data', 'data', 'DATA'];
+const DOCTO_KEYS = ['Docto.', 'Docto', 'docto'];
+
+export function parseBradescoStatement(data) {
+  const out = [];
+  for (const row of data) {
+    const rawDate = pick(row, DATA_KEYS);
+    const desc = pick(row, HISTORICO_KEYS);
+
+    if (rawDate === 'Data' || desc === 'Histórico') continue;
+    if (!rawDate || !desc) continue;
+    if (desc === 'Total') continue;
+    if (rawDate.startsWith('Filtro') || rawDate.startsWith('Os dados') || rawDate.startsWith('Últimos')) continue;
+
+    const credito = parseBrAmount(pick(row, CREDITO_KEYS));
+    const debito = parseBrAmount(pick(row, DEBITO_KEYS));
+
+    let amount, type;
+    if (credito > 0 && debito === 0) { amount = credito; type = 'income'; }
+    else if (debito > 0 && credito === 0) { amount = debito; type = 'expense'; }
+    else continue;
+
+    out.push({
+      date: parseDate(rawDate),
+      amount,
+      type,
+      description: desc,
+      originalId: pick(row, DOCTO_KEYS),
+    });
   }
+  return out;
+}
 
-  return new Date().toISOString();
+function norm(h) {
+  return String(h || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 }
 
 export function detectBradesco(headers) {
-  const lowerHeaders = headers.map(h => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
-  return lowerHeaders.includes('data') &&
-         (lowerHeaders.includes('historico') || lowerHeaders.includes('histórico')) &&
-         (lowerHeaders.includes('credito') || lowerHeaders.includes('debito'));
+  const set = new Set(headers.map(norm));
+  const has = (token) => [...set].some(h => h.includes(token));
+  return set.has('data') && has('historico') && (has('credito') || has('debito'));
 }

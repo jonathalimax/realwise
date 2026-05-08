@@ -17,7 +17,7 @@ export default function BudgetSummary({ currentMonth, transactions }) {
   if (!budget || Object.keys(budget.categoryBudgets || {}).length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{t('budget.categoryBudget')}</h3>
+        <h3 className="font-bold text-gray-900 dark:text-white mb-2">{t('budget.categoryBudget')}</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">{t('budget.noBudget')}</p>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('budget.setBudgetHint')}</p>
       </div>
@@ -37,7 +37,7 @@ export default function BudgetSummary({ currentMonth, transactions }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-3">{t('budget.categoryBudget')}</h3>
+      <h3 className="font-bold text-gray-900 dark:text-white mb-3">{t('budget.categoryBudget')}</h3>
 
       <div className="space-y-3 max-h-64 overflow-y-auto">
         {sortedCategories.map(category => {

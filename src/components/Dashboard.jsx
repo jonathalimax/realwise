@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { signOut } from 'firebase/auth';
+import { logoutAndRedirect } from '../lib/auth/logout';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
@@ -136,12 +136,7 @@ export default function Dashboard() {
   }, [refreshKey, ownerId]); // Add ownerId to dependencies
 
   const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    await logoutAndRedirect();
   };
 
   const availableMonths = useMemo(() => {
@@ -288,7 +283,7 @@ export default function Dashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Blim Wallet</span>
+              <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Realwise Wallet</span>
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2">
@@ -361,7 +356,7 @@ export default function Dashboard() {
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-semibold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-rose-500 cursor-pointer text-center capitalize"
+                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-bold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-rose-500 cursor-pointer text-center capitalize"
               >
                 {availableMonths.map(month => (
                   <option key={month} value={month} className="capitalize">
@@ -597,7 +592,7 @@ export default function Dashboard() {
 
             {/* Income vs Expenses Trend Chart */}
             <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-4">{t('charts.incomeVsExpenses')}</h3>
               <TrendChart
                 transactions={transactions}
                 selectedMonth={selectedMonth}
@@ -623,7 +618,7 @@ export default function Dashboard() {
             {/* 1. Transactions List */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">{t('transactionList.title')}</h3>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">{t('transactionList.title')}</h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
                 </span>
@@ -828,7 +823,7 @@ export default function Dashboard() {
           <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                 {t('transactionList.title')} - {getMonthLabel(selectedMonth)}
               </h2>
               <button

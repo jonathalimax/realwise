@@ -318,7 +318,7 @@ function formatImportNotification(importResult, language = 'pt') {
 
     if (pendingCategoryCount > 0) {
       message += `\nPendentes de revisao: ${pendingCategoryCount}\n`;
-      message += `Acesse o app para revisar: https://limas-finance.web.app`;
+      message += `Acesse o app para revisar: https://realwise.com.br`;
     }
 
     return message;
@@ -337,7 +337,7 @@ function formatImportNotification(importResult, language = 'pt') {
 
     if (pendingCategoryCount > 0) {
       message += `\nPending review: ${pendingCategoryCount}\n`;
-      message += `Open the app to review: https://limas-finance.web.app`;
+      message += `Open the app to review: https://realwise.com.br`;
     }
 
     return message;

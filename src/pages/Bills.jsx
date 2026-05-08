@@ -1,208 +1,72 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
+import PageHelp from '@/components/ui/PageHelp';
 import { useBills } from '../contexts/BillsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useMonth } from '../contexts/MonthContext';
 import BillsList from '../components/BillsList';
 import BillModal from '../components/BillModal';
-import MonthSelector from '../components/MonthSelector';
-import { PlusIcon, AdjustmentsHorizontalIcon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../components/PageHeader';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 export default function BillsPage() {
-  const { language } = useSettings();
-  const { bills, loading } = useBills();
+  const { language, billReminders, updateBillReminders } = useSettings();
+  const { bills } = useBills();
   const { canWrite } = useAccess();
-  const { selectedMonth, setSelectedMonth } = useMonth();
+  const { selectedMonth } = useMonth();
+  const [searchParams] = useSearchParams();
   const [showBillModal, setShowBillModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const s = searchParams.get('status');
+    return ['all', 'pending', 'paid', 'overdue'].includes(s) ? s : 'all';
+  });
 
-  const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  const availableMonths = useMemo(() => {
-    const months = new Set();
-    bills.forEach(bill => {
-      if (bill.dueDate) {
-        const date = new Date(bill.dueDate);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        months.add(key);
-      }
-    });
-    // Add current month and next 3 months
-    const now = new Date();
-    for (let i = 0; i < 4; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      months.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
-    }
-    return Array.from(months).sort().reverse();
-  }, [bills]);
-
-  const billsStats = useMemo(() => {
-    const monthBills = bills.filter(bill => {
-      if (!bill.dueDate) return false;
-      const date = new Date(bill.dueDate);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      return key === selectedMonth;
-    });
-
-    const paid = monthBills.filter(b => b.status === 'paid');
-    const pending = monthBills.filter(b => b.status === 'pending');
-    const overdue = monthBills.filter(b => {
-      if (b.status === 'paid') return false;
-      const dueDate = new Date(b.dueDate);
-      return dueDate < new Date();
-    });
-
-    const totalAmount = monthBills.reduce((sum, b) => sum + (b.amount || 0), 0);
-    const paidAmount = paid.reduce((sum, b) => sum + (b.amount || 0), 0);
-    const pendingAmount = pending.reduce((sum, b) => sum + (b.amount || 0), 0);
-
-    return { paid, pending, overdue, totalAmount, paidAmount, pendingAmount, total: monthBills.length };
-  }, [bills, selectedMonth]);
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: language === 'pt' ? 'BRL' : 'USD'
-    }).format(amount);
-  };
-
-  const activeFiltersCount = statusFilter !== 'all' ? 1 : 0;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {language === 'pt' ? 'Contas a Pagar' : 'Bills'}
-            </h1>
-            {canWrite && (
-              <button
-                onClick={() => setShowBillModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium text-sm transition-colors"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span className="hidden sm:inline">{language === 'pt' ? 'Nova Conta' : 'New Bill'}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <PageHeader title={language === 'pt' ? 'Contas' : 'Bills'} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Month Selector */}
-        <div className="flex items-center justify-between gap-2 mb-6">
-          <MonthSelector
-            selectedMonth={selectedMonth}
-            availableMonths={availableMonths}
-            onMonthChange={setSelectedMonth}
-            locale={locale}
-          />
-
-          {/* Filters Button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
-              showFilters || activeFiltersCount > 0
-                ? 'bg-orange-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <AdjustmentsHorizontalIcon className="w-5 h-5" />
-            <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
-            {activeFiltersCount > 0 && (
-              <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                showFilters ? 'bg-white/20' : 'bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400'
-              }`}>
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-              {language === 'pt' ? 'Status' : 'Status'}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { value: 'all', label: language === 'pt' ? 'Todas' : 'All' },
-                { value: 'pending', label: language === 'pt' ? 'Pendentes' : 'Pending' },
-                { value: 'paid', label: language === 'pt' ? 'Pagas' : 'Paid' },
-                { value: 'overdue', label: language === 'pt' ? 'Atrasadas' : 'Overdue' },
-              ].map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => setStatusFilter(option.value)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    statusFilter === option.value
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                <ClockIcon className="w-4 h-4 text-gray-500" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Total' : 'Total'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">{billsStats.total}</p>
-            <p className="text-xs text-gray-500">{formatCurrency(billsStats.totalAmount)}</p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
+        {/* Filters + Email reminder toggle */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'all', label: language === 'pt' ? 'Todas' : 'All' },
+              { value: 'pending', label: language === 'pt' ? 'Pendentes' : 'Pending' },
+              { value: 'paid', label: language === 'pt' ? 'Pagas' : 'Paid' },
+              { value: 'overdue', label: language === 'pt' ? 'Atrasadas' : 'Overdue' },
+            ].map(option => (
+              <button
+                key={option.value}
+                onClick={() => setStatusFilter(option.value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  statusFilter === option.value
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                <ClockIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Pendentes' : 'Pending'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{billsStats.pending.length}</p>
-            <p className="text-xs text-gray-500">{formatCurrency(billsStats.pendingAmount)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                <CheckCircleIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Pagas' : 'Paid'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{billsStats.paid.length}</p>
-            <p className="text-xs text-gray-500">{formatCurrency(billsStats.paidAmount)}</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <ExclamationTriangleIcon className="w-4 h-4 text-red-600 dark:text-red-400" />
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {language === 'pt' ? 'Atrasadas' : 'Overdue'}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-red-600 dark:text-red-400">{billsStats.overdue.length}</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <svg className={`w-4 h-4 ${billReminders ? 'text-violet-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {language === 'pt' ? 'Lembretes' : 'Reminders'}
+            </span>
+            <button
+              role="switch"
+              aria-checked={billReminders}
+              onClick={() => updateBillReminders(!billReminders)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${billReminders ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
           </div>
         </div>
 
@@ -216,6 +80,22 @@ export default function BillsPage() {
       <BillModal
         isOpen={showBillModal}
         onClose={() => setShowBillModal(false)}
+      />
+
+      {/* FAB */}
+      {canWrite && (
+        <button
+          onClick={() => setShowBillModal(true)}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+          aria-label={language === 'pt' ? 'Nova Conta' : 'New Bill'}
+        >
+          <PlusIcon className="w-7 h-7" />
+        </button>
+      )}
+      <PageHelp
+        title="Contas"
+        text="Controle suas contas a pagar. Marque como paga quando quitar e receba lembretes por e-mail antes do vencimento. Contas recorrentes se repetem automaticamente."
+        hasFab={true}
       />
     </div>
   );

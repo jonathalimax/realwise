@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import PageHelp from '@/components/ui/PageHelp';
 import { useGoals, GOAL_ICONS, GOAL_COLORS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
@@ -304,7 +305,7 @@ export default function GoalsPage() {
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
             <span className="text-lg">📊</span>
           </div>
-          <h2 className="font-semibold text-base sm:text-lg">{t('goals.summary.title')}</h2>
+          <h2 className="font-bold text-base sm:text-lg">{t('goals.summary.title')}</h2>
         </div>
 
         {!hasActiveGoals ? (
@@ -379,7 +380,7 @@ export default function GoalsPage() {
                             </div>
                             <div>
                               <p className="text-white/60">{t('goals.summary.monthlyRequired')}</p>
-                              <p className="font-semibold text-amber-200">
+                              <p className="font-bold text-amber-200">
                                 {status === 'overdue'
                                   ? t('goals.summary.needsNow')
                                   : formatCurrency(monthlyRequired)
@@ -445,7 +446,7 @@ export default function GoalsPage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <h3 className="font-semibold text-gray-900 dark:text-white truncate">{goal.name}</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white truncate">{goal.name}</h3>
                 {linkedInvestments.length > 0 && (
                   <span className="flex-shrink-0 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-full flex items-center gap-0.5">
                     <span>📈</span>
@@ -640,7 +641,7 @@ export default function GoalsPage() {
                 </svg>
               </button>
             ) : null}
-            <h1 className={`text-lg sm:text-xl font-semibold text-gray-900 dark:text-white ${view === 'list' ? 'pl-12 md:pl-0' : ''} ${view === 'transactions' ? 'flex-1 text-center pr-7' : ''}`}>
+            <h1 className={`text-lg sm:text-xl font-bold text-gray-900 dark:text-white ${view === 'list' ? 'pl-12 md:pl-0' : ''} ${view === 'transactions' ? 'flex-1 text-center pr-7' : ''}`}>
               {view === 'list' && t('goals.myGoals')}
               {view === 'form' && (editingGoal ? t('goals.editGoal') : t('goals.newGoal'))}
               {view === 'addFunds' && t('goals.addFundsTo', { goal: selectedGoalForFunds?.name })}
@@ -675,14 +676,14 @@ export default function GoalsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 sm:px-6 lg:px-8 pb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-100">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100 text-lg dark:bg-amber-900/70">
               <span>↗</span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold">
+              <p className="text-sm font-bold">
                 {language === 'pt' ? 'Página de Metas em transição' : 'Goals page is being phased out'}
               </p>
               <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
@@ -851,7 +852,7 @@ export default function GoalsPage() {
                   {GOAL_ICONS[selectedGoalForFunds.icon]}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{selectedGoalForFunds.name}</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white">{selectedGoalForFunds.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {(() => {
                       const fundsInvestmentValue = getGoalInvestmentValue(selectedGoalForFunds.id);
@@ -904,7 +905,7 @@ export default function GoalsPage() {
                   <span className="font-medium text-emerald-700 dark:text-emerald-300">+ {formatCurrency(fundAmount)}</span>
                 </div>
                 <div className="flex justify-between items-center text-base mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700">
-                  <span className="font-semibold text-emerald-800 dark:text-emerald-200">{t('goals.newTotal')}:</span>
+                  <span className="font-bold text-emerald-800 dark:text-emerald-200">{t('goals.newTotal')}:</span>
                   <span className="font-bold text-emerald-800 dark:text-emerald-200">{formatCurrency((selectedGoalForFunds.currentAmount || 0) + fundAmount)}</span>
                 </div>
               </div>
@@ -929,7 +930,7 @@ export default function GoalsPage() {
                   {GOAL_ICONS[selectedGoalForTransactions.icon]}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{selectedGoalForTransactions.name}</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white">{selectedGoalForTransactions.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {(() => {
                       const transInvestmentValue = getGoalInvestmentValue(selectedGoalForTransactions.id);
@@ -1010,7 +1011,7 @@ export default function GoalsPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 ml-3">
-                              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                                 +{formatCurrency(trans.amount)}
                               </span>
                               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1028,6 +1029,11 @@ export default function GoalsPage() {
           </div>
         )}
       </div>
+      <PageHelp
+        title="Objetivos"
+        text="Defina metas financeiras e acompanhe o progresso. Vincule transações a um objetivo para registrar contribuições automaticamente."
+        hasFab={true}
+      />
     </div>
   );
 }

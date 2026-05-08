@@ -32,6 +32,7 @@ for (const arg of process.argv.slice(2)) {
 
 const env = args.env ?? 'local';
 const uid = args.uid;
+const projectId = args.project ?? 'moneywise-ad9ec';
 
 if (!uid) {
   console.error('Error: --uid=<firebase-user-uid> is required');
@@ -110,7 +111,7 @@ async function main() {
   } else {
     // Explicitly clear in case it was set in the shell environment
     delete process.env.FIRESTORE_EMULATOR_HOST;
-    console.log('Target: PRODUCTION Firestore (limas-finance)');
+    console.log(`Target: PRODUCTION Firestore (${projectId})`);
   }
 
   // Production requires explicit confirmation
@@ -143,10 +144,10 @@ async function main() {
     if (env === 'prod') {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        projectId: 'limas-finance',
+        projectId,
       });
     } else {
-      admin.initializeApp({ projectId: 'limas-finance' });
+      admin.initializeApp({ projectId });
     }
   }
 

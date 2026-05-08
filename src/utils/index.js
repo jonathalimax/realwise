@@ -12,7 +12,7 @@ export function createPageUrl(pageName, params = {}) {
     'Donations': '/donations',
     'Support': '/support',
     'FeatureRequest': '/feedback',
-    'App': '/app',
+    'App': '/dashboard',
   };
 
   const basePath = routes[pageName] || '/';

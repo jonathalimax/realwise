@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAccess } from '../contexts/AccessContext';
+import usePlannerState, { getActivePlannerVersion } from '../pages/planner/usePlannerState';
+import { computeNetSalary } from '../pages/planner/rendaCalc';
 
 // Category icons
 const CATEGORY_ICONS = {
@@ -40,9 +42,26 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
   const { language, formatCurrency, categories } = useSettings();
   const { getBudgetForMonth, getBudgetStatus, getStatusColor } = useBudget();
   const { canWrite } = useAccess();
+  const { state: plannerStateData } = usePlannerState();
 
   const budget = getBudgetForMonth(selectedMonth);
-  const categoryBudgets = budget?.categoryBudgets || {};
+  const categoryBudgets = useMemo(
+    () => budget?.categoryBudgets || {},
+    [budget]
+  );
+
+  const plannerVersion = useMemo(
+    () => getActivePlannerVersion(plannerStateData?.plannerVersions, selectedMonth),
+    [plannerStateData?.plannerVersions, selectedMonth]
+  );
+  const liquidezFinal = useMemo(
+    () => computeNetSalary(plannerVersion?.salarioBruto, plannerVersion?.salarioDeductions),
+    [plannerVersion]
+  );
+  const categoryPct = useMemo(
+    () => plannerVersion?.categoryBudgetsPct ?? {},
+    [plannerVersion]
+  );
 
   // Calculate spending per category
   const categoryData = useMemo(() => {
@@ -64,7 +83,10 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
     // Create data for all categories (even those without transactions)
     const data = allCategories.map((category, index) => {
       const spent = spending[category] || 0;
-      const limit = categoryBudgets[category] || 0;
+      const pctValue = categoryPct[category] ?? 0;
+      const pctLimit = pctValue > 0 ? liquidezFinal * (pctValue / 100) : 0;
+      const templateLimit = categoryBudgets[category] || 0;
+      const limit = pctLimit > 0 ? pctLimit : templateLimit;
       const remaining = limit - spent;
       const budgetPercentage = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
       const spendingPercentage = total > 0 ? (spent / total) * 100 : 0;
@@ -90,7 +112,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
       if (a.spent === 0 && b.spent > 0) return 1;
       return b.spent - a.spent;
     });
-  }, [transactions, categoryBudgets, categories.expense, getBudgetStatus]);
+  }, [transactions, categoryBudgets, categoryPct, liquidezFinal, categories.expense, getBudgetStatus]);
 
   const totalSpent = categoryData.reduce((sum, cat) => sum + cat.spent, 0);
   const totalBudget = categoryData.reduce((sum, cat) => sum + cat.limit, 0);
@@ -98,7 +120,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h3>
         {canWrite && (
@@ -118,7 +140,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {language === 'pt' ? 'Total do mês' : 'Monthly total'}
             </span>
-            <span className="text-sm font-semibold">
+            <span className="text-sm font-bold">
               <span className={totalSpent > totalBudget ? 'text-rose-600' : 'text-gray-900 dark:text-white'}>
                 {formatCurrency(totalSpent)}
               </span>
@@ -142,7 +164,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
           <p className="text-sm">{language === 'pt' ? 'Nenhuma categoria' : 'No categories'}</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-x-6 sm:gap-y-3">
           {categoryData.map((category) => {
             const statusColors = getStatusColor(category.status);
 
@@ -168,7 +190,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1 min-w-0 flex-1">
-                        <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-base truncate">
+                        <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base truncate">
                           {category.name}
                         </span>
                         {/* Show percentage badge */}
@@ -210,7 +232,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                       </div>
 
                       {category.hasLimit && (
-                        <span className={`text-[9px] sm:text-xs font-semibold ${statusColors.text} min-w-[45px] sm:min-w-[70px] text-right`}>
+                        <span className={`text-[9px] sm:text-xs font-bold ${statusColors.text} min-w-[45px] sm:min-w-[70px] text-right`}>
                           {category.budgetPercentage.toFixed(0)}%
                         </span>
                       )}

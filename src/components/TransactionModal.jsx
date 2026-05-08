@@ -27,8 +27,8 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
   // Installment state
   const [isInstallment, setIsInstallment] = useState(false);
-  const [currentInstallment, setCurrentInstallment] = useState(1);
-  const [totalInstallments, setTotalInstallments] = useState(2);
+  const [currentInstallmentStr, setCurrentInstallmentStr] = useState('1');
+  const [totalInstallmentsStr, setTotalInstallmentsStr] = useState('2');
   // Ignore state
   const [isIgnored, setIsIgnored] = useState(false);
   // Recurrence state
@@ -54,8 +54,9 @@ export default function TransactionModal({ isOpen, onClose }) {
 
   const availableGoals = goals.filter(g => !g.completed);
 
-  // When category is '' (fresh form), treat as the first category of current type
-  const effectiveCategory = category || categories[type]?.[0] || '';
+  // Effective category for UI logic (what category is currently selected/showing)
+  const effectiveCategory = category || '';
+
 
   // Reset form when modal opens
   useEffect(() => {
@@ -74,8 +75,8 @@ export default function TransactionModal({ isOpen, onClose }) {
     setPaymentMethod('credit');
     setTransactionDate(new Date().toISOString().split('T')[0]);
     setIsInstallment(false);
-    setCurrentInstallment(1);
-    setTotalInstallments(2);
+    setCurrentInstallmentStr('1');
+    setTotalInstallmentsStr('2');
     setIsIgnored(false);
     setIsRecurring(false);
     setRecurrenceFrequency('monthly');
@@ -126,7 +127,10 @@ export default function TransactionModal({ isOpen, onClose }) {
     try {
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
       const baseDate = new Date(transactionDate + 'T12:00:00'); // Use noon to avoid timezone issues
-      const baseCategory = category || categories[type][0];
+      const baseCategory = category; // Use selected category as-is, allow empty/"Sem Categoria"
+
+      const currentInstallment = Math.max(1, parseInt(currentInstallmentStr) || 1);
+      const totalInstallments = Math.max(2, parseInt(totalInstallmentsStr) || 2);
 
       if (isInstallment && totalInstallments >= 2) {
         const installmentGroupId = generateInstallmentGroupId({
@@ -135,7 +139,6 @@ export default function TransactionModal({ isOpen, onClose }) {
           date: baseDate.toISOString()
         });
 
-        console.log('[TransactionModal] Creating installments:', currentInstallment, 'to', totalInstallments);
         let totalInstallmentsCreated = 0;
 
         for (let i = currentInstallment; i <= totalInstallments; i++) {
@@ -204,7 +207,6 @@ export default function TransactionModal({ isOpen, onClose }) {
         if (selectedGoalId) {
           const amountPerInstallment = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
           const totalAmountToAdd = amountPerInstallment * totalInstallmentsCreated;
-          console.log('[TransactionModal] Updating goal', selectedGoalId, 'with total amount:', totalAmountToAdd, '(', totalInstallmentsCreated, 'installments x', amountPerInstallment, ')');
           await addAmountToGoal(selectedGoalId, totalAmountToAdd);
         }
       } else {
@@ -268,7 +270,6 @@ export default function TransactionModal({ isOpen, onClose }) {
         // Investments contribute positively (you're saving money), other expenses subtract
         if (selectedGoalId) {
           const amountToAdd = (type === 'income' || isInvestment) ? parseFloat(amount) : -parseFloat(amount);
-          console.log('[TransactionModal] Updating goal', selectedGoalId, 'with amount:', amountToAdd);
           await addAmountToGoal(selectedGoalId, amountToAdd);
         }
       }
@@ -278,8 +279,8 @@ export default function TransactionModal({ isOpen, onClose }) {
         setDescription('');
         setAmount(0);
         setIsInstallment(false);
-        setCurrentInstallment(1);
-        setTotalInstallments(2);
+        setCurrentInstallmentStr('1');
+        setTotalInstallmentsStr('2');
         // Keep category, bank, and goal selection for convenience
       } else {
         onClose();
@@ -321,7 +322,7 @@ export default function TransactionModal({ isOpen, onClose }) {
             >
               <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
                     {t('transactionForm.addTransaction')}
                   </Dialog.Title>
                   <button
@@ -398,6 +399,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                     </label>
                     <input
                       type="date"
+                      lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                       value={transactionDate}
                       onChange={(e) => setTransactionDate(e.target.value)}
                       className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
@@ -433,36 +435,33 @@ export default function TransactionModal({ isOpen, onClose }) {
                   </div>
 
                   {/* Investment Type (only shown when category is Investments) */}
-                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                  {(category === 'Investments' || category === 'Investimentos') && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('investments.type')}
                       </label>
-                      <div className="grid grid-cols-5 gap-2">
+                      <select
+                        value={investmentType}
+                        onChange={(e) => setInvestmentType(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 12px center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '20px'
+                        }}
+                      >
                         {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setInvestmentType(key)}
-                            className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
-                              investmentType === key
-                                ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
-                                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                            }`}
-                            title={t(`investments.types.${key}`)}
-                          >
-                            <span>{info.icon}</span>
-                            <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
-                              {t(`investments.types.${key}`)}
-                            </span>
-                          </button>
+                          <option key={key} value={key}>
+                            {info.icon} {t(`investments.types.${key}`)}
+                          </option>
                         ))}
-                      </div>
+                      </select>
                     </div>
                   )}
 
                   {/* Dynamic Investment Fields (only when Investments category is selected) */}
-                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                  {(category === 'Investments' || category === 'Investimentos') && (
                     <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                       {/* fixed_income fields */}
                       {investmentType === 'fixed_income' && (
@@ -811,11 +810,18 @@ export default function TransactionModal({ isOpen, onClose }) {
                                 {t('transactionForm.currentInstallment')}
                               </label>
                               <input
-                                type="number"
-                                min="1"
-                                max={totalInstallments}
-                                value={currentInstallment}
-                                onChange={(e) => setCurrentInstallment(Math.max(1, Math.min(parseInt(e.target.value) || 1, totalInstallments)))}
+                                type="text"
+                                inputMode="numeric"
+                                value={currentInstallmentStr}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(/\D/g, '');
+                                  setCurrentInstallmentStr(raw);
+                                }}
+                                onBlur={() => {
+                                  const total = Math.max(2, parseInt(totalInstallmentsStr) || 2);
+                                  const val = Math.max(1, Math.min(parseInt(currentInstallmentStr) || 1, total));
+                                  setCurrentInstallmentStr(String(val));
+                                }}
                                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
                                   focus:border-blue-500 focus:ring-0 focus:outline-none"
                               />
@@ -826,14 +832,18 @@ export default function TransactionModal({ isOpen, onClose }) {
                                 {t('transactionForm.totalInstallments')}
                               </label>
                               <input
-                                type="number"
-                                min="2"
-                                max="48"
-                                value={totalInstallments}
+                                type="text"
+                                inputMode="numeric"
+                                value={totalInstallmentsStr}
                                 onChange={(e) => {
-                                  const newTotal = Math.max(2, Math.min(parseInt(e.target.value) || 2, 48));
-                                  setTotalInstallments(newTotal);
-                                  if (currentInstallment > newTotal) setCurrentInstallment(newTotal);
+                                  const raw = e.target.value.replace(/\D/g, '');
+                                  setTotalInstallmentsStr(raw);
+                                }}
+                                onBlur={() => {
+                                  const val = Math.max(2, Math.min(parseInt(totalInstallmentsStr) || 2, 48));
+                                  setTotalInstallmentsStr(String(val));
+                                  const curr = Math.max(1, Math.min(parseInt(currentInstallmentStr) || 1, val));
+                                  setCurrentInstallmentStr(String(curr));
                                 }}
                                 className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
                                   focus:border-blue-500 focus:ring-0 focus:outline-none"
@@ -873,7 +883,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                     </div>
                   )}
 
-                  {(effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos') && (
+                  {/* Planner Goal - Show for investment expense transactions */}
+                  {(type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
                     <PlannerGoalSelect
                       value={selectedPlannerGoalId}
                       onChange={setSelectedPlannerGoalId}

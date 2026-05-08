@@ -51,7 +51,7 @@ export default function AnalysePanel({ layers, poupancaValue, onApplySuggestions
         {!readOnly && (
           <button
             onClick={() => setShowModal(true)}
-            className="shrink-0 bg-white/20 hover:bg-white/30 text-white rounded-xl px-3 py-2 text-xs font-semibold transition-colors"
+            className="shrink-0 bg-white/20 hover:bg-white/30 text-white rounded-xl px-3 py-2 text-xs font-bold transition-colors"
           >
             Analisar →
           </button>
@@ -76,21 +76,21 @@ export default function AnalysePanel({ layers, poupancaValue, onApplySuggestions
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${TYPE_BADGE[s.type] ?? TYPE_BADGE.allocation}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${TYPE_BADGE[s.type] ?? TYPE_BADGE.allocation}`}>
                         {s.type === 'allocation' ? 'Alocação' : s.type === 'instrument' ? 'Instrumento' : 'Sublayer'}
                       </span>
-                      <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{s.title}</span>
+                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{s.title}</span>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{s.reason}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0 mt-0.5">
                     <button
                       onClick={() => toggle(i, 'accept')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${isAccepted ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'}`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${isAccepted ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'}`}
                     >✓</button>
                     <button
                       onClick={() => toggle(i, 'reject')}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${isRejected ? 'bg-rose-600 text-white border-rose-600' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40'}`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${isRejected ? 'bg-rose-600 text-white border-rose-600' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40'}`}
                     >✕</button>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { NumericFormat } from 'react-number-format';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatBRL } from './usePlannerState';
 
 const MONTH_NAMES_PT = [
@@ -12,7 +12,7 @@ function SummaryRow({ label, value, highlight, negative }) {
       <span className={`text-sm ${highlight ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
         {label}
       </span>
-      <span className={`text-sm font-semibold tabular-nums ${
+      <span className={`text-sm font-bold tabular-nums ${
         highlight
           ? 'text-violet-600 dark:text-violet-400 text-base'
           : negative
@@ -41,7 +41,7 @@ export default function DashboardTab({
     <div className="space-y-4">
       {/* Section A — Parâmetros USD */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           A — Parâmetros USD
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -70,7 +70,7 @@ export default function DashboardTab({
 
       {/* Section B — Renda Computada */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           B — Renda Bruta PJ (USD calculada)
         </h3>
 
@@ -79,7 +79,7 @@ export default function DashboardTab({
           <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Cenário:</span>
           <button
             onClick={() => update('useMinScenario', true)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
               state.useMinScenario
                 ? 'bg-amber-500 text-white'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -89,7 +89,7 @@ export default function DashboardTab({
           </button>
           <button
             onClick={() => update('useMinScenario', false)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
               !state.useMinScenario
                 ? 'bg-violet-600 text-white'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -105,7 +105,7 @@ export default function DashboardTab({
             ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
             : 'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800'
         }`}>
-          <p className={`text-xs font-semibold uppercase mb-1 ${
+          <p className={`text-xs font-bold uppercase mb-1 ${
             state.useMinScenario ? 'text-amber-600 dark:text-amber-400' : 'text-violet-600 dark:text-violet-400'
           }`}>
             {state.useMinScenario ? 'Pior cenário anual (mínimo)' : 'Mês selecionado (real)'}
@@ -120,7 +120,7 @@ export default function DashboardTab({
         {/* Year min/max reference */}
         <div className="grid grid-cols-2 gap-3 mt-3">
           <div className="rounded-xl p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900">
-            <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase">Mínimo anual</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-bold uppercase">Mínimo anual</p>
             <p className="text-sm font-bold text-amber-800 dark:text-amber-300 tabular-nums mt-0.5">
               {formatBRL.format(minMonth.netBRL)}
             </p>
@@ -129,7 +129,7 @@ export default function DashboardTab({
             </p>
           </div>
           <div className="rounded-xl p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900">
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase">Máximo anual</p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase">Máximo anual</p>
             <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300 tabular-nums mt-0.5">
               {formatBRL.format(maxMonth.netBRL)}
             </p>
@@ -142,7 +142,7 @@ export default function DashboardTab({
 
       {/* Section B — Simples Nacional */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           C — Simples Nacional
         </h3>
         <div className="max-w-xs">
@@ -166,7 +166,7 @@ export default function DashboardTab({
 
       {/* Section C — Despesas PJ */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           D — Despesas PJ
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -179,17 +179,11 @@ export default function DashboardTab({
               <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {label}
               </label>
-              <NumericFormat
+              <CurrencyInput
                 id={id}
-                value={state[key] === 0 ? '' : state[key]}
-                onValueChange={vals => update(key, vals.floatValue ?? 0)}
-                thousandSeparator="."
-                decimalSeparator=","
-                prefix="R$ "
-                decimalScale={2}
-                allowNegative={false}
-                placeholder="R$ 0,00"
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                value={state[key]}
+                onChange={v => update(key, v)}
+                className="px-3 py-2 text-sm"
               />
             </div>
           ))}
@@ -198,7 +192,7 @@ export default function DashboardTab({
 
       {/* Section E — Summary */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           F — Resumo Financeiro
         </h3>
         <div className="divide-y divide-gray-100 dark:divide-gray-700">

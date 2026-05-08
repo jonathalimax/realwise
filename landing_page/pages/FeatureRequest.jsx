@@ -67,9 +67,9 @@ function FeatureRequestsContent() {
           </Link>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">L</span>
+              <span className="text-white font-bold text-sm">M</span>
             </div>
-            <span className="font-semibold">Limas Finance</span>
+            <span className="font-semibold">Realwise</span>
           </div>
           <ThemeToggle />
         </div>

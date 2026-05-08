@@ -16,7 +16,7 @@ export default function UsdCalculatorTab({ state, selectedMonthIncome, yearIncom
     <div className="space-y-4">
       {/* Selected month hero card */}
       <div className="bg-violet-50 dark:bg-violet-900/20 rounded-2xl p-4 shadow-sm border border-violet-200 dark:border-violet-800">
-        <p className="text-xs font-semibold text-violet-500 dark:text-violet-400 uppercase mb-2">
+        <p className="text-xs font-bold text-violet-500 dark:text-violet-400 uppercase mb-2">
           Mês selecionado — {MONTH_NAMES_PT[selMonth - 1]}/{selYear} ({selectedMonthIncome.bDays} dias úteis)
         </p>
         <div className="grid grid-cols-3 gap-3">
@@ -44,7 +44,7 @@ export default function UsdCalculatorTab({ state, selectedMonthIncome, yearIncom
       {/* Year overview table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">
             Visão anual — {new Date().getFullYear()}
           </h3>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -55,11 +55,11 @@ export default function UsdCalculatorTab({ state, selectedMonthIncome, yearIncom
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Mês</th>
-                <th className="px-4 py-3 text-center font-semibold text-gray-600 dark:text-gray-300">Dias úteis</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Bruto (USD)</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Líquido (USD)</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Líquido (BRL)</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Mês</th>
+                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">Dias úteis</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Bruto (USD)</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Líquido (USD)</th>
+                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Líquido (BRL)</th>
               </tr>
             </thead>
             <tbody>

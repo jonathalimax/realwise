@@ -8,7 +8,9 @@ import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
+import { buildUpdatedMetadata } from '../utils/transactionMetadata';
 import CurrencyInput from './ui/CurrencyInput';
+import PercentInput from './ui/PercentInput';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
 
 export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess }) {
@@ -25,6 +27,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [paymentMethod, setPaymentMethod] = useState('credit');
   const [loading, setLoading] = useState(false);
   const [updateAllInstallments, setUpdateAllInstallments] = useState(true);
+  const [showInstallmentConfirm, setShowInstallmentConfirm] = useState(false);
   const [investmentType, setInvestmentType] = useState('fixed_income');
 
   // Investment-specific fields
@@ -100,6 +103,11 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
     e.preventDefault();
     if (!amount || amount <= 0 || !transaction?.id) return;
 
+    if (transaction.isInstallment && !showInstallmentConfirm) {
+      setShowInstallmentConfirm(true);
+      return;
+    }
+    setShowInstallmentConfirm(false);
     setLoading(true);
 
     try {
@@ -113,9 +121,11 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       const baseDate = new Date(transactionDate + 'T12:00:00');
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
 
-      const finalCategory = category || categories[type][0];
+      const finalCategory = category; // Use selected category as-is, allow empty/"Sem Categoria"
 
       const isInvestmentCategory = (finalCategory === 'Investments' || finalCategory === 'Investimentos');
+
+      const updatedMetadata = buildUpdatedMetadata(transaction.metadata, finalCategory, transaction.category);
 
       const updates = {
         userId: transaction.userId || ownerId || auth.currentUser.uid,
@@ -131,7 +141,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         paymentMethod: selectedBankId ? paymentMethod : null,
         ignored: isIgnored,
         // Investment type (if category is Investments)
-        investmentType: isInvestmentCategory ? investmentType : null
+        investmentType: isInvestmentCategory ? investmentType : null,
+        metadata: updatedMetadata
       };
 
       // Build extra investment fields based on investmentType
@@ -294,9 +305,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
+              <Dialog.Panel className="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-xl font-bold text-gray-900 dark:text-white">
                     {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
                   </Dialog.Title>
                   <button
@@ -334,71 +345,78 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </button>
                   </div>
 
-                  {/* Amount */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.amount')}
-                    </label>
-                    <CurrencyInput value={amount} onChange={setAmount} />
+                  {/* Row 1: Amount + Date */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Amount */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.amount')}
+                      </label>
+                      <CurrencyInput value={amount} onChange={setAmount} />
+                    </div>
+
+                    {/* Date */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.date')}
+                      </label>
+                      <input
+                        type="date"
+                        lang={language === 'pt' ? 'pt-BR' : 'en-US'}
+                        value={transactionDate}
+                        onChange={(e) => setTransactionDate(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200"
+                      />
+                    </div>
                   </div>
 
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.description')}
-                    </label>
-                    <input
-                      type="text"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200"
-                      placeholder={t('transactionForm.descriptionPlaceholder')}
-                    />
-                  </div>
+                  {/* Row 2: Description + Category */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.description')}
+                      </label>
+                      <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white placeholder-gray-400
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200"
+                        placeholder={t('transactionForm.descriptionPlaceholder')}
+                      />
+                    </div>
 
-                  {/* Date */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.date')}
-                    </label>
-                    <input
-                      type="date"
-                      value={transactionDate}
-                      onChange={(e) => setTransactionDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {t('transactionForm.category')}
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200 appearance-none cursor-pointer pr-10"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                        backgroundPosition: 'right 12px center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundSize: '20px'
-                      }}
-                    >
-                      {categories[type].map((cat) => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
+                    {/* Category */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {t('transactionForm.category')}
+                      </label>
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200 appearance-none cursor-pointer pr-10"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 12px center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '20px'
+                        }}
+                      >
+                        {categories[type].map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Investment Type (only shown when category is Investments) */}
@@ -408,26 +426,23 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           {t('investments.type')}
                         </label>
-                        <div className="grid grid-cols-5 gap-2">
+                        <select
+                          value={investmentType}
+                          onChange={(e) => setInvestmentType(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                          style={{
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 12px center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '20px'
+                          }}
+                        >
                           {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => setInvestmentType(key)}
-                              className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
-                                investmentType === key
-                                  ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
-                                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                              }`}
-                              title={t(`investments.types.${key}`)}
-                            >
-                              <span>{info.icon}</span>
-                              <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
-                                {t(`investments.types.${key}`)}
-                              </span>
-                            </button>
+                            <option key={key} value={key}>
+                              {info.icon} {t(`investments.types.${key}`)}
+                            </option>
                           ))}
-                        </div>
+                        </select>
                       </div>
 
                       {/* Dynamic fields by investment type */}
@@ -440,21 +455,10 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                   {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
                                 </label>
-                                <div className="relative">
-                                  <input
-                                    type="number"
-                                    value={expectedReturn}
-                                    onChange={(e) => setExpectedReturn(e.target.value)}
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    className="w-full px-4 py-3 pr-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                      text-gray-900 dark:text-white placeholder-gray-400
-                                      focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                      transition-all duration-200"
-                                  />
-                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">%</span>
-                                </div>
+                                <PercentInput
+                                  value={expectedReturn ?? 0}
+                                  onChange={(val) => setExpectedReturn(val)}
+                                />
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -677,45 +681,77 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </>
                   )}
 
-                  {/* Bank Selector */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {language === 'pt' ? 'Banco' : 'Bank'}
-                    </label>
-                    <select
-                      value={selectedBankId || 'cash'}
-                      onChange={(e) => {
-                        const newBankId = e.target.value === 'cash' ? null : e.target.value;
-                        setSelectedBankId(newBankId);
-                        if (newBankId) {
-                          const bank = findUserBank(newBankId);
-                          setPaymentMethod(bank?.hasCredit ? 'credit' : 'debit');
-                        } else {
-                          setPaymentMethod('credit');
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
-                        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                        transition-all duration-200 appearance-none cursor-pointer pr-10"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                        backgroundPosition: 'right 12px center',
-                        backgroundRepeat: 'no-repeat',
-                        backgroundSize: '20px'
-                      }}
-                    >
-                      <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
-                      {userBanks.map((userBank) => {
-                        const bankInfo = getBankInfo(userBank.bankId);
-                        const displayName = getBankDisplayName(userBank);
-                        return (
-                          <option key={userBank.id} value={userBank.id}>
-                            {bankInfo.icon} {displayName}
-                          </option>
-                        );
-                      })}
-                    </select>
+                  {/* Row 3: Bank + Ignore */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Bank Selector */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {language === 'pt' ? 'Banco' : 'Bank'}
+                      </label>
+                      <select
+                        value={selectedBankId || 'cash'}
+                        onChange={(e) => {
+                          const newBankId = e.target.value === 'cash' ? null : e.target.value;
+                          setSelectedBankId(newBankId);
+                          if (newBankId) {
+                            const bank = findUserBank(newBankId);
+                            setPaymentMethod(bank?.hasCredit ? 'credit' : 'debit');
+                          } else {
+                            setPaymentMethod('credit');
+                          }
+                        }}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white
+                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+                          transition-all duration-200 appearance-none cursor-pointer pr-10"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 12px center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '20px'
+                        }}
+                      >
+                        <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
+                        {userBanks.map((userBank) => {
+                          const bankInfo = getBankInfo(userBank.bankId);
+                          const displayName = getBankDisplayName(userBank);
+                          return (
+                            <option key={userBank.id} value={userBank.id}>
+                              {bankInfo.icon} {displayName}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* Ignore Toggle */}
+                    <div className="flex flex-col justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsIgnored(!isIgnored)}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          isIgnored
+                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
+                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">🚫</span>
+                          <div className="text-left">
+                            <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                              {t('transactionForm.ignoreTransaction')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
+                          isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
+                        }`}>
+                          <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                            isIgnored ? 'translate-x-5' : 'translate-x-0'
+                          }`} />
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Payment Method Selector */}
@@ -776,70 +812,48 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </div>
                   )}
 
-                  {/* Planner goal link */}
-                  {plannerGoals.length > 0 && (
+                  {/* Planner goal link (only shown when category is Investments and type is expense) */}
+                  {(type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Objetivo do planner
+                        {language === 'pt' ? 'Objetivo do planner' : 'Planner objective'}
                       </label>
-                      <select
-                        value={selectedPlannerGoalId}
-                        onChange={e => setSelectedPlannerGoalId(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
-                      >
-                        <option value="">Nenhum</option>
-                        {plannerGoals.map(g => (
-                          <option key={g.id} value={g.id}>
-                            {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
-                          </option>
-                        ))}
-                      </select>
+                      {plannerGoals.length > 0 ? (
+                        <select
+                          value={selectedPlannerGoalId}
+                          onChange={e => setSelectedPlannerGoalId(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                        >
+                          <option value="">{language === 'pt' ? 'Nenhum' : 'None'}</option>
+                          {plannerGoals.map(g => (
+                            <option key={g.id} value={g.id}>
+                              {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <p className="text-sm text-amber-700 dark:text-amber-300">
+                            {language === 'pt'
+                              ? 'Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.'
+                              : 'No investment objectives configured in planner. Access the planner to create investment objectives in wallet layers.'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Ignore Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setIsIgnored(!isIgnored)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                      isIgnored
-                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">🚫</span>
-                      <div className="text-left">
-                        <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
-                          {t('transactionForm.ignoreTransaction')}
-                        </span>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {t('transactionForm.ignoreTransactionHint')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                      isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
-                    }`}>
-                      <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                        isIgnored ? 'translate-x-5' : 'translate-x-0'
-                      }`} />
-                    </div>
-                  </button>
-
-                  {/* Update All Installments Checkbox */}
                   {transaction?.isInstallment && (
-                    <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={updateAllInstallments}
-                        onChange={(e) => setUpdateAllInstallments(e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-600"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {language === 'pt' ? 'Atualizar todas as parcelas' : 'Update all installments'}
-                      </span>
-                    </label>
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                      <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        {language === 'pt'
+                          ? `Parcela ${transaction.installmentCurrent}/${transaction.installmentTotal}. Salvar perguntará se deseja atualizar todas.`
+                          : `Installment ${transaction.installmentCurrent}/${transaction.installmentTotal}. Saving will ask if you want to update all.`}
+                      </p>
+                    </div>
                   )}
 
                   {/* Action Buttons */}
@@ -876,6 +890,50 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </button>
                   </div>
                 </form>
+
+                {/* Installment confirmation overlay */}
+                {showInstallmentConfirm && (
+                  <div className="absolute inset-0 bg-white/95 dark:bg-gray-800/95 rounded-2xl flex flex-col items-center justify-center p-6 gap-5">
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-gray-900 dark:text-white text-base mb-1">
+                        {language === 'pt' ? 'Editar parcelas' : 'Edit installments'}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {language === 'pt'
+                          ? `Esta é a parcela ${transaction?.installmentCurrent}/${transaction?.installmentTotal}. O que deseja atualizar?`
+                          : `This is installment ${transaction?.installmentCurrent}/${transaction?.installmentTotal}. What would you like to update?`}
+                      </p>
+                    </div>
+                    <div className="flex flex-col w-full gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setUpdateAllInstallments(true); setShowInstallmentConfirm(false); handleSubmit({ preventDefault: () => {} }); }}
+                        className="w-full py-3 rounded-xl font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors"
+                      >
+                        {language === 'pt' ? 'Atualizar todas as parcelas' : 'Update all installments'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setUpdateAllInstallments(false); setShowInstallmentConfirm(false); handleSubmit({ preventDefault: () => {} }); }}
+                        className="w-full py-3 rounded-xl font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        {language === 'pt' ? 'Atualizar apenas esta' : 'Update only this one'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowInstallmentConfirm(false)}
+                        className="w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                      >
+                        {language === 'pt' ? 'Cancelar' : 'Cancel'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>

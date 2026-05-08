@@ -110,7 +110,7 @@ export default function ExpensesPieChart({ transactions }) {
   if (chartData.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h3>
         <div className="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -126,12 +126,12 @@ export default function ExpensesPieChart({ transactions }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {language === 'pt' ? 'Total: ' : 'Total: '}
-          <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(totalExpenses)}</span>
+          <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(totalExpenses)}</span>
         </p>
       </div>
 

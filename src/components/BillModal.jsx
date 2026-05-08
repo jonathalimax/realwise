@@ -9,8 +9,9 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    dueDate: '',
+    amount: '',
     category: '',
+    dueDate: '',
     recurrence: 'none', // none, monthly, weekly, yearly
     recurrenceEndDate: '', // empty means repeat forever
     notificationEnabled: true,
@@ -27,8 +28,9 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
       setFormData({
         name: bill.name || '',
         description: bill.description || '',
-        dueDate: bill.dueDate?.split('T')[0] || '',
+        amount: bill.amount ? String(bill.amount) : '',
         category: bill.category || '',
+        dueDate: bill.dueDate?.split('T')[0] || '',
         recurrence: bill.recurrence || 'none',
         recurrenceEndDate: bill.recurrenceEndDate?.split('T')[0] || '',
         notificationEnabled: bill.notificationEnabled !== false,
@@ -39,8 +41,9 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
       setFormData({
         name: '',
         description: '',
-        dueDate: '',
+        amount: '',
         category: '',
+        dueDate: '',
         recurrence: 'none',
         recurrenceEndDate: '',
         notificationEnabled: true,
@@ -93,6 +96,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
         description: formData.description.trim(),
         dueDate: new Date(formData.dueDate).toISOString(),
         category: formData.category,
+        amount: formData.amount ? parseFloat(formData.amount) : 0,
         recurrence: formData.recurrence,
         recurrenceEndDate: formData.recurrenceEndDate ? new Date(formData.recurrenceEndDate).toISOString() : null,
         notificationEnabled: formData.notificationEnabled,
@@ -145,7 +149,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90dvh] overflow-hidden">
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-800 dark:text-white">
             {bill ? (language === 'pt' ? 'Editar Conta' : 'Edit Bill') : (language === 'pt' ? 'Nova Conta' : 'New Bill')}
@@ -160,7 +164,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <form onSubmit={handleSubmit} className="bill-modal-form p-4 sm:p-6 landscape:p-3 overflow-y-auto max-h-[calc(90dvh-140px)]">
           <div className="space-y-4">
             {/* Name */}
             <div>
@@ -176,6 +180,23 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                   ${errors.name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-600'}`}
               />
               {errors.name && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{errors.name}</p>}
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {language === 'pt' ? 'Valor' : 'Amount'}
+                <span className="text-gray-400 text-xs ml-1">({language === 'pt' ? 'opcional' : 'optional'})</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                placeholder="0,00"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
             </div>
 
             {/* Description */}
@@ -265,6 +286,14 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                 </p>
                 {errors.recurrenceEndDate && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{errors.recurrenceEndDate}</p>}
               </div>
+            )}
+
+            {formData.recurrence !== 'none' && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {language === 'pt'
+                  ? 'A conta será gerada automaticamente a cada período até a data de encerramento.'
+                  : 'A bill will be created automatically each period until the end date.'}
+              </p>
             )}
 
             {/* Notification Settings */}
@@ -385,6 +414,17 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
           )}
         </div>
       </div>
+
+      <style>{`
+        @media (orientation: landscape) and (max-height: 500px) {
+          .bill-modal-form > div > div {
+            margin-bottom: 0.5rem;
+          }
+          .bill-modal-form label {
+            margin-bottom: 0.125rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

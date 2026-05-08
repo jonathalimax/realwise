@@ -42,9 +42,9 @@ function SupportContent() {
           </Link>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">L</span>
+              <span className="text-white font-bold text-sm">M</span>
             </div>
-            <span className="font-semibold">Limas Finance</span>
+            <span className="font-semibold">Realwise</span>
           </div>
           <ThemeToggle />
         </div>
@@ -202,9 +202,9 @@ function SupportContent() {
             <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
               <h3 className="text-xl font-bold mb-4">Contato Direto</h3>
               <div className="space-y-3">
-                <a href="mailto:contato@limasfinance.com" className="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                <a href="mailto:contato@realwise.com.br" className="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                   <Mail className="w-5 h-5" />
-                  <span>contato@limasfinance.com</span>
+                  <span>contato@realwise.com.br</span>
                 </a>
                 <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                   <Phone className="w-5 h-5" />

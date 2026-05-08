@@ -1,4 +1,5 @@
 import { BarChart } from '@mui/x-charts/BarChart';
+import { ChartsTooltip } from '@mui/x-charts/ChartsTooltip';
 import { useSettings } from '@/contexts/SettingsContext';
 
 // Top N categories to show in the trend chart
@@ -9,7 +10,7 @@ const CAT_COLORS = [
   '#8B5CF6', '#EC4899', '#06B6D4', '#F59E0B', '#10B981', '#EF4444',
 ];
 
-export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) {
+export default function CategoryTrendChart({ allTx, last6Months, getMonthKey, hiddenCats, onToggleCat }) {
   const { darkMode, formatCurrency } = useSettings();
   const textColor = darkMode ? '#e5e7eb' : '#374151';
 
@@ -47,12 +48,13 @@ export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) 
     );
   }
 
-  const series = topCats.map((cat, i) => ({
+  const allSeries = topCats.map((cat, i) => ({
     label: cat,
     data: last6Months.map(month => grouped[month][cat] || 0),
     color: CAT_COLORS[i % CAT_COLORS.length],
     valueFormatter: v => formatCurrency(v),
   }));
+  const series = allSeries.filter(s => !hiddenCats.has(s.label));
 
   // Short month labels (e.g. "Mar/25")
   const xLabels = last6Months.map(m => {
@@ -68,33 +70,24 @@ export default function CategoryTrendChart({ allTx, last6Months, getMonthKey }) 
   };
 
   return (
-    <div>
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
-        {series.map(s => (
-          <div key={s.label} className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm" style={{ background: s.color }} />
-            <span className="text-xs text-gray-600 dark:text-gray-400">{s.label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="h-64">
-        <BarChart
-          xAxis={[{
-            scaleType: 'band',
-            data: xLabels,
-            tickLabelStyle: { fontSize: 11, fill: textColor },
-          }]}
-          yAxis={[{
-            tickLabelStyle: { fontSize: 11, fill: textColor },
-            valueFormatter: v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v),
-          }]}
-          series={series}
-          slotProps={{ legend: { hidden: true } }}
-          sx={sxDark}
-          margin={{ top: 10, right: 20, bottom: 30, left: 55 }}
-        />
-      </div>
+    <div className="h-80 w-full overflow-visible">
+      <BarChart
+        xAxis={[{
+          scaleType: 'band',
+          data: xLabels,
+          tickLabelStyle: { fontSize: 11, fill: textColor },
+        }]}
+        yAxis={[{
+          tickLabelStyle: { fontSize: 11, fill: textColor },
+          valueFormatter: v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v),
+        }]}
+        series={series}
+        slotProps={{ legend: { hidden: true } }}
+        sx={sxDark}
+        margin={{ top: 10, right: 10, bottom: 30, left: 55 }}
+      >
+        <ChartsTooltip trigger="axis" />
+      </BarChart>
     </div>
   );
 }

@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { auth, db } from '../firebase';
 import {
   GoogleAuthProvider,
-  signInWithCredential,
-  getRedirectResult,
+  signInWithPopup,
   signOut
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { LANGUAGES, DEFAULT_LANGUAGE, getTranslation } from '../locales';
+import { useClientConfig } from '../contexts/ClientConfigContext';
+import { analytics } from '../services/analyticsService';
 
 export default function Auth() {
+  const config = useClientConfig();
+  const appName = config?.clientName ?? '{appName}';
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE);
@@ -26,14 +29,12 @@ export default function Auth() {
       const accessDoc = await getDoc(doc(db, 'access', 'allowed_emails'));
       if (!accessDoc.exists()) {
         // If no whitelist exists, allow all (for initial setup)
-        console.log('No whitelist document - allowing access');
         return true;
       }
       const data = accessDoc.data();
       const allowedEmails = data.emails || [];
       // Check if empty list (allow all) or email is in list
       if (allowedEmails.length === 0) {
-        console.log('Whitelist is empty - allowing access');
         return true;
       }
       // Handle both old format (array of strings) and new format (array of objects)
@@ -41,95 +42,38 @@ export default function Auth() {
         const emailStr = typeof e === 'string' ? e : e.email;
         return emailStr?.toLowerCase() === email.toLowerCase();
       });
-      console.log(`Email ${email} allowed: ${isAllowed}`);
       return isAllowed;
     } catch (err) {
       console.error('Error checking access:', err);
-      // On error, allow access (for initial setup scenarios)
-      // Once whitelist is properly configured, errors won't occur
-      return true;
+      return false;
     }
   };
 
-  // Clear any stale redirect state left by a previous incomplete signInWithRedirect.
-  // getRedirectResult returns null immediately when there's no pending redirect.
-  // If it hangs (stale state), the 4s timeout unsticks the UI.
-  useEffect(() => {
-    setLoading(true);
-    const timeout = setTimeout(() => setLoading(false), 4000);
 
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (!result) return;
-        const isAllowed = await checkEmailAllowed(result.user.email);
-        if (!isAllowed) {
-          await signOut(auth);
-          setError(language === 'pt'
-            ? 'Acesso não autorizado. Entre em contato com o administrador.'
-            : 'Access not authorized. Please contact the administrator.');
-        }
-      })
-      .catch((err) => {
-        setError(getErrorMessage(err.code));
-      })
-      .finally(() => {
-        clearTimeout(timeout);
-        setLoading(false);
-      });
-
-    return () => clearTimeout(timeout);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
 
-    const apiKey = auth.app.options.apiKey;
-    // Always open on authDomain (firebaseapp.com) — that's the URI registered
-    // in Google OAuth. Using web.app causes redirect_uri_mismatch.
-    const authDomain = auth.app.options.authDomain;
-    const popup = window.open(
-      `https://${authDomain}/__/auth/handler?apiKey=${apiKey}`,
-      'lf-google-auth',
-      'width=500,height=600,left=300,top=200'
-    );
-
-    // Detect popup closed without completing auth
-    const pollClosed = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(pollClosed);
-        window.removeEventListener('message', onMessage);
-        setLoading(false);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      const isAllowed = await checkEmailAllowed(result.user.email);
+      if (!isAllowed) {
+        await signOut(auth);
+        setError(language === 'pt'
+          ? 'Acesso não autorizado. Entre em contato com o administrador.'
+          : 'Access not authorized. Please contact the administrator.');
+      } else if (result.additionalUserInfo?.isNewUser) {
+        analytics.userSignup(result.user.uid);
       }
-    }, 500);
-
-    const authOrigin = `https://${auth.app.options.authDomain}`;
-    const onMessage = async (event) => {
-      // Accept from same origin or from the authDomain popup (firebaseapp.com vs web.app)
-      if (event.origin !== window.location.origin && event.origin !== authOrigin) return;
-      if (event.data?.type !== 'lf-google-auth') return;
-
-      clearInterval(pollClosed);
-      window.removeEventListener('message', onMessage);
-
-      try {
-        const credential = GoogleAuthProvider.credential(event.data.idToken);
-        const result = await signInWithCredential(auth, credential);
-        const isAllowed = await checkEmailAllowed(result.user.email);
-        if (!isAllowed) {
-          await signOut(auth);
-          setError(language === 'pt'
-            ? 'Acesso não autorizado. Entre em contato com o administrador.'
-            : 'Access not authorized. Please contact the administrator.');
-        }
-      } catch (err) {
-        setError(getErrorMessage(err.code));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    window.addEventListener('message', onMessage);
+    } catch (err) {
+      setError(getErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getErrorMessage = (code) => {
@@ -155,7 +99,7 @@ export default function Auth() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-2xl font-semibold text-white">Limas Finance</span>
+              <span className="text-2xl font-bold text-white">{appName}</span>
             </div>
           </div>
         </div>
@@ -200,7 +144,7 @@ export default function Auth() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-2xl font-semibold text-gray-900 dark:text-white">Limas Finance</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">{appName}</span>
             </div>
             <div className="hidden lg:block" />
             <button
@@ -213,7 +157,7 @@ export default function Auth() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {t('auth.welcomeBack')}
             </h2>
             <p className="text-gray-500 dark:text-gray-400 mt-2">

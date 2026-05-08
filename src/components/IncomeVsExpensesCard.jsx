@@ -36,7 +36,7 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-      <h3 className="text-lg font-semibold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
+      <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
         <span className="text-2xl">💰</span>
         {language === 'pt' ? 'Resumo Financeiro' : 'Financial Summary'}
       </h3>

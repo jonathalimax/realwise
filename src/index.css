@@ -109,3 +109,41 @@ input[type="number"] {
 .dark * {
   scrollbar-color: rgba(75, 85, 99, 0.6) transparent;
 }
+
+/* Styled range slider */
+.styled-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+.styled-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: grab;
+  border: 2px solid #e2e8f0;
+  margin-top: -12px;
+}
+.styled-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+}
+.styled-slider::-moz-range-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: grab;
+  border: 2px solid #e2e8f0;
+}
+.styled-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+.styled-slider:active::-moz-range-thumb { cursor: grabbing; }

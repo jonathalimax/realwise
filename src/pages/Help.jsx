@@ -91,7 +91,7 @@ export default function HelpPage() {
       <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white pl-12 md:pl-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
               {language === 'pt' ? 'Ajuda' : 'Help'}
             </h1>
           </div>
@@ -112,7 +112,7 @@ export default function HelpPage() {
                 <item.icon className="w-6 h-6" />
               </div>
               <div className="flex-1 text-left">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
+                <h3 className="font-bold text-gray-900 dark:text-white">
                   {item.title}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -129,7 +129,7 @@ export default function HelpPage() {
           <div className="p-4 border-b border-gray-100 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <BookOpenIcon className="w-5 h-5 text-gray-500" />
-              <h2 className="font-semibold text-gray-900 dark:text-white">
+              <h2 className="font-bold text-gray-900 dark:text-white">
                 {language === 'pt' ? 'Perguntas Frequentes' : 'Frequently Asked Questions'}
               </h2>
             </div>
@@ -153,7 +153,7 @@ export default function HelpPage() {
 
         {/* App Version */}
         <div className="mt-8 text-center text-sm text-gray-400 dark:text-gray-500">
-          <p>Blim Wallet v1.0.0</p>
+          <p>Realwise v1.0.0</p>
           <p className="mt-1">
             {language === 'pt' ? 'Feito com ❤️ para você' : 'Made with ❤️ for you'}
           </p>

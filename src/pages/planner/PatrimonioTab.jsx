@@ -2,24 +2,32 @@ import { NumericFormat } from 'react-number-format';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatBRL } from './usePlannerState';
+import CurrencyInput from '@/components/ui/CurrencyInput';
+import PercentInput from '@/components/ui/PercentInput';
 
 const YEARS_LABELS = ['5a', '10a', '15a', '20a', '25a', '30a'];
 const SUMMARY_YEARS = [5, 10, 20, 30];
 
-function FieldInput({ label, value, onChange, suffix, decimalScale = 2, hint }) {
+function FieldInput({ label, value, onChange, type = 'number', suffix, decimalScale = 2, hint }) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
-      <NumericFormat
-        value={value}
-        onValueChange={vals => onChange(vals.floatValue ?? 0)}
-        decimalSeparator=","
-        thousandSeparator="."
-        suffix={suffix}
-        decimalScale={decimalScale}
-        allowNegative={false}
-        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
-      />
+      {type === 'currency' ? (
+        <CurrencyInput value={value} onChange={onChange} className="text-sm py-2 px-3" />
+      ) : type === 'percent' ? (
+        <PercentInput value={value} onChange={onChange} decimalScale={decimalScale} className="text-sm" />
+      ) : (
+        <NumericFormat
+          value={value}
+          onValueChange={vals => onChange(vals.floatValue ?? 0)}
+          decimalSeparator=","
+          thousandSeparator="."
+          suffix={suffix}
+          decimalScale={decimalScale}
+          allowNegative={false}
+          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+        />
+      )}
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
@@ -93,7 +101,7 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
     <div className="space-y-4">
       {/* Input card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Parâmetros do Patrimônio
         </h3>
         <div className="grid grid-cols-2 gap-3">
@@ -101,13 +109,14 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
             label="Valor atual do carro (R$)"
             value={state.carCurrentValue}
             onChange={v => update('carCurrentValue', v)}
+            type="currency"
             hint="Deprecia ~15% ao ano"
           />
           <FieldInput
             label="Valorização imóvel (%/mês)"
             value={state.propertyAppreciationPct}
             onChange={v => update('propertyAppreciationPct', v)}
-            suffix=" %"
+            type="percent"
             decimalScale={2}
             hint="Ex: 0,5% a.m. ≈ 6% a.a."
           />
@@ -118,7 +127,7 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {summaryItems.map(p => (
           <div key={p.years} className="bg-violet-50 dark:bg-violet-900/20 rounded-2xl p-3 border border-violet-100 dark:border-violet-800 text-center">
-            <p className="text-xs font-semibold text-violet-500 uppercase">{p.years} anos</p>
+            <p className="text-xs font-bold text-violet-500 uppercase">{p.years} anos</p>
             <p className="text-base font-bold text-violet-700 dark:text-violet-300 tabular-nums">
               {formatBRL.format(p.total)}
             </p>
@@ -131,7 +140,7 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
 
       {/* Stacked bar chart */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Evolução do Patrimônio Projetado
         </h3>
 
@@ -167,15 +176,15 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
       {/* Breakdown table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Detalhamento por categoria</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Detalhamento por categoria</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Categoria</th>
+                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Categoria</th>
                 {SUMMARY_YEARS.map(y => (
-                  <th key={y} className="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">{y}a</th>
+                  <th key={y} className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">{y}a</th>
                 ))}
               </tr>
             </thead>

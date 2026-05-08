@@ -10,11 +10,14 @@
 
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { analytics } from './analyticsService';
 
 // Gemini API configuration
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent';
 const DAILY_FREE_LIMIT = 950; // Leave some buffer below 1000
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export const CATEGORIZATION_CONFIDENCE_THRESHOLD = 0.6;
 
 /**
  * Get today's date key for tracking daily usage
@@ -241,24 +244,32 @@ export async function categorizeWithAI({
   // 2. If no API key, go straight to fallback
   if (!apiKey) {
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-    return {
-      category: fallbackResult?.category || categories[0],
-      source: 'fallback',
-      confidence: fallbackResult?.confidence || 0.5
-    };
+    if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
+      return { category: null, source: 'none', confidence: 0 };
+    }
+    return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
   }
 
   // 3. Check if we have free quota remaining
   const quota = await checkAIQuota(userId);
 
+  const usagePercent = quota.used / DAILY_FREE_LIMIT;
+  // Fire quota warning only when crossing 80% or 100% thresholds (not on every call)
+  if (usagePercent >= 0.8 && usagePercent < 1) {
+    const prevPercent = (quota.used - 1) / DAILY_FREE_LIMIT;
+    if (prevPercent < 0.8) {
+      analytics.aiQuotaWarning(userId, { used: quota.used, limit: DAILY_FREE_LIMIT, threshold: 80 });
+    }
+  } else if (!quota.available && quota.used === DAILY_FREE_LIMIT) {
+    analytics.aiQuotaWarning(userId, { used: quota.used, limit: DAILY_FREE_LIMIT, threshold: 100 });
+  }
+
   if (!quota.available) {
-    console.log(`AI quota exhausted (${quota.used}/${DAILY_FREE_LIMIT}), using fallback`);
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-    return {
-      category: fallbackResult?.category || categories[0],
-      source: 'fallback',
-      confidence: fallbackResult?.confidence || 0.5
-    };
+    if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
+      return { category: null, source: 'none', confidence: 0 };
+    }
+    return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
   }
 
   // 4. Call Gemini API
@@ -280,11 +291,10 @@ export async function categorizeWithAI({
 
   // 5. AI failed - use fallback
   const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
-  return {
-    category: fallbackResult?.category || categories[0],
-    source: 'fallback',
-    confidence: fallbackResult?.confidence || 0.5
-  };
+  if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
+    return { category: null, source: 'none', confidence: 0 };
+  }
+  return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
 }
 
 /**
@@ -385,7 +395,6 @@ export async function detectDuplicatesWithAI(newTransactions, existingTransactio
   // Check quota
   const quota = await checkAIQuota(userId);
   if (!quota.available) {
-    console.log('AI quota exhausted, skipping duplicate detection');
     return duplicateIndices;
   }
 

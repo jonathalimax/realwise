@@ -1,5 +1,7 @@
 // src/pages/planner/carteira/SublayerModal.jsx
 import { useState, useEffect } from 'react';
+import { NumericFormat } from 'react-number-format';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { SUBLAYER_TYPE_OPTIONS, formatBRL } from './constants';
 import { netReturn } from './walletVersion';
 
@@ -64,12 +66,12 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
         {/* Icon + Label */}
         <div className="flex gap-3">
           <div className="w-16">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Ícone</label>
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Ícone</label>
             <input type="text" value={icon} onChange={e => setIcon(e.target.value)} maxLength={2}
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-center text-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
           </div>
           <div className="flex-1">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Nome</label>
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Nome</label>
             <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="Ex: Fundo Emergência"
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
           </div>
@@ -78,14 +80,14 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
         {/* Type + Bank */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Tipo</label>
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Tipo</label>
             <select value={type} onChange={e => setType(e.target.value)}
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500">
               {SUBLAYER_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Banco / Corretora</label>
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Banco / Corretora</label>
             <input type="text" value={bank} onChange={e => setBank(e.target.value)}
               placeholder="Ex: Nubank, XP, BTG..."
               className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
@@ -95,67 +97,95 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
         {/* Return + Tax */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Retorno bruto % a.m.</label>
-            <input type="number" value={returnPct} onChange={e => setReturnPct(e.target.value)} step="0.1" min="0"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Retorno bruto % a.m.</label>
+            <NumericFormat
+              value={returnPct === '0' || returnPct === '' ? '' : returnPct}
+              onValueChange={vals => setReturnPct(String(vals.floatValue ?? 0))}
+              decimalSeparator=","
+              decimalScale={3}
+              suffix=" %/mês"
+              allowNegative={false}
+              placeholder="1,000 %/mês"
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
             <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Líq: {net.toFixed(3)}% a.m.</p>
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Alíquota IRPF %</label>
-            <input type="number" value={taxRate} onChange={e => setTaxRate(e.target.value)} step="1" min="0" max="100"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Alíquota IRPF %</label>
+            <NumericFormat
+              value={taxRate === '0' || taxRate === '' ? '' : taxRate}
+              onValueChange={vals => setTaxRate(String(vals.floatValue ?? 0))}
+              decimalSeparator=","
+              decimalScale={0}
+              suffix=" %"
+              allowNegative={false}
+              placeholder="15 %"
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
         </div>
 
         {/* Contribution mode */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Aporte mensal</label>
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2">Aporte mensal</label>
           <div className="flex gap-2 mb-2">
             <button onClick={() => setMode('pct')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${mode === 'pct' ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${mode === 'pct' ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
               % da camada
             </button>
             <button onClick={() => setMode('value')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${mode === 'value' ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${mode === 'value' ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
               Valor fixo R$
             </button>
           </div>
           {mode === 'pct' ? (
             <div className="flex items-center gap-2">
-              <input type="number" value={pct} onChange={e => setPct(e.target.value)} step="1" min="0" max="100"
-                className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              <NumericFormat
+                value={pct === '0' || pct === '' ? '' : pct}
+                onValueChange={vals => setPct(String(vals.floatValue ?? 0))}
+                decimalSeparator=","
+                decimalScale={0}
+                suffix=" %"
+                allowNegative={false}
+                placeholder="0 %"
+                className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
               <span className="text-xs text-gray-400">% → {formatBRL.format(monthlyContrib)}/mês</span>
             </div>
           ) : (
-            <input type="number" value={value} onChange={e => setValue(e.target.value)} step="10" min="0"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-              placeholder="Ex: 500" />
+            <CurrencyInput
+              value={parseFloat(value) || 0}
+              onChange={v => setValue(String(v))}
+              placeholder="R$ 500,00"
+            />
           )}
         </div>
 
         {/* Goal target */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Meta</label>
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2">Meta</label>
           <div className="flex gap-2 mb-2">
             <button onClick={() => setHasGoal(true)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${hasGoal ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${hasGoal ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
               Com meta
             </button>
             <button onClick={() => setHasGoal(false)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${!hasGoal ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${!hasGoal ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
               Reserva contínua
             </button>
           </div>
           {hasGoal && (
-            <input type="number" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} step="1000" min="0"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
-              placeholder="Ex: 120000" />
+            <CurrencyInput
+              value={parseFloat(goalTarget) || 0}
+              onChange={v => setGoalTarget(String(v))}
+              placeholder="R$ 120.000,00"
+            />
           )}
         </div>
 
         {/* Description */}
         <div>
-          <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1">Descrição <span className="font-normal">(opcional)</span></label>
+          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Descrição <span className="font-normal">(opcional)</span></label>
           <input type="text" value={description} onChange={e => setDescription(e.target.value)}
             placeholder="Ex: CDB liq. diária / Tesouro Selic 2027"
             className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
@@ -164,12 +194,12 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
         {/* Actions */}
         <div className="flex gap-2 pt-1">
           <button onClick={handleSave} disabled={!label.trim()}
-            className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors">
+            className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white rounded-xl py-2.5 text-sm font-bold transition-colors">
             {isNew ? 'Criar sublayer' : 'Salvar'}
           </button>
           {!isNew && onDelete && (
             <button onClick={onDelete}
-              className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-rose-100 transition-colors">
+              className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-xl px-4 py-2.5 text-sm font-bold hover:bg-rose-100 transition-colors">
               Excluir
             </button>
           )}

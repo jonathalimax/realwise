@@ -145,7 +145,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
             >
               <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
                     {t('budget.budgetSettings')}
                   </Dialog.Title>
                   <button
@@ -237,7 +237,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                               <div className={`flex items-center justify-between px-2 py-1 rounded ${colors.light}`}>
                                 <div className="flex items-center gap-2">
                                   <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
-                                  <span className={`text-sm font-semibold ${colors.text}`}>
+                                  <span className={`text-sm font-bold ${colors.text}`}>
                                     {label} ({percent}%)
                                   </span>
                                 </div>
@@ -295,7 +295,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                             <div key={key} className={`p-3 rounded-lg ${colors.light} border ${colors.border}`}>
                               <div className="flex items-center gap-1 mb-2">
                                 <span className={`w-2 h-2 rounded-full ${colors.bg}`} />
-                                <span className={`text-xs font-semibold ${colors.text}`}>
+                                <span className={`text-xs font-bold ${colors.text}`}>
                                   {label} ({percent}%)
                                 </span>
                               </div>

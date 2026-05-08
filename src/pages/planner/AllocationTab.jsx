@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useSearchParams } from 'react-router-dom';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useBudget } from '@/contexts/BudgetContext';
@@ -8,30 +9,12 @@ import { useCards } from '@/contexts/CardsContext';
 import { NumericFormat } from 'react-number-format';
 import { Badge } from '@/components/ui/badge';
 import { formatBRL } from './usePlannerState';
-import SpendingChart from '@/components/charts/SpendingChart';
-import CategoryTrendChart from './CategoryTrendChart';
 
 const RULE_LABELS = {
   needs:   { short: 'N', label: 'Necessidades', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
   wants:   { short: 'D', label: 'Desejos',      color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' },
   savings: { short: 'P', label: 'Poupança',     color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
 };
-
-function AllocationSlider({ label, emoji, value, onChange, colorClass }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{emoji} {label}</span>
-        <span className={`text-lg font-bold tabular-nums ${colorClass}`}>{value}%</span>
-      </div>
-      <input
-        type="range" min={0} max={100} step={1} value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer accent-violet-500 [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-gray-200 dark:[&::-webkit-slider-runnable-track]:bg-gray-600 [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-gray-200 dark:[&::-moz-range-track]:bg-gray-600"
-      />
-    </div>
-  );
-}
 
 function InnerTabs({ tabs, active, onChange }) {
   return (
@@ -40,7 +23,7 @@ function InnerTabs({ tabs, active, onChange }) {
         <button
           key={t.value}
           onClick={() => onChange(t.value)}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${
             active === t.value
               ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -63,23 +46,23 @@ export default function AllocationTab({
   updateMonthAllocation,
   resetMonthAllocation,
   selectedMonth,
+  categoryBudgetsPct,
   updateCategoryBudgetPct,
+  copyFromPreviousMonth,
 }) {
   const { ownerId } = useAccess();
   const { categories } = useSettings();
   const { calculateCategorySpending, getCategoryRule, setCategoryRule } = useBudget();
   const { getPaymentMonthKey } = useCards();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('regra');
   const [allTx, setAllTx] = useState([]);
-  const [loadingTx, setLoadingTx] = useState(true);
 
   useEffect(() => {
     if (!ownerId) return;
     const q = query(collection(db, 'transactions'), where('userId', '==', ownerId));
     const unsub = onSnapshot(q, snap => {
       setAllTx(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoadingTx(false);
     });
     return unsub;
   }, [ownerId]);
@@ -90,29 +73,16 @@ export default function AllocationTab({
     return key === selectedMonth;
   }), [allTx, selectedMonth, getPaymentMonthKey]);
 
-  const last6Months = useMemo(() => Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(`${selectedMonth}-01`);
-    d.setMonth(d.getMonth() - (5 - i));
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }), [selectedMonth]);
-
   const categorySpending = useMemo(() => calculateCategorySpending(monthTx), [monthTx, calculateCategorySpending]);
 
   const allCategories = useMemo(() => {
     const registered = categories?.expense ?? [];
     const spending   = Object.keys(categorySpending);
-    const budgeted   = Object.keys(state.categoryBudgetsPct ?? {});
+    const budgeted   = Object.keys(categoryBudgetsPct ?? {});
     return [...new Set([...registered, ...spending, ...budgeted])].sort();
-  }, [categories?.expense, categorySpending, state.categoryBudgetsPct]);
+  }, [categories?.expense, categorySpending, categoryBudgetsPct]);
 
-  const categoryBudgetsPct = state.categoryBudgetsPct ?? {};
-
-  // Total % allocated across all categories
-  const totalPct   = allCategories.reduce((sum, c) => sum + (categoryBudgetsPct[c] ?? 0), 0);
-  const totalValue = liquidezFinal * totalPct / 100;
-  const remaining  = liquidezFinal - totalValue;
-
-  // Allocated R$ per rule bucket (for Regra reference cards)
+  // Allocated R$ per rule bucket
   const allocatedByRule = useMemo(() => {
     const sums = { needs: 0, wants: 0, savings: 0 };
     allCategories.forEach(cat => {
@@ -126,229 +96,252 @@ export default function AllocationTab({
 
   const allocationTotal = monthAllocation.necessidades + monthAllocation.poupanca + monthAllocation.desejos;
   const isValid    = allocationTotal === 100;
-  const hasOverride = !!state.allocationOverrides?.[selectedMonth];
+  const hasOverride = state.plannerVersions?.some(v => v.from === selectedMonth);
+
+  const totalPctAllocatedAcrossCategories = allCategories.reduce((sum, c) => sum + (categoryBudgetsPct[c] ?? 0), 0);
+  const totalValueAllocatedAcrossCategories = liquidezFinal * totalPctAllocatedAcrossCategories / 100;
+  const remainingBudget = liquidezFinal - totalValueAllocatedAcrossCategories;
 
   if (liquidezFinal <= 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Preencha o Dashboard Financeiro para ver a alocação.</p>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm border border-gray-100 dark:border-gray-700 text-center space-y-6">
+        <div className="max-w-xs mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            Você ainda não definiu sua renda para este mês. Preencha os dados de renda para começar o planejamento.
+          </p>
+          <button
+            onClick={() => setSearchParams({ tab: 'renda' })}
+            className="w-full px-6 py-3 rounded-xl font-bold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98]"
+          >
+            💰 Definir Renda
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <InnerTabs
-        tabs={[
-          { value: 'regra',        label: 'Regra' },
-          { value: 'rastreamento', label: 'Rastreamento' },
-          { value: 'limite',       label: 'Limite' },
-        ]}
-        active={activeTab}
-        onChange={setActiveTab}
-      />
-
-      {/* ── REGRA ──────────────────────────────────────────────────────────── */}
-      {activeTab === 'regra' && (
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Regra 64/28/8</h3>
-              {isValid ? <Badge variant="default">✓ 100%</Badge> : <Badge variant="destructive">Soma: {allocationTotal}%</Badge>}
-            </div>
-            <p className="text-xs text-gray-400 mb-4">
-              {hasOverride ? `Personalizado para ${selectedMonth}` : `Padrão global — ajuste para personalizar ${selectedMonth}`}
-            </p>
-            <div className="space-y-5">
-              <AllocationSlider label="Necessidades"          emoji="🏠" value={monthAllocation.necessidades} onChange={v => updateMonthAllocation('necessidades', v)} colorClass="text-blue-600 dark:text-blue-400" />
-              <AllocationSlider label="Poupança / Investimentos" emoji="💰" value={monthAllocation.poupanca}     onChange={v => updateMonthAllocation('poupanca', v)}     colorClass="text-emerald-600 dark:text-emerald-400" />
-              <AllocationSlider label="Desejos / Lazer"       emoji="🎯" value={monthAllocation.desejos}       onChange={v => updateMonthAllocation('desejos', v)}       colorClass="text-orange-500 dark:text-orange-400" />
-            </div>
-            {hasOverride && (
-              <button onClick={resetMonthAllocation} className="mt-3 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 underline">
-                Resetar para padrão global
-              </button>
-            )}
+    <div className="space-y-6">
+      {/* ── MASTER PLAN (70/20/10) ───────────────────────────────────────── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Plano Mestre</h2>
+            {!isValid && <Badge variant="destructive">Soma: {allocationTotal}%</Badge>}
           </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                if (window.confirm('Deseja copiar todos os limites e a regra do mês anterior para este mês?')) {
+                  copyFromPreviousMonth();
+                }
+              }} 
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+            >
+              📥 Copiar do mês anterior
+            </button>
+            <button 
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja resetar a regra 70/20/10 e todos os limites de categorias deste mês para o padrão?')) {
+                  resetMonthAllocation();
+                }
+              }} 
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm"
+            >
+              🔄 Resetar
+            </button>
+          </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[
-              { label: 'Necessidades', emoji: '🏠', pct: monthAllocation.necessidades, value: necessidadesValue, allocated: allocatedByRule.needs,   sub: 'Moradia, alimentação, contas', c: 'blue' },
-              { label: 'Poupança',     emoji: '💰', pct: monthAllocation.poupanca,     value: poupancaValue,     allocated: allocatedByRule.savings, sub: 'Reserva + investimentos',    c: 'emerald' },
-              { label: 'Desejos',      emoji: '🎯', pct: monthAllocation.desejos,       value: desejosValue,       allocated: allocatedByRule.wants,   sub: 'Lazer, viagens, extras',     c: 'orange' },
-            ].map(({ label, emoji, pct, value, allocated, sub, c }) => {
-              const free   = value - allocated;
-              const isOver = allocated > value;
-              const fillPct = value > 0 ? Math.min((allocated / value) * 100, 100) : 0;
-              return (
-                <div key={label} className={`bg-${c}-50 dark:bg-${c}-900/20 rounded-2xl p-4 border border-${c}-100 dark:border-${c}-800`}>
-                  <p className={`text-xs font-semibold text-${c}-500 uppercase tracking-wide mb-1`}>{emoji} {label} ({pct}%)</p>
-                  <p className={`text-xl font-bold text-${c}-700 dark:text-${c}-300 tabular-nums`}>{formatBRL.format(value)}</p>
-                  <p className={`text-xs text-${c}-400 mt-1 mb-2`}>{sub}</p>
-                  <div className={`w-full h-1.5 rounded-full bg-${c}-200 dark:bg-${c}-800`}>
-                    <div className={`h-1.5 rounded-full transition-all ${isOver ? 'bg-red-500' : `bg-${c}-500`}`} style={{ width: `${fillPct}%` }} />
-                  </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span className={`text-${c}-400`}>Definido: {formatBRL.format(allocated)}</span>
-                    <span className={`font-semibold ${isOver ? 'text-red-500' : `text-${c}-600 dark:text-${c}-300`}`}>
-                      {isOver ? '−' : '+'}{formatBRL.format(Math.abs(free))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { 
+              key: 'necessidades', emoji: '🏠', label: 'Necessidades', ruleKey: 'needs',   
+              pct: monthAllocation.necessidades, value: necessidadesValue, allocated: allocatedByRule.needs,   
+              sub: 'Fixas / Essenciais', 
+              colors: {
+                bg: 'bg-blue-50 dark:bg-blue-900/20',
+                border: 'border-blue-100 dark:border-blue-800/50',
+                text: 'text-blue-700 dark:text-blue-300',
+                label: 'text-blue-600 dark:text-blue-400',
+                subtext: 'text-blue-400/80',
+                slider: 'text-blue-500',
+                bar: 'bg-blue-500'
+              },
+              onChange: v => updateMonthAllocation('necessidades', v) 
+            },
+            { 
+              key: 'poupanca', emoji: '💰', label: 'Poupança', ruleKey: 'savings', 
+              pct: monthAllocation.poupanca, value: poupancaValue, allocated: allocatedByRule.savings, 
+              sub: 'Investimentos',    
+              colors: {
+                bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+                border: 'border-emerald-100 dark:border-emerald-800/50',
+                text: 'text-emerald-700 dark:text-emerald-300',
+                label: 'text-emerald-600 dark:text-emerald-400',
+                subtext: 'text-emerald-400/80',
+                slider: 'text-emerald-500',
+                bar: 'bg-emerald-500'
+              },
+              onChange: v => updateMonthAllocation('poupanca', v) 
+            },
+            { 
+              key: 'desejos', emoji: '🎯', label: 'Desejos', ruleKey: 'wants',   
+              pct: monthAllocation.desejos, value: desejosValue, allocated: allocatedByRule.wants,   
+              sub: 'Lazer / Variáveis',  
+              colors: {
+                bg: 'bg-orange-50 dark:bg-orange-900/20',
+                border: 'border-orange-100 dark:border-orange-800/50',
+                text: 'text-orange-700 dark:text-orange-300',
+                label: 'text-orange-600 dark:text-orange-400',
+                subtext: 'text-orange-400/80',
+                slider: 'text-orange-500',
+                bar: 'bg-orange-500'
+              },
+              onChange: v => updateMonthAllocation('desejos', v) 
+            },
+          ].map(({ key, emoji, label, pct, value, allocated, sub, colors, onChange }) => {
+            const isOver  = allocated > value;
+            const fillPct = value > 0 ? Math.min((allocated / value) * 100, 100) : 0;
+
+            return (
+              <div key={key} className={`${colors.bg} rounded-2xl p-4 border ${colors.border} space-y-3`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-bold ${colors.label} uppercase tracking-widest`}>{emoji} {label}</span>
+                  <span className={`text-lg font-bold tabular-nums ${colors.text}`}>{pct}%</span>
+                </div>
+
+                <div className="space-y-1 py-1">
+                  <input
+                    type="range" min={0} max={100} step={1} value={pct}
+                    onChange={e => onChange(Number(e.target.value))}
+                    className={`styled-slider ${colors.slider}`}
+                    style={{ background: `linear-gradient(to right, currentColor ${pct}%, #1e293b ${pct}%)` }}
+                  />
+                </div>
+
+                <div>
+                  <p className={`text-xl font-bold ${colors.text} tabular-nums`}>
+                    {formatBRL.format(value)}
+                  </p>
+                  <p className={`text-[10px] ${colors.subtext} -mt-0.5`}>{sub}</p>
+                </div>
+
+                <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                  <div className="flex justify-between text-[10px] mb-1">
+                    <span className="text-gray-400">Distribuído</span>
+                    <span className={`font-bold ${isOver ? 'text-red-500' : colors.label}`}>
+                      {formatBRL.format(allocated)}
                     </span>
                   </div>
+                  <div className="w-full h-1.5 rounded-full bg-gray-200 dark:bg-gray-800 mb-3">
+                    <div
+                      className={`h-1.5 rounded-full transition-all ${isOver ? 'bg-red-500' : colors.bar}`}
+                      style={{ width: `${fillPct}%` }}
+                    />
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Liquidez Total — {selectedMonth}</span>
-              <span className="text-base font-bold text-violet-600 dark:text-violet-400 tabular-nums">{formatBRL.format(liquidezFinal)}</span>
-            </div>
+      {/* ── CATEGORY LIMITS ──────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Limites por Categoria</h2>
+            <p className="text-xs text-gray-400">Classifique e defina o teto de gastos</p>
+          </div>
+          <div className="text-right">
+            <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+              remainingBudget >= 0 
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+            }`}>
+              {remainingBudget >= 0 ? `Livre: ${formatBRL.format(remainingBudget)}` : `Excedido: ${formatBRL.format(Math.abs(remainingBudget))}`}
+            </span>
           </div>
         </div>
-      )}
 
-      {/* ── RASTREAMENTO ───────────────────────────────────────────────────── */}
-      {activeTab === 'rastreamento' && (
-        <div className="space-y-4">
-          {loadingTx ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" />
+        {/* 2-column grid for categories on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {allCategories.length === 0 ? (
+            <div className="md:col-span-2 py-8 text-center text-sm text-gray-400">
+              Nenhuma categoria encontrada.
             </div>
           ) : (
-            <>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-                <SpendingChart transactions={monthTx} />
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-                  Tendência — últimos 6 meses por categoria
-                </h3>
-                <CategoryTrendChart allTx={allTx} last6Months={last6Months} getMonthKey={getPaymentMonthKey} />
-              </div>
-            </>
+            allCategories.map(category => {
+              const pct    = categoryBudgetsPct[category] ?? 0;
+              const limit  = liquidezFinal * pct / 100;
+              const spent  = categorySpending[category] ?? 0;
+              const rule   = getCategoryRule(category);
+              const pctUsed = limit > 0 ? (spent / limit) * 100 : 0;
+
+              const barColor  = pctUsed === 0 ? 'bg-gray-300 dark:bg-gray-600'
+                : pctUsed < 80  ? 'bg-emerald-500'
+                : pctUsed < 100 ? 'bg-amber-500'
+                : 'bg-red-500';
+              const textColor = pctUsed === 0 ? 'text-gray-400'
+                : pctUsed < 80  ? 'text-emerald-600 dark:text-emerald-400'
+                : pctUsed < 100 ? 'text-amber-600 dark:text-amber-400'
+                : 'text-red-500';
+
+              return (
+                <div key={category} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 hover:border-violet-200 dark:hover:border-violet-900/50 transition-colors">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 flex-1 truncate">{category}</span>
+                    <select
+                      value={rule ?? ''}
+                      onChange={e => setCategoryRule(category, e.target.value)}
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer ${
+                        rule ? RULE_LABELS[rule]?.color : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-transparent'
+                      }`}
+                    >
+                      <option value="">— Regra —</option>
+                      {Object.entries(RULE_LABELS).map(([key, { label }]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-24">
+                      <NumericFormat
+                        value={pct === 0 ? '' : pct}
+                        onValueChange={vals => updateCategoryBudgetPct(category, vals.floatValue ?? 0)}
+                        decimalSeparator="," suffix=" %" decimalScale={1} allowNegative={false} placeholder="0 %"
+                        className="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                      />
+                    </div>
+                    {pct > 0 && (
+                      <span className="text-xs font-bold text-gray-400 tabular-nums">
+                        = {formatBRL.format(limit)}
+                      </span>
+                    )}
+                  </div>
+
+                  {pct > 0 && (
+                    <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-700/50">
+                      <div className="flex justify-between text-[10px] mb-1.5">
+                        <span className="text-gray-400">Gasto: <span className="font-bold text-gray-600 dark:text-gray-300">{formatBRL.format(spent)}</span></span>
+                        <span className={`font-bold ${textColor}`}>{pctUsed.toFixed(0)}%</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-1.5 rounded-full transition-all ${barColor}`}
+                          style={{ width: `${Math.min(pctUsed, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
-      )}
-
-      {/* ── LIMITE ─────────────────────────────────────────────────────────── */}
-      {activeTab === 'limite' && (
-        <div className="space-y-4">
-          {/* Summary bar */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  {totalPct.toFixed(1)}% alocado
-                </span>
-                <span className="text-xs text-gray-400 ml-2">= {formatBRL.format(totalValue)}</span>
-              </div>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                Math.abs(remaining) < 1
-                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                  : remaining < 0
-                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                    : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-              }`}>
-                {remaining >= 0 ? `+${(100 - totalPct).toFixed(1)}% livre` : `−${(totalPct - 100).toFixed(1)}% excedido`}
-              </span>
-            </div>
-            <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className={`h-2 rounded-full transition-all ${totalValue > liquidezFinal ? 'bg-red-500' : 'bg-violet-500'}`}
-                style={{ width: `${Math.min(100, totalPct)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Unified category table */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Orçamento por Categoria</h3>
-              <p className="text-xs text-gray-400 mt-0.5">% da liquidez ({formatBRL.format(liquidezFinal)}) — classifique cada categoria na regra</p>
-            </div>
-
-            {allCategories.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-400">
-                Nenhuma categoria. Adicione nas Configurações ou registre transações.
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                {allCategories.map(category => {
-                  const pct    = categoryBudgetsPct[category] ?? 0;
-                  const limit  = liquidezFinal * pct / 100;
-                  const spent  = categorySpending[category] ?? 0;
-                  const rule   = getCategoryRule(category);
-                  const pctUsed = limit > 0 ? (spent / limit) * 100 : 0;
-
-                  const barColor  = pctUsed === 0 ? 'bg-gray-300 dark:bg-gray-600'
-                    : pctUsed < 80  ? 'bg-emerald-500'
-                    : pctUsed < 100 ? 'bg-amber-500'
-                    : 'bg-red-500';
-                  const textColor = pctUsed === 0 ? 'text-gray-400'
-                    : pctUsed < 80  ? 'text-emerald-600 dark:text-emerald-400'
-                    : pctUsed < 100 ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-red-500';
-
-                  return (
-                    <div key={category} className="px-4 py-3">
-                      {/* Row 1: name + rule badges */}
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 truncate min-w-0">{category}</span>
-                        <div className="flex gap-1 shrink-0">
-                          {Object.entries(RULE_LABELS).map(([key, { short, label, color }]) => (
-                            <button
-                              key={key}
-                              title={label}
-                              onClick={() => setCategoryRule(category, key)}
-                              className={`w-6 h-6 rounded-full text-xs font-bold transition-colors ${rule === key ? color : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}
-                            >
-                              {short}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Row 2a: % input + computed R$ */}
-                      <div className="flex items-center gap-2 mt-1">
-                        <NumericFormat
-                          value={pct === 0 ? '' : pct}
-                          onValueChange={vals => updateCategoryBudgetPct(category, vals.floatValue ?? 0)}
-                          decimalSeparator="," suffix=" %" decimalScale={1} allowNegative={false} placeholder="0 %"
-                          className="w-20 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs tabular-nums focus:outline-none focus:ring-1 focus:ring-violet-500"
-                        />
-                        {pct > 0 && (
-                          <span className="text-xs text-gray-400 tabular-nums">
-                            = {formatBRL.format(limit)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Row 2b: spent + progress bar + % used */}
-                      {pct > 0 && (
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400 shrink-0">
-                            {formatBRL.format(spent)} gasto
-                          </span>
-                          <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                            <div
-                              className={`h-1.5 rounded-full transition-all ${barColor}`}
-                              style={{ width: `${Math.min(pctUsed, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-semibold tabular-nums w-8 text-right shrink-0 ${textColor}`}>
-                            {pctUsed.toFixed(0)}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

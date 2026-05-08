@@ -1,5 +1,11 @@
 const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
+
+const emailUserSecret = defineSecret('EMAIL_USER');
+const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
+const emailHostSecret = defineSecret('EMAIL_HOST');
+const emailPortSecret = defineSecret('EMAIL_PORT');
 
 // Initialize Firebase Admin BEFORE importing other modules that depend on it
 admin.initializeApp();
@@ -7,6 +13,7 @@ admin.initializeApp();
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
+const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate } = require('./emailTemplates');
 const axios = require('axios');
 
 // Import processor functions (must come after admin.initializeApp())
@@ -26,21 +33,27 @@ const getMercadoPagoClient = () => {
 
 // Create email transporter
 const getEmailTransporter = () => {
-  const email = functions.config().email?.user;
-  const password = functions.config().email?.password;
+  try {
+    const user = emailUserSecret.value();
+    const pass = emailPasswordSecret.value();
+    const host = emailHostSecret.value() || 'smtp.umbler.com';
+    const port = Number(emailPortSecret.value() || 587);
 
-  if (!email || !password) {
-    console.log('Email not configured - skipping email notification');
+    if (!user || !pass) {
+      console.log('Email secrets not set — skipping email transporter creation');
+      return null;
+    }
+
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: false,
+      auth: { user, pass },
+    });
+  } catch (err) {
+    console.error('Error getting email transporter:', err);
     return null;
   }
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: email,
-      pass: password, // Use App Password, not regular password
-    },
-  });
 };
 
 // Send purchase notification email (optional - works without email config)
@@ -64,9 +77,9 @@ const sendPurchaseNotification = async (purchaseData) => {
   const adminEmail = 'jonathalimax@gmail.com';
 
   const mailOptions = {
-    from: functions.config().email?.user || 'noreply@limasfinance.com',
+    from: functions.config().email?.user || 'noreply@realwise.com.br',
     to: adminEmail,
-    subject: `💰 Nova Compra - Limas Finance - R$ ${purchaseData.amount.toFixed(2)}`,
+    subject: `💰 Nova Compra - Realwise - R$ ${purchaseData.amount.toFixed(2)}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 20px; border-radius: 12px 12px 0 0;">
@@ -111,7 +124,7 @@ const sendPurchaseNotification = async (purchaseData) => {
         </div>
 
         <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
-          Limas Finance - Sistema de Finanças Pessoais
+          Realwise - Sistema de Finanças Pessoais
         </p>
       </div>
     `,
@@ -198,7 +211,7 @@ exports.processPayment = functions.https.onRequest((req, res) => {
       const paymentData = {
         transaction_amount: parseFloat(transaction_amount),
         token: token,
-        description: 'Limas Finance - Acesso Completo',
+        description: 'Realwise - Acesso Completo',
         installments: parseInt(installments) || 1,
         payment_method_id: payment_method_id,
         issuer_id: issuer_id,
@@ -215,7 +228,7 @@ exports.processPayment = functions.https.onRequest((req, res) => {
           contribution: parseFloat(contribution) || 0,
           timestamp: Date.now(),
         }),
-        statement_descriptor: 'LIMAS FINANCE',
+        statement_descriptor: 'MONEYWISE',
       };
 
       const response = await payment.create({ body: paymentData });
@@ -265,10 +278,17 @@ async function grantAccessAndNotify(email, name, couponCode) {
       purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Send notification email (implementation depends on your email setup)
+    // Send notification email
     const transporter = getEmailTransporter();
     if (transporter) {
-      // Send email notification logic here
+      const from = functions.config().email?.user || 'contato@realwise.com.br';
+      await transporter.sendMail({
+        from,
+        to: email,
+        subject: 'Luz Verde! Seu acesso ao Realwise foi liberado 🟢',
+        html: accessGrantedTemplate(name || 'Cliente'),
+      });
+      console.log(`Access granted email sent to ${email}`);
     }
   } catch (error) {
     console.error('Error granting access:', error);
@@ -485,101 +505,28 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
   });
 });
 
-/**
- * Scheduled function to send FCM push bill reminders
- * Runs daily at 9 AM Brazil time
- */
-exports.scheduledBillReminders = functions.pubsub
-  .schedule('0 9 * * *')
-  .timeZone('America/Sao_Paulo')
-  .onRun(async () => {
-    try {
-      console.log('Starting scheduled FCM bill reminders...');
+exports.scheduledBillReminders = require('./clientScheduledBillReminders').scheduledBillReminders;
 
-      // Get all settings docs that have an FCM token
-      const settingsSnap = await db.collection('settings').where('fcmToken', '!=', null).get();
-      console.log(`Found ${settingsSnap.size} user(s) with FCM token`);
+async function sendBillReminderEmail(transporter, from, to, name, billGroups, billsUrl = 'https://realwise.com.br') {
+  const formatTotalCurrency = (val) => {
+    const num = parseFloat(val);
+    return `R$ ${(isNaN(num) ? 0 : num).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+  };
 
-      let totalRemindersSent = 0;
+  const allBills = [...billGroups.overdue, ...billGroups.dueToday, ...billGroups.upcoming];
+  const grandTotal = allBills.reduce((sum, b) => {
+    const amt = b.cardOutcomesAmount != null ? b.cardOutcomesAmount : (b.amount || 0);
+    return sum + amt;
+  }, 0);
 
-      for (const settingsDoc of settingsSnap.docs) {
-        const userId = settingsDoc.id;
-        const { fcmToken } = settingsDoc.data();
-        try {
-          const sent = await sendFcmRemindersForUser(userId, fcmToken);
-          totalRemindersSent += sent;
-        } catch (err) {
-          console.error(`Error sending FCM reminders to user ${userId}:`, err);
-        }
-      }
+  const subject = billGroups.overdue.length > 0
+    ? `⚠️ ${billGroups.overdue.length} conta(s) atrasada(s) · ${formatTotalCurrency(grandTotal)}`
+    : `📅 Vence hoje · ${formatTotalCurrency(grandTotal)}`;
 
-      console.log(`Scheduled FCM reminders done. Sent ${totalRemindersSent} notification(s).`);
-      return null;
-    } catch (err) {
-      console.error('Error in scheduledBillReminders:', err);
-      return null;
-    }
-  });
+  const html = billReminderTemplate(name, billGroups, billsUrl);
 
-/**
- * Send FCM push reminders for a specific user
- * @returns {number} number of notifications sent
- */
-async function sendFcmRemindersForUser(userId, fcmToken) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(today);
-  endOfToday.setHours(23, 59, 59, 999);
-
-  const billsSnap = await db.collection('bills')
-    .where('userId', '==', userId)
-    .where('status', '==', 'pending')
-    .get();
-
-  const dueBills = billsSnap.docs
-    .filter((d) => {
-      const { dueDate } = d.data();
-      if (!dueDate) return false;
-      const due = dueDate.toDate ? dueDate.toDate() : new Date(dueDate);
-      return due <= endOfToday;
-    })
-    .slice(0, 5);
-
-  if (dueBills.length === 0) return 0;
-
-  let sent = 0;
-
-  for (const billDoc of dueBills) {
-    const { name, description, amount } = billDoc.data();
-    const billName = name || description || 'Conta';
-    const amountStr = amount != null ? ` - R$ ${Number(amount).toFixed(2)}` : '';
-
-    try {
-      await admin.messaging().send({
-        token: fcmToken,
-        notification: {
-          title: 'Limas Finance',
-          body: `${billName}${amountStr} vence hoje ou está atrasada`,
-        },
-      });
-
-      await db.collection('reminder_logs').add({
-        userId,
-        billId: billDoc.id,
-        billName,
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        sentVia: 'fcm',
-      });
-
-      sent++;
-    } catch (err) {
-      console.error('Error sending FCM for bill:', billDoc.id, err);
-    }
-  }
-
-  return sent;
+  await transporter.sendMail({ from: `"Realwise" <${from}>`, to, subject, html });
 }
-
 /**
  * Sync B3 investment prices and dividends from Brapi.dev
  * Runs on 1st, 10th, and 20th of each month at 8 AM Brazil time
@@ -648,3 +595,45 @@ exports.processImport = importProcessor.processImport;
  * Firestore trigger to decrement pending review count when transaction is reviewed
  */
 exports.onTransactionReviewed = importProcessor.onTransactionReviewed;
+
+// ============================================================
+// STRIPE PAYMENT FUNCTIONS
+// ============================================================
+
+const { createCheckoutSession } = require('./createCheckoutSession');
+exports.createCheckoutSession = createCheckoutSession;
+
+const { stripeWebhook } = require('./stripeWebhook');
+exports.stripeWebhook = stripeWebhook;
+
+
+// ============================================================
+// SEAMLESS LOGIN
+// ============================================================
+
+const { getCustomToken } = require('./getCustomToken');
+exports.getCustomToken = getCustomToken;
+
+// ============================================================
+// ADMIN SYSTEM
+// ============================================================
+
+const { onboardUser } = require('./onboardUser');
+exports.onboardUser = onboardUser;
+
+const { sendAdminEmail } = require('./sendAdminEmail');
+exports.sendAdminEmail = sendAdminEmail;
+
+const { updateLeadState } = require('./updateLeadState');
+exports.updateLeadState = updateLeadState;
+
+const { createDiscountCheckout } = require('./createDiscountCheckout');
+
+const { transferClient } = require('./transferClient');
+exports.transferClient = transferClient;
+exports.createDiscountCheckout = createDiscountCheckout;
+
+const { submitImportIssue } = require('./submitImportIssue');
+exports.submitImportIssue = submitImportIssue;
+
+exports.sendImportIssueEmail = require('./sendImportIssueEmail').sendImportIssueEmail;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useInvestments, INVESTMENT_TYPES, CDI_ANNUAL_RATE } from '../contexts/InvestmentContext';
+import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from '../components/ui/CurrencyInput';
@@ -46,10 +46,7 @@ export default function InvestmentForm() {
     type: 'fixed_income',
     bank: '',
     initialAmount: 0,
-    expectedReturn: 0,
-    returnType: 'annual',
     purchaseDate: new Date().toISOString().split('T')[0],
-    maturityDate: '',
     goalId: '',
     plannerGoalId: '',
     notes: '',
@@ -79,10 +76,7 @@ export default function InvestmentForm() {
             type: inv.type,
             bank: inv.bank || '',
             initialAmount: inv.initialAmount,
-            expectedReturn: (inv.expectedReturn || 0) * 100,
-            returnType: inv.returnType || 'annual',
             purchaseDate: inv.purchaseDate || new Date().toISOString().split('T')[0],
-            maturityDate: inv.maturityDate || '',
             goalId: inv.goalId || '',
             plannerGoalId: inv.plannerGoalId || '',
             notes: inv.notes || '',
@@ -111,10 +105,7 @@ export default function InvestmentForm() {
         type: formData.type,
         bank: formData.bank.trim(),
         initialAmount: formData.initialAmount,
-        expectedReturn: formData.expectedReturn / 100,
-        returnType: formData.returnType,
         purchaseDate: formData.purchaseDate || null,
-        maturityDate: formData.maturityDate || null,
         goalId: formData.goalId || null,
         plannerGoalId: formData.plannerGoalId || null,
         notes: formData.notes.trim(),
@@ -183,7 +174,7 @@ export default function InvestmentForm() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 h-14 sm:h-16">
             <button
               onClick={() => navigate('/investments')}
@@ -191,7 +182,7 @@ export default function InvestmentForm() {
             >
               <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
               {mode === 'add' && t('investments.newInvestment')}
               {mode === 'edit' && t('investments.editInvestment')}
               {mode === 'withdraw' && t('investments.withdraw')}
@@ -201,7 +192,7 @@ export default function InvestmentForm() {
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
         {mode === 'withdraw' && investment ? (
           /* WITHDRAW VIEW */
           <div className="space-y-6">
@@ -212,7 +203,7 @@ export default function InvestmentForm() {
                   {getInvestmentType(investment.type).icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{investment.name}</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-lg">{investment.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {t('investments.currentAmount')}: {formatCurrency(getCurrentValue(investment))}
                   </p>
@@ -291,7 +282,7 @@ export default function InvestmentForm() {
                     <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
                       {language === 'pt' ? 'Impostos estimados no resgate:' : 'Estimated taxes on withdrawal:'}
                     </p>
-                    <p className="text-base text-amber-800 dark:text-amber-200 font-semibold">
+                    <p className="text-base text-amber-800 dark:text-amber-200 font-bold">
                       IOF + IR: ~{formatCurrency(estimatedTaxes)}
                     </p>
                   </div>
@@ -353,7 +344,7 @@ export default function InvestmentForm() {
               <button
                 onClick={handleWithdraw}
                 disabled={!withdrawAmount || withdrawAmount <= 0 || withdrawAmount > getCurrentValue(investment) || loading}
-                className="w-full py-3.5 bg-emerald-500 text-white text-base font-semibold rounded-xl
+                className="w-full py-3.5 bg-emerald-500 text-white text-base font-bold rounded-xl
                   hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {loading
@@ -388,7 +379,21 @@ export default function InvestmentForm() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   {t('investments.type')}
                 </label>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {/* Dropdown on mobile, icon grid on desktop */}
+                <div className="sm:hidden">
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                  >
+                    {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                      <option key={key} value={key}>
+                        {info.icon} {t(`investments.types.${key}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="hidden sm:grid grid-cols-5 gap-3">
                   {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
                     <button
                       key={key}
@@ -402,7 +407,7 @@ export default function InvestmentForm() {
                       title={t(`investments.types.${key}`)}
                     >
                       <span>{info.icon}</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 w-full text-center leading-tight px-0.5 line-clamp-2">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 w-full text-center leading-tight px-0.5 line-clamp-2">
                         {t(`investments.types.${key}`)}
                       </span>
                     </button>
@@ -454,74 +459,6 @@ export default function InvestmentForm() {
                     text-gray-900 dark:text-white
                     focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                 />
-              </div>
-
-              {/* Maturity Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('investments.maturityDate')}
-                </label>
-                <input
-                  type="date"
-                  value={formData.maturityDate}
-                  onChange={(e) => setFormData({ ...formData, maturityDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white
-                    focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
-                />
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 space-y-6">
-              {/* Expected Return */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    {t('investments.returnType')}
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {['cdi', 'annual', 'monthly', 'total'].map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, returnType: type })}
-                        className={`px-3 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
-                          formData.returnType === type
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
-                        }`}
-                      >
-                        {t(`investments.returnTypes.${type}`)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {formData.returnType === 'cdi' ? t('investments.cdiPercentage') : t('investments.expectedReturn')}
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.expectedReturn}
-                      onChange={(e) => setFormData({ ...formData, expectedReturn: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400
-                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition pr-24"
-                      placeholder={formData.returnType === 'cdi' ? '100' : '0.00'}
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      {formData.returnType === 'cdi' ? '% CDI' : '%'}
-                    </span>
-                  </div>
-                  {formData.returnType === 'cdi' && (
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      {t('investments.cdiHint')} ({t('investments.currentCdi')}: {(CDI_ANNUAL_RATE * 100).toFixed(2)}% {t('investments.returnTypes.annual').toLowerCase()})
-                    </p>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -577,11 +514,11 @@ export default function InvestmentForm() {
             )}
 
             {/* Planner goal link */}
-            {plannerGoals.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Objetivo do planner
-                </label>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Objetivo do planner
+              </label>
+              {plannerGoals.length > 0 ? (
                 <select
                   value={formData.plannerGoalId}
                   onChange={e => setFormData(prev => ({ ...prev, plannerGoalId: e.target.value }))}
@@ -592,8 +529,14 @@ export default function InvestmentForm() {
                     <option key={g.id} value={g.id}>{g.label}</option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Ticker — shown only for B3-eligible types */}
             {['stocks', 'fii', 'funds'].includes(formData.type) && (
@@ -640,7 +583,7 @@ export default function InvestmentForm() {
               <button
                 type="submit"
                 disabled={!formData.name.trim() || (!id && !formData.initialAmount) || loading}
-                className="w-full py-3.5 bg-blue-500 text-white text-base font-semibold rounded-xl
+                className="w-full py-3.5 bg-blue-500 text-white text-base font-bold rounded-xl
                   hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {loading ? (language === 'pt' ? 'Salvando...' : 'Saving...') : (id ? t('common.save') : t('investments.addInvestment'))}
@@ -651,7 +594,7 @@ export default function InvestmentForm() {
                 <button
                   type="button"
                   onClick={() => navigate(`/investments/${id}/withdraw`)}
-                  className="w-full py-3.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-base font-semibold rounded-xl border-2 border-emerald-200 dark:border-emerald-800
+                  className="w-full py-3.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-base font-bold rounded-xl border-2 border-emerald-200 dark:border-emerald-800
                     hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition"
                 >
                   {t('investments.withdraw')}
@@ -686,7 +629,7 @@ export default function InvestmentForm() {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    className="w-full py-3.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-base font-semibold rounded-xl border-2 border-red-200 dark:border-red-800
+                    className="w-full py-3.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-base font-bold rounded-xl border-2 border-red-200 dark:border-red-800
                       hover:bg-red-100 dark:hover:bg-red-900/50 transition"
                   >
                     {t('common.delete')} {t('investments.title').slice(0, -1)}

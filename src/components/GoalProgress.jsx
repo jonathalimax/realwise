@@ -41,7 +41,7 @@ export default function GoalProgress({ onManageGoals }) {
       className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md hover:border-violet-200 dark:hover:border-violet-700 transition-all"
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('goals.myGoals')}</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t('goals.myGoals')}</h2>
       </div>
 
       {goals.length === 0 ? (

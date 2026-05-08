@@ -1,5 +1,10 @@
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useBudget } from '../../contexts/BudgetContext';
+import usePlannerState, { getActivePlannerVersion } from '../../pages/planner/usePlannerState';
+import { computeNetSalary } from '../../pages/planner/rendaCalc';
 
 // Modern color palette
 const COLORS = [
@@ -32,8 +37,45 @@ const CATEGORY_ICONS = {
   'Other': '📦', 'Diversos': '📦',
 };
 
-export default function SpendingChart({ transactions, onCategoryClick }) {
+export default function SpendingChart({ transactions, onCategoryClick, selectedMonth }) {
   const { formatCurrency, t } = useSettings();
+  const { getTemplateBudget } = useBudget();
+  const { state: plannerStateData } = usePlannerState();
+  const navigate = useNavigate();
+
+  const goToCategory = (category) => {
+    if (onCategoryClick) {
+      onCategoryClick(category);
+      return;
+    }
+    sessionStorage.setItem('expenses_categoryFilter', category);
+    navigate('/expenses');
+  };
+
+  const templateBudget = getTemplateBudget();
+  const categoryBudgets = useMemo(
+    () => templateBudget?.categoryBudgets ?? {},
+    [templateBudget]
+  );
+  const plannerVersion = useMemo(
+    () => getActivePlannerVersion(plannerStateData?.plannerVersions, selectedMonth),
+    [plannerStateData?.plannerVersions, selectedMonth]
+  );
+  const liquidezFinal = useMemo(
+    () => computeNetSalary(plannerVersion?.salarioBruto, plannerVersion?.salarioDeductions),
+    [plannerVersion]
+  );
+  const categoryPct = useMemo(
+    () => plannerVersion?.categoryBudgetsPct ?? {},
+    [plannerVersion]
+  );
+
+  const resolveLimit = (category) => {
+    const pctValue = categoryPct[category] ?? 0;
+    const pctLimit = pctValue > 0 ? liquidezFinal * (pctValue / 100) : 0;
+    const templateLimit = categoryBudgets[category] ?? 0;
+    return pctLimit > 0 ? pctLimit : templateLimit;
+  };
 
   // Group expenses by category (excluding ignored transactions)
   const categoryTotals = transactions
@@ -49,6 +91,7 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
       value,
       label: name,
       color: COLORS[index % COLORS.length].main,
+      limit: resolveLimit(name),
     }))
     .sort((a, b) => b.value - a.value);
 
@@ -71,23 +114,20 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
   };
 
   const handleItemClick = (event, itemIdentifier) => {
-    if (onCategoryClick && itemIdentifier?.dataIndex !== undefined) {
-      const clickedItem = data[itemIdentifier.dataIndex];
-      if (clickedItem) {
-        onCategoryClick(clickedItem.label);
-      }
-    }
+    if (itemIdentifier?.dataIndex === undefined) return;
+    const clickedItem = data[itemIdentifier.dataIndex];
+    if (clickedItem) goToCategory(clickedItem.label);
   };
 
   return (
     <div className="space-y-6">
       {/* Donut Chart with Center Stats */}
-      <div className="relative w-full">
+      <div className="relative w-full flex items-center justify-center">
         <PieChart
           series={[{
             data,
-            innerRadius: 60,
-            outerRadius: 85,
+            innerRadius: 100,
+            outerRadius: 150,
             paddingAngle: 3,
             cornerRadius: 4,
             highlightScope: { fade: 'global', highlight: 'item' },
@@ -97,31 +137,34 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
           slotProps={{
             legend: { hidden: true },
           }}
-          height={220}
+          height={380}
           margin={{ top: 10, bottom: 10, left: 10, right: 10 }}
         />
 
         {/* Center Stats */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-base sm:text-xl font-bold text-gray-900 dark:text-white">
+          <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
             {formatCurrency(total)}
           </p>
         </div>
       </div>
 
-      {/* Category Breakdown - Scrollable */}
-      <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
+      {/* Category Breakdown - 2-column grid below chart */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {data.map((item, index) => {
-          const percentage = ((item.value / total) * 100);
+          const hasLimit = item.limit > 0;
+          const pct = hasLimit ? (item.value / item.limit) * 100 : (total > 0 ? (item.value / total) * 100 : 0);
+          const isOver = hasLimit && pct > 100;
+          const barWidth = Math.min(pct, 100);
           const color = COLORS[index % COLORS.length];
 
           return (
             <button
               key={item.label}
-              onClick={() => onCategoryClick?.(item.label)}
-              className="w-full group"
+              onClick={() => goToCategory(item.label)}
+              className="w-full group text-left"
             >
-              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200">
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 group-hover:bg-gray-100 dark:group-hover:bg-gray-700/70 transition-all duration-200">
                 {/* Icon */}
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
@@ -139,25 +182,23 @@ export default function SpendingChart({ transactions, onCategoryClick }) {
                     <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
                       {item.label}
                     </span>
-                    <span className="font-semibold text-gray-900 dark:text-white text-sm ml-2">
-                      {formatCurrency(item.value)}
-                    </span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500 ease-out"
-                        style={{
-                          width: `${Math.min(percentage, 100)}%`,
-                          background: `linear-gradient(90deg, ${color.light}, ${color.main})`
-                        }}
-                      />
+                    <div className="flex flex-col items-end gap-0.5 ml-2">
+                      <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums">
+                        {formatCurrency(item.value)}
+                      </span>
+                      <span className={`text-[10px] tabular-nums ${isOver ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {pct.toFixed(0)}%{hasLimit ? ` / ${formatCurrency(item.limit)}` : ''}
+                      </span>
                     </div>
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-10 text-right">
-                      {percentage.toFixed(0)}%
-                    </span>
+                  </div>
+                  <div className="h-1.5 bg-gray-200 dark:bg-gray-600/50 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${barWidth}%`,
+                        backgroundColor: isOver ? '#EF4444' : color.main,
+                      }}
+                    />
                   </div>
                 </div>
               </div>

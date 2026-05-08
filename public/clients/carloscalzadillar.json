@@ -1,0 +1,18 @@
+{
+  "clientName": "Realwise",
+  "firebase": {
+    "apiKey": "AIzaSyCk5qfVfzxiXU9F7X8Vyd2hrJLXSjS14fI",
+    "authDomain": "moneywise-carloscalzadillar.firebaseapp.com",
+    "projectId": "moneywise-carloscalzadillar",
+    "storageBucket": "moneywise-carloscalzadillar.firebasestorage.app",
+    "messagingSenderId": "381798095193",
+    "appId": "1:381798095193:web:d7548e4533020ec3889448"
+  },
+  "features": {
+    "investments": true,
+    "goals": false,
+    "b3Sync": false,
+    "whatsapp": false,
+    "salaryBreakdown": true
+  }
+}

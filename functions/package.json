@@ -1,6 +1,6 @@
 {
-  "name": "limas-finance-functions",
-  "description": "Cloud Functions for Limas Finance",
+  "name": "realwise-functions",
+  "description": "Cloud Functions for Realwise",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
@@ -13,6 +13,7 @@
   },
   "main": "index.js",
   "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.2",
     "axios": "^1.6.0",
     "cors": "^2.8.5",
     "csv-parse": "^5.5.0",
@@ -20,6 +21,7 @@
     "firebase-functions": "^4.5.0",
     "mercadopago": "^2.0.0",
     "nodemailer": "^6.9.0",
+    "stripe": "^22.0.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -89,7 +89,7 @@ export default function MonthSelector({ selectedMonth, availableMonths, onMonthC
         <select
           value={selectedMonth}
           onChange={(e) => onMonthChange(e.target.value)}
-          className={`w-full pl-3 pr-8 py-2 rounded-xl font-semibold text-sm border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize ${
+          className={`w-full pl-3 pr-8 py-2 rounded-xl font-bold text-sm border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize ${
             isCurrentMonth
               ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
               : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
