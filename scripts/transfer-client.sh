@@ -91,19 +91,23 @@ if [[ -n "$OPERATOR_EMAIL" && "$OPERATOR_EMAIL" != "(unset)" && "$REMOVE_SELF" !
   echo "✓ Deploy-only roles granted (no Firestore access)."
 fi
 
-# Step 5 — Grant shared project service account cross-project data access
-echo "→ Granting moneywise service account Firestore + Auth access on $PROJECT_ID..."
-for ROLE in \
-  roles/datastore.user \
-  roles/firebaseauth.admin; do
-  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-    --member="serviceAccount:$ADMIN_SA" \
-    --role="$ROLE" \
-    --quiet
-done
-echo "✓ Service account can now query $PROJECT_ID Firestore and Auth."
+# Step 5 — Grant client SA access to shared project Secret Manager (for SMTP credentials)
+# The App Engine SA (used as Cloud Functions Gen 1 runtime) is created on first functions deploy.
+# We attempt the grant here; if the SA doesn't exist yet, re-run after the first deploy.
+CLIENT_SA="${PROJECT_ID}@appspot.gserviceaccount.com"
+echo "→ Granting $CLIENT_SA Secret Manager access on moneywise-ad9ec..."
+if gcloud projects add-iam-policy-binding moneywise-ad9ec \
+  --member="serviceAccount:$CLIENT_SA" \
+  --role="roles/secretmanager.secretAccessor" \
+  --quiet 2>/dev/null; then
+  echo "✓ Client functions can now read shared SMTP secrets."
+else
+  echo "⚠  SA $CLIENT_SA not found — it will be created on first functions deploy."
+  echo "   After deploying, run:"
+  echo "   ./scripts/grant-client-secret-access.sh --project $PROJECT_ID"
+fi
 
-# Step 6 — Optionally remove self
+# Step 7 — Optionally remove self
 if [[ "$REMOVE_SELF" == true ]]; then
   SELF_EMAIL=$(gcloud config get-value account 2>/dev/null)
   if [[ -n "$SELF_EMAIL" && "$SELF_EMAIL" != "(unset)" ]]; then
@@ -121,9 +125,7 @@ fi
 echo ""
 echo "✓ Transfer complete for $PROJECT_ID → $CLIENT_EMAIL"
 echo ""
-echo "  Next: add an entry to the shared clients registry in Firestore:"
-echo "  https://console.firebase.google.com/project/moneywise-ad9ec/firestore"
-echo "  Collection: clients  |  Document ID: <clientId>"
-echo "  Fields: projectId (string), clientId (string), active (boolean = true)"
+echo "  Next: deploy bill reminders to the client project:"
+echo "  firebase deploy --only functions:scheduledBillReminders --project $PROJECT_ID"
 echo ""
 echo "  IAM Console: https://console.cloud.google.com/iam-admin/iam?project=$PROJECT_ID"

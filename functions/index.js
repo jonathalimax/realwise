@@ -17,7 +17,6 @@ const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate } = require
 const axios = require('axios');
 
 // Import processor functions (must come after admin.initializeApp())
-const { collectClientUserIds, collectUserBillGroups } = require('./billReminders');
 const importProcessor = require('./importProcessor');
 const { runB3Sync } = require('./b3Sync');
 
@@ -506,91 +505,7 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
   });
 });
 
-/**
- * Scheduled function to send email bill reminders across all active client projects.
- * Runs daily at 9 AM Brazil time. Discovers clients from the shared Firestore registry.
- */
-exports.scheduledBillReminders = functions
-  .runWith({ secrets: [emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret] })
-  .pubsub
-  .schedule('0 9 * * *')
-  .timeZone('America/Sao_Paulo')
-  .onRun(async () => {
-    console.log('[scheduledBillReminders] Starting...');
-
-    const transporter = getEmailTransporter();
-    if (!transporter) {
-      console.log('[scheduledBillReminders] Email secrets not set — aborting');
-      return null;
-    }
-    const emailFrom = emailUserSecret.value();
-
-    // Discover active clients from shared Firestore registry
-    const clientsSnap = await db.collection('clients').where('active', '==', true).get();
-    console.log(`[scheduledBillReminders] Found ${clientsSnap.size} active client(s)`);
-
-    let totalSent = 0;
-
-    for (const clientDoc of clientsSnap.docs) {
-      const { projectId, clientId } = clientDoc.data();
-      console.log(`[scheduledBillReminders] Processing client: ${clientId} (${projectId})`);
-
-      try {
-        const appName = `client-${clientId}`;
-        const clientApp = admin.apps.find(a => a.name === appName)
-          || admin.initializeApp({ projectId }, appName);
-        const clientDb = admin.firestore(clientApp);
-        const clientAuth = admin.auth(clientApp);
-
-        const userIds = await collectClientUserIds(clientDb);
-        console.log(`[scheduledBillReminders] ${clientId}: ${userIds.length} user(s) with actionable bills`);
-
-        for (const userId of userIds) {
-          try {
-            const settingsDoc = await clientDb.collection('settings').doc(userId).get();
-            if (settingsDoc.exists && settingsDoc.data().billReminders === false) continue;
-
-            const authUser = await clientAuth.getUser(userId);
-            if (!authUser.email) continue;
-
-            const userName = settingsDoc.exists
-              ? (settingsDoc.data().name || authUser.displayName)
-              : authUser.displayName;
-
-            const billGroups = await collectUserBillGroups(clientDb, userId);
-            if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) continue;
-
-            const billsUrl = `https://realwise.com.br/${authUser.email.split('@')[0]}/bills`;
-            await sendBillReminderEmail(
-              transporter, emailFrom, authUser.email,
-              userName || 'Cliente', billGroups, billsUrl
-            );
-
-            // Log to the client's own Firestore
-            const batch = clientDb.batch();
-            for (const bill of [...billGroups.overdue, ...billGroups.dueToday].slice(0, 10)) {
-              batch.set(clientDb.collection('reminder_logs').doc(), {
-                userId,
-                billId: bill.id,
-                billName: bill.name || bill.description || 'Conta',
-                sentAt: admin.firestore.FieldValue.serverTimestamp(),
-                sentVia: 'email',
-              });
-            }
-            await batch.commit();
-            totalSent++;
-          } catch (userErr) {
-            console.error(`[scheduledBillReminders] Error for user ${userId} in ${clientId}:`, userErr);
-          }
-        }
-      } catch (clientErr) {
-        console.error(`[scheduledBillReminders] Error processing client ${clientId}:`, clientErr);
-      }
-    }
-
-    console.log(`[scheduledBillReminders] Done. Sent ${totalSent} email(s).`);
-    return null;
-  });
+exports.scheduledBillReminders = require('./clientScheduledBillReminders').scheduledBillReminders;
 
 async function sendBillReminderEmail(transporter, from, to, name, billGroups, billsUrl = 'https://realwise.com.br') {
   const formatTotalCurrency = (val) => {
