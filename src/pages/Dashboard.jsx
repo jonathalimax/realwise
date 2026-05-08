@@ -11,7 +11,6 @@ import { useFeature } from '../contexts/ClientConfigContext';
 import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
-import InvestmentsListModal from '../components/InvestmentsListModal';
 import BillsSummaryCard from '../components/BillsSummaryCard';
 import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
 import CardsModal from '../components/CardsModal';
@@ -31,7 +30,6 @@ export default function DashboardPage() {
 
   const [showCards, setShowCards] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showInvestmentsList, setShowInvestmentsList] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
@@ -56,8 +54,7 @@ export default function DashboardPage() {
   const handleExpensesClick = () => navigate('/expenses');
 
   const handleOpenInvestmentsList = () => {
-    if (isMobile) navigate('/investments');
-    else setShowInvestmentsList(true);
+    navigate('/investments');
   };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -238,10 +235,6 @@ export default function DashboardPage() {
       <TransactionModal
         isOpen={showTransactionModal}
         onClose={() => setShowTransactionModal(false)}
-      />
-      <InvestmentsListModal
-        isOpen={showInvestmentsList}
-        onClose={() => setShowInvestmentsList(false)}
       />
       <BillModal
         isOpen={showBillModal}
