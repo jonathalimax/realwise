@@ -451,6 +451,8 @@ export default {
     logout: 'Sair',
     collapse: 'Recolher',
     expand: 'Expandir',
+    follow: 'Acompanhar',
+    configurePlan: 'Configurar & Planejar',
   },
 
   // Banks

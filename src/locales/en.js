@@ -451,6 +451,8 @@ export default {
     logout: 'Logout',
     collapse: 'Collapse',
     expand: 'Expand',
+    follow: 'Follow',
+    configurePlan: 'Configure & Plan',
   },
 
   // Banks
