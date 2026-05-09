@@ -118,13 +118,21 @@ export default function Sidebar() {
 
   const navigationGroups = useMemo(() => [
     {
+      label: 'Follow',
+      labelPt: 'Acompanhar',
       items: [
         { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
         { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
         { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
-        { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon },
         { name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: CalendarDaysIcon },
+      ],
+    },
+    {
+      label: 'Configure & Plan',
+      labelPt: 'Configurar & Planejar',
+      items: [
+        { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
         { name: 'Banks', namePt: 'Bancos', href: '/banks', icon: BuildingLibraryIcon },
       ],
     },
