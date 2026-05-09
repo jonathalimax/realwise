@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSettings, CURRENCIES } from '../contexts/SettingsContext';
 import { OWNER_EMAIL, useAccess } from '../contexts/AccessContext';
 import { db, auth } from '../firebase';
@@ -9,9 +9,14 @@ import { logoutAndRedirect } from '../lib/auth/logout';
 import InstallPWAButton from '../components/ui/InstallPWAButton';
 import { checkAIQuota } from '../services/aiCategorizationService';
 import { BanksTabContent } from './Cards';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 
 export default function SettingsPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const toggleSidebar = () => {
+    window.dispatchEvent(new CustomEvent('toggle-sidebar'));
+  };
   const {
     currency,
     updateCurrency,
@@ -306,8 +311,19 @@ export default function SettingsPage() {
       {/* Page Header */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
+          <div className="relative flex items-center h-14 sm:h-16 px-0">
+            {/* Mobile hamburger */}
+            <div className="md:hidden flex-shrink-0 z-10">
+              <button
+                onClick={toggleSidebar}
+                className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                aria-label="Menu"
+              >
+                <Bars3Icon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <h1 className="flex-1 text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-2 md:pl-0">
               {t('settings.title')}
             </h1>
           </div>
