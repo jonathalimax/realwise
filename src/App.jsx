@@ -20,6 +20,8 @@ import { devMark } from './lib/devMarker';
 // Lazy-loaded page components (code splitting — each page is its own chunk)
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
+const CategorySettingsPage = lazy(() => import('./pages/CategorySettings'));
+const BanksSettingsPage = lazy(() => import('./pages/BanksSettings'));
 const CardsPage = lazy(() => import('./pages/Cards'));
 const BudgetPage = lazy(() => import('./pages/Budget'));
 const TransactionsPage = lazy(() => import('./pages/Transactions'));
@@ -93,6 +95,8 @@ function AuthenticatedApp() {
                           <Route path="transactions" element={<TransactionsPage />} />
                           <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
                           <Route path="settings" element={<SettingsPage />} />
+                          <Route path="settings/categories" element={<CategorySettingsPage />} />
+                          <Route path="settings/banks" element={<BanksSettingsPage />} />
                           <Route path="budget" element={<BudgetPage />} />
                           <Route path="help" element={<HelpPage />} />
                           <Route path="notifications" element={<NotificationsPage />} />

@@ -38,15 +38,6 @@ export default function SettingsPage() {
   } = useSettings();
   const { ownerId } = useAccess();
 
-  const [newExpenseCategory, setNewExpenseCategory] = useState('');
-  const [newIncomeCategory, setNewIncomeCategory] = useState('');
-  const [activeTab, setActiveTab] = useState('general');
-
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    const validTabs = ['general', 'categories', 'banks'];
-    if (tab && validTabs.includes(tab)) setActiveTab(tab);
-  }, [searchParams]);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -67,12 +58,10 @@ export default function SettingsPage() {
   const [loadingEmails, setLoadingEmails] = useState(false);
   const [savingEmails, setSavingEmails] = useState(false);
 
-  // Load allowed emails when Access tab is opened
+  // Load allowed emails on mount
   useEffect(() => {
-    if (activeTab === 'access') {
-      loadAllowedEmails();
-    }
-  }, [activeTab]);
+    loadAllowedEmails();
+  }, []);
 
   useEffect(() => {
     return onAuthStateChanged(auth, setCurrentUser);
@@ -203,23 +192,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAddCategory = async (type) => {
-    const value = type === 'expense' ? newExpenseCategory : newIncomeCategory;
-    const success = await addCategory(type, value);
-    if (success) {
-      if (type === 'expense') {
-        setNewExpenseCategory('');
-        setShowAddExpense(false);
-      } else {
-        setNewIncomeCategory('');
-        setShowAddIncome(false);
-      }
-    }
-  };
-
-  const getCustomCategories = (type) => {
-    return categories[type].filter(cat => !allCategories[type].includes(cat));
-  };
 
   const handleSaveApiKey = async () => {
     setSavingApiKey(true);
@@ -244,67 +216,6 @@ export default function SettingsPage() {
     }
   };
 
-  const isProtectedCategory = (cat) => cat === 'Other' || cat === 'Outros';
-
-  const CategoryToggle = ({ type, category, color }) => {
-    const isEnabled = categories[type].includes(category);
-    const isProtected = isProtectedCategory(category);
-    const colorClasses = color === 'rose'
-      ? { bg: 'bg-rose-500', border: 'border-rose-200 dark:border-rose-800', hoverBg: 'hover:bg-rose-50 dark:hover:bg-rose-900/30' }
-      : { bg: 'bg-emerald-500', border: 'border-emerald-200 dark:border-emerald-800', hoverBg: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/30' };
-
-    return (
-      <button
-        onClick={() => toggleCategory(type, category)}
-        disabled={isProtected && isEnabled}
-        className={`flex items-center gap-3 w-full p-3 rounded-xl border transition-all cursor-pointer
-          ${isEnabled
-            ? `${colorClasses.border} ${colorClasses.hoverBg} bg-white dark:bg-gray-700`
-            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
-          }
-          ${isProtected && isEnabled ? 'cursor-not-allowed' : ''}
-        `}
-      >
-        <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors flex-shrink-0
-          ${isEnabled ? colorClasses.bg : 'border-2 border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700'}`}
-        >
-          {isEnabled && (
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </div>
-        <span className={`text-sm font-medium ${isEnabled ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-          {category}
-        </span>
-        {isProtected && isEnabled && (
-          <span className="ml-auto text-xs text-gray-400">
-            {language === 'pt' ? 'obrigatório' : 'required'}
-          </span>
-        )}
-      </button>
-    );
-  };
-
-  const CustomCategoryChip = ({ type, category, color }) => {
-    const colorClasses = color === 'rose'
-      ? 'bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-rose-200'
-      : 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-200';
-
-    return (
-      <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm ${colorClasses}`}>
-        {category}
-        <button
-          onClick={() => removeCategory(type, category)}
-          className="ml-1 opacity-60 hover:opacity-100"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </span>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -330,46 +241,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="sticky top-14 sm:top-16 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex">
-          <button
-            onClick={() => setActiveTab('general')}
-            className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === 'general'
-                ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            {language === 'pt' ? 'Geral' : 'General'}
-          </button>
-          <button
-            onClick={() => setActiveTab('categories')}
-            className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === 'categories'
-                ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            {t('settings.categories')}
-          </button>
-          <button
-            onClick={() => setActiveTab('banks')}
-            className={`flex-1 min-w-[80px] py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-              activeTab === 'banks'
-                ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            {language === 'pt' ? 'Bancos' : 'Banks'}
-          </button>
-        </div>
-      </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        {activeTab === 'general' && (
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Profile */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center flex-shrink-0">
@@ -438,6 +313,49 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Navigation Cards */}
+            <div className="space-y-3">
+              {/* Categories Card */}
+              <button
+                onClick={() => navigate('/settings/categories')}
+                className="w-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 text-left hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">
+                      {t('settings.categories')}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {language === 'pt' ? 'Gerenciar categorias de entrada e saída' : 'Manage income and expense categories'}
+                    </p>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+
+              {/* Banks Card */}
+              <button
+                onClick={() => navigate('/settings/banks')}
+                className="w-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 text-left hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">
+                      {language === 'pt' ? 'Bancos' : 'Banks'}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {language === 'pt' ? 'Configurar contas bancárias' : 'Configure bank accounts'}
+                    </p>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+            </div>
+
             {/* Logout + Delete */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:items-start">
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -499,23 +417,11 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Categories Tab - Reusing the exact same structure from SettingsModal */}
-        {activeTab === 'categories' && (
-          <div className="space-y-8">
-            {/* Expense Categories */}
-            <div>
-              <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-rose-500"></span>
-                {t('settings.expenseCategories')}
-              </h3>
-
-              {/* Predefined categories */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                {allCategories.expense.map((cat) => (
-                  <CategoryToggle key={cat} type="expense" category={cat} color="rose" />
+        </div>
+      </div>
+    </div>
+  );
+}
                 ))}
               </div>
 
