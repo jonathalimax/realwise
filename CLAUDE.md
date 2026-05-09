@@ -42,12 +42,19 @@ firebase functions:config:set ...   # Set config values
 
 ## Architecture
 
+See **README.md** for an end-to-end diagram (browser → hosting → per-client Firebase → Cloud Functions → Stripe/Mercado Pago/email).
+
 ### Multi-Client Routing
 
-- `src/config/clientConfig.js` — `extractClientId(pathname)` reads the first path segment (e.g. `jonathalimax` from `realwise.com.br/jonathalimax/dashboard`)
-- `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json`, calls `initializeFirebase()`, renders spinner until ready
+- `src/config/clientConfig.js` — `extractClientId(hostname)` for subdomains (`jonathalimax.realwise.com.br` → `jonathalimax`); pathname fallback uses first segment (`/jonathalimax/dashboard`)
+- `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json`, calls `initializeFirebase()`, renders spinner until ready. In **DEV**, loads `app` client config so Firebase matches SharedLogin
 - `src/firebase.js` — exports live bindings (`auth`, `db`, `storage`, `functions`) initialized by `ClientConfigContext`
 - `src/App.jsx` — sets `BrowserRouter basename="/{clientId}"` so all internal routes resolve correctly
+
+### Backend split
+
+- **Tenant data** lives in **each client’s Firebase project** (Auth + Firestore + Storage).
+- **Cloud Functions** (`functions/index.js`) are usually deployed to a **central** project: Stripe/Mercado Pago, import processor, B3 sync, admin, `getCustomToken`, etc. Optional **`functions/clientIndex.js`** deploy path (`scripts/deploy-client-functions.sh`) exposes only `scheduledBillReminders` to a client project without coupling unrelated secrets.
 
 ### Feature Flags
 
@@ -55,13 +62,25 @@ Defined in each client's JSON under `features`:
 
 | Flag | Default | Controls |
 |------|---------|----------|
-| `investments` | false | Investments page + Sidebar nav item |
-| `goals` | false | Goals page + Sidebar nav item |
-| `b3Sync` | false | B3 sync toggle in ImportModal |
-| `whatsapp` | false | WhatsApp bill reminder (server-side only) |
-| `salaryBreakdown` | false | RendaTab: gross + deductions mode vs simple net input |
+| `investments` | false | Investments routes (`App.jsx`); nav may still link — verify UX |
+| `goals` | false | Goals route + dashboard goal UI (`Dashboard.jsx`) |
+| `b3Sync` | false | B3 sync toggle in `ImportModal.jsx`; backend `syncB3Investments` + callable |
+| `whatsapp` | false | **Not wired** via `useFeature('whatsapp')` in `src/` today. Landing/checkout collects WhatsApp as **contact** (Stripe metadata); optional `WhatsAppButton` uses a fixed support number. Flag reserved for future server/UI gating |
+| `salaryBreakdown` | false | `RendaTab.jsx`: gross + deductions vs simple net |
 
 Usage: `const hasX = useFeature('x')` from `ClientConfigContext`.
+
+### Integrations (quick reference)
+
+| Service | Used for |
+|---------|-----------|
+| Firebase Auth / Firestore / Storage | Core app |
+| SMTP (secrets `EMAIL_*`) | Bill reminders, purchase/admin/import emails |
+| Stripe (`createCheckoutSession`, `stripeWebhook`, `createDiscountCheckout`) | Checkout, webhook, admin discount links |
+| Mercado Pago (`createPayment`, `processPayment`, `mercadoPagoWebhook`) | Alt. payment path; `functions.config().mercadopago` |
+| Brapi (B3) | `b3Sync.js` — investment sync |
+| SMS | Not used |
+| WhatsApp Cloud API | **Not** exported as a webhook in current `index.js` |
 
 ### Frontend Structure
 
@@ -97,17 +116,27 @@ Three tabs: **Renda** / **Alocação** / **Carteira**
 
 ### Firebase Functions (`/functions`)
 
-- `whatsappWebhook` — WhatsApp Cloud API for bill reminder responses
-- `scheduledBillReminders` — Daily 9 AM (Brazil time) bill reminder **emails**. Queries pending bills with `dueDate <= today`, groups by user, fetches the user's email from Firebase Auth, and sends a single digest email via Gmail (Nodemailer). Respects `settings/{userId}.billReminders === false` as opt-out. Logs to `reminder_logs` with `sentVia: 'email'`.
-- `sendWhatsAppReminder` / `testWhatsApp` — Manual testing endpoints
+- `scheduledBillReminders` — Daily 9 AM (Brazil time) bill reminder **emails** (`clientScheduledBillReminders.js` loads SMTP secrets from a shared Secret Manager project). Respects `settings/{userId}.billReminders === false`. Logs to `reminder_logs` with `sentVia: 'email'`.
+- `syncB3Investments` / `syncB3InvestmentsCallable` — B3 price/dividend sync (`b3Sync.js`)
+- `processImport` / `onTransactionReviewed` — Storage-triggered import pipeline
+- `createCheckoutSession` / `stripeWebhook` — Stripe
+- `createPayment` / `processPayment` / `mercadoPagoWebhook` / `checkPaymentStatus` — Mercado Pago
+- `getCustomToken`, `onboardUser`, `sendAdminEmail`, `updateLeadState`, `transferClient`, `createDiscountCheckout`, `submitImportIssue`, `sendImportIssueEmail` — Admin / onboarding / support
 
 ### Firestore Collections
 
 - `transactions` — Income/expenses with `userId`, `date`, `amount`, `type`, `category`, `bankId`
 - `bills` — Recurring bills with `status` (pending/paid), `dueDate`
-- `settings` — Per-user preferences (currency, language, categories, whatsappNumber, `billReminders` opt-out flag)
-- `reminder_logs` — Audit trail of sent bill reminders (`userId`, `billId`, `billName`, `sentAt`, `sentVia`)
-- `planner` — Per-user planner state including `salarioBruto`, `salarioDeductions`, wallet/allocation config
+- `userBanks` — Banks/cards metadata (`CardsContext`)
+- `budgets` — Budget documents
+- `goals` — Goal documents (when feature enabled)
+- `investments` — Investment positions (B3 and manual)
+- `settings` — Per-user preferences (currency, language, categories, `billReminders` opt-out, etc.)
+- `reminder_logs` — Sent bill reminders audit
+- `planner` — Planner state (salary, deductions, allocation)
+- `userCategorizationRules` — Import categorization rules
+- `bill_reminders` — Bill reminder scheduling helpers (see `BillsContext`)
+- Admin / sales (central project): `leads`, `purchases`, `pending_payments`, `coupons`, `importIssues`, etc.
 
 ## Styling
 
@@ -128,8 +157,7 @@ Vitest in `node` environment — only pure functions (no Firebase, no React). Te
 Frontend (`.env`) — only used in dev. Production uses runtime config from `public/clients/{id}.json`.
 - `VITE_FIREBASE_*` — Firebase configuration (dev only)
 
-Functions (Firebase Secret Manager via `defineSecret`, set with `firebase functions:secrets:set <NAME>`):
-- `EMAIL_USER` / `EMAIL_PASSWORD` — Umbler SMTP credentials. Sender display name is always `"Realwise" <EMAIL_USER>`. Bill reminder deep-links (e.g. `https://realwise.com.br/jonathalimax/bills`) are built from the **recipient's** email username (before `@`), not the sender's.
-- `EMAIL_HOST` / `EMAIL_PORT` — Umbler SMTP host/port (defaults: `smtp.umbler.com` / `587`)
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — Stripe integration
-- `whatsapp.access_token` / `whatsapp.phone_number_id` / `whatsapp.verify_token` — WhatsApp Cloud API (still on legacy `functions.config()`)
+Functions — secrets & config:
+- `EMAIL_USER` / `EMAIL_PASSWORD` / `EMAIL_HOST` / `EMAIL_PORT` — SMTP (Umbler defaults). Bill reminder links use the **recipient** email local-part as `clientId` in URLs where applicable.
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — Stripe (`defineSecret` in discount/checkout modules; legacy `functions.config().stripe` may exist in older deploys)
+- `mercadopago.access_token`, `mercadopago.public_key` — Mercado Pago (`functions.config().mercadopago`)
