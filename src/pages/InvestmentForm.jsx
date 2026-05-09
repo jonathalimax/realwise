@@ -4,8 +4,19 @@ import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext'
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from '../components/ui/CurrencyInput';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../components/PageHeader';
 import usePlannerGoals from './planner/usePlannerGoals';
+
+/** Native select chevron — matches TransactionModal / transaction forms */
+const SELECT_CHEVRON_STYLE = {
+  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+  backgroundPosition: 'right 12px center',
+  backgroundRepeat: 'no-repeat',
+  backgroundSize: '20px',
+};
+
+const investmentTypeSelectClassName =
+  'w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10';
 
 export default function InvestmentForm() {
   const navigate = useNavigate();
@@ -170,26 +181,16 @@ export default function InvestmentForm() {
     }
   };
 
+  const headerTitle =
+    mode === 'add'
+      ? t('investments.newInvestment')
+      : mode === 'edit'
+        ? t('investments.editInvestment')
+        : t('investments.withdraw');
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 h-14 sm:h-16">
-            <button
-              onClick={() => navigate('/investments')}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </button>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-              {mode === 'add' && t('investments.newInvestment')}
-              {mode === 'edit' && t('investments.editInvestment')}
-              {mode === 'withdraw' && t('investments.withdraw')}
-            </h1>
-          </div>
-        </div>
-      </div>
+      <PageHeader title={headerTitle} showMonth={false} backTo="/investments" />
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-24">
@@ -374,45 +375,23 @@ export default function InvestmentForm() {
                 />
               </div>
 
-              {/* Type Selection */}
+              {/* Type — same dropdown pattern as transaction add/edit (Investments category) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('investments.type')}
                 </label>
-                {/* Dropdown on mobile, icon grid on desktop */}
-                <div className="sm:hidden">
-                  <select
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
-                  >
-                    {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                      <option key={key} value={key}>
-                        {info.icon} {t(`investments.types.${key}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="hidden sm:grid grid-cols-5 gap-3">
+                <select
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className={investmentTypeSelectClassName}
+                  style={SELECT_CHEVRON_STYLE}
+                >
                   {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, type: key })}
-                      className={`p-4 text-xl rounded-xl border-2 transition flex flex-col items-center gap-2 ${
-                        formData.type === key
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
-                      }`}
-                      title={t(`investments.types.${key}`)}
-                    >
-                      <span>{info.icon}</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 w-full text-center leading-tight px-0.5 line-clamp-2">
-                        {t(`investments.types.${key}`)}
-                      </span>
-                    </button>
+                    <option key={key} value={key}>
+                      {info.icon} {t(`investments.types.${key}`)}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               {/* Bank / Platform */}

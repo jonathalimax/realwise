@@ -357,7 +357,6 @@ export default function ExpensesPage() {
               sortOrder={sortOrder}
               onSuccess={triggerRefresh}
               hideBulkEdit={true}
-              filterButton={filterButton}
             />
           )}
         </div>

@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMonth } from '../contexts/MonthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { auth } from '../firebase';
 import { Bars3Icon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const getNow = () => new Date();
@@ -67,9 +66,9 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
   );
 }
 
-export default function PageHeader({ title, showMonth = true, right }) {
+export default function PageHeader({ title, showMonth = true, right, backTo }) {
   const { selectedMonth, setSelectedMonth } = useMonth();
-  const { language } = useSettings();
+  const { language, t } = useSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -85,7 +84,8 @@ export default function PageHeader({ title, showMonth = true, right }) {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    if (backTo) navigate(backTo);
+    else navigate(-1);
   };
 
   const displayTitle = useMemo(() => {
@@ -97,28 +97,44 @@ export default function PageHeader({ title, showMonth = true, right }) {
     <div className="sticky top-0 z-30 transition-colors bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex items-center h-14 sm:h-16 px-0">
-          {/* Mobile Navigation Toggle / Back */}
-          <div className="md:hidden flex-shrink-0 z-10">
-            {isNestedRoute ? (
+          {/* Lead: explicit parent link (e.g. Settings sub-routes) — all breakpoints */}
+          {backTo ? (
+            <div className="flex-shrink-0 z-10">
               <button
+                type="button"
                 onClick={handleBack}
                 className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
-                aria-label="Back"
+                aria-label={t('common.back')}
               >
                 <ArrowLeftIcon className="w-6 h-6" />
               </button>
-            ) : (
-              <button
-                onClick={toggleSidebar}
-                className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
-                aria-label="Menu"
-              >
-                <Bars3Icon className="w-6 h-6" />
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            /* Mobile: hamburger or history back */
+            <div className="md:hidden flex-shrink-0 z-10">
+              {isNestedRoute ? (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                  aria-label={t('common.back')}
+                >
+                  <ArrowLeftIcon className="w-6 h-6" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                  aria-label="Menu"
+                >
+                  <Bars3Icon className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+          )}
 
-          <h1 className="flex-1 min-w-0 ml-2 truncate text-left sm:flex-1 sm:ml-3 text-lg sm:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
+          <h1 className="flex-1 min-w-0 ml-2 sm:ml-3 truncate text-left sm:flex-1 text-lg sm:text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
             {displayTitle}
           </h1>
 

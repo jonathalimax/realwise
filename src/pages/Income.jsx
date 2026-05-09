@@ -249,7 +249,6 @@ export default function IncomePage() {
               sortOrder={sortOrder}
               onSuccess={triggerRefresh}
               hideBulkEdit={true}
-              filterButton={filterButton}
             />
           )}
         </div>

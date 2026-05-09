@@ -7,7 +7,7 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
   const { language, formatCurrency } = useSettings();
   const { investments, getTotalCurrentValue, getTotalGrowth } = useInvestments();
 
-  const { totalIncome, totalExpenses, balance, percentageDiff } = useMemo(() => {
+  const { totalIncome, totalExpenses, balance } = useMemo(() => {
     const income = transactions
       .filter(t => t.type === 'income' && !t.ignored)
       .reduce((sum, t) => sum + t.amount, 0);
@@ -17,13 +17,11 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
       .reduce((sum, t) => sum + t.amount, 0);
 
     const bal = income - expenses + carryoverSaldo;
-    const pctDiff = income > 0 ? ((expenses / income) * 100) : 0;
 
     return {
       totalIncome: income,
       totalExpenses: expenses,
       balance: bal,
-      percentageDiff: pctDiff
     };
   }, [transactions, carryoverSaldo]);
 
@@ -45,20 +43,20 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
         {/* Income */}
         <button
           onClick={onIncomeClick}
-          className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 group"
+          className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 w-full min-w-0 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 group"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <ArrowTrendingUpIcon className="w-5 h-5 text-emerald-500" />
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="flex shrink-0 items-center gap-2">
+              <ArrowTrendingUpIcon className="h-5 w-5 shrink-0 text-emerald-500" />
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 {language === 'pt' ? 'Receitas' : 'Income'}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-emerald-500">
+            <div className="flex min-w-0 flex-1 basis-0 items-center justify-end gap-1.5">
+              <span className="min-w-0 text-right text-lg font-bold tabular-nums leading-tight tracking-tight text-emerald-500 [overflow-wrap:anywhere] sm:text-xl md:text-2xl">
                 {formatCurrency(totalIncome)}
               </span>
-              <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
@@ -68,20 +66,20 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
         {/* Expenses */}
         <button
           onClick={onExpensesClick}
-          className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 group"
+          className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 w-full min-w-0 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 group"
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <ArrowTrendingDownIcon className="w-5 h-5 text-rose-500" />
+          <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+            <div className="flex shrink-0 items-center gap-2">
+              <ArrowTrendingDownIcon className="h-5 w-5 shrink-0 text-rose-500" />
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 {language === 'pt' ? 'Despesas' : 'Expenses'}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-rose-500">
+            <div className="flex min-w-0 flex-1 basis-0 items-center justify-end gap-1.5">
+              <span className="min-w-0 text-right text-lg font-bold tabular-nums leading-tight tracking-tight text-rose-500 [overflow-wrap:anywhere] sm:text-xl md:text-2xl">
                 {formatCurrency(totalExpenses)}
               </span>
-              <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 shrink-0 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
@@ -121,15 +119,15 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
           </div>
         )}
 
-        {/* Balance */}
-        <div className={`rounded-xl p-4 ${
+        {/* Balance — same responsive type / flex pattern as Receitas / Despesas */}
+        <div className={`rounded-xl p-4 min-w-0 overflow-hidden ${
           isPositive
             ? 'bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-700'
             : 'bg-rose-50 dark:bg-rose-900/20 border-2 border-rose-200 dark:border-rose-700'
         }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <div className="flex min-w-0 items-start justify-between gap-2 sm:items-center">
+            <div className="shrink-0">
+              <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                 {language === 'pt' ? 'Saldo' : 'Balance'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -139,14 +137,16 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
                 }
               </p>
             </div>
-            <div className="text-right">
-              <p className={`text-3xl font-bold ${
-                isPositive ? 'text-emerald-500' : 'text-rose-500'
-              }`}>
+            <div className="flex min-w-0 flex-1 basis-0 flex-col items-end justify-center gap-0.5">
+              <p
+                className={`min-w-0 text-right text-lg font-bold tabular-nums leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-xl md:text-2xl ${
+                  isPositive ? 'text-emerald-500' : 'text-rose-500'
+                }`}
+              >
                 {isPositive ? '+' : ''}{formatCurrency(balance)}
               </p>
               {totalIncome > 0 && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {Math.abs((balance / totalIncome) * 100).toFixed(0)}% {language === 'pt' ? 'da receita' : 'of income'}
                 </p>
               )}

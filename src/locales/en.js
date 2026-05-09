@@ -452,7 +452,7 @@ export default {
     collapse: 'Collapse',
     expand: 'Expand',
     follow: 'Follow',
-    configurePlan: 'Configure & Plan',
+    configurePlan: 'Plan',
   },
 
   // Banks
