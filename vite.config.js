@@ -15,9 +15,9 @@ export default defineConfig(() => {
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         },
         manifest: {
-          name: 'Moneywise',
-          short_name: 'Moneywise',
-          start_url: '/app/dashboard',
+          name: 'Realwise',
+          short_name: 'Realwise',
+          start_url: '/',
           description: 'Controle financeiro pessoal simples e eficiente.',
           theme_color: '#f43f5e',
           background_color: '#f43f5e',
