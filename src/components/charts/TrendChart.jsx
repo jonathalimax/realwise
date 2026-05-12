@@ -149,33 +149,42 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
   };
 
   return (
-    <div className="w-full">
-      {/* Custom Legend */}
-      <div className="flex items-center justify-center gap-6 mb-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-emerald-500" />
-          <span className="text-sm text-gray-700 dark:text-gray-200">{t('balance.income')}</span>
+    <div className="w-full rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white via-slate-50 to-emerald-50/40 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+            {language === 'pt' ? 'Panorama Anual' : 'Year Overview'}
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {language === 'pt'
+              ? 'Role horizontalmente no celular para explorar os meses.'
+              : 'Swipe horizontally on mobile to explore the months.'}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-red-500" />
-          <span className="text-sm text-gray-700 dark:text-gray-200">{t('balance.expenses')}</span>
-        </div>
-        {balanceData && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-indigo-500 rounded-full" />
-            <span className="text-sm text-gray-700 dark:text-gray-200">
-              {language === 'pt' ? 'Saldo acumulado' : 'Cumulative balance'}
-            </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
+            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.55)]" />
+            <span>{t('balance.income')}</span>
           </div>
-        )}
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
+            <div className="h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(239,68,68,0.45)]" />
+            <span>{t('balance.expenses')}</span>
+          </div>
+          {balanceData && (
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
+              <div className="h-0.5 w-6 rounded-full bg-indigo-500" />
+              <span>{language === 'pt' ? 'Saldo acumulado' : 'Cumulative balance'}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Chart */}
       <div
         ref={scrollContainerRef}
-        className="h-64 sm:h-72 md:h-80 w-full overflow-x-auto scroll-smooth"
+        className="h-72 w-full overflow-x-auto overflow-y-hidden scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
       >
-        <div className="min-w-[800px] w-full h-full">
+        <div className="h-full w-[980px] min-w-[980px] pr-4 sm:min-w-0 sm:w-full sm:pr-0">
           <ChartContainer
             series={series}
             xAxis={[{
@@ -193,8 +202,10 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
               '& .MuiChartsAxis-tickLabel': { fill: textColor },
               '& .MuiChartsAxis-line': { stroke: textColor },
               '& .MuiChartsAxis-tick': { stroke: textColor },
+              '& .MuiBarElement-root': { rx: 8, ry: 8 },
+              '& .MuiLineElement-root': { strokeWidth: 3 },
             }}
-            margin={{ top: 10, right: 20, bottom: 30, left: 50 }}
+            margin={{ top: 20, right: 20, bottom: 36, left: 50 }}
           >
             <BarPlot />
             <LinePlot />

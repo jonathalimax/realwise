@@ -48,14 +48,21 @@ export default function TransactionModal({ isOpen, onClose }) {
   const [maturityDate, setMaturityDate] = useState('');
 
   const { categories, t, language } = useSettings();
-  const { goals, addAmountToGoal, getGoalColor } = useGoals();
-  const { userBanks, getBankInfo, getBankColor, findUserBank } = useCards();
+  const { goals, addAmountToGoal } = useGoals();
+  const { userBanks, getBankInfo, findUserBank } = useCards();
   const { addInvestment } = useInvestments();
 
   const availableGoals = goals.filter(g => !g.completed);
 
   // Effective category for UI logic (what category is currently selected/showing)
   const effectiveCategory = category || '';
+  const isInvestmentCategory = effectiveCategory === 'Investments' || effectiveCategory === 'Investimentos';
+
+  useEffect(() => {
+    if (isInvestmentCategory && isInstallment) {
+      setIsInstallment(false);
+    }
+  }, [isInstallment, isInvestmentCategory]);
 
 
   // Reset form when modal opens
@@ -779,7 +786,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                   )}
 
                   {/* Installment Toggle (only for expenses) */}
-                  {type === 'expense' && (
+                  {type === 'expense' && !isInvestmentCategory && (
                     <div className="space-y-3">
                       <button
                         type="button"

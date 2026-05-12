@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
@@ -33,10 +33,17 @@ export default function TransactionForm() {
   const { goals, addAmountToGoal, getGoalColor } = useGoals();
   const { cards, getCardColor } = useCards();
   const { addInvestment } = useInvestments();
+  const isInvestmentCategory = category === 'Investments' || category === 'Investimentos';
 
   // Only show non-completed goals for linking
   const availableGoals = goals.filter(g => !g.completed);
   const plannerGoals = usePlannerGoals();
+
+  useEffect(() => {
+    if (isInvestmentCategory && isInstallment) {
+      setIsInstallment(false);
+    }
+  }, [isInstallment, isInvestmentCategory]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -391,7 +398,7 @@ export default function TransactionForm() {
         </div>
 
         {/* Installment Toggle (only for expenses) */}
-        {type === 'expense' && (
+        {type === 'expense' && !isInvestmentCategory && (
           <div className="space-y-3">
             <button
               type="button"

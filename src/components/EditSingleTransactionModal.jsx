@@ -9,11 +9,12 @@ import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
 import { buildUpdatedMetadata } from '../utils/transactionMetadata';
+import { deleteTransactionWithLinks } from '../services/linkedRecordDeletion';
 import CurrencyInput from './ui/CurrencyInput';
 import PercentInput from './ui/PercentInput';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
 
-export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess }) {
+export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess, onSaveDraft = null }) {
   const { ownerId } = useAccess();
   const [type, setType] = useState('expense');
   const [description, setDescription] = useState('');
@@ -28,6 +29,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [loading, setLoading] = useState(false);
   const [updateAllInstallments, setUpdateAllInstallments] = useState(true);
   const [showInstallmentConfirm, setShowInstallmentConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInstallmentScope, setDeleteInstallmentScope] = useState('single');
+  const [deleteLinkedInvestment, setDeleteLinkedInvestment] = useState(false);
   const [investmentType, setInvestmentType] = useState('fixed_income');
 
   // Investment-specific fields
@@ -41,12 +45,18 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [propertyDescription, setPropertyDescription] = useState('');
 
   const { categories, t, language } = useSettings();
-  const { goals, getGoalColor } = useGoals();
+  const { goals } = useGoals();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank } = useCards();
   const { addInvestment, updateInvestment, investments } = useInvestments();
 
   const availableGoals = goals.filter(g => !g.completed);
   const plannerGoals = usePlannerGoals();
+  const isDraftMode = Boolean(onSaveDraft);
+  const linkedInvestment = transaction?.investmentId
+    ? investments.find((item) => item.id === transaction.investmentId) ?? null
+    : investments.find((item) => item.transactionId === transaction?.id) ?? null;
+  const hasLinkedInvestment = Boolean(transaction?.investmentId || linkedInvestment);
+  const isInstallmentTransaction = Boolean(transaction?.isInstallment && transaction?.installmentGroupId);
 
   // Populate form when transaction changes
   useEffect(() => {
@@ -70,6 +80,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       // Load paymentMethod; default to 'credit' for backward compat with old transactions
       setPaymentMethod(transaction.paymentMethod || 'credit');
       setUpdateAllInstallments(transaction.isInstallment || false);
+      setShowDeleteConfirm(false);
+      setDeleteInstallmentScope('single');
+      setDeleteLinkedInvestment(false);
       setInvestmentType(transaction.investmentType || 'fixed_income');
 
       // Load investment data if transaction is linked to an investment
@@ -99,11 +112,31 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
     }
   }, [transaction, investments, findUserBank]);
 
+  const handleDelete = async () => {
+    if (!transaction?.id) return;
+
+    setLoading(true);
+    try {
+      await deleteTransactionWithLinks({
+        transaction,
+        deleteScope: isInstallmentTransaction ? deleteInstallmentScope : 'single',
+        deleteLinkedInvestment,
+      });
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      alert(language === 'pt' ? 'Falha ao excluir a transacao. Tente novamente.' : 'Failed to delete transaction. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!amount || amount <= 0 || !transaction?.id) return;
+    if (!amount || amount <= 0 || !transaction) return;
 
-    if (transaction.isInstallment && !showInstallmentConfirm) {
+    if (!isDraftMode && transaction.isInstallment && !showInstallmentConfirm) {
       setShowInstallmentConfirm(true);
       return;
     }
@@ -127,25 +160,6 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
       const updatedMetadata = buildUpdatedMetadata(transaction.metadata, finalCategory, transaction.category);
 
-      const updates = {
-        userId: transaction.userId || ownerId || auth.currentUser.uid,
-        type,
-        description,
-        amount: parseFloat(amount),
-        category: finalCategory,
-        date: baseDate.toISOString(),
-        goalId: selectedGoalId || null,
-        goalName: selectedGoal?.name || null,
-        plannerGoalId: selectedPlannerGoalId || null,
-        bankId: selectedBankId || null,
-        paymentMethod: selectedBankId ? paymentMethod : null,
-        ignored: isIgnored,
-        // Investment type (if category is Investments)
-        investmentType: isInvestmentCategory ? investmentType : null,
-        metadata: updatedMetadata
-      };
-
-      // Build extra investment fields based on investmentType
       const buildInvestmentExtraFields = () => {
         switch (investmentType) {
           case 'fixed_income':
@@ -168,6 +182,45 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
             return {};
         }
       };
+
+      const updates = {
+        userId: transaction.userId || ownerId || auth.currentUser?.uid || null,
+        type,
+        description,
+        amount: parseFloat(amount),
+        category: finalCategory,
+        date: baseDate.toISOString(),
+        goalId: selectedGoalId || null,
+        goalName: selectedGoal?.name || null,
+        plannerGoalId: selectedPlannerGoalId || null,
+        bankId: selectedBankId || null,
+        paymentMethod: selectedBankId ? paymentMethod : null,
+        ignored: isIgnored,
+        // Investment type (if category is Investments)
+        investmentType: isInvestmentCategory ? investmentType : null,
+        metadata: updatedMetadata
+      };
+
+      if (isDraftMode) {
+        const extraFields = (category === 'Investments' || category === 'Investimentos')
+          ? buildInvestmentExtraFields()
+          : {};
+
+        onSaveDraft?.({
+          ...transaction,
+          ...updates,
+          ticker: extraFields.ticker ?? ticker ?? null,
+          platform: extraFields.platform ?? platform ?? null,
+          coinName: extraFields.coinName ?? coinName ?? null,
+          fundName: extraFields.fundName ?? fundName ?? null,
+          propertyDescription: extraFields.propertyDescription ?? propertyDescription ?? null,
+          expectedReturn: extraFields.expectedReturn ?? (expectedReturn ? parseFloat(expectedReturn) : null),
+          returnType: extraFields.returnType ?? returnType ?? null,
+          maturityDate: extraFields.maturityDate ?? (maturityDate || null),
+        });
+        onClose();
+        return;
+      }
 
       // Handle investment record creation/update if category is Investments
       if (isInvestmentCategory) {
@@ -856,6 +909,107 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </div>
                   )}
 
+                  {!isDraftMode && showDeleteConfirm && (
+                    <div className="space-y-4 p-4 rounded-xl border-2 border-red-100 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30">
+                      <div>
+                        <p className="text-sm font-semibold text-red-800 dark:text-red-200">
+                          {language === 'pt' ? 'Confirmar exclusao' : 'Confirm deletion'}
+                        </p>
+                        <p className="text-xs text-red-600 dark:text-red-300 mt-1">
+                          {language === 'pt'
+                            ? 'Essa acao nao pode ser desfeita.'
+                            : 'This action cannot be undone.'}
+                        </p>
+                      </div>
+
+                      {isInstallmentTransaction && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold uppercase tracking-wide text-red-700 dark:text-red-300">
+                            {language === 'pt' ? 'Parcelas' : 'Installments'}
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setDeleteInstallmentScope('single')}
+                              className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                                deleteInstallmentScope === 'single'
+                                  ? 'border-red-500 bg-red-500 text-white'
+                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
+                              }`}
+                            >
+                              {language === 'pt' ? 'Apenas esta' : 'Only this one'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteInstallmentScope('group')}
+                              className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                                deleteInstallmentScope === 'group'
+                                  ? 'border-red-500 bg-red-500 text-white'
+                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
+                              }`}
+                            >
+                              {language === 'pt' ? 'Todas as parcelas' : 'All installments'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {hasLinkedInvestment && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold uppercase tracking-wide text-red-700 dark:text-red-300">
+                            {language === 'pt' ? 'Investimento vinculado' : 'Linked investment'}
+                          </p>
+                          <div className="grid grid-cols-1 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setDeleteLinkedInvestment(false)}
+                              className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
+                                !deleteLinkedInvestment
+                                  ? 'border-red-500 bg-red-500 text-white'
+                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
+                              }`}
+                            >
+                              {language === 'pt' ? 'Excluir so a transacao' : 'Delete transaction only'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteLinkedInvestment(true)}
+                              className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
+                                deleteLinkedInvestment
+                                  ? 'border-red-500 bg-red-500 text-white'
+                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
+                              }`}
+                            >
+                              {language === 'pt'
+                                ? 'Excluir transacao e investimento'
+                                : 'Delete transaction and investment'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          disabled={loading}
+                          className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                        >
+                          {loading
+                            ? (language === 'pt' ? 'Excluindo...' : 'Deleting...')
+                            : (language === 'pt' ? 'Confirmar exclusao' : 'Confirm delete')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="flex-1 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-gray-800"
+                        >
+                          {t('common.cancel')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="flex gap-3 pt-2">
                     <button
@@ -866,6 +1020,16 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     >
                       {t('common.cancel')}
                     </button>
+                    {!isDraftMode && (
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={loading}
+                        className="flex-1 rounded-xl border-2 border-red-200 bg-red-50 py-3 font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
+                      >
+                        {t('common.delete')}
+                      </button>
+                    )}
                     <button
                       type="submit"
                       disabled={loading || !amount || amount <= 0}

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { deleteDoc, doc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
@@ -11,7 +10,6 @@ import { saveUserCategorizationRule } from '../services/categorizationService';
 
 export default function TransactionList({
   transactions = [],
-  selectedMonth,
   compact = false,
   sortBy = 'date',
   sortOrder = 'desc',
@@ -20,7 +18,6 @@ export default function TransactionList({
   hideBulkEdit = false,
   filterButton = null
 }) {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
@@ -66,44 +63,6 @@ export default function TransactionList({
     return iconMap[category] || (type === 'income' ? '💵' : '💳');
   };
 
-  const handleDelete = async (transaction) => {
-    const id = transaction.id;
-
-    if (transaction.isInstallment && transaction.installmentGroupId) {
-      const choice = window.confirm(
-        language === 'pt'
-          ? `Esta é a parcela ${transaction.installmentCurrent}/${transaction.installmentTotal}.\n\nClique OK para excluir TODAS as parcelas ou Cancelar para excluir apenas esta.`
-          : `This is installment ${transaction.installmentCurrent}/${transaction.installmentTotal}.\n\nClick OK to delete ALL installments or Cancel to delete only this one.`
-      );
-      try {
-        if (choice) {
-          const q = query(
-            collection(db, 'transactions'),
-            where('installmentGroupId', '==', transaction.installmentGroupId),
-            where('userId', '==', transaction.userId)
-          );
-          const snap = await getDocs(q);
-          const batch = writeBatch(db);
-          snap.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-        } else {
-          await deleteDoc(doc(db, 'transactions', id));
-        }
-      } catch (error) {
-        console.error('Error deleting transaction:', error);
-      }
-      return;
-    }
-
-    if (window.confirm(language === 'pt' ? 'Excluir esta transação?' : 'Delete this transaction?')) {
-      try {
-        await deleteDoc(doc(db, 'transactions', id));
-      } catch (error) {
-        console.error('Error deleting transaction:', error);
-      }
-    }
-  };
-
   const sortedTransactions = [...transactions].sort((a, b) => {
     let compare = 0;
     if (sortBy === 'date') {
@@ -124,13 +83,6 @@ export default function TransactionList({
     trans.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trans.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const monthTotals = filteredTransactions.reduce((acc, trans) => {
-    if (trans.ignored) return acc;
-    if (trans.type === 'income') acc.income += trans.amount;
-    else acc.expense += trans.amount;
-    return acc;
-  }, { income: 0, expense: 0 });
 
   const toggleSelection = (id) => {
     setSelectedIds(prev => {
@@ -253,7 +205,7 @@ export default function TransactionList({
               <div
                 key={transaction.id}
                 ref={transaction.id === highlightId ? highlightRef : null}
-                onClick={() => canWrite && navigate(`/transactions/${transaction.id}/edit`)}
+                onClick={() => canWrite && setEditingTransaction(transaction)}
                 className={`group rounded-2xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
                   ${transaction.id === highlightId
                     ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
@@ -354,6 +306,16 @@ export default function TransactionList({
         onClose={() => setShowEditModal(false)}
         transactions={selectedTransactions}
         onSuccess={clearSelection}
+      />
+
+      <EditSingleTransactionModal
+        isOpen={Boolean(editingTransaction)}
+        onClose={() => setEditingTransaction(null)}
+        transaction={editingTransaction}
+        onSuccess={() => {
+          setEditingTransaction(null);
+          onSuccess?.();
+        }}
       />
     </div>
   );

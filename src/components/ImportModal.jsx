@@ -17,6 +17,7 @@ import { useFeature } from '../contexts/ClientConfigContext';
 import CurrencyInput from './ui/CurrencyInput';
 import PlannerGoalSelect from './PlannerGoalSelect';
 import ImportIssueReport from './ImportIssueReport';
+import EditSingleTransactionModal from './EditSingleTransactionModal';
 
 function ModalWrapper({ embedded, isMobile, children }) {
   if (embedded) {
@@ -207,7 +208,6 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [aiCount, setAiCount] = useState(0);
   const [aiDuplicateCount, setAiDuplicateCount] = useState(0);
   const [editingTransaction, setEditingTransaction] = useState(null);
-  const [previewView, setPreviewView] = useState('list'); // list | edit
   const [sortOrder, setSortOrder] = useState('desc'); // desc = most recent first
   const contentScrollRef = useRef(null);
   const transactionsListRef = useRef(null);
@@ -255,7 +255,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   }, [isOpen, ownerId]);
 
   useLayoutEffect(() => {
-    if (step !== 'preview' || previewView !== 'list' || !shouldRestorePreviewScrollRef.current) return;
+    if (step !== 'preview' || !shouldRestorePreviewScrollRef.current) return;
     shouldRestorePreviewScrollRef.current = false;
 
     if (transactionsListRef.current) {
@@ -265,7 +265,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       contentScrollRef.current.scrollTop = previewOuterScrollTopRef.current;
     }
     window.scrollTo(0, previewWindowScrollRef.current);
-  }, [step, previewView]);
+  }, [step]);
 
   const loadExistingHashes = async () => {
     try {
@@ -479,45 +479,63 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   }, [transactions, sortOrder]);
 
   const openEditTransaction = (transactionId) => {
-    previewOuterScrollTopRef.current = contentScrollRef.current?.scrollTop ?? 0;
-    previewScrollTopRef.current = transactionsListRef.current?.scrollTop ?? 0;
-    previewWindowScrollRef.current = window.scrollY;
     const transaction = transactions.find(t => t._localId === transactionId);
     if (!transaction) return;
-    setEditingTransaction({ ...transaction, transactionId, selectedGoalId: transaction.goalId || '', selectedPlannerGoalId: transaction.plannerGoalId || '', investmentType: transaction.investmentType || 'fixed_income' });
-    setPreviewView('edit');
+    setEditingTransaction({
+      ...transaction,
+      id: transaction._localId,
+      selectedGoalId: transaction.goalId || '',
+      selectedPlannerGoalId: transaction.plannerGoalId || '',
+      investmentType: transaction.investmentType || 'fixed_income'
+    });
   };
 
-  const saveEditTransaction = () => {
-    if (editingTransaction === null) return;
-    const { transactionId, selectedGoalId, selectedPlannerGoalId, ...updates } = editingTransaction;
-    const groupId = updates.installmentGroupId;
-    const baseDescription = updates.description.replace(/\s*\(\d+\/\d+\)$/, '');
-    const editedDate = new Date(updates.date);
-
+  const saveDraftTransaction = (updatedTransaction) => {
+    const transactionId = updatedTransaction._localId;
+    const groupId = updatedTransaction.installmentGroupId;
+    const baseDescription = updatedTransaction.description.replace(/\s*\(\d+\/\d+\)$/, '');
+    const editedDate = new Date(updatedTransaction.date);
     setTransactions(prev => prev.map((t) => {
       if (t._localId === transactionId || (groupId && t.installmentGroupId === groupId)) {
         const newT = {
-          ...t, category: updates.category, type: updates.type, amount: updates.amount,
-          goalId: selectedGoalId || null, goalName: selectedGoalId ? availableGoals.find(g => g.id === selectedGoalId)?.name || null : null,
-          plannerGoalId: selectedPlannerGoalId || null, autoCategory: false, investmentType: updates.investmentType,
-          ticker: updates.ticker, platform: updates.platform, coinName: updates.coinName, fundName: updates.fundName,
-          propertyDescription: updates.propertyDescription, expectedReturn: updates.expectedReturn, returnType: updates.returnType, maturityDate: updates.maturityDate,
+          ...t,
+          category: updatedTransaction.category,
+          type: updatedTransaction.type,
+          amount: updatedTransaction.amount,
+          goalId: updatedTransaction.goalId || null,
+          goalName: updatedTransaction.goalId ? availableGoals.find(g => g.id === updatedTransaction.goalId)?.name || null : null,
+          plannerGoalId: updatedTransaction.plannerGoalId || null,
+          autoCategory: false,
+          investmentType: updatedTransaction.investmentType,
+          ticker: updatedTransaction.ticker,
+          platform: updatedTransaction.platform,
+          coinName: updatedTransaction.coinName,
+          fundName: updatedTransaction.fundName,
+          propertyDescription: updatedTransaction.propertyDescription,
+          expectedReturn: updatedTransaction.expectedReturn,
+          returnType: updatedTransaction.returnType,
+          maturityDate: updatedTransaction.maturityDate,
+          ignored: updatedTransaction.ignored,
+          bankId: updatedTransaction.bankId,
+          paymentMethod: updatedTransaction.paymentMethod,
+          metadata: updatedTransaction.metadata,
         };
-        if (t._localId === transactionId) return { ...newT, description: updates.description, date: updates.date };
-        return { ...newT, description: `${baseDescription} (${t.installmentCurrent}/${t.installmentTotal})`, date: new Date(new Date(editedDate).setMonth(editedDate.getMonth() + (t.installmentCurrent - updates.installmentCurrent))).toISOString() };
+        if (t._localId === transactionId) return { ...newT, description: updatedTransaction.description, date: updatedTransaction.date };
+        return {
+          ...newT,
+          description: `${baseDescription} (${t.installmentCurrent}/${t.installmentTotal})`,
+          date: new Date(new Date(editedDate).setMonth(editedDate.getMonth() + (t.installmentCurrent - updatedTransaction.installmentCurrent))).toISOString()
+        };
       }
       return t;
     }));
     setEditingTransaction(null);
-    shouldRestorePreviewScrollRef.current = true;
-    setPreviewView('list');
   };
 
   const handleClose = () => {
     setFile(null); setTransactions([]); setStep('upload'); setError('');
     setDuplicateCount(0); setAiDuplicateCount(0); setInstallmentCount(0); setAiCount(0);
-    setPreviewView('list'); setShowReport(false); setReportThanks(false); setParseError(null); setDetectedHeaders([]); setBankType('auto');
+    setShowReport(false); setReportThanks(false); setParseError(null); setDetectedHeaders([]); setBankType('auto');
     onClose();
   };
 
@@ -635,7 +653,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           </div>
         )}
 
-        {step === 'preview' && previewView === 'list' && (
+        {step === 'preview' && (
           <div className="h-full flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <button onClick={() => setStep('upload')} className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold uppercase tracking-tight">← {t('common.back')}</button>
@@ -678,32 +696,6 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           </div>
         )}
 
-        {step === 'preview' && previewView === 'edit' && editingTransaction && (
-          <div className="space-y-6 pb-20">
-            <button onClick={() => setPreviewView('list')} className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold uppercase tracking-tight">← Cancelar</button>
-            <div className="space-y-4 bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl shadow-inner">
-                <button onClick={() => setEditingTransaction(prev => ({ ...prev, type: 'expense' }))} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${editingTransaction.type === 'expense' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}>SAÍDA</button>
-                <button onClick={() => setEditingTransaction(prev => ({ ...prev, type: 'income' }))} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${editingTransaction.type === 'income' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}>ENTRADA</button>
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('transactionForm.amount')}</label>
-                <CurrencyInput value={editingTransaction.amount} onChange={(v) => setEditingTransaction(prev => ({ ...prev, amount: v }))} />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('transactionForm.description')}</label>
-                <input type="text" value={editingTransaction.description} onChange={(e) => setEditingTransaction(prev => ({ ...prev, description: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 text-slate-900 dark:text-white border-0 rounded-xl text-sm font-semibold" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('transactionForm.category')}</label>
-                <select value={editingTransaction.category} onChange={(e) => setEditingTransaction(prev => ({ ...prev, category: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 text-slate-900 dark:text-white border-0 rounded-xl text-sm font-semibold appearance-none">
-                  {categories[editingTransaction.type].map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
-
         {step === 'done' && (
           <div className="text-center py-12">
             <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
@@ -722,14 +714,9 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
             {loading ? 'PROCESSANDO...' : t('common.continue')}
           </button>
         )}
-        {step === 'preview' && previewView === 'list' && (
+        {step === 'preview' && (
           <button onClick={handleImport} disabled={selectedCount === 0 || importing} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm disabled:opacity-50 transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
             {importing ? 'IMPORTANDO...' : t('import.importBtn', { count: selectedCount })}
-          </button>
-        )}
-        {step === 'preview' && previewView === 'edit' && (
-          <button onClick={saveEditTransaction} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm transition-all shadow-xl shadow-violet-600/20 active:scale-95">
-            SALVAR ALTERAÇÕES
           </button>
         )}
         {step === 'done' && (
@@ -738,6 +725,13 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           </button>
         )}
       </div>
+
+      <EditSingleTransactionModal
+        isOpen={Boolean(editingTransaction)}
+        onClose={() => setEditingTransaction(null)}
+        transaction={editingTransaction}
+        onSaveDraft={saveDraftTransaction}
+      />
     </ModalWrapper>
   );
 }

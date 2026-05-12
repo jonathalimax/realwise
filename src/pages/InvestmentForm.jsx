@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { CDI_ANNUAL_RATE, useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
+import { db } from '../firebase';
+import { deleteInvestmentWithLinks } from '../services/linkedRecordDeletion';
 import CurrencyInput from '../components/ui/CurrencyInput';
+import PercentInput from '../components/ui/PercentInput';
 import PageHeader from '../components/PageHeader';
 import usePlannerGoals from './planner/usePlannerGoals';
 
@@ -36,7 +40,6 @@ export default function InvestmentForm() {
     investments,
     addInvestment,
     updateInvestment,
-    deleteInvestment,
     withdrawFromInvestment,
     getCurrentValue,
     calculateTaxes,
@@ -50,6 +53,8 @@ export default function InvestmentForm() {
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [investment, setInvestment] = useState(null);
+  const [linkedTransactions, setLinkedTransactions] = useState([]);
+  const [deleteLinkedTransactions, setDeleteLinkedTransactions] = useState(false);
 
   // Form state for add/edit
   const [formData, setFormData] = useState({
@@ -57,11 +62,18 @@ export default function InvestmentForm() {
     type: 'fixed_income',
     bank: '',
     initialAmount: 0,
+    expectedReturn: 0,
+    returnType: 'annual',
     purchaseDate: new Date().toISOString().split('T')[0],
+    maturityDate: '',
     goalId: '',
     plannerGoalId: '',
     notes: '',
     ticker: '',
+    platform: '',
+    coinName: '',
+    fundName: '',
+    propertyDescription: '',
   });
 
   // Withdraw state
@@ -87,11 +99,18 @@ export default function InvestmentForm() {
             type: inv.type,
             bank: inv.bank || '',
             initialAmount: inv.initialAmount,
+            expectedReturn: (inv.expectedReturn || 0) * 100,
+            returnType: inv.returnType || 'annual',
             purchaseDate: inv.purchaseDate || new Date().toISOString().split('T')[0],
+            maturityDate: inv.maturityDate || '',
             goalId: inv.goalId || '',
             plannerGoalId: inv.plannerGoalId || '',
             notes: inv.notes || '',
             ticker: inv.ticker || '',
+            platform: inv.platform || '',
+            coinName: inv.coinName || '',
+            fundName: inv.fundName || '',
+            propertyDescription: inv.propertyDescription || '',
           });
         } else if (mode === 'withdraw') {
           const currentValue = getCurrentValue(inv);
@@ -103,7 +122,38 @@ export default function InvestmentForm() {
         navigate('/investments');
       }
     }
-  }, [id, investments, mode, location.pathname]);
+  }, [getCurrentValue, id, investments, location.pathname, mode, navigate]);
+
+  useEffect(() => {
+    if (!id) {
+      setLinkedTransactions([]);
+      return;
+    }
+
+    const loadLinkedTransactions = async () => {
+      const matches = [];
+      const seen = new Set();
+      const pushUnique = (item) => {
+        if (!item?.id || seen.has(item.id)) return;
+        seen.add(item.id);
+        matches.push(item);
+      };
+
+      const inv = investments.find((item) => item.id === id);
+      if (inv?.transactionId) {
+        pushUnique({ id: inv.transactionId });
+      }
+
+      const snapshot = await getDocs(query(collection(db, 'transactions'), where('investmentId', '==', id)));
+      snapshot.docs.forEach((item) => pushUnique({ id: item.id, ...item.data() }));
+      setLinkedTransactions(matches);
+    };
+
+    loadLinkedTransactions().catch((error) => {
+      console.error('Error loading linked transactions:', error);
+      setLinkedTransactions([]);
+    });
+  }, [id, investments]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -116,11 +166,19 @@ export default function InvestmentForm() {
         type: formData.type,
         bank: formData.bank.trim(),
         initialAmount: formData.initialAmount,
+        expectedReturn: (formData.expectedReturn ?? 0) / 100,
+        returnType: formData.returnType || 'annual',
         purchaseDate: formData.purchaseDate || null,
+        maturityDate: formData.maturityDate || null,
         goalId: formData.goalId || null,
         plannerGoalId: formData.plannerGoalId || null,
         notes: formData.notes.trim(),
         ticker: formData.ticker.trim().toUpperCase() || null,
+        platform: formData.platform.trim() || null,
+        coinName: formData.coinName.trim() || null,
+        fundName: formData.fundName.trim() || null,
+        propertyDescription: formData.propertyDescription.trim() || null,
+        transactionCategory: language === 'pt' ? 'Investimentos' : 'Investments',
       };
 
       if (id) {
@@ -142,7 +200,10 @@ export default function InvestmentForm() {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      await deleteInvestment(id);
+      await deleteInvestmentWithLinks({
+        investment: { id, ...(investment || {}) },
+        deleteLinkedTransactions,
+      });
       navigate('/investments');
     } finally {
       setLoading(false);
@@ -409,6 +470,59 @@ export default function InvestmentForm() {
                   placeholder={t('investments.bankPlaceholder')}
                 />
               </div>
+
+              {formData.type === 'fixed_income' && (
+                <div className="space-y-4 rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('investments.returnType')}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {['cdi', 'annual', 'monthly', 'total'].map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, returnType: type }))}
+                          className={`px-3 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
+                            formData.returnType === type
+                              ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-200'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-500'
+                          }`}
+                        >
+                          {t(`investments.returnTypes.${type}`)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {formData.returnType === 'cdi' ? t('investments.cdiPercentage') : t('investments.expectedReturn')}
+                    </label>
+                    <PercentInput
+                      value={formData.expectedReturn ?? 0}
+                      onChange={(value) => setFormData((prev) => ({ ...prev, expectedReturn: value }))}
+                    />
+                    {formData.returnType === 'cdi' && (
+                      <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        {t('investments.cdiHint')} ({t('investments.currentCdi')}: {(CDI_ANNUAL_RATE * 100).toFixed(2)}% {t('investments.returnTypes.annual').toLowerCase()})
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {t('investments.maturityDate')}
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.maturityDate}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, maturityDate: e.target.value }))}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                        text-gray-900 dark:text-white
+                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 space-y-6">
@@ -517,27 +631,125 @@ export default function InvestmentForm() {
               )}
             </div>
 
-            {/* Ticker — shown only for B3-eligible types */}
-            {['stocks', 'fii', 'funds'].includes(formData.type) && (
+            {['stocks', 'fii', 'etf'].includes(formData.type) && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Ticker
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.ticker}
+                      onChange={(e) => setFormData(prev => ({ ...prev, ticker: e.target.value.toUpperCase() }))}
+                      placeholder={formData.type === 'fii' ? 'HGLG11' : 'PETR4'}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {language === 'pt' ? 'Corretora' : 'Broker'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.platform}
+                      onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
+                      placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.type === 'crypto' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.coinName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, coinName: e.target.value }))}
+                      placeholder="Bitcoin (BTC)"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {language === 'pt' ? 'Exchange' : 'Exchange'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.platform}
+                      onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
+                      placeholder="Binance"
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.type === 'funds' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.fundName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fundName: e.target.value }))}
+                      placeholder={language === 'pt' ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund'}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {language === 'pt' ? 'Plataforma' : 'Platform'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.platform}
+                      onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
+                      placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
+                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                        focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.type === 'real_estate' && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {language === 'pt' ? 'Ticker B3 (opcional)' : 'B3 Ticker (optional)'}
+                  {language === 'pt' ? 'Descricao do Imovel' : 'Property Description'}
                 </label>
                 <input
                   type="text"
-                  value={formData.ticker}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ticker: e.target.value.toUpperCase() }))}
-                  placeholder="Ex: ITSA4, MXRF11"
-                  maxLength={6}
+                  value={formData.propertyDescription}
+                  onChange={(e) => setFormData(prev => ({ ...prev, propertyDescription: e.target.value }))}
+                  placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
                   className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
                     text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
-                    focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition uppercase"
+                    focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                 />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {language === 'pt'
-                    ? 'Necessário para sincronização automática com a B3'
-                    : 'Required for automatic B3 sync'}
-                </p>
               </div>
             )}
 
@@ -586,6 +798,37 @@ export default function InvestmentForm() {
                   <div className="p-4 bg-red-50 dark:bg-red-900/30 rounded-xl border-2 border-red-100 dark:border-red-800">
                     <p className="text-sm text-red-800 dark:text-red-200 font-medium mb-1">{t('investments.confirmDelete')}</p>
                     <p className="text-xs text-red-600 dark:text-red-400 mb-3">{t('investments.deleteWarning')}</p>
+                    {linkedTransactions.length > 0 && (
+                      <div className="mb-3 space-y-2">
+                        <p className="text-xs font-bold uppercase tracking-wide text-red-700 dark:text-red-300">
+                          {language === 'pt' ? 'Transacao vinculada' : 'Linked transaction'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteLinkedTransactions(false)}
+                          className={`w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${
+                            !deleteLinkedTransactions
+                              ? 'border-red-500 bg-red-500 text-white'
+                              : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
+                          }`}
+                        >
+                          {language === 'pt' ? 'Excluir so o investimento' : 'Delete investment only'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteLinkedTransactions(true)}
+                          className={`w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${
+                            deleteLinkedTransactions
+                              ? 'border-red-500 bg-red-500 text-white'
+                              : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
+                          }`}
+                        >
+                          {language === 'pt'
+                            ? 'Excluir investimento e transacao'
+                            : 'Delete investment and transaction'}
+                        </button>
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -607,7 +850,10 @@ export default function InvestmentForm() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setConfirmDelete(true)}
+                    onClick={() => {
+                      setDeleteLinkedTransactions(false);
+                      setConfirmDelete(true);
+                    }}
                     className="w-full py-3.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-base font-bold rounded-xl border-2 border-red-200 dark:border-red-800
                       hover:bg-red-100 dark:hover:bg-red-900/50 transition"
                   >

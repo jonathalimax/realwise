@@ -386,11 +386,15 @@ export function InvestmentProvider({ children }) {
           type: 'expense',
           description: `Investment: ${investmentData.name}`,
           amount: investmentData.initialAmount,
-          category: 'Investments',
+          category: investmentData.transactionCategory || 'Investimentos',
           date: txDate.toISOString(),
           createdAt: serverTimestamp(),
           investmentId: docRef.id,
           bankId: investmentData.bank || null,
+          paymentMethod: investmentData.paymentMethod || null,
+          goalId: investmentData.goalId || null,
+          plannerGoalId: investmentData.plannerGoalId || null,
+          investmentType: investmentData.type || 'fixed_income',
         };
 
         const txRef = await addDoc(collection(db, 'transactions'), transactionData);
