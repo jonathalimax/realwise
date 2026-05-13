@@ -11,6 +11,7 @@ const OnboardingRun = lazy(() => import('./OnboardingRun'));
 const TransferScript = lazy(() => import('./TransferScript'));
 const ImportIssues = lazy(() => import('./ImportIssues'));
 const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
+const GuidePage = lazy(() => import('./GuidePage'));
 
 let adminDb = null;
 let adminAuth = null;
@@ -83,6 +84,7 @@ export default function AdminApp() {
           <span className="font-bold text-emerald-400 text-lg mr-3">Realwise Admin</span>
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
           <NavLink to="transfer" className={navLinkClass}>Transfer</NavLink>
+          <NavLink to="guia" className={navLinkClass}>Guia</NavLink>
           <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
           <button
             onClick={() => signOut(adminAuth)}
@@ -96,6 +98,7 @@ export default function AdminApp() {
             <Route index element={<Navigate to="leads" replace />} />
             <Route path="leads" element={<LeadsDashboard db={adminDb} functions={adminFunctions} />} />
             <Route path="transfer" element={<TransferScript />} />
+            <Route path="guia" element={<GuidePage />} />
             <Route path="onboarding/:runId" element={<OnboardingRun db={adminDb} functions={adminFunctions} />} />
             <Route path="import-issues" element={<ImportIssues db={adminDb} />} />
             <Route path="import-issues/:id" element={<ImportIssueDetail db={adminDb} />} />
