@@ -46,7 +46,7 @@ const PageLoader = () => (
 );
 
 const navLinkClass = ({ isActive }) =>
-  `text-sm px-3 py-1.5 rounded-lg transition-colors ${
+  `text-xs sm:text-sm px-2 sm:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
     isActive ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'
   }`;
 
@@ -80,15 +80,15 @@ export default function AdminApp() {
   return (
     <BrowserRouter basename="/admin">
       <div className="min-h-screen bg-gray-950 text-gray-100">
-        <nav className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center gap-3">
-          <span className="font-bold text-emerald-400 text-lg mr-3">Realwise Admin</span>
+        <nav className="bg-gray-900 border-b border-gray-800 px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 overflow-x-auto">
+          <span className="font-bold text-emerald-400 text-base sm:text-lg mr-2 sm:mr-3 whitespace-nowrap flex-shrink-0">Realwise Admin</span>
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
           <NavLink to="transfer" className={navLinkClass}>Transfer</NavLink>
           <NavLink to="guia" className={navLinkClass}>Guia</NavLink>
           <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
           <button
             onClick={() => signOut(adminAuth)}
-            className="ml-auto text-sm text-gray-500 hover:text-red-400"
+            className="ml-auto text-xs sm:text-sm text-gray-500 hover:text-red-400 whitespace-nowrap flex-shrink-0"
           >
             Sign out
           </button>
@@ -102,7 +102,7 @@ export default function AdminApp() {
             <Route path="onboarding/:runId" element={<OnboardingRun db={adminDb} functions={adminFunctions} />} />
             <Route path="import-issues" element={<ImportIssues db={adminDb} />} />
             <Route path="import-issues/:id" element={<ImportIssueDetail db={adminDb} />} />
-            <Route path="*" element={<Navigate to="leads" replace />} />
+            <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </Suspense>
       </div>
