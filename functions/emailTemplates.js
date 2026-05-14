@@ -63,9 +63,9 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
 `;
 
 /**
- * Template 1: Welcome & Next Steps
+ * Template 1: Welcome & Next Steps (sent on purchase)
  */
-exports.welcomeTemplate = (name) => getBaseTemplate({
+exports.welcomeTemplate = (name, loginUrl = 'https://realwise.com.br') => getBaseTemplate({
   title: `Bem-vindo ao Realwise, ${name}! 🚀`,
   subtitle: 'Sua jornada para uma vida financeira mais organizada começa agora.',
   body: `
@@ -79,11 +79,13 @@ exports.welcomeTemplate = (name) => getBaseTemplate({
     </div>
     <div class="mw-body-text" style="font-size:13px;color:#4b5563;">Obrigado por confiar no Realwise!<br><br>Equipe Realwise</div>
   `,
+  cta: 'Acessar o Sistema Agora',
+  ctaUrl: loginUrl,
   footerNote: 'Você está recebendo este e-mail porque se cadastrou no Realwise.',
 });
 
 /**
- * Template 2: Access Granted (Green Light)
+ * Template 2: Access Granted (MercadoPago instant activation)
  */
 exports.accessGrantedTemplate = (name, loginUrl = 'https://app.realwise.com.br') => getBaseTemplate({
   title: `Luz Verde, ${name}! Tudo pronto. 🟢`,
@@ -101,9 +103,89 @@ exports.accessGrantedTemplate = (name, loginUrl = 'https://app.realwise.com.br')
 });
 
 /**
- * Template 3: Bill Reminders — adaptive dark/light
+ * Template 3: Abandoned Checkout — 4h reminder
  */
-exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }, ctaUrl = 'https://realwise.com.br') => {
+exports.checkoutReminderTemplate = (name, cartUrl = 'https://realwise.com.br') => getBaseTemplate({
+  title: `Você deixou algo no carrinho, ${name}!`,
+  subtitle: 'Ainda dá tempo de garantir seu acesso ao Realwise.',
+  body: `
+    <div class="mw-warn-box" style="background:#fefce8;border-left:4px solid #eab308;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
+      <div class="mw-warn-text" style="font-size:13px;color:#713f12;line-height:1.7;">
+        ⏰ <strong>Sua sessão ainda está ativa.</strong> Complete o checkout agora e comece a organizar suas finanças hoje mesmo.
+      </div>
+    </div>
+    <div class="mw-body-text" style="font-size:13px;color:#4b5563;line-height:1.7;">
+      Com o Realwise você centraliza contas, cartões, investimentos e metas em um só lugar.<br><br>
+      Clique no botão abaixo para continuar de onde parou.
+    </div>
+  `,
+  cta: 'Continuar Checkout',
+  ctaUrl: cartUrl,
+  footerNote: 'Você está recebendo este e-mail porque iniciou um cadastro no Realwise.',
+});
+
+/**
+ * Template 4: Abandoned Checkout — 24h coupon offer
+ */
+exports.checkoutCouponTemplate = (name, couponCode, discountPercent = 10, expiresAt, cartUrl = 'https://realwise.com.br') => {
+  const expiresStr = expiresAt
+    ? new Date(expiresAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : '24 horas';
+  return getBaseTemplate({
+    title: `Seu cupom especial chegou, ${name}! 🎁`,
+    subtitle: `${discountPercent}% de desconto exclusivo para você. Válido por 24 horas.`,
+    body: `
+      <div style="text-align:center;margin:20px 0;">
+        <div style="display:inline-block;border:2px dashed #10b981;border-radius:8px;padding:16px 32px;background:#ecfdf5;">
+          <div style="font-size:11px;font-weight:700;color:#065f46;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Seu Cupom</div>
+          <div style="font-size:28px;font-weight:800;color:#10b981;letter-spacing:4px;font-family:monospace;">${couponCode.toUpperCase()}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:6px;">Expira em ${expiresStr}</div>
+        </div>
+      </div>
+      <div class="mw-body-text" style="font-size:13px;color:#4b5563;line-height:1.7;text-align:center;">
+        Use este código no checkout e ganhe <strong>${discountPercent}% de desconto</strong>.<br>
+        Este cupom é exclusivo para o e-mail com que você se cadastrou.
+      </div>
+    `,
+    cta: 'Usar Cupom e Finalizar',
+    ctaUrl: cartUrl,
+    footerNote: 'Você está recebendo este e-mail porque iniciou um cadastro no Realwise.',
+  });
+};
+
+/**
+ * Template 5: Abandoned Checkout — 48h last chance
+ */
+exports.checkoutLastChanceTemplate = (name, couponCode, expiresAt, cartUrl = 'https://realwise.com.br') => {
+  const expiresStr = expiresAt
+    ? new Date(expiresAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    : 'em breve';
+  return getBaseTemplate({
+    title: `Última chance: cupom expira às ${expiresStr} ⏰`,
+    subtitle: 'Não perca seu desconto exclusivo. Esta é a última vez que vamos lembrar.',
+    body: `
+      <div style="text-align:center;margin:20px 0;">
+        <div style="display:inline-block;border:2px dashed #ef4444;border-radius:8px;padding:16px 32px;background:#fef2f2;">
+          <div style="font-size:11px;font-weight:700;color:#991b1b;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Seu Cupom</div>
+          <div style="font-size:28px;font-weight:800;color:#ef4444;letter-spacing:4px;font-family:monospace;">${couponCode.toUpperCase()}</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:6px;">⚠️ Expira ${expiresStr}</div>
+        </div>
+      </div>
+      <div class="mw-body-text" style="font-size:13px;color:#4b5563;line-height:1.7;text-align:center;">
+        Este é o último aviso. Após o vencimento, o cupom expira definitivamente.<br>
+        O Realwise continua disponível — só não a este preço.
+      </div>
+    `,
+    cta: 'Finalizar Compra Agora',
+    ctaUrl: cartUrl,
+    footerNote: 'Você está recebendo este e-mail porque iniciou um cadastro no Realwise.',
+  });
+};
+
+/**
+ * Template 6: Bill Reminders — adaptive dark/light, supports dueSoon group
+ */
+exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, ctaUrl = 'https://realwise.com.br') => {
   const formatCurrency = (val) => {
     const num = parseFloat(val);
     if (isNaN(num)) return '—';
@@ -124,19 +206,21 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }, ctaUrl = 
     return isCreditCard && item.cardOutcomesAmount != null ? item.cardOutcomesAmount : item.amount;
   };
 
-  const grandTotal = [...(overdue || []), ...(dueToday || []), ...(upcoming || [])].reduce((sum, b) => {
+  const grandTotal = [...(overdue || []), ...(dueToday || []), ...(dueSoon || []), ...(upcoming || [])].reduce((sum, b) => {
     const amt = parseFloat(getDisplayAmount(b));
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0);
 
   const overdueCount = (overdue || []).length;
   const dueTodayCount = (dueToday || []).length;
+  const dueSoonCount = (dueSoon || []).length;
   const upcomingCount = (upcoming || []).length;
 
   const chips = [
     overdueCount > 0 ? `<span class="chip-overdue" style="background:#fee2e2;color:#dc2626;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;margin-right:6px;display:inline-block;">${overdueCount} ATRASADA${overdueCount > 1 ? 'S' : ''}</span>` : '',
     dueTodayCount > 0 ? `<span class="chip-today" style="background:#fef3c7;color:#d97706;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;margin-right:6px;display:inline-block;">${dueTodayCount} HOJE</span>` : '',
-    upcomingCount > 0 ? `<span class="chip-upcoming" style="background:#dbeafe;color:#2563eb;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;display:inline-block;">${upcomingCount} PRÓXIMA${upcomingCount > 1 ? 'S' : ''}</span>` : '',
+    dueSoonCount > 0 ? `<span class="chip-upcoming" style="background:#dbeafe;color:#2563eb;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;margin-right:6px;display:inline-block;">${dueSoonCount} PRÓXIMA${dueSoonCount > 1 ? 'S' : ''}</span>` : '',
+    upcomingCount > 0 ? `<span style="background:#f3f4f6;color:#6b7280;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;display:inline-block;">${upcomingCount} FUTURA${upcomingCount > 1 ? 'S' : ''}</span>` : '',
   ].filter(Boolean).join('');
 
   const renderRows = (items, dotColor, lightAmountColor, isOverdue) => {
@@ -171,7 +255,8 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }, ctaUrl = 
   const allRows = [
     renderRows(overdue, '#ef4444', '#dc2626', true),
     renderRows(dueToday, '#f59e0b', '#d97706', false),
-    renderRows(upcoming, '#3b82f6', '#2563eb', false),
+    renderRows(dueSoon || [], '#3b82f6', '#2563eb', false),
+    renderRows(upcoming || [], '#6b7280', '#9ca3af', false),
   ].join('');
 
   return `
@@ -191,14 +276,14 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }, ctaUrl = 
             <div>${chips}</div>
           </td></tr>
 
-          <!-- Bill rows — no card background -->
+          <!-- Bill rows -->
           <tr><td style="padding:0 4px;">
             <table width="100%" cellpadding="0" cellspacing="0">
               ${allRows}
             </table>
           </td></tr>
 
-          <!-- Total — prominent block -->
+          <!-- Total -->
           <tr><td style="padding:20px 4px 8px;">
             <div class="total-label" style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Total pendente</div>
             <div class="total-amount" style="font-size:32px;font-weight:800;color:#10b981;line-height:1;">${formatCurrency(grandTotal)}</div>
@@ -221,7 +306,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, upcoming }, ctaUrl = 
 };
 
 /**
- * Template 4: Accept Migration
+ * Template 7: Accept Migration
  */
 exports.acceptMigrationTemplate = (name, migrationUrl = 'https://app.realwise.com.br') => getBaseTemplate({
   title: `Seu acesso foi migrado, ${name} 🔄`,
