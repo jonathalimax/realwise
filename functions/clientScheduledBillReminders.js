@@ -38,11 +38,16 @@ function formatCurrency(val) {
 }
 
 async function sendBillReminderEmail(transporter, from, to, name, billGroups, billsUrl) {
-  const allBills = [...billGroups.overdue, ...billGroups.dueToday, ...billGroups.upcoming];
+  const allBills = [...billGroups.overdue, ...billGroups.dueToday, ...(billGroups.dueSoon || []), ...(billGroups.upcoming || [])];
   const grandTotal = allBills.reduce((sum, b) => sum + (b.cardOutcomesAmount != null ? b.cardOutcomesAmount : (b.amount || 0)), 0);
-  const subject = billGroups.overdue.length > 0
-    ? `⚠️ ${billGroups.overdue.length} conta(s) atrasada(s) · ${formatCurrency(grandTotal)}`
-    : `📅 Vence hoje · ${formatCurrency(grandTotal)}`;
+  let subject;
+  if (billGroups.overdue.length > 0) {
+    subject = `⚠️ ${billGroups.overdue.length} conta(s) atrasada(s) · ${formatCurrency(grandTotal)}`;
+  } else if (billGroups.dueToday.length > 0) {
+    subject = `📅 Vence hoje · ${formatCurrency(grandTotal)}`;
+  } else {
+    subject = `🔵 ${(billGroups.dueSoon || []).length} conta(s) nos próximos dias · ${formatCurrency(grandTotal)}`;
+  }
   await transporter.sendMail({ from: `"Realwise" <${from}>`, to, subject, html: billReminderTemplate(name, billGroups, billsUrl) });
 }
 
@@ -100,8 +105,9 @@ exports.scheduledBillReminders = functions
 
         const billGroups = await collectUserBillGroups(db, userId);
         console.log(`[clientBillReminders] ${userId}: overdue=${billGroups.overdue.length} dueToday=${billGroups.dueToday.length}`);
-        if (billGroups.overdue.length === 0 && billGroups.dueToday.length === 0) {
-          console.log(`[clientBillReminders] Skipping ${userId} — no overdue/dueToday bills`);
+        const hasBillsToNotify = billGroups.overdue.length > 0 || billGroups.dueToday.length > 0 || (billGroups.dueSoon || []).length > 0;
+        if (!hasBillsToNotify) {
+          console.log(`[clientBillReminders] Skipping ${userId} — no overdue/today/soon bills`);
           return;
         }
 
@@ -109,7 +115,7 @@ exports.scheduledBillReminders = functions
         await sendBillReminderEmail(transporter, emailFrom, authUser.email, userName || 'Cliente', billGroups, billsUrl);
 
         const batch = db.batch();
-        for (const bill of [...billGroups.overdue, ...billGroups.dueToday].slice(0, 10)) {
+        for (const bill of [...billGroups.overdue, ...billGroups.dueToday, ...(billGroups.dueSoon || [])].slice(0, 10)) {
           batch.set(db.collection('reminder_logs').doc(), {
             userId,
             billId: bill.id,
