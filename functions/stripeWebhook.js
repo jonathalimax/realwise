@@ -150,7 +150,7 @@ async function sendPurchaseEmail({ name, email, whatsapp, amountTotal }) {
 
   // 1. Email to Developer (Notification)
   await transporter.sendMail({
-    from: user,
+    from: `"Realwise" <${user}>`,
     to: 'jonathalimax@gmail.com',
     subject: `💰 Nova Compra Realwise — ${amountStr}`,
     html: `
@@ -193,9 +193,9 @@ async function sendPurchaseEmail({ name, email, whatsapp, amountTotal }) {
   if (email) {
     try {
       await transporter.sendMail({
-        from: user,
+        from: `"Realwise" <${user}>`,
         to: email,
-        subject: 'Bem-vindo ao Realwise! 🚀',
+        subject: 'Bem-vindo ao Realwise! 🎉',
         html: welcomeTemplate(name || 'Cliente'),
       });
       console.log(`Welcome email sent to ${email}`);

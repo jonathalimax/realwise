@@ -77,7 +77,7 @@ const sendPurchaseNotification = async (purchaseData) => {
   const adminEmail = 'jonathalimax@gmail.com';
 
   const mailOptions = {
-    from: functions.config().email?.user || 'noreply@realwise.com.br',
+    from: `"Realwise" <${functions.config().email?.user || 'noreply@realwise.com.br'}>`,
     to: adminEmail,
     subject: `💰 Nova Compra - Realwise - R$ ${purchaseData.amount.toFixed(2)}`,
     html: `
@@ -281,11 +281,11 @@ async function grantAccessAndNotify(email, name, couponCode) {
     // Send notification email
     const transporter = getEmailTransporter();
     if (transporter) {
-      const from = functions.config().email?.user || 'contato@realwise.com.br';
+      const fromAddr = functions.config().email?.user || 'contato@realwise.com.br';
       await transporter.sendMail({
-        from,
+        from: `"Realwise" <${fromAddr}>`,
         to: email,
-        subject: 'Luz Verde! Seu acesso ao Realwise foi liberado 🟢',
+        subject: 'Tudo pronto! Seu acesso ao Realwise foi liberado 🟢',
         html: accessGrantedTemplate(name || 'Cliente'),
       });
       console.log(`Access granted email sent to ${email}`);

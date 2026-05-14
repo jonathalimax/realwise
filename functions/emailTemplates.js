@@ -63,39 +63,47 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
 `;
 
 /**
- * Template 1: Welcome & Next Steps (sent on purchase)
+ * Template 1: Welcome & Next Steps (sent on purchase — access not ready yet)
  */
-exports.welcomeTemplate = (name, loginUrl = 'https://realwise.com.br') => getBaseTemplate({
-  title: `Bem-vindo ao Realwise, ${name}! 🚀`,
-  subtitle: 'Sua jornada para uma vida financeira mais organizada começa agora.',
+exports.welcomeTemplate = (name) => getBaseTemplate({
+  title: `Bem-vindo ao Realwise, ${name}! 🎉`,
+  subtitle: 'Você acaba de dar um passo incrível rumo ao controle total das suas finanças.',
   body: `
+    <div class="mw-body-text" style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:20px;">
+      Estamos muito felizes em ter você aqui! Saber que você escolheu cuidar melhor do seu dinheiro é algo que nos motiva todos os dias. 💚
+    </div>
     <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">Próximos Passos</div>
-      <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.7;">
-        <div style="margin-bottom:6px;">⏳ <strong>Aguarde a Ativação</strong> — nossa equipe está configurando seu acesso e você receberá um e-mail em instantes.</div>
-        <div style="margin-bottom:6px;">📄 <strong>Prepare-se</strong> — reúna suas faturas e extratos bancários.</div>
-        <div>💬 <strong>Dúvidas?</strong> Basta responder a este e-mail.</div>
+      <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">O que acontece agora?</div>
+      <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.8;">
+        <div style="margin-bottom:8px;">⏳ <strong>Estamos configurando seu acesso</strong> — você receberá um novo e-mail assim que tudo estiver pronto.</div>
+        <div style="margin-bottom:8px;">📄 <strong>Prepare-se para o primeiro dia</strong> — separe seus extratos bancários (CSV, OFX ou PDF) e tenha em mãos os dados dos seus cartões.</div>
+        <div>💬 <strong>Qualquer dúvida?</strong> Basta responder a este e-mail. Estamos aqui.</div>
       </div>
     </div>
-    <div class="mw-body-text" style="font-size:13px;color:#4b5563;">Obrigado por confiar no Realwise!<br><br>Equipe Realwise</div>
+    <div class="mw-body-text" style="font-size:13px;color:#4b5563;line-height:1.7;">
+      Obrigado por confiar no Realwise. Vamos juntos nessa! 🚀<br><br>
+      <strong>Equipe Realwise</strong>
+    </div>
   `,
-  cta: 'Acessar o Sistema Agora',
-  ctaUrl: loginUrl,
   footerNote: 'Você está recebendo este e-mail porque se cadastrou no Realwise.',
 });
 
 /**
- * Template 2: Access Granted (MercadoPago instant activation)
+ * Template 2: Access Granted (green light — access is live)
  */
 exports.accessGrantedTemplate = (name, loginUrl = 'https://app.realwise.com.br') => getBaseTemplate({
-  title: `Luz Verde, ${name}! Tudo pronto. 🟢`,
-  subtitle: 'Seu acesso ao Realwise foi liberado. Você já pode começar.',
+  title: `Tudo pronto, ${name}! 🟢`,
+  subtitle: 'Seu acesso ao Realwise foi liberado. Você já pode começar agora mesmo.',
   body: `
-    <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;">
-      <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.7;">
-        💡 <strong>Dica rápida:</strong> Comece importando seu extrato bancário (OFX ou PDF) na aba "Importar" para economizar tempo no cadastro de transações.
+    <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">Por onde começar?</div>
+      <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.8;">
+        <div style="margin-bottom:8px;">🏦 <strong>Adicione seu banco ou cartão</strong> — vá em "Bancos e Cartões" e cadastre suas contas. Isso é o primeiro passo para tudo funcionar.</div>
+        <div style="margin-bottom:8px;">📥 <strong>Importe seus extratos</strong> — na aba "Importar", envie seu extrato em CSV, OFX ou PDF e suas transações aparecem automaticamente.</div>
+        <div>✏️ <strong>Ou lance manualmente</strong> — prefere digitar? Sem problema, você pode registrar cada transação na hora que quiser.</div>
       </div>
     </div>
+    <div class="mw-body-text" style="font-size:13px;color:#4b5563;">Qualquer dúvida, basta responder a este e-mail.<br><br><strong>Equipe Realwise</strong></div>
   `,
   cta: 'Acessar o Sistema Agora',
   ctaUrl: loginUrl,
