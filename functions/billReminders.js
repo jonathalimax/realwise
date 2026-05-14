@@ -63,46 +63,6 @@ async function collectUserBillGroups(clientDb, userId) {
     }
   }
 
-  // Enrich credit card bills with actual transaction totals
-  try {
-    const transactionsSnap = await clientDb.collection('transactions')
-      .where('userId', '==', userId)
-      .where('date', '>=', new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString())
-      .get();
-    const transactions = transactionsSnap.docs.map(d => d.data());
-
-    const banksSnap = await clientDb.collection('userBanks')
-      .where('userId', '==', userId)
-      .get();
-    const banks = banksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    for (const list of [groups.overdue, groups.dueToday, groups.dueSoon, groups.upcoming]) {
-      for (const bill of list) {
-        if (bill.category !== 'credit_card' || !bill.linkedBankId) continue;
-        const bank = banks.find(b => b.id === bill.linkedBankId);
-        if (!bank || !bank.hasCredit) continue;
-
-        const billDue = new Date(bill.dueDate);
-        const closingDay = bank.closingDay || 10;
-        const cycleEnd = new Date(billDue); cycleEnd.setDate(closingDay);
-        if (cycleEnd > billDue) cycleEnd.setMonth(cycleEnd.getMonth() - 1);
-        const cycleStart = new Date(cycleEnd);
-        cycleStart.setMonth(cycleStart.getMonth() - 1);
-        cycleStart.setDate(cycleStart.getDate() + 1);
-
-        const cycleTxs = transactions.filter(tx => {
-          if (tx.bankId !== bill.linkedBankId || tx.type !== 'expense') return false;
-          const txDate = new Date(tx.date);
-          return txDate >= cycleStart && txDate <= cycleEnd;
-        });
-        bill.cardOutcomesAmount = cycleTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
-        bill.cardOutcomesCount = cycleTxs.length;
-      }
-    }
-  } catch (err) {
-    console.error(`[billReminders] Card enrichment error for user ${userId}:`, err);
-  }
-
   return groups;
 }
 

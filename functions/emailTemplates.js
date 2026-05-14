@@ -209,13 +209,8 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
     } catch (e) { return '—'; }
   };
 
-  const getDisplayAmount = (item) => {
-    const isCreditCard = item.category === 'credit_card';
-    return isCreditCard && item.cardOutcomesAmount != null ? item.cardOutcomesAmount : item.amount;
-  };
-
   const grandTotal = [...(overdue || []), ...(dueToday || []), ...(dueSoon || []), ...(upcoming || [])].reduce((sum, b) => {
-    const amt = parseFloat(getDisplayAmount(b));
+    const amt = parseFloat(b.amount);
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0);
 
@@ -234,13 +229,11 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
   const renderRows = (items, dotColor, lightAmountColor, isOverdue) => {
     if (!items || items.length === 0) return '';
     return items.map(item => {
-      const displayAmount = getDisplayAmount(item);
       const dateLabel = isOverdue && item.daysOverdue
         ? `Venceu ${formatDate(item.dueDate)} · <span style="color:#ef4444;">${item.daysOverdue}d atraso</span>`
         : `Vence ${formatDate(item.dueDate)}`;
-      const isCreditCard = item.category === 'credit_card';
-      const cardLabel = isCreditCard && item.cardOutcomesCount > 0
-        ? `<div class="bill-sub" style="font-size:10px;color:#6b7280;margin-top:2px;">💳 ${item.cardOutcomesCount} lançamento${item.cardOutcomesCount > 1 ? 's' : ''} no ciclo</div>`
+      const markPaidBtn = item.markPaidUrl
+        ? `<a href="${item.markPaidUrl}" style="display:inline-block;margin-top:6px;padding:4px 12px;background:#10b981;color:#fff;text-decoration:none;border-radius:4px;font-size:11px;font-weight:700;">✓ Marcar como pago</a>`
         : '';
       return `
         <tr class="bill-row">
@@ -250,10 +243,10 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
           <td style="padding:12px 8px;border-bottom:1px solid #e2e8f0;vertical-align:top;">
             <div class="bill-name" style="font-size:13px;font-weight:600;color:#1e293b;">${item.name || 'Sem nome'}</div>
             <div class="bill-sub" style="font-size:11px;color:#6b7280;margin-top:2px;">${dateLabel}</div>
-            ${cardLabel}
+            ${markPaidBtn}
           </td>
           <td style="padding:12px 4px 12px 8px;border-bottom:1px solid #e2e8f0;text-align:right;vertical-align:top;white-space:nowrap;">
-            <span class="amount-${isOverdue ? 'overdue' : ''}" style="font-size:13px;font-weight:700;color:${lightAmountColor};">${formatCurrency(displayAmount)}</span>
+            <span class="amount-${isOverdue ? 'overdue' : ''}" style="font-size:13px;font-weight:700;color:${lightAmountColor};">${formatCurrency(item.amount)}</span>
           </td>
         </tr>
       `;

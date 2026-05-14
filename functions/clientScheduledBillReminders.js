@@ -111,6 +111,17 @@ exports.scheduledBillReminders = functions
           return;
         }
 
+        // Generate one-time mark-as-paid tokens for actionable bills
+        const projectId = process.env.GCLOUD_PROJECT;
+        const baseMarkUrl = `https://us-central1-${projectId}.cloudfunctions.net/markBillPaid`;
+        const tokenExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000);
+        const actionableBills = [...billGroups.overdue, ...billGroups.dueToday, ...(billGroups.dueSoon || [])];
+        await Promise.all(actionableBills.map(async (bill) => {
+          const tokenRef = db.collection('bill_action_tokens').doc();
+          await tokenRef.set({ billId: bill.id, userId, expiresAt: tokenExpiry, used: false });
+          bill.markPaidUrl = `${baseMarkUrl}?token=${tokenRef.id}`;
+        }));
+
         const billsUrl = `https://realwise.com.br/${authUser.email.split('@')[0]}/bills`;
         await sendBillReminderEmail(transporter, emailFrom, authUser.email, userName || 'Cliente', billGroups, billsUrl);
 
