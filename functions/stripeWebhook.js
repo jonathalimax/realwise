@@ -53,6 +53,26 @@ exports.stripeWebhook = functions
       return;
     }
 
+    // Track abandoned checkout — fires when user opens the Stripe checkout page
+    if (event.type === 'checkout.session.created') {
+      const session = event.data.object;
+      const email = session.customer_email?.toLowerCase();
+      const name = session.metadata?.name || '';
+      if (email) {
+        await db.collection('checkout_sessions').doc(email).set({
+          email,
+          name,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          stage: 0,
+          lastSentAt: null,
+          stripeSessionId: session.id,
+        }, { merge: false });
+        console.log(`[stripeWebhook] Checkout session created for ${email}`);
+      }
+      res.status(200).send('OK');
+      return;
+    }
+
     if (event.type !== 'checkout.session.completed') {
       res.status(200).send('OK');
       return;
@@ -91,6 +111,9 @@ exports.stripeWebhook = functions
         stripeSessionId: session.id,
         purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+      // Clean up abandoned checkout tracking now that payment succeeded
+      await db.collection('checkout_sessions').doc(email).delete().catch(() => {});
 
       await sendPurchaseEmail({ name, email, whatsapp, amountTotal });
 
