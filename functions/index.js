@@ -628,12 +628,19 @@ const { updateLeadState } = require('./updateLeadState');
 exports.updateLeadState = updateLeadState;
 
 const { createDiscountCheckout } = require('./createDiscountCheckout');
+exports.createDiscountCheckout = createDiscountCheckout;
+
+const { createStandaloneCoupon } = require('./createStandaloneCoupon');
+exports.createStandaloneCoupon = createStandaloneCoupon;
 
 const { transferClient } = require('./transferClient');
 exports.transferClient = transferClient;
-exports.createDiscountCheckout = createDiscountCheckout;
 
 const { submitImportIssue } = require('./submitImportIssue');
 exports.submitImportIssue = submitImportIssue;
 
 exports.sendImportIssueEmail = require('./sendImportIssueEmail').sendImportIssueEmail;
+
+const abandonedCheckout = require('./abandonedCheckoutEmails');
+exports.abandonedCheckoutReminders = abandonedCheckout.abandonedCheckoutReminders;
+exports.sendAbandonedCheckoutEmail = abandonedCheckout.sendAbandonedCheckoutEmail;
