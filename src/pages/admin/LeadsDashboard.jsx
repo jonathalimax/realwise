@@ -22,13 +22,15 @@ export default function LeadsDashboard({ db, functions }) {
   const [emailTarget, setEmailTarget] = useState(null);
   const [discountTarget, setDiscountTarget] = useState(null);
   const [updatingState, setUpdatingState] = useState({});
+  const [sendingRecovery, setSendingRecovery] = useState({});
+  const [recoveryToast, setRecoveryToast] = useState(null);
 
   useEffect(() => {
     const unsubLeads = onSnapshot(
-      query(collection(db, 'leads'), orderBy('paidAt', 'desc')),
+      query(collection(db, 'leads'), orderBy('updatedAt', 'desc')),
       snap => setLeads(snap.docs.map(d => {
         const data = d.data();
-        return { id: d.id, ...data, state: data.state ?? (data.paid ? 'paid' : 'pending') };
+        return { id: d.id, ...data, state: data.state || (data.paid ? 'paid' : 'pending') };
       }))
     );
     const unsubPurchases = onSnapshot(
@@ -38,13 +40,18 @@ export default function LeadsDashboard({ db, functions }) {
     return () => { unsubLeads(); unsubPurchases(); };
   }, [db]);
 
-  // Build revenue map: email → total centavos paid
+  // Build revenue map from purchases collection (post-launch)
   const revenueByEmail = purchases.reduce((acc, p) => {
     acc[p.email] = (acc[p.email] || 0) + (p.amountTotal || 0);
     return acc;
   }, {});
 
-  const totalRevenue = Object.values(revenueByEmail).reduce((a, b) => a + b, 0);
+  // Fall back to amountTotal on the lead doc for users who paid before purchases collection existed
+  function revenueForLead(lead) {
+    return revenueByEmail[lead.email] ?? lead.amountTotal ?? 0;
+  }
+
+  const totalRevenue = leads.reduce((sum, l) => sum + revenueForLead(l), 0);
   const paidLeads = leads.filter(l => ['paid', 'onboarding', 'active'].includes(l.state)).length;
   const conversionRate = leads.length ? ((paidLeads / leads.length) * 100).toFixed(1) : '0.0';
 
@@ -56,6 +63,20 @@ export default function LeadsDashboard({ db, functions }) {
       alert(`Error: ${err.message}`);
     } finally {
       setUpdatingState(prev => ({ ...prev, [email]: false }));
+    }
+  }, [functions]);
+
+  const handleSendRecovery = useCallback(async (email, stage) => {
+    const key = `${email}-${stage}`;
+    setSendingRecovery(prev => ({ ...prev, [key]: true }));
+    try {
+      await httpsCallable(functions, 'sendAbandonedCheckoutEmail')({ email, stage });
+      setRecoveryToast(`Email sent to ${email}`);
+      setTimeout(() => setRecoveryToast(null), 3000);
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setSendingRecovery(prev => ({ ...prev, [key]: false }));
     }
   }, [functions]);
 
@@ -145,10 +166,10 @@ export default function LeadsDashboard({ db, functions }) {
                   {lead.paidAt?.toDate?.()?.toLocaleDateString('pt-BR') || '—'}
                 </td>
                 <td className="px-4 py-3 text-emerald-400 font-mono text-xs">
-                  {revenueByEmail[lead.email] ? brl(revenueByEmail[lead.email]) : '—'}
+                  {revenueForLead(lead) ? brl(revenueForLead(lead)) : '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1">
                     <button
                       onClick={() => setEmailTarget(lead)}
                       className="px-3 py-1 bg-blue-800 hover:bg-blue-700 text-white text-xs rounded-lg"
@@ -161,6 +182,20 @@ export default function LeadsDashboard({ db, functions }) {
                     >
                       Discount
                     </button>
+                    {['pending', 'not_paid'].includes(lead.state) && [
+                      { stage: 1, label: 'Reminder', color: 'bg-yellow-700 hover:bg-yellow-600' },
+                      { stage: 2, label: 'Coupon', color: 'bg-emerald-700 hover:bg-emerald-600' },
+                      { stage: 3, label: 'Last Chance', color: 'bg-red-700 hover:bg-red-600' },
+                    ].map(({ stage, label, color }) => (
+                      <button
+                        key={stage}
+                        disabled={sendingRecovery[`${lead.email}-${stage}`]}
+                        onClick={() => handleSendRecovery(lead.email, stage)}
+                        className={`px-2 py-1 ${color} disabled:opacity-40 text-white text-xs rounded-lg`}
+                      >
+                        {sendingRecovery[`${lead.email}-${stage}`] ? '…' : label}
+                      </button>
+                    ))}
                     <button
                       disabled={lead.state !== 'paid'}
                       onClick={() => startOnboarding(lead.email)}
@@ -190,6 +225,11 @@ export default function LeadsDashboard({ db, functions }) {
           functions={functions}
           onClose={() => setDiscountTarget(null)}
         />
+      )}
+      {recoveryToast && (
+        <div className="fixed bottom-6 right-6 bg-emerald-700 text-white text-sm px-4 py-3 rounded-xl shadow-lg z-50">
+          ✓ {recoveryToast}
+        </div>
       )}
     </div>
   );
