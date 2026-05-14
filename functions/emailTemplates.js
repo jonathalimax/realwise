@@ -91,7 +91,7 @@ exports.welcomeTemplate = (name) => getBaseTemplate({
 /**
  * Template 2: Access Granted (green light — access is live)
  */
-exports.accessGrantedTemplate = (name, loginUrl = 'https://app.realwise.com.br') => getBaseTemplate({
+exports.accessGrantedTemplate = (name, loginUrl = 'https://realwise.com.br/login') => getBaseTemplate({
   title: `Tudo pronto, ${name}! 🟢`,
   subtitle: 'Seu acesso ao Realwise foi liberado. Você já pode começar agora mesmo.',
   body: `
@@ -316,20 +316,22 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
 /**
  * Template 7: Accept Migration
  */
-exports.acceptMigrationTemplate = (name, migrationUrl = 'https://app.realwise.com.br') => getBaseTemplate({
-  title: `Seu acesso foi migrado, ${name} 🔄`,
-  subtitle: 'Realizamos uma migração para uma infraestrutura melhorada.',
+exports.acceptMigrationTemplate = (name, migrationUrl = 'https://realwise.com.br/login') => getBaseTemplate({
+  title: `Sua conta foi migrada com sucesso, ${name} 🔄`,
+  subtitle: 'Realizamos uma migração para uma infraestrutura melhorada. Seus dados estão intactos.',
   body: `
-    <div class="mw-body-text" style="font-size:13px;color:#4b5563;margin-bottom:16px;line-height:1.7;">
-      Para concluir a migração e acessar sua conta, clique no botão abaixo. Seus dados financeiros foram preservados integralmente.
+    <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
+      <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.7;">
+        ✅ <strong>Nenhuma ação necessária da sua parte.</strong> Todos os seus dados financeiros foram preservados integralmente. Basta acessar normalmente.
+      </div>
     </div>
     <div class="mw-warn-box" style="background:#fefce8;border-left:4px solid #eab308;border-radius:0 6px 6px 0;padding:14px 18px;">
       <div class="mw-warn-text" style="font-size:13px;color:#713f12;line-height:1.6;">
-        ⚠️ <strong>Importante:</strong> Caso encontre algum problema após a migração, basta responder a este e-mail e resolveremos imediatamente.
+        ⚠️ <strong>Algum problema?</strong> Basta responder a este e-mail e resolveremos imediatamente.
       </div>
     </div>
   `,
-  cta: 'Aceitar Migração e Acessar',
+  cta: 'Acessar o Sistema →',
   ctaUrl: migrationUrl,
   footerNote: 'Você está recebendo este e-mail porque é um cliente Realwise.',
 });
