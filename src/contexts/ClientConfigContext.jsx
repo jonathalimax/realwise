@@ -20,7 +20,8 @@ export function ClientConfigProvider({ children }) {
         let cfg;
         let appName;
         if (import.meta.env.DEV) {
-          cfg = await fetchClientConfig('app');
+          const clientEnv = import.meta.env.VITE_CLIENT_ENV || 'app';
+          cfg = await fetchClientConfig(clientEnv);
           appName = 'shared';
         } else {
           const clientId = extractClientId(window.location.hostname)

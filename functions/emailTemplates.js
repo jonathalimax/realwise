@@ -1,12 +1,16 @@
 
 const SHARED_STYLES = `
   <style>
+    .mw-outer { background-color: #f1f5f9 !important; }
+    .mw-card  { background-color: #ffffff !important; }
     @media (prefers-color-scheme: dark) {
+      .mw-outer      { background-color: #0f172a !important; }
+      .mw-card       { background-color: #1e293b !important; }
       .mw-title      { color: #f1f5f9 !important; }
       .mw-body-text  { color: #cbd5e1 !important; }
       .mw-sub        { color: #94a3b8 !important; }
       .mw-footer     { color: #475569 !important; }
-      .mw-info-box   { background-color: #1e293b !important; border-left-color: #10b981 !important; }
+      .mw-info-box   { background-color: #0f2d20 !important; border-left-color: #10b981 !important; }
       .mw-info-text  { color: #cbd5e1 !important; }
       .mw-warn-box   { background-color: #1e2a1a !important; border-left-color: #eab308 !important; }
       .mw-warn-text  { color: #fef08a !important; }
@@ -25,9 +29,9 @@ const SHARED_STYLES = `
 
 const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => `
   ${SHARED_STYLES}
-  <table width="100%" cellpadding="0" cellspacing="0" style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9" class="mw-outer" style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f1f5f9;">
     <tr><td align="center" style="padding:24px 16px;">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <table width="600" cellpadding="0" cellspacing="0" bgcolor="#ffffff" class="mw-card" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;padding:24px;">
 
         <!-- Brand -->
         <tr><td style="padding:0 4px 16px;">
@@ -209,10 +213,8 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
     } catch (e) { return '—'; }
   };
 
-  const grandTotal = [...(overdue || []), ...(dueToday || []), ...(dueSoon || []), ...(upcoming || [])].reduce((sum, b) => {
-    const amt = parseFloat(b.amount);
-    return sum + (isNaN(amt) ? 0 : amt);
-  }, 0);
+  const billAmt = (b) => { const v = b.cardOutcomesAmount != null ? b.cardOutcomesAmount : (b.amount || 0); return parseFloat(v) || 0; };
+  const grandTotal = [...(overdue || []), ...(dueToday || []), ...(dueSoon || []), ...(upcoming || [])].reduce((sum, b) => sum + billAmt(b), 0);
 
   const overdueCount = (overdue || []).length;
   const dueTodayCount = (dueToday || []).length;
@@ -246,7 +248,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
             ${markPaidBtn}
           </td>
           <td style="padding:12px 4px 12px 8px;border-bottom:1px solid #e2e8f0;text-align:right;vertical-align:top;white-space:nowrap;">
-            <span class="amount-${isOverdue ? 'overdue' : ''}" style="font-size:13px;font-weight:700;color:${lightAmountColor};">${formatCurrency(item.amount)}</span>
+            <span class="amount-${isOverdue ? 'overdue' : ''}" style="font-size:13px;font-weight:700;color:${lightAmountColor};">${formatCurrency(billAmt(item))}</span>
           </td>
         </tr>
       `;
@@ -262,9 +264,9 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
 
   return `
     ${SHARED_STYLES}
-    <table width="100%" cellpadding="0" cellspacing="0" style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9" class="mw-outer" style="font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f1f5f9;">
       <tr><td align="center" style="padding:24px 16px;">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <table width="600" cellpadding="0" cellspacing="0" bgcolor="#ffffff" class="mw-card" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;padding:24px;">
 
           <!-- Brand -->
           <tr><td style="padding:0 4px 16px;">

@@ -55,7 +55,7 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
   storage = getStorage(app);
   functions = getFunctions(app);
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.VITE_USE_EMULATOR === 'true') {
     // Idempotent emulator connection — `connectAuthEmulator` throws
     // `auth/emulator-config-failed` when the Auth instance has already been
     // used or already has an emulator binding. That's fine — already connected.

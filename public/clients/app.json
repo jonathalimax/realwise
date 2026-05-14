@@ -1,5 +1,6 @@
 {
   "clientName": "Realwise",
+  "checkoutUrl": "https://us-central1-moneywise-ad9ec.cloudfunctions.net/createCheckoutSession",
   "firebase": {
     "apiKey": "AIzaSyDqSsb3LqJi9NJdo3VOuEkBX-vIzLzWIxE",
     "authDomain": "realwise.com.br",

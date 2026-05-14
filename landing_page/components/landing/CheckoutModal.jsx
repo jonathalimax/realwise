@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { extractClientId } from '@/config/clientConfig';
+import React, { useState, useEffect } from 'react';
+import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,20 @@ export default function CheckoutModal({ open, onClose }) {
   const [form, setForm] = useState({ name: '', email: '', whatsapp: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [checkoutUrl, setCheckoutUrl] = useState('');
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const clientId = extractClientId(window.location.pathname) || 'app';
+        const config = await fetchClientConfig(clientId);
+        setCheckoutUrl(config.checkoutUrl || import.meta.env.VITE_CHECKOUT_URL);
+      } catch (err) {
+        setCheckoutUrl(import.meta.env.VITE_CHECKOUT_URL);
+      }
+    };
+    loadConfig();
+  }, []);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -31,7 +45,7 @@ export default function CheckoutModal({ open, onClose }) {
     setError('');
 
     try {
-      const functionUrl = import.meta.env.VITE_CHECKOUT_URL;
+      const functionUrl = checkoutUrl;
       const clientId = extractClientId(window.location.pathname);
       const res = await fetch(functionUrl, {
         method: 'POST',

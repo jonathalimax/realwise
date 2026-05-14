@@ -141,7 +141,7 @@ service cloud.firestore {
 
     // Purchases - created by cloud functions
     match /purchases/{purchaseId} {
-      allow read: if request.auth != null && request.auth.token.email == resource.data.email;
+      allow read: if request.auth != null && (isAdmin() || request.auth.token.email == resource.data.email);
       allow write: if false; // Only cloud functions can write
     }
 

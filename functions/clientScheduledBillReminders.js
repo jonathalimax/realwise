@@ -71,8 +71,9 @@ exports.scheduledBillReminders = functions
     const userIds = await collectClientUserIds(db);
     console.log(`[clientBillReminders] ${userIds.length} user(s) with actionable bills`);
 
+    const sentEmails = new Set(); // deduplicate: one email per address per run
     let totalSent = 0;
-    await Promise.all(userIds.map(async (userId) => {
+    for (const userId of userIds) {
       try {
         const settingsDoc = await db.collection('settings').doc(userId).get();
         if (settingsDoc.exists && settingsDoc.data().billReminders === false) {
@@ -95,6 +96,10 @@ exports.scheduledBillReminders = functions
         }
         if (!email) {
           console.log(`[clientBillReminders] Skipping ${userId} — no email in Auth or access list`);
+          return;
+        }
+        if (sentEmails.has(email)) {
+          console.log(`[clientBillReminders] Skipping ${userId} — already sent to ${email} this run`);
           return;
         }
         authUser = { ...authUser, email };
@@ -136,11 +141,12 @@ exports.scheduledBillReminders = functions
           });
         }
         await batch.commit();
+        sentEmails.add(email);
         totalSent++;
       } catch (err) {
         console.error(`[clientBillReminders] Error for user ${userId}:`, err);
       }
-    }));
+    }
 
     console.log(`[clientBillReminders] Done. Sent ${totalSent} email(s).`);
     return null;

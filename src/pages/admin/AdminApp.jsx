@@ -12,6 +12,7 @@ const TransferScript = lazy(() => import('./TransferScript'));
 const ImportIssues = lazy(() => import('./ImportIssues'));
 const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 const GuidePage = lazy(() => import('./GuidePage'));
+const CouponsPanel = lazy(() => import('./CouponsPanel'));
 
 let adminDb = null;
 let adminAuth = null;
@@ -19,7 +20,8 @@ let adminFunctions = null;
 
 async function initAdminFirebase() {
   if (adminAuth) return { auth: adminAuth, db: adminDb };
-  const res = await fetch('/clients/app.json');
+  const configFile = import.meta.env.VITE_CLIENT_ENV === 'dev' ? 'app.dev' : 'app';
+  const res = await fetch(`/clients/${configFile}.json`);
   const config = await res.json();
   const isNew = !getApps().find(a => a.name === 'admin');
   const app = getApps().find(a => a.name === 'admin') ?? initializeApp(config.firebase, 'admin');
@@ -28,7 +30,7 @@ async function initAdminFirebase() {
   const { getFunctions, connectFunctionsEmulator } = await import('firebase/functions');
   adminFunctions = getFunctions(app);
 
-  if (isNew && import.meta.env.DEV) {
+  if (isNew && import.meta.env.VITE_USE_EMULATOR === 'true') {
     // Idempotent: ignore reconnect errors when this app shares state with another
     try { connectAuthEmulator(adminAuth, 'http://localhost:9099', { disableWarnings: true }); } catch (_) {}
     try { connectFirestoreEmulator(adminDb, 'localhost', 8080); } catch (_) {}
@@ -83,6 +85,7 @@ export default function AdminApp() {
         <nav className="bg-gray-900 border-b border-gray-800 px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 overflow-x-auto">
           <span className="font-bold text-emerald-400 text-base sm:text-lg mr-2 sm:mr-3 whitespace-nowrap flex-shrink-0">Realwise Admin</span>
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
+          <NavLink to="coupons" className={navLinkClass}>Cupons</NavLink>
           <NavLink to="transfer" className={navLinkClass}>Transfer</NavLink>
           <NavLink to="guia" className={navLinkClass}>Guia</NavLink>
           <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
@@ -97,6 +100,7 @@ export default function AdminApp() {
           <Routes>
             <Route index element={<Navigate to="leads" replace />} />
             <Route path="leads" element={<LeadsDashboard db={adminDb} functions={adminFunctions} />} />
+            <Route path="coupons" element={<CouponsPanel db={adminDb} functions={adminFunctions} />} />
             <Route path="transfer" element={<TransferScript />} />
             <Route path="guia" element={<GuidePage />} />
             <Route path="onboarding/:runId" element={<OnboardingRun db={adminDb} functions={adminFunctions} />} />

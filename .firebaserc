@@ -1,5 +1,15 @@
 {
   "projects": {
-    "default": "moneywise-ad9ec"
+    "default": "moneywise-ad9ec",
+    "dev": "realwise-dev"
+  },
+  "targets": {
+    "realwise-dev": {
+      "hosting": {
+        "realwise-dev": [
+          "realwise-dev"
+        ]
+      }
+    }
   }
 }

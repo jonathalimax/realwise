@@ -43,6 +43,6 @@ node -e "
 "
 trap restore_main EXIT
 
-echo "→ Deploying scheduledBillReminders to $PROJECT_ID..."
-firebase deploy --only functions:scheduledBillReminders --project "$PROJECT_ID"
+echo "→ Deploying client functions to $PROJECT_ID..."
+firebase deploy --only functions:scheduledBillReminders,functions:markBillPaid --project "$PROJECT_ID"
 echo "✓ Done."

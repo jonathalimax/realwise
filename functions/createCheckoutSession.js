@@ -45,14 +45,19 @@ exports.createCheckoutSession = functions
       const stripe = Stripe(secretKey);
 
       try {
-        // Upsert lead — creates if not exists, updates if returning visitor
-        await db.collection('leads').doc(emailLower).set(
+        // Upsert lead before hitting Stripe — captures abandons if they never complete payment
+        const leadRef = db.collection('leads').doc(emailLower);
+        const leadSnap = await leadRef.get();
+        const isNew = !leadSnap.exists;
+        await leadRef.set(
           {
             name: name.trim(),
             email: emailLower,
             whatsapp: whatsapp.trim(),
             paid: false,
+            state: leadSnap.data()?.state ?? 'checkout_started',
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            ...(isNew && { createdAt: admin.firestore.FieldValue.serverTimestamp() }),
           },
           { merge: true }
         );
@@ -60,6 +65,7 @@ exports.createCheckoutSession = functions
         const session = await stripe.checkout.sessions.create({
           mode: 'payment',
           customer_email: emailLower,
+          allow_promotion_codes: true,
           line_items: [
             {
               price_data: {
@@ -86,10 +92,10 @@ exports.createCheckoutSession = functions
           },
           success_url: clientId && clientId !== 'app'
             ? `https://${clientId}.realwise.com.br/purchase-success`
-            : 'https://app.realwise.com.br/purchase-success',
+            : 'https://realwise.com.br/purchase-success',
           cancel_url: clientId && clientId !== 'app'
             ? `https://${clientId}.realwise.com.br/`
-            : 'https://app.realwise.com.br/',
+            : 'https://realwise.com.br/',
         });
 
         res.json({ url: session.url });

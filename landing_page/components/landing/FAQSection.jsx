@@ -5,28 +5,28 @@ import { cn } from '@/lib/utils';
 
 const faqs = [
   {
-    question: 'O que acontece depois que eu pagar?',
-    answer: 'Em até 24h você receberá um e-mail com as instruções de acesso e configuração do seu Realwise. Seu banco de dados Firebase será configurado individualmente — seus dados ficarão no seu próprio projeto Google.',
+    question: 'Por que não é uma assinatura?',
+    answer: 'Apps de finanças não mudam toda semana — não faz sentido cobrar todo mês. Você compra uma vez, usa para sempre. Sem renovação, sem aumento de preço, sem dependência.',
   },
   {
-    question: 'Meus dados ficam seguros?',
-    answer: 'Sim. Seus dados ficam armazenados no seu próprio projeto Firebase — vinculado à sua conta Google. Nenhum servidor nosso tem acesso. Você é o único dono dos seus dados.',
+    question: 'Vou realmente usar? Já abandonei outros apps.',
+    answer: 'Setup em 5 minutos. O dashboard mostra valor imediato — você vê seus padrões de gasto desde o primeiro dia. E sem mensalidade, você não tem culpa de "não usar o suficiente".',
+  },
+  {
+    question: 'Como meus dados ficam seguros?',
+    answer: 'Seus dados vivem no seu próprio projeto Firebase (infraestrutura do Google). Realwise não tem servidor central com seus dados. Você controla as permissões e pode exportar quando quiser.',
+  },
+  {
+    question: 'Meus dados ficam presos ao Realwise?',
+    answer: 'Não. Seus dados vivem no seu próprio Firebase — você é o dono. Pode exportar, migrar ou acessar diretamente quando quiser. Sem dependência.',
   },
   {
     question: 'Funciona no celular?',
-    answer: 'Sim. O Realwise é um PWA (Progressive Web App) — você pode instalar no Android ou iOS direto pelo navegador e acessar de qualquer dispositivo.',
+    answer: 'Sim. É um PWA — você instala como um app normal no Android ou iPhone direto pelo navegador.',
   },
   {
-    question: 'Posso importar meu extrato bancário?',
-    answer: 'Sim. Você importa manualmente o arquivo CSV do seu banco. Nubank, Itaú e Bradesco são suportados com detecção automática de formato. O algoritmo do app categoriza as transações automaticamente.',
-  },
-  {
-    question: 'O que são as novas funcionalidades pagas?',
-    answer: 'São features extras opcionais lançadas futuramente — por exemplo, sincronização com a B3, lembretes via WhatsApp, entre outras. Você decide se quer e paga separadamente, sem mudar de plano.',
-  },
-  {
-    question: 'E se eu tiver problemas?',
-    answer: 'Suporte vitalício por e-mail está incluído na compra. Correções de bugs e atualizações de segurança são sempre gratuitas.',
+    question: 'Diferença para Mobills, YNAB, Organizze?',
+    answer: 'Eles são assinatura — você paga enquanto usa. Realwise é compra única — você é dono. Seus dados ficam com você, não com eles. Em 30 anos, você gastaria R$3.600–14.400 com eles e R$479,88 conosco. Uma vez.',
   },
 ];
 
@@ -68,7 +68,7 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState(null);
 
   return (
-    <section id="faq" className="py-24 px-6">
+    <section id="faq" className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -77,11 +77,8 @@ export default function FAQSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-3 tracking-wide uppercase">
-            Perguntas frequentes
-          </p>
           <h2 className="text-3xl sm:text-4xl font-bold">
-            Ficou alguma dúvida?
+            Perguntas frequentes.
           </h2>
         </motion.div>
 

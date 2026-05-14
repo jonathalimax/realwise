@@ -3,11 +3,14 @@ import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 
 const rows = [
-  { label: 'Pagamento', realwise: 'Uma vez (12x R$39,99)', others: 'Todo mês para sempre' },
-  { label: 'Acesso aos seus dados', realwise: 'Só você — no seu Google', others: 'Nos servidores deles' },
+  { label: 'Pagamento', realwise: 'Uma vez (R$ 479,88)', others: 'Todo mês, para sempre' },
+  { label: 'Custo em 30 anos', realwise: 'R$ 479,88', others: 'R$ 3.600 – 14.400' },
+  { label: 'Renovação automática', realwise: 'Nunca', others: 'Todo mês' },
+  { label: 'Seus dados ficam', realwise: 'No seu Google Firebase', others: 'Nos servidores deles' },
+  { label: 'Se o preço subir', realwise: 'Não te afeta', others: 'Você paga mais ou sai' },
+  { label: 'Seus dados', realwise: 'No seu Google, sempre', others: 'Nos servidores deles' },
   { label: 'Suporte', realwise: 'Vitalício, incluído', others: 'Enquanto pagar' },
-  { label: 'Correções e segurança', realwise: 'Sempre gratuitas', others: 'Incluídas na assinatura' },
-  { label: 'Novas funcionalidades', realwise: 'Opcionais — pague só o que quiser', others: 'Forçado a pagar tudo' },
+  { label: 'Liberdade para sair', realwise: 'Total', others: 'Você perde acesso' },
 ];
 
 export default function WhyRealwiseSection() {
@@ -21,15 +24,9 @@ export default function WhyRealwiseSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-3 tracking-wide uppercase">
-            Por que o Realwise?
-          </p>
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Diferente de tudo que você já usou
+          <h2 className="text-3xl sm:text-4xl font-bold">
+            Realwise vs. apps de assinatura.
           </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-            Seus dados ficam no seu próprio Firebase — vinculado ao seu Google. Nenhum servidor nosso tem acesso. Você é o dono.
-          </p>
         </motion.div>
 
         <motion.div
@@ -70,6 +67,16 @@ export default function WhyRealwiseSection() {
             </div>
           ))}
         </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-center text-slate-500 dark:text-slate-400 mt-8 font-medium"
+        >
+          Não é só mais barato. É um modelo diferente.
+        </motion.p>
       </div>
     </section>
   );
