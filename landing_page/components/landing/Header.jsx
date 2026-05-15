@@ -8,10 +8,7 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
-          <span className="font-semibold text-lg">Realwise</span>
-        </div>
+        <span className="font-bold text-xl tracking-tight">Realwise</span>
 
         <nav className="hidden md:flex items-center gap-8">
           <button
@@ -34,7 +31,7 @@ export default function Header() {
             onClick={() => window.location.href = '/login'}
             className="h-9 px-4 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
-            Entrar
+            Login
           </button>
         </div>
       </div>
