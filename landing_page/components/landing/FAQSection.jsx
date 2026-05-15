@@ -25,6 +25,14 @@ const faqs = [
     answer: 'Sim. É um PWA — você instala como um app normal no Android ou iPhone direto pelo navegador.',
   },
   {
+    question: 'Vocês acessam minha conta bancária?',
+    answer: 'Não. Realwise não faz Open Banking nem lê sua conta diretamente. Você importa seus extratos manualmente (CSV ou PDF do seu banco). Simples, seguro e sem nenhuma conexão direta com sua instituição financeira.',
+  },
+  {
+    question: 'Preciso conectar meu banco?',
+    answer: 'Não precisa. Você baixa o extrato direto no site do seu banco (Nubank, Itaú, Bradesco e outros) e importa no Realwise em segundos. Sem senhas de banco, sem Open Banking, sem permissões bancárias.',
+  },
+  {
     question: 'Diferença para Mobills, YNAB, Organizze?',
     answer: 'Eles são assinatura — você paga enquanto usa. Realwise é compra única — você é dono. Seus dados ficam com você, não com eles. Em 30 anos, você gastaria R$3.600–14.400 com eles e R$479,88 conosco. Uma vez.',
   },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart } from 'lucide-react';
+import { Mail, MessageCircle, Instagram } from 'lucide-react';
 
 export default function FooterSection() {
   const scrollTo = (id) => {
@@ -7,41 +7,69 @@ export default function FooterSection() {
   };
 
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 py-10 px-6 bg-slate-50/50 dark:bg-slate-900/30">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex flex-col items-start gap-1">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
+    <footer className="border-t border-slate-200 dark:border-slate-800 py-12 px-6 bg-slate-50/50 dark:bg-slate-900/30">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                <span className="text-white font-bold text-sm">R</span>
+              </div>
+              <span className="font-semibold">Realwise</span>
             </div>
-            <span className="font-semibold">Realwise</span>
+            <p className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
+              Seu sistema financeiro. Seus dados. Para sempre.
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">
+              Jonatha Pereira Lima LTDA<br />
+              CNPJ 49.725.579/0001-49
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-500 pl-12">
-            Seu sistema financeiro. Seus dados. Para sempre.
-          </p>
+
+          <div className="flex flex-col gap-3">
+            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Navegação</span>
+            <nav className="flex flex-col gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <button onClick={() => scrollTo('funcionalidades')} className="text-left hover:text-slate-900 dark:hover:text-white transition-colors">
+                Funcionalidades
+              </button>
+              <button onClick={() => scrollTo('preco')} className="text-left hover:text-slate-900 dark:hover:text-white transition-colors">
+                Preço
+              </button>
+              <button onClick={() => scrollTo('faq')} className="text-left hover:text-slate-900 dark:hover:text-white transition-colors">
+                FAQ
+              </button>
+            </nav>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Contato</span>
+            <div className="flex flex-col gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <a href="mailto:contato@realwise.com.br" className="flex items-center gap-2 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <Mail className="w-4 h-4" />
+                contato@realwise.com.br
+              </a>
+              <a href="https://wa.me/5585992265544" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <MessageCircle className="w-4 h-4" />
+                (85) 99226-5544
+              </a>
+              <a href="https://instagram.com/realwisebr" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <Instagram className="w-4 h-4" />
+                @realwisebr
+              </a>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500 dark:text-slate-400">
-          <button onClick={() => scrollTo('funcionalidades')} className="hover:text-slate-900 dark:hover:text-white transition-colors">
-            Funcionalidades
-          </button>
-          <button onClick={() => scrollTo('preco')} className="hover:text-slate-900 dark:hover:text-white transition-colors">
-            Preço
-          </button>
-          <button onClick={() => scrollTo('faq')} className="hover:text-slate-900 dark:hover:text-white transition-colors">
-            FAQ
-          </button>
-          <a href="mailto:jonathalimax@gmail.com" className="hover:text-slate-900 dark:hover:text-white transition-colors">
-            Contato
-          </a>
-        </nav>
-
-        <div className="flex flex-col items-end gap-1 text-xs text-slate-400 dark:text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <span>Feito com</span>
-            <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
-          </div>
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 dark:text-slate-600">
           <span>© 2026 Realwise. Seus dados são 100% seus.</span>
+          <div className="flex items-center gap-4">
+            <a href="/privacidade" className="hover:text-slate-900 dark:hover:text-white transition-colors">
+              Política de Privacidade
+            </a>
+            <a href="/termos" className="hover:text-slate-900 dark:hover:text-white transition-colors">
+              Termos de Uso
+            </a>
+          </div>
         </div>
       </div>
     </footer>

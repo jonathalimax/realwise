@@ -4,11 +4,11 @@ import HeroSection from '../components/landing/HeroSection';
 import PainPointsSection from '../components/landing/PainPointsSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import DataOwnershipSection from '../components/landing/DataOwnershipSection';
-import ProductShowcaseSection from '../components/landing/ProductShowcaseSection';
 import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
 import FooterSection from '../components/landing/FooterSection';
+import WhyRealwiseSection from '../components/landing/WhyRealwiseSection';
 import CheckoutModal from '../components/landing/CheckoutModal';
 
 export default function Home() {
@@ -20,9 +20,9 @@ export default function Home() {
       <div className="pt-20">
         <HeroSection onBuy={() => setCheckoutOpen(true)} />
         <PainPointsSection />
-<FeaturesSection />
+        <FeaturesSection />
         <DataOwnershipSection />
-        <ProductShowcaseSection />
+        <WhyRealwiseSection />
         <PricingSection onBuy={() => setCheckoutOpen(true)} />
         <FAQSection />
         <FinalCTASection onBuy={() => setCheckoutOpen(true)} />

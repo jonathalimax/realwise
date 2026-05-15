@@ -24,13 +24,16 @@ export default function HeroSection({ onBuy }) {
           </div>
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-            Seu controle das finanças não deveria ser
+            Clareza sobre o seu dinheiro,
             <br />
             <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-              mais uma mensalidade.
+              sem assinar mais nada.
             </span>
           </h1>
 
+          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-2 leading-relaxed">
+            Veja para onde seu dinheiro vai, organize contas e cartões, e pare de depender de planilha — tudo sem mensalidade e sem que ninguém acesse seus dados.
+          </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10 mt-8">
             <Button
@@ -66,26 +69,17 @@ export default function HeroSection({ onBuy }) {
         >
           <div className="relative mx-auto max-w-4xl">
             <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-xl" />
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/20 dark:shadow-black/40 border border-slate-200 dark:border-slate-800 bg-slate-900">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800 bg-slate-800">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                </div>
-                <div className="flex-1 mx-4">
-                  <div className="max-w-md mx-auto h-6 rounded-md bg-slate-700 flex items-center px-3">
-                    <span className="text-xs text-slate-400">realwise.com.br</span>
-                  </div>
-                </div>
-              </div>
-              <div className="aspect-[16/9] bg-slate-900 overflow-hidden">
-                <img
-                  src="/dashboard-overview.png"
-                  alt="Dashboard Realwise"
-                  className="w-full h-full object-cover object-top"
-                />
-              </div>
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/20 dark:shadow-black/40">
+              <img
+                src="/screenshot-desktop.png"
+                alt="Dashboard Realwise"
+                className="hidden md:block w-full h-auto"
+              />
+              <img
+                src="/screenshot-mobile.png"
+                alt="Dashboard Realwise mobile"
+                className="md:hidden w-full h-auto"
+              />
             </div>
           </div>
         </motion.div>

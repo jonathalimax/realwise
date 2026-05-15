@@ -8,7 +8,6 @@ const rows = [
   { label: 'Renovação automática', realwise: 'Nunca', others: 'Todo mês' },
   { label: 'Seus dados ficam', realwise: 'No seu Google Firebase', others: 'Nos servidores deles' },
   { label: 'Se o preço subir', realwise: 'Não te afeta', others: 'Você paga mais ou sai' },
-  { label: 'Seus dados', realwise: 'No seu Google, sempre', others: 'Nos servidores deles' },
   { label: 'Suporte', realwise: 'Vitalício, incluído', others: 'Enquanto pagar' },
   { label: 'Liberdade para sair', realwise: 'Total', others: 'Você perde acesso' },
 ];

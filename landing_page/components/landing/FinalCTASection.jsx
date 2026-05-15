@@ -37,7 +37,7 @@ export default function FinalCTASection({ onBuy }) {
           <p className="mt-2 text-xs text-slate-400 dark:text-slate-600">
             Dúvidas?{' '}
             <a
-              href="mailto:jonathalimax@gmail.com"
+              href="mailto:contato@realwise.com.br"
               className="underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
             >
               Envie um e-mail
