@@ -4,9 +4,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-import { httpsCallable } from 'firebase/functions';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { initSharedFirebase } from '../lib/sharedFirebase';
 import { devMark } from '../lib/devMarker';
 
@@ -26,6 +23,22 @@ export default function SharedLogin() {
     initSharedFirebase()
       .then((shared) => {
         sharedRef.current = shared;
+        // Auto-redirect: already signed in → go straight through the loader
+        if (shared.auth.currentUser) {
+          const username = shared.auth.currentUser.email.split('@')[0];
+          window.location.href = `/${username}/loading`;
+          return;
+        }
+        // Surface any error left by LoadingPage on a previous failed attempt
+        const prior = sessionStorage.getItem('__rw_login_error');
+        if (prior) {
+          sessionStorage.removeItem('__rw_login_error');
+          if (prior === 'client_config_not_found') {
+            setError('Configuração do usuário não encontrada.');
+          } else {
+            setError('Falha na autenticação. Tente novamente.');
+          }
+        }
         setInitDone(true);
       })
       .catch((err) => {
@@ -35,55 +48,14 @@ export default function SharedLogin() {
       });
   }, []);
 
-  const handlePostSignIn = async (email, functions) => {
+  const handlePostSignIn = async (email) => {
     devMark('SharedLogin: signed in as ' + email);
     if (!email) throw new Error('No email returned from Google');
     const username = email.split('@')[0];
-
-    // In dev, the getCustomToken cloud function needs a real service account which
-    // isn't available locally — redirect to the per-client login instead.
-    if (import.meta.env.DEV) {
-      const { getApps: _getApps } = await import('firebase/app');
-      const { getAuth: _getAuth } = await import('firebase/auth');
-      const sharedApp = _getApps().find(a => a.name === 'shared');
-      const sharedAuth = sharedApp ? _getAuth(sharedApp) : null;
-      sessionStorage.setItem('__rw_dev_auth_uid', sharedAuth?.currentUser?.uid ?? '');
-      sessionStorage.setItem('__rw_dev_auth_email', email ?? '');
-      sessionStorage.setItem('__rw_dev_auth_at', String(Date.now()));
-      devMark('SharedLogin: navigating to /' + username + '/dashboard');
-      window.location.href = `/${username}/dashboard`;
-      return;
-    }
-
-    let token;
-    try {
-      const getCustomToken = httpsCallable(functions, 'getCustomToken');
-      const response = await getCustomToken({ username });
-      token = response.data.token;
-    } catch (fnErr) {
-      if (fnErr.code === 'functions/not-found') {
-        setError('Acesso não autorizado.');
-        setTimeout(() => { window.location.href = '/'; }, 3000);
-        return;
-      }
-      throw fnErr;
-    }
-
-    const configRes = await fetch(`/clients/${username}.json`);
-    if (!configRes.ok) {
-      setError('Configuração do usuário não encontrada.');
-      setTimeout(() => { window.location.href = '/'; }, 3000);
-      return;
-    }
-    const userConfig = await configRes.json();
-
-    const userAppName = username;
-    const existingUserApp = getApps().find((a) => a.name === userAppName);
-    const userApp = existingUserApp ?? initializeApp(userConfig.firebase, userAppName);
-    const userAuth = getAuth(userApp);
-
-    await signInWithCustomToken(userAuth, token);
-    window.location.href = `/${username}/dashboard`;
+    // Navigate immediately to the per-client loading route. The LoadingPage
+    // owns the rest of the pipeline (config fetch, getCustomToken,
+    // signInWithCustomToken). This is what makes the login button stop spinning fast.
+    window.location.href = `/${username}/loading`;
   };
 
   const handleDevEmulatorSignIn = async () => {
@@ -91,7 +63,7 @@ export default function SharedLogin() {
     setError('');
     setLoading(true);
     try {
-      const { auth, functions } = sharedRef.current;
+      const { auth } = sharedRef.current;
       const { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } = await import('firebase/auth');
       // Clear any stale auth state — the emulator may have been restarted
       // since IndexedDB was last written, leaving us with a token for a UID
@@ -146,7 +118,7 @@ export default function SharedLogin() {
           throw e;
         }
       }
-      await handlePostSignIn(result.user.email, functions);
+      await handlePostSignIn(result.user.email);
     } catch (err) {
       console.error('[SharedLogin] dev sign-in error', err);
       setError('Falha no sign-in dev: ' + (err?.message || 'unknown'));
@@ -160,7 +132,7 @@ export default function SharedLogin() {
     setLoading(true);
 
     try {
-      const { auth, functions } = sharedRef.current;
+      const { auth } = sharedRef.current;
       const apiKey = auth.app.options.apiKey;
       const authDomain = auth.app.options.authDomain;
       const protocol = authDomain.includes('localhost') ? 'http' : 'https';
@@ -189,7 +161,7 @@ export default function SharedLogin() {
 
       const credential = GoogleAuthProvider.credential(idToken);
       const result = await signInWithCredential(auth, credential);
-      await handlePostSignIn(result.user.email, functions);
+      await handlePostSignIn(result.user.email);
     } catch (err) {
       console.error('[SharedLogin] auth error', err);
       setError('Falha na autenticação. Tente novamente.');
