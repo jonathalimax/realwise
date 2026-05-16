@@ -35,6 +35,7 @@ const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlannerPage = lazy(() => import('./pages/planner/PlannerPage'));
 const PlanningPage = lazy(() => import('./pages/Planning'));
 const BanksPage = lazy(() => import('./pages/Banks'));
+const LoadingPage = lazy(() => import('./pages/LoadingPage'));
 
 // Feature-flagged pages (only imported when flags are enabled)
 const GoalsPage = lazy(() => import('./pages/Goals'));
@@ -83,6 +84,7 @@ function AuthenticatedApp() {
                   <BillsProvider>
                     <Suspense fallback={<PageLoader />}>
                       <Routes>
+                        <Route path="loading" element={<LoadingPage />} />
                         <Route element={<Layout />}>
                           <Route index element={<Navigate to="/dashboard" replace />} />
                           <Route path="dashboard" element={<DashboardPage />} />
