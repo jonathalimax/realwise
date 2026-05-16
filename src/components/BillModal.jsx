@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { NumericFormat } from 'react-number-format';
 import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import CurrencyInput from './ui/CurrencyInput';
 
 export default function BillModal({ isOpen, onClose, bill = null }) {
   const { addBill, updateBill, deleteBill } = useBills();
@@ -189,17 +189,9 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                 {language === 'pt' ? 'Valor' : 'Amount'}
                 <span className="text-gray-400 text-xs ml-1">({language === 'pt' ? 'opcional' : 'optional'})</span>
               </label>
-              <NumericFormat
-                value={formData.amount}
-                onValueChange={(vals) => setFormData({ ...formData, amount: vals.floatValue ?? '' })}
-                thousandSeparator="."
-                decimalSeparator=","
-                decimalScale={2}
-                fixedDecimalScale
-                prefix="R$ "
-                placeholder="R$ 0,00"
-                allowNegative={false}
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              <CurrencyInput
+                value={formData.amount || 0}
+                onChange={(val) => setFormData({ ...formData, amount: val })}
               />
             </div>
 
