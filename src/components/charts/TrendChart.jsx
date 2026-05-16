@@ -7,7 +7,6 @@ import {
   LinePlot,
   ChartsXAxis,
   ChartsYAxis,
-  ChartsTooltip,
 } from '@mui/x-charts';
 
 export default function TrendChart({ transactions, selectedMonth, viewMode, cumulativeByMonth = {} }) {
@@ -202,6 +201,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
               '& .MuiChartsAxis-tick': { stroke: textColor },
               '& .MuiBarElement-root': { rx: 8, ry: 8 },
               '& .MuiLineElement-root': { strokeWidth: 3 },
+              '& svg': { touchAction: 'pan-x', userSelect: 'none' },
             }}
             margin={{ top: 20, right: 20, bottom: 36, left: 50 }}
           >
@@ -209,7 +209,6 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
             <LinePlot />
             <ChartsXAxis />
             <ChartsYAxis />
-            <ChartsTooltip />
           </ChartContainer>
         </div>
       </div>
