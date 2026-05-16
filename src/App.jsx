@@ -84,7 +84,6 @@ function AuthenticatedApp() {
                   <BillsProvider>
                     <Suspense fallback={<PageLoader />}>
                       <Routes>
-                        <Route path="loading" element={<LoadingPage />} />
                         <Route element={<Layout />}>
                           <Route index element={<Navigate to="/dashboard" replace />} />
                           <Route path="dashboard" element={<DashboardPage />} />
@@ -188,16 +187,19 @@ function AppRouter() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="login"
-        element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
-      />
-      {user
-        ? <Route path="/*" element={<AuthenticatedApp />} />
-        : <Route path="*" element={<RedirectToGlobalLogin />} />
-      }
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route
+          path="login"
+          element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
+        />
+        <Route path="loading" element={<LoadingPage />} />
+        {user
+          ? <Route path="/*" element={<AuthenticatedApp />} />
+          : <Route path="*" element={<RedirectToGlobalLogin />} />
+        }
+      </Routes>
+    </Suspense>
   );
 }
 
