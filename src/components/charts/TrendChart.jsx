@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useCards } from '../../contexts/CardsContext';
 import {
@@ -12,6 +12,7 @@ import {
 export default function TrendChart({ transactions, selectedMonth, viewMode, cumulativeByMonth = {} }) {
   const scrollContainerRef = useRef(null);
   const { formatCurrency, t, language, darkMode } = useSettings();
+  const [tappedBar, setTappedBar] = useState(null); // { label, income, expense, balance }
   const { getPaymentMonthKey } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -176,12 +177,38 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
         </div>
       </div>
 
+      {/* Tapped bar details pill */}
+      {tappedBar && (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-slate-900/90 dark:bg-slate-700/90 px-4 py-3 text-white shadow-lg backdrop-blur-sm">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-400 capitalize">{tappedBar.label}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="text-sm font-bold tabular-nums">{formatCurrency(tappedBar.income)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-rose-400" />
+              <span className="text-sm font-bold tabular-nums">{formatCurrency(tappedBar.expense)}</span>
+            </div>
+            {tappedBar.balance !== null && (
+              <div className="flex items-center gap-1.5">
+                <div className="h-0.5 w-4 rounded-full bg-indigo-400" />
+                <span className={`text-sm font-bold tabular-nums ${tappedBar.balance >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                  {formatCurrency(tappedBar.balance)}
+                </span>
+              </div>
+            )}
+          </div>
+          <button onClick={() => setTappedBar(null)} className="text-slate-400 hover:text-white transition-colors text-lg leading-none">×</button>
+        </div>
+      )}
+
       <div
         ref={scrollContainerRef}
-        className="h-72 w-full overflow-x-auto overflow-y-hidden scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="relative h-72 w-full overflow-x-auto overflow-y-hidden scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pinch-zoom' }}
       >
-        <div className="h-full w-[980px] min-w-[980px] pr-4 sm:min-w-0 sm:w-full sm:pr-0">
+        <div className="relative h-full w-[980px] min-w-[980px] pr-4 sm:min-w-0 sm:w-full sm:pr-0">
           <ChartContainer
             series={series}
             xAxis={[{
@@ -201,7 +228,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
               '& .MuiChartsAxis-tick': { stroke: textColor },
               '& .MuiBarElement-root': { rx: 8, ry: 8 },
               '& .MuiLineElement-root': { strokeWidth: 3 },
-              '& svg': { touchAction: 'pan-x', userSelect: 'none' },
+              '& svg': { pointerEvents: 'none', userSelect: 'none' },
             }}
             margin={{ top: 20, right: 20, bottom: 36, left: 50 }}
           >
@@ -210,6 +237,34 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
             <ChartsXAxis />
             <ChartsYAxis />
           </ChartContainer>
+
+          {/* Glass pane: captures clicks for bar selection, lets scroll pass through */}
+          <div
+            className="absolute inset-0 cursor-pointer"
+            style={{ touchAction: 'pan-x pinch-zoom' }}
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const scrollLeft = scrollContainerRef.current?.scrollLeft ?? 0;
+              const x = e.clientX - rect.left + scrollLeft;
+              const chartWidth = e.currentTarget.offsetWidth;
+              const leftMargin = 50;
+              const rightMargin = 20;
+              const plotWidth = chartWidth - leftMargin - rightMargin;
+              const barWidth = plotWidth / monthLabels.length;
+              const dataIndex = Math.floor((x - leftMargin) / barWidth);
+              if (dataIndex < 0 || dataIndex >= monthLabels.length) {
+                setTappedBar(null);
+                return;
+              }
+              const label = monthLabels[dataIndex];
+              const income = incomeData[dataIndex] ?? 0;
+              const expense = expenseData[dataIndex] ?? 0;
+              const balance = balanceData ? (balanceData[dataIndex] ?? null) : null;
+              setTappedBar(prev =>
+                prev?.dataIndex === dataIndex ? null : { label, income, expense, balance, dataIndex }
+              );
+            }}
+          />
         </div>
       </div>
     </div>
