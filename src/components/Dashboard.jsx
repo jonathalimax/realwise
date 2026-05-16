@@ -285,7 +285,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => { setIsFirstTimeTutorial(false); setShowTutorial(true); }}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                className="hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                 title={language === 'pt' ? 'Ajuda' : 'Help'}
               >
                 <QuestionMarkCircleIcon className="w-5 h-5" />

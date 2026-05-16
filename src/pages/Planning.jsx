@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import PageHeader from '../components/PageHeader';
 import { Shimmer } from '../components/ui/shimmer';
@@ -17,15 +17,17 @@ function PlannerSkeleton() {
   );
 }
 
-function CollapsibleSection({ title, description, defaultOpen = true, children }) {
-  const [open, setOpen] = useState(defaultOpen);
+function CollapsibleSection({ title, description, defaultOpen = true, open: controlledOpen, onToggle, children }) {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const toggle = onToggle ?? (() => setInternalOpen(prev => !prev));
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       <button
-        onClick={() => setOpen(prev => !prev)}
+        onClick={toggle}
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-        aria-expanded={open}
+        aria-expanded={isOpen}
       >
         <div className="min-w-0">
           <p className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">
@@ -37,13 +39,13 @@ function CollapsibleSection({ title, description, defaultOpen = true, children }
             </p>
           )}
         </div>
-        {open
+        {isOpen
           ? <ChevronUpIcon className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
           : <ChevronDownIcon className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
         }
       </button>
 
-      {open && (
+      {isOpen && (
         <div className="px-4 pb-4 pt-1">
           {children}
         </div>
@@ -54,6 +56,15 @@ function CollapsibleSection({ title, description, defaultOpen = true, children }
 
 export default function PlanningPage() {
   const { selectedMonth } = useMonth();
+  const [rendaOpen, setRendaOpen] = useState(true);
+  const rendaRef = useRef(null);
+
+  const focusRenda = () => {
+    setRendaOpen(true);
+    setTimeout(() => {
+      rendaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
 
   const {
     state,
@@ -84,10 +95,12 @@ export default function PlanningPage() {
         ) : (
           <>
             {/* Section 1 — Renda */}
+            <div ref={rendaRef}>
             <CollapsibleSection
               title="Renda"
               description="Salário bruto, deduções e renda líquida disponível."
-              defaultOpen={true}
+              open={rendaOpen}
+              onToggle={() => setRendaOpen(prev => !prev)}
             >
               <RendaTab
                 state={state}
@@ -99,6 +112,7 @@ export default function PlanningPage() {
                 copyFromPreviousMonth={copyFromPreviousMonth}
               />
             </CollapsibleSection>
+            </div>
 
             {/* Section 2 — Alocação */}
             <CollapsibleSection
@@ -119,6 +133,7 @@ export default function PlanningPage() {
                 categoryBudgetsPct={categoryBudgetsPct}
                 updateCategoryBudgetPct={updateCategoryBudgetPct}
                 copyFromPreviousMonth={copyFromPreviousMonth}
+                onGoToRenda={focusRenda}
               />
             </CollapsibleSection>
           </>

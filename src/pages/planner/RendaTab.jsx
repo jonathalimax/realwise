@@ -124,7 +124,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
       </div>
 
       {/* Deductions */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Deduções

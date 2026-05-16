@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { NumericFormat } from 'react-number-format';
 import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -188,14 +189,17 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                 {language === 'pt' ? 'Valor' : 'Amount'}
                 <span className="text-gray-400 text-xs ml-1">({language === 'pt' ? 'opcional' : 'optional'})</span>
               </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
+              <NumericFormat
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="0,00"
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                onValueChange={(vals) => setFormData({ ...formData, amount: vals.floatValue ?? '' })}
+                thousandSeparator="."
+                decimalSeparator=","
+                decimalScale={2}
+                fixedDecimalScale
+                prefix="R$ "
+                placeholder="R$ 0,00"
+                allowNegative={false}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
@@ -236,7 +240,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Due Date */}
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {language === 'pt' ? 'Data de Vencimento' : 'Due Date'} *
                 </label>
@@ -244,7 +248,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                  className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                     ${errors.dueDate ? 'border-rose-500' : 'border-gray-200 dark:border-gray-600'}`}
                 />
                 {errors.dueDate && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{errors.dueDate}</p>}
@@ -278,7 +282,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                   type="date"
                   value={formData.recurrenceEndDate}
                   onChange={(e) => setFormData({ ...formData, recurrenceEndDate: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                  className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                     ${errors.recurrenceEndDate ? 'border-rose-500' : 'border-gray-200 dark:border-gray-600'}`}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

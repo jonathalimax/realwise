@@ -62,8 +62,8 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
         )}
       </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 px-4 overflow-y-auto">
+      {/* Nav Links + Footer — all in one scrollable area so they scroll together on landscape */}
+      <nav className="flex-1 px-4 overflow-y-auto pb-4">
         {navigationGroups.map((group, groupIndex) => (
           <div key={groupIndex} className={groupIndex > 0 ? 'mt-4' : ''}>
             {group.label && (
@@ -86,26 +86,26 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
             </div>
           </div>
         ))}
-      </nav>
 
-      {/* Footer Actions */}
-      <div className="p-4 mt-auto border-t border-gray-100 dark:border-gray-800 space-y-1">
-        <NavLink
-          to="/settings"
-          onClick={handleLinkClick}
-          className={() => navLinkClass({ href: '/settings' })}
-        >
-          <Cog6ToothIcon className="w-5 h-5" />
-          {language === 'pt' ? 'Configurações' : 'Settings'}
-        </NavLink>
-        <button
-          onClick={onSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all uppercase tracking-wide"
-        >
-          <ArrowRightOnRectangleIcon className="w-5 h-5" />
-          {language === 'pt' ? 'Sair' : 'Sign out'}
-        </button>
-      </div>
+        {/* Footer items scroll with nav content */}
+        <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-2 space-y-1">
+          <NavLink
+            to="/settings"
+            onClick={handleLinkClick}
+            className={() => navLinkClass({ href: '/settings' })}
+          >
+            <Cog6ToothIcon className="w-5 h-5" />
+            {language === 'pt' ? 'Configurações' : 'Settings'}
+          </NavLink>
+          <button
+            onClick={onSignOut}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all uppercase tracking-wide"
+          >
+            <ArrowRightOnRectangleIcon className="w-5 h-5" />
+            {language === 'pt' ? 'Sair' : 'Sign out'}
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

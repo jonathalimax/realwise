@@ -896,18 +896,6 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </div>
                   )}
 
-                  {transaction?.isInstallment && (
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                      <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        {language === 'pt'
-                          ? `Parcela ${transaction.installmentCurrent}/${transaction.installmentTotal}. Salvar perguntará se deseja atualizar todas.`
-                          : `Installment ${transaction.installmentCurrent}/${transaction.installmentTotal}. Saving will ask if you want to update all.`}
-                      </p>
-                    </div>
-                  )}
 
                   {!isDraftMode && showDeleteConfirm && (
                     <div className="space-y-4 p-4 rounded-xl border-2 border-red-100 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30">

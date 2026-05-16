@@ -36,7 +36,7 @@ function InnerTabs({ tabs, active, onChange }) {
   );
 }
 
-export default function AllocationTab({
+export default function AllocationTab({ onGoToRenda,
   state,
   liquidezFinal,
   necessidadesValue,
@@ -110,7 +110,7 @@ export default function AllocationTab({
             Você ainda não definiu sua renda para este mês. Preencha os dados de renda para começar o planejamento.
           </p>
           <button
-            onClick={() => setSearchParams({ tab: 'renda' })}
+            onClick={() => onGoToRenda?.()}
             className="w-full px-6 py-3 rounded-xl font-bold bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98]"
           >
             💰 Definir Renda

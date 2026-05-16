@@ -12,6 +12,11 @@ html.dark {
   background-color: #020617; /* slate-950 - dark mode */
 }
 
+/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
 body {
   margin: 0;
   overscroll-behavior: none;

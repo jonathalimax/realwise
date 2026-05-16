@@ -455,10 +455,14 @@ export default function usePlannerState() {
     if (prevData) {
       updatePlannerVersion(() => ({
         salarioBruto: prevData.salarioBruto,
-        salarioDeductions: JSON.parse(JSON.stringify(prevData.salarioDeductions)),
-        allocation: JSON.parse(JSON.stringify(prevData.allocation)),
-        categoryBudgetsPct: JSON.parse(JSON.stringify(prevData.categoryBudgetsPct)),
+        salarioDeductions: JSON.parse(JSON.stringify(prevData.salarioDeductions ?? [])),
+        allocation: JSON.parse(JSON.stringify(prevData.allocation ?? {})),
+        categoryBudgetsPct: JSON.parse(JSON.stringify(prevData.categoryBudgetsPct ?? {})),
       }));
+      return true;
+    } else {
+      alert('Nenhum dado encontrado para o mês anterior.');
+      return false;
     }
   };
 

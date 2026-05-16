@@ -126,8 +126,8 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
         <PieChart
           series={[{
             data,
-            innerRadius: 100,
-            outerRadius: 150,
+            innerRadius: 78,
+            outerRadius: 120,
             paddingAngle: 3,
             cornerRadius: 4,
             highlightScope: { fade: 'global', highlight: 'item' },
@@ -137,8 +137,9 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
           slotProps={{
             legend: { hidden: true },
           }}
-          height={380}
+          height={300}
           margin={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          sx={{ maxWidth: '100%' }}
         />
 
         {/* Center Stats */}

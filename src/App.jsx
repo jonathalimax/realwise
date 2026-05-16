@@ -86,7 +86,7 @@ function AuthenticatedApp() {
                         <Route element={<Layout />}>
                           <Route index element={<Navigate to="/dashboard" replace />} />
                           <Route path="dashboard" element={<DashboardPage />} />
-                          <Route path="planner" element={<PlannerPage />} />
+                          <Route path="planner" element={<Navigate to="../planning" replace />} />
                           <Route path="planning" element={<PlanningPage />} />
                           <Route path="expenses" element={<ExpensesPage />} />
                           <Route path="income" element={<IncomePage />} />
