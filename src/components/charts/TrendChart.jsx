@@ -159,7 +159,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
               : 'Swipe horizontally on mobile to explore the months.'}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-nowrap items-center gap-2">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
             <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.55)]" />
             <span>{t('balance.income')}</span>
@@ -171,7 +171,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
           {balanceData && (
             <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
               <div className="h-0.5 w-6 rounded-full bg-indigo-500" />
-              <span>{language === 'pt' ? 'Saldo acumulado' : 'Cumulative balance'}</span>
+              <span>{language === 'pt' ? 'Saldo' : 'Balance'}</span>
             </div>
           )}
         </div>
@@ -179,27 +179,27 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
 
       {/* Tapped bar details pill */}
       {tappedBar && (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl bg-slate-900/90 dark:bg-slate-700/90 px-4 py-3 text-white shadow-lg backdrop-blur-sm">
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-400 capitalize">{tappedBar.label}</span>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
+        <div className="mb-3 flex items-center gap-2 rounded-2xl bg-slate-900/90 dark:bg-slate-700/90 px-3 py-2.5 text-white shadow-lg backdrop-blur-sm overflow-hidden">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 capitalize shrink-0">{tappedBar.label}</span>
+          <div className="flex items-center gap-3 flex-1 min-w-0 justify-center flex-nowrap">
+            <div className="flex items-center gap-1 shrink-0">
               <div className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-sm font-bold tabular-nums">{formatCurrency(tappedBar.income)}</span>
+              <span className="text-xs font-bold tabular-nums">{formatCurrency(tappedBar.income)}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 shrink-0">
               <div className="h-2 w-2 rounded-full bg-rose-400" />
-              <span className="text-sm font-bold tabular-nums">{formatCurrency(tappedBar.expense)}</span>
+              <span className="text-xs font-bold tabular-nums">{formatCurrency(tappedBar.expense)}</span>
             </div>
             {tappedBar.balance !== null && (
-              <div className="flex items-center gap-1.5">
-                <div className="h-0.5 w-4 rounded-full bg-indigo-400" />
-                <span className={`text-sm font-bold tabular-nums ${tappedBar.balance >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+              <div className="flex items-center gap-1 shrink-0">
+                <div className="h-0.5 w-3 rounded-full bg-indigo-400" />
+                <span className={`text-xs font-bold tabular-nums ${tappedBar.balance >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
                   {formatCurrency(tappedBar.balance)}
                 </span>
               </div>
             )}
           </div>
-          <button onClick={() => setTappedBar(null)} className="text-slate-400 hover:text-white transition-colors text-lg leading-none">×</button>
+          <button onClick={() => setTappedBar(null)} className="text-slate-400 hover:text-white transition-colors text-base leading-none shrink-0">×</button>
         </div>
       )}
 

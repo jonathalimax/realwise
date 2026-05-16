@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
 import { initializeApp, getApps } from 'firebase/app';
@@ -6,20 +6,17 @@ import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { initSharedFirebase } from '../lib/sharedFirebase';
 import LoginLoader from '../components/LoginLoader';
 import { devMark } from '../lib/devMarker';
-import { computeRemainingHold } from '../components/LoginLoader.timing';
-
-const MIN_DISPLAY_MS = 800;
+import { markLoginSession } from '../lib/auth/sessionAge';
 
 export default function LoadingPage() {
   const navigate = useNavigate();
   const params = useParams();
   const ranRef = useRef(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     if (ranRef.current) return;
     ranRef.current = true;
-
-    const startedAt = performance.now();
 
     async function run() {
       try {
@@ -33,9 +30,8 @@ export default function LoadingPage() {
         const username = sharedAuth.currentUser.email.split('@')[0];
 
         if (import.meta.env.DEV) {
-          await holdMin(startedAt);
-          devMark('LoadingPage: dev — navigate to dashboard');
-          navigate('/dashboard', { replace: true });
+          devMark('LoadingPage: dev — set isReady');
+          setIsReady(true);
           return;
         }
 
@@ -53,10 +49,10 @@ export default function LoadingPage() {
         const userAuth = getAuth(userApp);
 
         await signInWithCustomToken(userAuth, token);
+        markLoginSession();
 
-        await holdMin(startedAt);
-        devMark('LoadingPage: navigate to dashboard');
-        navigate('/dashboard', { replace: true });
+        devMark('LoadingPage: set isReady');
+        setIsReady(true);
       } catch (err) {
         devMark('LoadingPage ERR: ' + (err?.message || 'unknown'));
         console.error('[LoadingPage] sign-in pipeline failed', err);
@@ -65,17 +61,16 @@ export default function LoadingPage() {
       }
     }
 
-    function holdMin(startedAt) {
-      const remaining = computeRemainingHold({
-        startedAt,
-        now: performance.now(),
-        minMs: MIN_DISPLAY_MS,
-      });
-      return new Promise((r) => setTimeout(r, remaining));
-    }
-
     run();
   }, [navigate, params]);
 
-  return <LoginLoader />;
+  return (
+    <LoginLoader
+      isReady={isReady}
+      onFinished={() => {
+        devMark('LoadingPage: navigate to dashboard');
+        navigate('/dashboard', { replace: true });
+      }}
+    />
+  );
 }

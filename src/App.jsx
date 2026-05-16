@@ -1,8 +1,8 @@
-import { useState, useEffect, lazy, Suspense, useRef } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { extractClientId } from './config/clientConfig';
 import { auth } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
 import { GoalsProvider } from './contexts/GoalsContext';
 import { InvestmentProvider } from './contexts/InvestmentContext';
@@ -16,6 +16,7 @@ import { BillsProvider } from './contexts/BillsContext';
 import { PWAInstallProvider } from './contexts/PWAInstallContext';
 import { MonthProvider } from './contexts/MonthContext';
 import { devMark } from './lib/devMarker';
+import { isLoginSessionExpired } from './lib/auth/sessionAge';
 
 // Lazy-loaded page components (code splitting — each page is its own chunk)
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -158,6 +159,14 @@ function AppRouter() {
         }
 
         if (currentUser) {
+          if (isLoginSessionExpired()) {
+            signOut(auth).catch(() => {});
+            resolved = true;
+            if (devTimer) clearTimeout(devTimer);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
           resolved = true;
           if (devTimer) clearTimeout(devTimer);
           setUser(currentUser);

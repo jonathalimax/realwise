@@ -3,9 +3,10 @@
 // Does NOT rely on ClientConfigProvider or the per-client firebase.js bindings.
 
 import { useState, useEffect, useRef } from 'react';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithCredential, signOut } from 'firebase/auth';
 import { initSharedFirebase } from '../lib/sharedFirebase';
 import { devMark } from '../lib/devMarker';
+import { isLoginSessionExpired, markLoginSession } from '../lib/auth/sessionAge';
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -25,6 +26,10 @@ export default function SharedLogin() {
         sharedRef.current = shared;
         // Auto-redirect: already signed in → go straight through the loader
         if (shared.auth.currentUser) {
+          if (isLoginSessionExpired()) {
+            signOut(shared.auth).finally(() => setInitDone(true));
+            return;
+          }
           const username = shared.auth.currentUser.email.split('@')[0];
           window.location.href = `/${username}/loading`;
           return;
@@ -51,6 +56,7 @@ export default function SharedLogin() {
   const handlePostSignIn = async (email) => {
     devMark('SharedLogin: signed in as ' + email);
     if (!email) throw new Error('No email returned from Google');
+    markLoginSession();
     const username = email.split('@')[0];
     // Navigate immediately to the per-client loading route. The LoadingPage
     // owns the rest of the pipeline (config fetch, getCustomToken,
@@ -176,7 +182,7 @@ export default function SharedLogin() {
       {/* Left side — Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gray-900 p-12 flex-col justify-between">
         <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
+          <img src="/pwa-192x192.png" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
           <span className="text-2xl font-bold text-white">Realwise</span>
         </div>
 
@@ -197,7 +203,7 @@ export default function SharedLogin() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
+            <img src="/pwa-192x192.png" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
             <span className="text-2xl font-bold text-gray-900 dark:text-white">Realwise</span>
           </div>
 

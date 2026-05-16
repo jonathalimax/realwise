@@ -94,7 +94,7 @@ export default function Auth() {
         <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
+              <img src="/pwa-192x192.png" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
               <span className="text-2xl font-bold text-white">{appName}</span>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function Auth() {
           {/* Language Selector & Mobile Logo */}
           <div className="flex items-center justify-between mb-8">
             <div className="lg:hidden flex items-center gap-3">
-              <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
+              <img src="/pwa-192x192.png" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
               <span className="text-2xl font-bold text-gray-900 dark:text-white">{appName}</span>
             </div>
             <div className="hidden lg:block" />

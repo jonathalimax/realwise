@@ -278,7 +278,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-3">
-              <img src="/logo.jpg" alt="Realwise" className="w-8 h-8 rounded-lg object-contain" />
+              <img src="/pwa-192x192.png" alt="Realwise" className="w-8 h-8 rounded-lg object-contain" />
               <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Realwise Wallet</span>
             </div>
 
