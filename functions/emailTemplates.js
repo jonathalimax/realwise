@@ -35,7 +35,10 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
 
         <!-- Brand -->
         <tr><td style="padding:0 4px 16px;">
-          <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Realwise</div>
+          <table cellpadding="0" cellspacing="0" border="0"><tr>
+            <td style="vertical-align:middle;padding-right:10px;"><img src="https://realwise.com.br/logo.jpg" alt="Realwise" width="32" height="32" style="display:block;border-radius:8px;" /></td>
+            <td style="vertical-align:middle;"><div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Realwise</div></td>
+          </tr></table>
         </td></tr>
 
         <!-- Title -->
@@ -58,7 +61,7 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
 
         <!-- Footer -->
         <tr><td class="mw-footer" style="padding:24px 4px 8px;text-align:center;font-size:11px;color:#9ca3af;">
-          © ${new Date().getFullYear()} Realwise · ${footerNote || 'Todos os direitos reservados.'}
+          © 2026 Realwise · ${footerNote || 'Todos os direitos reservados.'}
         </td></tr>
 
       </table>
@@ -270,7 +273,10 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
 
           <!-- Brand -->
           <tr><td style="padding:0 4px 16px;">
-            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Realwise</div>
+            <table cellpadding="0" cellspacing="0" border="0"><tr>
+              <td style="vertical-align:middle;padding-right:10px;"><img src="https://realwise.com.br/logo.jpg" alt="Realwise" width="32" height="32" style="display:block;border-radius:8px;" /></td>
+              <td style="vertical-align:middle;"><div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Realwise</div></td>
+            </tr></table>
           </td></tr>
 
           <!-- Title + chips -->
@@ -299,7 +305,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
 
           <!-- Footer -->
           <tr><td class="mw-footer" style="padding:24px 4px 8px;text-align:center;font-size:11px;color:#9ca3af;">
-            © ${new Date().getFullYear()} Realwise · Você recebe este e-mail porque tem lembretes ativos.
+            © 2026 Realwise · Você recebe este e-mail porque tem lembretes ativos.
           </td></tr>
 
         </table>
