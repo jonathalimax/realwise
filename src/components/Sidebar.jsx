@@ -159,7 +159,7 @@ export default function Sidebar() {
     <>
       {/* Mobile Drawer */}
       <div
-        className={`fixed inset-0 z-[60] transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-[60] transition-opacity duration-300 lg:hidden ${
           mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -174,7 +174,7 @@ export default function Sidebar() {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800">
+      <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800">
         <SidebarContent {...sharedProps} mobileClose={null} />
       </aside>
     </>

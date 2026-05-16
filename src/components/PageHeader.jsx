@@ -111,7 +111,7 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
             </div>
           ) : (
             /* Mobile: hamburger or history back */
-            <div className="md:hidden flex-shrink-0 z-10">
+            <div className="lg:hidden flex-shrink-0 z-10">
               {isNestedRoute ? (
                 <button
                   type="button"

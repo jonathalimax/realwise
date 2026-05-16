@@ -7,7 +7,7 @@ export default function Layout() {
       <Sidebar />
 
       {/* Main content area */}
-      <main className="md:ml-64">
+      <main className="lg:ml-64">
         <Outlet />
       </main>
     </div>
