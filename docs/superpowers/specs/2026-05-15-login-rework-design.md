@@ -67,12 +67,36 @@ The result: the user sees one Google popup, then a Realwise-branded loading scre
 [SPA navigate to /{clientId}/dashboard — no full reload]
 ```
 
-**Two key changes from today:**
+**Three key changes from today:**
 
 1. The wait is visible and branded instead of being a blank popup → blank navigation → spinner.
 2. The final hop uses React Router `navigate(...)` instead of `window.location.href`. This eliminates a full page reload, killing the worst latency contributor in the current flow.
+3. **The navigation to `/{clientId}/loading` happens immediately after `signInWithCredential` on the shared project resolves — NOT after `getCustomToken`, per-client config fetch, or `signInWithCustomToken`.** This is the single most important ordering rule in this spec.
 
-### 2. Loading screen — `LoginLoader` component
+#### Why ordering matters (the login-button-spin problem)
+
+Today, `setLoading(true)` is set on the login button click and stays true through the entire post-sign-in pipeline (`getCustomToken` + per-client init + `signInWithCustomToken` + `window.location.href`). The user sees the button spin for ~1.2s–4s of "did anything happen?" before any new screen appears.
+
+The fix is to **navigate to the loading screen as early as possible**, then run the remaining work from inside the loading route's effect. The login button's spinner only needs to cover `signInWithCredential` on the shared project (~150–400ms) — everything after that is hidden behind the branded Lottie.
+
+**Hard constraint for implementation:** the login button handler in `SharedLogin.jsx` MUST navigate to `/{clientId}/loading` as soon as `signInWithCredential` resolves. `getCustomToken`, the per-client config fetch, and `signInWithCustomToken` MUST run from inside the loading route's effect, NOT from the button handler. Reviewers should reject any implementation that blocks on these calls before navigating.
+
+### 2. Relationship to existing loaders
+
+Today there are four spinner/loader instances in the codebase:
+
+| Loader | Location | Trigger | Plan |
+|---|---|---|---|
+| Spinner in `SharedLogin.jsx` | `/login` | While `initSharedFirebase()` resolves | **Keep** — pre-auth, brief, fine as-is |
+| Spinner in `ClientConfigContext.jsx` | Wraps the authenticated tree | While client JSON fetch + Firebase init runs | **Superseded by `LoginLoader` on the login happy path** — kept as a safety-net fallback for direct dashboard refresh |
+| Spinner in `AuthenticatedShell` (`App.jsx`) | Inside the auth tree | While `useAccess()` loads `ownerId` | **Superseded by `LoginLoader` on the login happy path** — kept as a safety-net fallback |
+| `PageLoader` Suspense fallback in `App.jsx` | Each lazy-loaded page route | While the route's JS chunk downloads | **Keep** — page-level concern, fires after the app shell is already painted |
+
+The two "post-login" spinners (`ClientConfigContext` and `AuthenticatedShell`) are not deleted. They remain in place as safety nets for non-login scenarios (e.g. a direct refresh of `/{clientId}/dashboard`, or deep-linking into the app). On the login happy path they simply do not fire, because by the time the user arrives at `/{clientId}/dashboard` from the new `/{clientId}/loading` route, both `ClientConfigContext` and `AccessContext` are already initialized.
+
+User-visible result on the login happy path: **only the new `LoginLoader` is seen** between Google popup and dashboard. None of the old spinners flash.
+
+### 3. Loading screen — `LoginLoader` component
 
 New component at `src/components/LoginLoader.jsx`. Mounted by the new `/{clientId}/loading` route.
 
