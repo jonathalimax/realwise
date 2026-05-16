@@ -113,23 +113,21 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
 
   // Scroll to show current month (index 5) on mobile when chart loads
   useEffect(() => {
-    if (scrollContainerRef.current && hasData) {
+    const doScroll = () => {
       const container = scrollContainerRef.current;
+      if (!container || !hasData) return;
       const containerWidth = container.clientWidth;
       const scrollWidth = container.scrollWidth;
-
-      // Only scroll if content is wider than container (mobile/tablet)
       if (scrollWidth > containerWidth) {
-        // Current month is at index 5 (6th position out of 12)
-        // Calculate scroll position to center the current month
         const barWidth = scrollWidth / 12;
         const currentMonthCenter = barWidth * 5 + barWidth / 2;
-        const scrollPosition = currentMonthCenter - containerWidth / 2;
-
-        container.scrollLeft = Math.max(0, scrollPosition);
+        container.scrollLeft = Math.max(0, currentMonthCenter - containerWidth / 2);
       }
-    }
-  }, [hasData]);
+    };
+    // Use rAF to ensure chart is painted before measuring
+    const raf = requestAnimationFrame(doScroll);
+    return () => cancelAnimationFrame(raf);
+  }, [hasData, selectedMonth]);
 
   if (!hasData) {
     return (
@@ -149,7 +147,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
   };
 
   return (
-    <div className="w-full rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white via-slate-50 to-emerald-50/40 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+    <div className="w-full overflow-hidden rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white via-slate-50 to-emerald-50/40 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
@@ -182,7 +180,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
       <div
         ref={scrollContainerRef}
         className="h-72 w-full overflow-x-auto overflow-y-hidden scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pinch-zoom' }}
       >
         <div className="h-full w-[980px] min-w-[980px] pr-4 sm:min-w-0 sm:w-full sm:pr-0">
           <ChartContainer
