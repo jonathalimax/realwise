@@ -133,52 +133,66 @@ function AppRouter() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let resolved = false;
-    let devTimer = null;
+    let unsubscribe;
+    let cancelled = false;
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      devMark('AppRouter: auth state ' + (currentUser?.uid ?? 'null'));
-
-      if (resolved) {
-        setUser(currentUser);
+    function attach() {
+      if (cancelled) return;
+      // `auth` is a live binding from src/firebase.js — undefined until
+      // ClientConfigContext calls initializeFirebase. Poll until defined,
+      // then subscribe.
+      if (!auth) {
+        setTimeout(attach, 50);
         return;
       }
 
-      if (currentUser) {
-        resolved = true;
-        if (devTimer) clearTimeout(devTimer);
-        setUser(currentUser);
-        setLoading(false);
-        return;
-      }
+      let resolved = false;
+      let devTimer = null;
 
-      // null on first callback — check dev sessionStorage fallback
-      if (import.meta.env.DEV) {
-        const flagAt = parseInt(sessionStorage.getItem('__rw_dev_auth_at') || '0');
-        const fresh = Date.now() - flagAt < 60_000;
-        if (fresh) {
-          devMark('AppRouter: null user but fresh session flag — waiting up to 3s');
-          // Wait up to 3s for auth to rehydrate (next non-null onAuthStateChanged)
-          devTimer = setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              devMark('AppRouter: 3s timeout reached — giving up, setting null');
-              setUser(null);
-              setLoading(false);
-            }
-          }, 3000);
-          return; // Do NOT resolve yet; wait for next callback
+      unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        devMark('AppRouter: auth state ' + (currentUser?.uid ?? 'null'));
+
+        if (resolved) {
+          setUser(currentUser);
+          return;
         }
-      }
 
-      resolved = true;
-      setUser(null);
-      setLoading(false);
-    });
+        if (currentUser) {
+          resolved = true;
+          if (devTimer) clearTimeout(devTimer);
+          setUser(currentUser);
+          setLoading(false);
+          return;
+        }
+
+        if (import.meta.env.DEV) {
+          const flagAt = parseInt(sessionStorage.getItem('__rw_dev_auth_at') || '0');
+          const fresh = Date.now() - flagAt < 60_000;
+          if (fresh) {
+            devMark('AppRouter: null user but fresh session flag — waiting up to 3s');
+            devTimer = setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                devMark('AppRouter: 3s timeout reached — giving up, setting null');
+                setUser(null);
+                setLoading(false);
+              }
+            }, 3000);
+            return;
+          }
+        }
+
+        resolved = true;
+        setUser(null);
+        setLoading(false);
+      });
+    }
+
+    attach();
 
     return () => {
-      unsubscribe();
-      if (devTimer) clearTimeout(devTimer);
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
     };
   }, []);
 
