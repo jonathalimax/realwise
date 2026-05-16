@@ -226,11 +226,11 @@ function DeductionEditRow({ draft, setDraft, onSave, onCancel, salarioBruto }) {
         onChange={e => setDraft(prev => ({ ...prev, label: e.target.value }))}
         className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
       />
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-hidden">
         <select
           value={draft.type}
           onChange={e => setDraft(prev => ({ ...prev, type: e.target.value }))}
-          className="flex-shrink-0 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="flex-shrink-0 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="value">R$ fixo</option>
           <option value="pct">% do bruto</option>
@@ -240,11 +240,11 @@ function DeductionEditRow({ draft, setDraft, onSave, onCancel, salarioBruto }) {
           onValueChange={vals => setDraft(prev => ({ ...prev, amount: vals.floatValue ?? 0 }))}
           decimalSeparator=","
           thousandSeparator={draft.type === 'value' ? '.' : ''}
-          decimalScale={draft.type === 'pct' ? 2 : 2}
+          decimalScale={2}
           suffix={draft.type === 'pct' ? ' %' : ''}
           prefix={draft.type === 'value' ? 'R$ ' : ''}
           allowNegative={false}
-          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
       </div>
       {draft.type === 'pct' && draft.amount > 0 && (
