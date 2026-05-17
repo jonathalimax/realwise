@@ -114,9 +114,9 @@ export default function PlanningPage() {
             </CollapsibleSection>
             </div>
 
-            {/* Section 2 — Alocação */}
+            {/* Section 2 — Orçamento */}
             <CollapsibleSection
-              title="Alocação"
+              title="Orçamento"
               description="Divida a renda líquida entre Necessidades, Poupança e Desejos."
               defaultOpen={true}
             >
