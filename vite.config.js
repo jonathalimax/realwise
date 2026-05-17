@@ -34,7 +34,7 @@ export default defineConfig(() => {
         manifest: {
           name: 'Realwise',
           short_name: 'Realwise',
-          start_url: '/',
+          start_url: '/loading',
           description: 'Controle financeiro pessoal simples e eficiente.',
           theme_color: '#f43f5e',
           background_color: '#f43f5e',
