@@ -269,48 +269,44 @@ function FirebaseAuthHandler() {
 function App() {
   // Handle Firebase auth popup before any routing — the popup opens at
   // /__/auth/handler which doesn't follow the /{clientId}/... pattern.
+  // Kept outside AppErrorBoundary intentionally: it's a no-UI bridge that
+  // closes the popup window; an error boundary would have nothing to show.
   if (window.location.pathname.startsWith('/__/auth/')) {
     return <FirebaseAuthHandler />;
   }
 
+  let inner;
+
   if (window.location.pathname === '/') {
-    return (
+    inner = (
       <Suspense fallback={<PageLoader />}>
         <LandingPage />
       </Suspense>
     );
-  }
-
-  if (window.location.pathname === '/purchase-success') {
-    return (
+  } else if (window.location.pathname === '/purchase-success') {
+    inner = (
       <Suspense fallback={<PageLoader />}>
         <PurchaseSuccessPage />
       </Suspense>
     );
-  }
-
-  if (window.location.pathname === '/login') {
-    return (
+  } else if (window.location.pathname === '/login') {
+    inner = (
       <Suspense fallback={<PageLoader />}>
         <SharedLogin />
       </Suspense>
     );
-  }
-
-  if (window.location.pathname.startsWith('/admin')) {
-    return (
+  } else if (window.location.pathname.startsWith('/admin')) {
+    inner = (
       <Suspense fallback={<PageLoader />}>
         <AdminApp />
       </Suspense>
     );
-  }
+  } else {
+    const clientId = extractClientId(window.location.hostname)
+      || window.location.pathname.split('/').filter(Boolean)[0]
+      || '';
 
-  const clientId = extractClientId(window.location.hostname)
-    || window.location.pathname.split('/').filter(Boolean)[0]
-    || '';
-
-  return (
-    <AppErrorBoundary>
+    inner = (
       <ClientConfigProvider>
         <PWAInstallProvider>
           <BrowserRouter basename={`/${clientId}`}>
@@ -318,8 +314,10 @@ function App() {
           </BrowserRouter>
         </PWAInstallProvider>
       </ClientConfigProvider>
-    </AppErrorBoundary>
-  );
+    );
+  }
+
+  return <AppErrorBoundary>{inner}</AppErrorBoundary>;
 }
 
 export default App;
