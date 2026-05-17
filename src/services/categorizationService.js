@@ -55,8 +55,22 @@ export function extractPattern(description) {
   // Remove common suffixes like "- SAO PAULO SP"
   pattern = pattern.replace(/\s*-\s*[A-Z]{2,}\s+[A-Z]{2}$/g, '');
 
+  // Strip asterisk-prefixed merchant suffixes: IFOOD*ABC123 → IFOOD
+  pattern = pattern.replace(/\*[A-Z0-9]{4,}/g, '');
+  // Strip short trailing date fragments: " 05/04"
+  pattern = pattern.replace(/\s+\d{2}\/\d{2}$/g, '');
+  // Strip transfer noise words at start
+  pattern = pattern.replace(/^(TRANSF|TED|DOC|PAGAMENTO|RECEBIDO)\s+/g, '');
+  // Strip asterisk-prefixed short IDs anywhere: *12345
+  pattern = pattern.replace(/\s*\*\d{4,}/g, '');
+
   // Remove excessive whitespace
   pattern = pattern.replace(/\s+/g, ' ').trim();
+
+  if (pattern.length > 50) {
+    const firstSegment = pattern.split(/\s{2,}|-/)[0].trim();
+    pattern = firstSegment.length >= 3 ? firstSegment : pattern.substring(0, 50);
+  }
 
   // If pattern is too short or too long, return as is (less useful for learning)
   if (pattern.length < 3 || pattern.length > 100) {

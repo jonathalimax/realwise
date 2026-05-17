@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, test } from 'vitest';
 import { extractPattern } from './categorizationService';
 import { categorizeTransaction } from '../constants/defaultCategorizationRules';
 
@@ -44,6 +44,21 @@ describe('extractPattern', () => {
   it('removes excessive whitespace', () => {
     const result = extractPattern('MERCADO   EXTRA');
     expect(result).toBe('MERCADO EXTRA');
+  });
+});
+
+describe('extractPattern — noise removal improvements', () => {
+  test('strips asterisk-prefixed short ID', () => {
+    expect(extractPattern('PIX JOAO *12345 05/04')).toBe('PIX JOAO');
+  });
+  test('strips trailing 2-digit/2-digit date fragments', () => {
+    expect(extractPattern('PIX JOAO 05/04')).toBe('PIX JOAO');
+  });
+  test('strips asterisk-prefixed alphanumeric merchant suffix', () => {
+    expect(extractPattern('IFOOD*ABC123')).toBe('IFOOD');
+  });
+  test('strips transfer noise words at start', () => {
+    expect(extractPattern('TRANSF PIX RESTAURANTE BOM')).toBe('PIX RESTAURANTE BOM');
   });
 });
 
