@@ -94,6 +94,12 @@ export default function AllocationTab({ onGoToRenda,
     return sums;
   }, [allCategories, categoryBudgetsPct, liquidezFinal, getCategoryRule]);
 
+  const INNER_TABS = [
+    { value: 'regra',      label: '⚖️ Regra' },
+    { value: 'categorias', label: '📂 Categorias' },
+  ];
+  const [innerTab, setInnerTab] = useState('regra');
+
   const allocationTotal = monthAllocation.necessidades + monthAllocation.poupanca + monthAllocation.desejos;
   const isValid    = allocationTotal === 100;
   const hasOverride = state.plannerVersions?.some(v => v.from === selectedMonth);
@@ -122,30 +128,31 @@ export default function AllocationTab({ onGoToRenda,
 
   return (
     <div className="space-y-6">
+      <InnerTabs tabs={INNER_TABS} active={innerTab} onChange={setInnerTab} />
+
       {/* ── MASTER PLAN (70/20/10) ───────────────────────────────────────── */}
-      <div className="space-y-4">
+      {innerTab === 'regra' && <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Plano Mestre</h2>
             {!isValid && <Badge variant="destructive">Soma: {allocationTotal}%</Badge>}
           </div>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => {
                 if (window.confirm('Deseja copiar todos os limites e a regra do mês anterior para este mês?')) {
                   copyFromPreviousMonth();
                 }
-              }} 
+              }}
               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
             >
               📥 Copiar do mês anterior
             </button>
-            <button 
+            <button
               onClick={() => {
                 if (window.confirm('Tem certeza que deseja resetar a regra 70/20/10 e todos os limites de categorias deste mês para o padrão?')) {
                   resetMonthAllocation();
                 }
-              }} 
+              }}
               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm"
             >
               🔄 Resetar
@@ -245,13 +252,12 @@ export default function AllocationTab({ onGoToRenda,
             );
           })}
         </div>
-      </div>
+      </div>}
 
       {/* ── CATEGORY LIMITS ──────────────────────────────────────────────── */}
-      <div className="space-y-4">
+      {innerTab === 'categorias' && <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Limites por Categoria</h2>
             <p className="text-xs text-gray-400">Classifique e defina o teto de gastos</p>
           </div>
           <div className="text-right">
@@ -341,7 +347,7 @@ export default function AllocationTab({ onGoToRenda,
             })
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

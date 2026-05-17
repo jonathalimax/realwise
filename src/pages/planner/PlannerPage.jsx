@@ -21,13 +21,13 @@ function PlannerSkeleton() {
 
 const PLANNER_HELP = {
   renda: 'Informe seu salário líquido. Ele é a base de todos os cálculos do planejador. Se tiver descontos em folha, ative o modo detalhado nas configurações.',
-  allocation: 'Defina a divisão ideal entre Necessidades, Poupança e Desejos. Arraste o controle para ajustar os percentuais. O total deve ser 100%.',
+  allocation: 'Defina sua regra de distribuição (70/20/10) e os limites por categoria para controlar seu orçamento mensal.',
   rastreamento: 'Acompanhe quanto do seu orçamento foi utilizado em cada categoria no mês selecionado.',
 };
 
 const PLANNER_TITLES = {
   renda: 'Renda',
-  allocation: 'Alocação',
+  allocation: 'Orçamento',
   rastreamento: 'Gastos',
 };
 
