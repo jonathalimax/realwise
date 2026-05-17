@@ -43,11 +43,17 @@ export function ClientConfigProvider({ children }) {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center p-8">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Aplicativo não encontrado.
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-6">
+        <div className="max-w-md text-center space-y-4">
+          <p className="text-gray-600 dark:text-gray-300">
+            Não foi possível carregar a configuração.
           </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-lg bg-rose-500 text-white hover:bg-rose-600"
+          >
+            Recarregar
+          </button>
         </div>
       </div>
     );
