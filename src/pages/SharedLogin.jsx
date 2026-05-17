@@ -182,7 +182,7 @@ export default function SharedLogin() {
       {/* Left side — Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gray-900 p-12 flex-col justify-between">
         <div className="flex items-center gap-3">
-          <img src="/pwa-192x192.png" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
+          <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
           <span className="text-2xl font-bold text-white">Realwise</span>
         </div>
 
@@ -203,7 +203,7 @@ export default function SharedLogin() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <img src="/pwa-192x192.png" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
+            <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
             <span className="text-2xl font-bold text-gray-900 dark:text-white">Realwise</span>
           </div>
 
