@@ -8,7 +8,6 @@ const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
 const emailHostSecret = defineSecret('EMAIL_HOST');
 const emailPortSecret = defineSecret('EMAIL_PORT');
 
-const ADMIN_EMAIL = 'suporte@realwise.com.br';
 const APP_BASE_URL = 'https://app.realwise.com.br';
 
 exports.sendImportIssueEmail = functions
@@ -47,7 +46,7 @@ exports.sendImportIssueEmail = functions
 
     await transporter.sendMail({
       from: emailUserSecret.value(),
-      to: ADMIN_EMAIL,
+      to: process.env.EMAIL_IMPORT_ISSUES || process.env.EMAIL_USER,
       subject: `[Realwise] Import failed — ${issue.bankType} — ${issue.clientId}`,
       text: lines.join('\n'),
       attachments: [{ filename: issue.fileName, content: fileBuf, contentType: issue.fileMime }],
