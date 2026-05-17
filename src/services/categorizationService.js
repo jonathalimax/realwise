@@ -3,7 +3,7 @@
  * Manages user-defined categorization rules that learn from manual categorizations
  */
 
-import { db } from '../firebase';
+import { db, getSharedDb } from '../firebase';
 import {
   collection,
   doc,
@@ -81,6 +81,34 @@ export function extractPattern(description) {
 }
 
 /**
+ * Write a user correction to the shared categorization rules collection.
+ * Best-effort — errors are caught and logged, not thrown.
+ * @param {string} pattern - Extracted pattern
+ * @param {string} category - Corrected category
+ */
+async function writeSharedRule(pattern, category) {
+  if (!pattern || !category || category === 'Sem categoria') return;
+  try {
+    const sharedDb = await getSharedDb();
+    const rulesRef = collection(sharedDb, 'sharedCategorizationRules');
+    const q = query(rulesRef, where('pattern', '==', pattern));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      await updateDoc(doc(sharedDb, 'sharedCategorizationRules', snap.docs[0].id), {
+        category, usageCount: increment(1), updatedAt: serverTimestamp(),
+      });
+    } else {
+      await addDoc(rulesRef, {
+        pattern, category, source: 'user_correction', createdBy: 'unknown',
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp(), usageCount: 1, isActive: true,
+      });
+    }
+  } catch (err) {
+    console.warn('[categorizationService] Failed to write shared rule:', err);
+  }
+}
+
+/**
  * Save a user categorization rule
  * @param {string} userId - User ID
  * @param {Object} data - { description, category, type }
@@ -111,6 +139,7 @@ export async function saveUserCategorizationRule(userId, { description, category
         usedCount: increment(1),
         updatedAt: serverTimestamp()
       });
+      writeSharedRule(pattern, category); // best-effort, don't await
       return existingDoc.id;
     } else {
       // Create new rule
@@ -127,6 +156,7 @@ export async function saveUserCategorizationRule(userId, { description, category
       };
 
       const docRef = await addDoc(rulesRef, newRule);
+      writeSharedRule(pattern, category); // best-effort, don't await
       return docRef.id;
     }
   } catch (error) {
