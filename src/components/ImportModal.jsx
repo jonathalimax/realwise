@@ -13,7 +13,7 @@ import { generateTransactionHash } from '../services/installments';
 import { detectDuplicatesWithAI } from '../services/aiCategorizationService';
 import { analytics } from '../services/analyticsService';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { useFeature } from '../contexts/ClientConfigContext';
+import { useFeature, useClientConfig } from '../contexts/ClientConfigContext';
 import CurrencyInput from './ui/CurrencyInput';
 import PlannerGoalSelect from './PlannerGoalSelect';
 import ImportIssueReport from './ImportIssueReport';
@@ -191,6 +191,7 @@ function TransactionRowContent({
 
 export default function ImportModal({ isOpen = true, onClose, embedded = false }) {
   const hasB3Sync = useFeature('b3Sync');
+  const clientConfig = useClientConfig();
   const isMobile = useIsMobile();
   const [file, setFile] = useState(null);
   const [selectedBankId, setSelectedBankId] = useState(null);
@@ -321,6 +322,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       const userId = ownerId || auth.currentUser?.uid;
       const aiOptions = geminiApiKey ? { apiKey: geminiApiKey, categories } : {};
       if (pdfPassword) aiOptions.pdfPassword = pdfPassword;
+      aiOptions.clientConfig = clientConfig;
 
       const parsed = await parseFile(file, bankType, userId, aiOptions);
 
