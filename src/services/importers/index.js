@@ -334,6 +334,54 @@ export async function filterDuplicates(transactions, userId, db) {
   return transactions.filter(t => !existingHashes.has(t.dedupHash));
 }
 
+export const BANK_LABELS = {
+  nubank: 'Nubank',
+  bradesco: 'Bradesco',
+  inter: 'Banco Inter',
+  mercadopago: 'Mercado Pago',
+  itau: 'Itaú',
+  itauPdf: 'Itaú (PDF)',
+  bradescoPdf: 'Bradesco (PDF)',
+  interPdf: 'Inter (PDF)',
+  interFaturaPdf: 'Inter Fatura (PDF)',
+  mercadopagoPdf: 'Mercado Pago (PDF)',
+  ofx: 'OFX',
+  generic: 'Formato genérico',
+  unknown: 'Banco desconhecido',
+};
+
+export async function detectBankFromFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'ofx') return 'ofx';
+  if (ext === 'pdf') {
+    try {
+      const { text } = await extractPdfText(file);
+      if (detectItauPdf(text)) return 'itauPdf';
+      if (detectBradescoPdf(text)) return 'bradescoPdf';
+      if (detectInterFaturaPdf(text)) return 'interFaturaPdf';
+      if (detectInterPdf(text)) return 'interPdf';
+      if (detectMercadoPagoPdf(text)) return 'mercadopagoPdf';
+    } catch {
+      // password-protected or unreadable
+    }
+    return 'unknown';
+  }
+  // CSV / Excel
+  try {
+    const data = ext === 'csv' ? await parseCSV(file) : await parseExcel(file);
+    if (!data.length) return 'generic';
+    const headers = Object.keys(data[0]);
+    if (detectNubank(headers)) return 'nubank';
+    if (detectInter(headers)) return 'inter';
+    if (detectItau(headers)) return 'itau';
+    if (detectBradesco(headers)) return 'bradesco';
+    if (detectMercadopago(headers)) return 'mercadopago';
+    return 'generic';
+  } catch {
+    return 'generic';
+  }
+}
+
 // Each option includes a `status` indicating whether we have a built-in parser.
 // 'auto'   — built-in parser exists
 // 'manual' — bank is recognized but no parser yet; selecting it triggers the
