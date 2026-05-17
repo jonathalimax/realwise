@@ -2,6 +2,23 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+function readBuildHash() {
+  try {
+    const head = readFileSync(resolve(process.cwd(), '.git/HEAD'), 'utf8').trim();
+    if (head.startsWith('ref: ')) {
+      const refPath = head.slice(5);
+      const sha = readFileSync(resolve(process.cwd(), '.git', refPath), 'utf8').trim();
+      return sha.slice(0, 7);
+    }
+    return head.slice(0, 7);
+  } catch {
+    return Date.now().toString(36);
+  }
+}
+const buildHash = readBuildHash();
 
 // https://vite.dev/config/
 export default defineConfig(() => {
@@ -55,6 +72,9 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, './src'),
         '@landing': path.resolve(__dirname, './landing_page'),
       },
+    },
+    define: {
+      __BUILD_HASH__: JSON.stringify(buildHash),
     },
     test: {
       environment: 'node',
