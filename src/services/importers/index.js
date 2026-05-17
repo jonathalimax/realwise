@@ -225,6 +225,7 @@ async function categorizeParsedTransactions(transactions, userId, options) {
       isUserRule: categorization?.isUserRule || false,
       needsAI: isUncategorized,
       hash: generateTransactionHash(t),
+      bankType: t.bankType || 'unknown',
     };
 
     if (installmentInfo) {
@@ -298,7 +299,39 @@ async function categorizeParsedTransactions(transactions, userId, options) {
     };
   });
 
-  return processedTransactions;
+  const indexed = assignPositionalIndices(processedTransactions);
+  const withHashes = indexed.map(t => ({
+    ...t,
+    dedupHash: generateTransactionHash({
+      date: t.date, amount: t.amount, bankType: t.bankType || 'unknown',
+      originalId: t.originalId || '', positionalIndex: t.positionalIndex ?? 0,
+    }),
+  }));
+  return withHashes;
+}
+
+function assignPositionalIndices(transactions) {
+  const groups = {};
+  return transactions.map(t => {
+    if (t.originalId) return { ...t, positionalIndex: 0 };
+    const key = `${String(t.date).substring(0, 10)}|${Math.abs(Number(t.amount)).toFixed(2)}`;
+    groups[key] = (groups[key] ?? -1) + 1;
+    return { ...t, positionalIndex: groups[key] };
+  });
+}
+
+export async function filterDuplicates(transactions, userId, db) {
+  const { collection, query, where, getDocs } = await import('firebase/firestore');
+  const hashes = transactions.map(t => t.dedupHash).filter(Boolean);
+  if (!hashes.length) return transactions;
+  const existingHashes = new Set();
+  for (let i = 0; i < hashes.length; i += 30) {
+    const chunk = hashes.slice(i, i + 30);
+    const q = query(collection(db, 'transactions'), where('userId', '==', userId), where('dedupHash', 'in', chunk));
+    const snap = await getDocs(q);
+    snap.docs.forEach(d => existingHashes.add(d.data().dedupHash));
+  }
+  return transactions.filter(t => !existingHashes.has(t.dedupHash));
 }
 
 // Each option includes a `status` indicating whether we have a built-in parser.
