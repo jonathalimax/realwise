@@ -110,17 +110,29 @@ function hashString(str) {
 }
 
 /**
- * Generate a transaction hash for duplicate detection
- * @param {Object} transaction - Transaction object
- * @returns {string} - Hash string
+ * Pure deterministic hash for dedup. Uses djb2-variant producing 64 hex chars.
+ * Excludes description/name/type — these change across bank exports.
+ * Stable key: date + abs(amount) + bankType + originalId + positionalIndex
  */
-export function generateTransactionHash(transaction) {
-  // Use date (YYYY-MM-DD only), description, and amount for hash
-  const dateStr = transaction.date ? transaction.date.split('T')[0] : '';
-  const desc = (transaction.description || '').toLowerCase().trim();
-  const amount = Math.round((transaction.amount || 0) * 100); // Convert to cents for precision
+export function generateTransactionHash({ date, amount, bankType, originalId, positionalIndex = 0 }) {
+  const normalizedDate = String(date || '').substring(0, 10);
+  const normalizedAmount = Math.abs(Number(amount)).toFixed(2);
+  const normalizedBank = String(bankType || 'unknown');
+  const normalizedId = String(originalId || '');
+  const normalizedIndex = normalizedId ? '0' : String(positionalIndex);
+  const input = `${normalizedDate}|${normalizedAmount}|${normalizedBank}|${normalizedId}|${normalizedIndex}`;
+  return djb2Hash64(input);
+}
 
-  return hashString(`${dateStr}|${desc}|${amount}`);
+function djb2Hash64(message) {
+  let hash = 5381;
+  for (let i = 0; i < message.length; i++) {
+    hash = ((hash << 5) + hash) ^ message.charCodeAt(i);
+    hash = hash >>> 0;
+  }
+  const h = (x) => (hash ^ x) >>> 0;
+  return [h(0), h(0xDEADBEEF), h(0xCAFEBABE), h(0xBAADF00D), h(0x8BADF00D), h(0xFEEDFACE), h(0xABADBABE), h(0xDEADC0DE)]
+    .map(n => n.toString(16).padStart(8, '0')).join('');
 }
 
 /**
