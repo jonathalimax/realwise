@@ -5,6 +5,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, connectAuthEmulator, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getFirestore } from 'firebase/firestore';
 
 const APP_NAME = 'shared';
 
@@ -21,6 +22,7 @@ export async function initSharedFirebase() {
     return {
       auth: getAuth(existing),
       functions: getFunctions(existing),
+      db: getFirestore(existing),
     };
   }
 
@@ -31,6 +33,7 @@ export async function initSharedFirebase() {
   const app = initializeApp(config.firebase, APP_NAME);
   const auth = getAuth(app);
   const functions = getFunctions(app);
+  const db = getFirestore(app);
 
   if (import.meta.env.DEV) {
     connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
@@ -44,5 +47,5 @@ export async function initSharedFirebase() {
     setPersistence(auth, browserLocalPersistence)
   );
 
-  return { auth, functions };
+  return { auth, functions, db };
 }

@@ -78,3 +78,13 @@ export async function initializeFirebase(firebaseConfig, appName = '[DEFAULT]') 
 }
 
 export { app };
+
+/**
+ * Returns the Firestore instance for the shared Firebase project (public/clients/app.json).
+ * Lazily initialises the shared app on first call.
+ * Use this instead of `db` when writing to the central moneywise collection.
+ */
+export async function getSharedDb() {
+  const { db } = await import('./lib/sharedFirebase').then(m => m.initSharedFirebase());
+  return db;
+}
