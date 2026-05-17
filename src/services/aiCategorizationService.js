@@ -233,8 +233,12 @@ export async function categorizeWithAI({
   categories,
   userId,
   apiKey,
-  fallbackFn
-}) {
+  fallbackFn,
+  options
+} = {}) {
+  const useAI = options?.clientConfig?.features?.useAICategorization === true;
+  if (!useAI) return { category: 'Sem categoria', source: 'none' };
+
   // 1. Check local cache first (free, instant)
   const cached = checkCache(description);
   if (cached) {
@@ -305,6 +309,13 @@ export async function categorizeWithAI({
  * @returns {Promise<Map<string, Object>>} - Map of description -> result
  */
 export async function batchCategorizeWithAI(transactions, params) {
+  const useAI = params?.clientConfig?.features?.useAICategorization === true;
+  if (!useAI) {
+    const fallbackMap = new Map();
+    transactions.forEach(t => fallbackMap.set(t.description, { category: 'Sem categoria', source: 'none' }));
+    return fallbackMap;
+  }
+
   const results = new Map();
   const { categories, userId, apiKey, fallbackFn } = params;
 
