@@ -280,8 +280,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
 
       snapshot.docs.forEach(doc => {
         const data = doc.data();
-        if (data.hash) hashes.add(data.hash);
-        else hashes.add(generateTransactionHash({ date: data.date, description: data.description, amount: data.amount }));
+        if (data.dedupHash) hashes.add(data.dedupHash);
+        else if (data.hash) hashes.add(data.hash);
       });
       setExistingHashes(hashes);
     } catch (err) {
@@ -330,7 +330,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
 
       const seenGroups = new Set();
       const afterHashFilter = parsed.map((t, index) => {
-        const isDuplicate = existingHashes.has(t.hash);
+        const isDuplicate = existingHashes.has(t.dedupHash) || existingHashes.has(t.hash);
         if (isDuplicate) hashDuplicates++;
         if (t.isInstallment && t.installmentGroupId && !seenGroups.has(t.installmentGroupId)) {
           installments++;
