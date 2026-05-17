@@ -6,7 +6,6 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
 import { GoalsProvider } from './contexts/GoalsContext';
 import { InvestmentProvider } from './contexts/InvestmentContext';
-import Auth from './components/Auth';
 import Layout from './components/Layout';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { AccessProvider, useAccess } from './contexts/AccessContext';
@@ -206,17 +205,18 @@ function AppRouter() {
     };
   }, []);
 
-  if (loading) {
+  // Skip the loading-gate PageLoader on /loading so LoginLoader is the
+  // only visible UI on the happy path (spec §2). LoadingPage owns its own
+  // UI and doesn't require `user` to be resolved.
+  const onLoadingRoute = window.location.pathname.endsWith('/loading');
+
+  if (loading && !onLoadingRoute) {
     return <PageLoader />;
   }
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route
-          path="login"
-          element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
-        />
         <Route path="loading" element={<LoadingPage />} />
         {user
           ? <Route path="/*" element={<AuthenticatedApp />} />
