@@ -159,49 +159,59 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
               : 'Swipe horizontally on mobile to explore the months.'}
           </p>
         </div>
-        <div className="flex flex-nowrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.55)]" />
-            <span>{t('balance.income')}</span>
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
-            <div className="h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(239,68,68,0.45)]" />
-            <span>{t('balance.expenses')}</span>
-          </div>
-          {balanceData && (
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700">
-              <div className="h-0.5 w-6 rounded-full bg-indigo-500" />
-              <span>{language === 'pt' ? 'Saldo' : 'Balance'}</span>
-            </div>
+        <div className="flex flex-col items-end gap-1.5">
+          {tappedBar && (
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 capitalize self-end">
+              {tappedBar.label}
+            </span>
           )}
-        </div>
-      </div>
-
-      {/* Tapped bar details pill */}
-      {tappedBar && (
-        <div className="mb-3 flex items-center gap-2 rounded-2xl bg-slate-900/90 dark:bg-slate-700/90 px-3 py-2.5 text-white shadow-lg backdrop-blur-sm overflow-hidden">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 capitalize shrink-0">{tappedBar.label}</span>
-          <div className="flex items-center gap-3 flex-1 min-w-0 justify-center flex-nowrap">
-            <div className="flex items-center gap-1 shrink-0">
-              <div className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-xs font-bold tabular-nums">{formatCurrency(tappedBar.income)}</span>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <div className="h-2 w-2 rounded-full bg-rose-400" />
-              <span className="text-xs font-bold tabular-nums">{formatCurrency(tappedBar.expense)}</span>
-            </div>
-            {tappedBar.balance !== null && (
-              <div className="flex items-center gap-1 shrink-0">
-                <div className="h-0.5 w-3 rounded-full bg-indigo-400" />
-                <span className={`text-xs font-bold tabular-nums ${tappedBar.balance >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                  {formatCurrency(tappedBar.balance)}
+          <div className={`flex gap-2 transition-all duration-200 ${tappedBar ? 'flex-col items-stretch' : 'flex-nowrap items-center'}`}>
+            <div className={`inline-flex items-center justify-between gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700 ${tappedBar ? 'ring-emerald-300 dark:ring-emerald-700' : ''}`}>
+              <div className="flex items-center gap-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.55)]" />
+                <span>{t('balance.income')}</span>
+              </div>
+              {tappedBar && (
+                <span className="text-xs font-bold tabular-nums text-emerald-600 dark:text-emerald-400 ml-2">
+                  {formatCurrency(tappedBar.income)}
                 </span>
+              )}
+            </div>
+            <div className={`inline-flex items-center justify-between gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700 ${tappedBar ? 'ring-rose-300 dark:ring-rose-700' : ''}`}>
+              <div className="flex items-center gap-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(239,68,68,0.45)]" />
+                <span>{t('balance.expenses')}</span>
+              </div>
+              {tappedBar && (
+                <span className="text-xs font-bold tabular-nums text-rose-600 dark:text-rose-400 ml-2">
+                  {formatCurrency(tappedBar.expense)}
+                </span>
+              )}
+            </div>
+            {balanceData && (
+              <div className={`inline-flex items-center justify-between gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800/80 dark:text-slate-200 dark:ring-slate-700 ${tappedBar ? 'ring-indigo-300 dark:ring-indigo-700' : ''}`}>
+                <div className="flex items-center gap-2">
+                  <div className="h-0.5 w-6 rounded-full bg-indigo-500" />
+                  <span>{language === 'pt' ? 'Saldo' : 'Balance'}</span>
+                </div>
+                {tappedBar && tappedBar.balance !== null && (
+                  <span className={`text-xs font-bold tabular-nums ml-2 ${tappedBar.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {formatCurrency(tappedBar.balance)}
+                  </span>
+                )}
               </div>
             )}
           </div>
-          <button onClick={() => setTappedBar(null)} className="text-slate-400 hover:text-white transition-colors text-base leading-none shrink-0">×</button>
+          {tappedBar && (
+            <button
+              onClick={() => setTappedBar(null)}
+              className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors self-end"
+            >
+              {language === 'pt' ? 'Limpar' : 'Clear'} ×
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       <div
         ref={scrollContainerRef}
