@@ -484,6 +484,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     setEditingTransaction({
       ...transaction,
       id: transaction._localId,
+      bankId: transaction.bankId ?? selectedBankId ?? null,
       selectedGoalId: transaction.goalId || '',
       selectedPlannerGoalId: transaction.plannerGoalId || '',
       investmentType: transaction.investmentType || 'fixed_income'

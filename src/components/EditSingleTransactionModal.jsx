@@ -348,17 +348,17 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
+          <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
               leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
+              <Dialog.Panel className="relative w-full sm:max-w-lg transform overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[92vh] overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title className="text-xl font-bold text-gray-900 dark:text-white">
                     {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
@@ -399,9 +399,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   </div>
 
                   {/* Row 1: Amount + Date */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {/* Amount */}
-                    <div>
+                    <div className="min-w-0">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('transactionForm.amount')}
                       </label>
@@ -409,19 +409,18 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </div>
 
                     {/* Date */}
-                    <div>
+                    <div className="min-w-0 overflow-hidden">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('transactionForm.date')}
                       </label>
                       <input
                         type="date"
-                        lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                         value={transactionDate}
                         onChange={(e) => setTransactionDate(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                          text-gray-900 dark:text-white
+                        className="w-full px-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                          text-gray-900 dark:text-white text-sm
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                          transition-all duration-200"
+                          transition-all duration-200 min-w-0"
                       />
                     </div>
                   </div>
