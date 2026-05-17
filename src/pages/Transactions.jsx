@@ -124,7 +124,7 @@ export default function TransactionsPage() {
   const filteredTransactions = useMemo(() => {
     let result = monthlyTransactions;
     if (showUncategorized) {
-      result = result.filter(t => !t.category);
+      result = result.filter(t => t.category === 'Sem categoria');
     } else if (selectedCategoryFilter !== 'all') {
       result = result.filter(t => t.category === selectedCategoryFilter);
     }
@@ -177,7 +177,7 @@ export default function TransactionsPage() {
   const canGoNext = availableMonths.indexOf(selectedMonth) > 0;
 
   const uncategorizedCount = useMemo(() => {
-    return monthlyTransactions.filter(t => !t.category).length;
+    return monthlyTransactions.filter(t => t.category === 'Sem categoria').length;
   }, [monthlyTransactions]);
 
   const activeFiltersCount = [
@@ -311,7 +311,7 @@ export default function TransactionsPage() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-              {language === 'pt' ? 'A Categorizar' : 'To Review'}
+              {language === 'pt' ? 'Sem categoria' : 'Uncategorized'}
               {uncategorizedCount > 0 && (
                 <span className={`ml-auto px-1.5 py-0.5 text-xs font-bold rounded-full ${
                   showUncategorized

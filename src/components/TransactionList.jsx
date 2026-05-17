@@ -257,7 +257,7 @@ export default function TransactionList({
                               disabled={!canWrite || isSaving}
                               onChange={(e) => handleQuickCategoryChange(transaction, e.target.value)}
                               className={`appearance-none pl-2 pr-6 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 max-w-[120px] truncate ${
-                                !transaction.category
+                                transaction.category === 'Sem categoria' || !transaction.category
                                   ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                                   : transaction.type === 'income'
                                     ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
