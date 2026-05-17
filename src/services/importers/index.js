@@ -7,6 +7,7 @@ import { parseMercadopagoStatement, detectMercadopago } from './bankParsers/merc
 import { parseGenericStatement } from './bankParsers/generic';
 import { categorizeTransaction } from '../../constants/defaultCategorizationRules';
 import { loadUserCategorizationRules } from '../categorizationService';
+import { getSharedDb } from '../../firebase';
 import { batchCategorizeWithAI } from '../aiCategorizationService';
 import {
   detectInstallment,
@@ -190,24 +191,38 @@ async function parseExcel(file) {
   });
 }
 
+async function loadSharedCategorizationRules() {
+  try {
+    const { collection, query, where, orderBy, limit, getDocs } = await import('firebase/firestore');
+    const sharedDb = await getSharedDb();
+    const rulesRef = collection(sharedDb, 'sharedCategorizationRules');
+    const q = query(rulesRef, where('isActive', '==', true), orderBy('usageCount', 'desc'), limit(1000));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => {
+      const data = d.data();
+      return { id: d.id, keywords: [data.pattern], category: data.category, type: data.type || 'expense', priority: 20, isSharedRule: true };
+    });
+  } catch (err) {
+    console.warn('[importers] Failed to load shared rules:', err);
+    return [];
+  }
+}
+
 async function categorizeParsedTransactions(transactions, userId, options) {
   const { apiKey, categories: availableCategories } = options;
 
-  let userRules = [];
-  if (userId) {
-    try {
-      userRules = await loadUserCategorizationRules(userId);
-    } catch (err) {
-      console.error('Error loading user categorization rules:', err);
-    }
-  }
+  const [userRules, sharedRules] = await Promise.all([
+    userId ? loadUserCategorizationRules(userId).catch(err => { console.error('Error loading user categorization rules:', err); return []; }) : Promise.resolve([]),
+    loadSharedCategorizationRules(),
+  ]);
+  const allRules = [...userRules, ...sharedRules];
 
   const processedTransactions = [];
   const uncategorizedTransactions = [];
   const processedInstallmentGroups = new Set();
 
   for (const t of transactions) {
-    const categorization = categorizeTransaction(t.description, userRules);
+    const categorization = categorizeTransaction(t.description, allRules);
     const installmentInfo = detectInstallment(t.description);
 
     const isUncategorized =
