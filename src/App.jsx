@@ -17,6 +17,7 @@ import { PWAInstallProvider } from './contexts/PWAInstallContext';
 import { MonthProvider } from './contexts/MonthContext';
 import { devMark } from './lib/devMarker';
 import { isLoginSessionExpired } from './lib/auth/sessionAge';
+import AppErrorBoundary from './components/AppErrorBoundary';
 
 // Lazy-loaded page components (code splitting — each page is its own chunk)
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -309,13 +310,15 @@ function App() {
     || '';
 
   return (
-    <ClientConfigProvider>
-      <PWAInstallProvider>
-        <BrowserRouter basename={`/${clientId}`}>
-          <AppRouter />
-        </BrowserRouter>
-      </PWAInstallProvider>
-    </ClientConfigProvider>
+    <AppErrorBoundary>
+      <ClientConfigProvider>
+        <PWAInstallProvider>
+          <BrowserRouter basename={`/${clientId}`}>
+            <AppRouter />
+          </BrowserRouter>
+        </PWAInstallProvider>
+      </ClientConfigProvider>
+    </AppErrorBoundary>
   );
 }
 
