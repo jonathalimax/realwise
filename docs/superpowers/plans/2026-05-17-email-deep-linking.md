@@ -298,11 +298,26 @@ href={`https://realwise.com.br/checkout?coupon=${encodeURIComponent(couponCode)}
 
 If the templates don't exist, implement them per the `2026-05-13-email-system-redesign.md` spec using the base template style, with the CTA URLs above.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Verify bill reminder CTA points to `/bills`**
+
+`clientScheduledBillReminders.js` already constructs the correct URL:
+```js
+const billsUrl = `https://realwise.com.br/${authUser.email.split('@')[0]}/bills`;
+```
+
+Confirm this line exists and is correct. The dead `sendBillReminderEmail` function in `functions/index.js` (which used `'https://realwise.com.br'` as default) has been removed — `scheduledBillReminders` is exported directly from `clientScheduledBillReminders.js`.
+
+```bash
+grep -n "billsUrl\|bills" functions/clientScheduledBillReminders.js
+```
+
+Expected: `billsUrl = \`https://realwise.com.br/\${...}/bills\`` — no `/dashboard` anywhere.
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add functions/emailTemplates.js functions/index.js
-git commit -m "fix: audit email template CTAs — deep-link to /checkout and correct app URLs"
+git commit -m "fix: audit email template CTAs — deep-link to /checkout, /bills, and correct app URLs"
 ```
 
 ---

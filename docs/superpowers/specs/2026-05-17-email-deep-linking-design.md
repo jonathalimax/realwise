@@ -81,7 +81,7 @@ Every template CTA link must point to the correct destination. Updated mapping:
 | `checkoutReminderTemplate` | `https://realwise.com.br/checkout?email={email}&name={name}` | New — abandoned cart reminder |
 | `checkoutCouponTemplate` | `https://realwise.com.br/checkout?coupon={code}&email={email}&name={name}` | New — coupon email |
 | `checkoutLastChanceTemplate` | `https://realwise.com.br/checkout?coupon={code}&email={email}&name={name}` | New — last chance email |
-| `billReminderTemplate` | `https://realwise.com.br/{clientId}/dashboard` | Bills CTA — keep as-is |
+| `billReminderTemplate` | `https://realwise.com.br/{clientId}/bills` | Deep-link directly to Bills page, not dashboard |
 
 **Audit process:**
 1. Open each template function.

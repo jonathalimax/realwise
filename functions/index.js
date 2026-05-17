@@ -507,26 +507,7 @@ exports.checkPaymentStatus = functions.https.onRequest((req, res) => {
 
 exports.scheduledBillReminders = require('./clientScheduledBillReminders').scheduledBillReminders;
 
-async function sendBillReminderEmail(transporter, from, to, name, billGroups, billsUrl = 'https://realwise.com.br') {
-  const formatTotalCurrency = (val) => {
-    const num = parseFloat(val);
-    return `R$ ${(isNaN(num) ? 0 : num).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-  };
 
-  const allBills = [...billGroups.overdue, ...billGroups.dueToday, ...billGroups.upcoming];
-  const grandTotal = allBills.reduce((sum, b) => {
-    const amt = b.cardOutcomesAmount != null ? b.cardOutcomesAmount : (b.amount || 0);
-    return sum + amt;
-  }, 0);
-
-  const subject = billGroups.overdue.length > 0
-    ? `⚠️ ${billGroups.overdue.length} conta(s) atrasada(s) · ${formatTotalCurrency(grandTotal)}`
-    : `📅 Vence hoje · ${formatTotalCurrency(grandTotal)}`;
-
-  const html = billReminderTemplate(name, billGroups, billsUrl);
-
-  await transporter.sendMail({ from: `"Realwise" <${from}>`, to, subject, html });
-}
 /**
  * Sync B3 investment prices and dividends from Brapi.dev
  * Runs on 1st, 10th, and 20th of each month at 8 AM Brazil time
