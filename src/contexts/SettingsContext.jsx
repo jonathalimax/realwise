@@ -16,11 +16,11 @@ export const CURRENCIES = {
 // All available predefined categories by language
 export const ALL_CATEGORIES_BY_LANG = {
   en: {
-    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
+    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Groceries', 'Healthcare', 'Education', 'Leisure', 'Sports', 'Clothing', 'Beauty', 'Shopping', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
     income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Bonus', 'Rental', 'Other']
   },
   pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
+    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Mercado', 'Saúde', 'Educação', 'Lazer', 'Esporte', 'Vestuário', 'Beleza', 'Compras', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
     income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Bônus', 'Aluguel', 'Outros']
   }
 };
@@ -32,7 +32,7 @@ const DEFAULT_CATEGORIES_BY_LANG = {
     income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Other']
   },
   pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Saúde', 'Educação', 'Lazer', 'Vestuário', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
+    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Mercado', 'Saúde', 'Educação', 'Lazer', 'Esporte', 'Vestuário', 'Beleza', 'Compras', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
     income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Outros']
   }
 };
@@ -69,6 +69,14 @@ const CATEGORY_TRANSLATION_MAP = {
   'Igreja': 'Church',
   'Investments': 'Investimentos',
   'Investimentos': 'Investments',
+  'Groceries': 'Mercado',
+  'Mercado': 'Groceries',
+  'Sports': 'Esporte',
+  'Esporte': 'Sports',
+  'Beauty': 'Beleza',
+  'Beleza': 'Beauty',
+  'Shopping': 'Compras',
+  'Compras': 'Shopping',
   'Other': 'Diversos',
   'Diversos': 'Other',
   'Uncategorized': 'Sem categoria',
