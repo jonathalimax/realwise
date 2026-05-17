@@ -249,7 +249,7 @@ export async function categorizeWithAI({
   if (!apiKey) {
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
     if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
-      return { category: null, source: 'none', confidence: 0 };
+      return { category: 'Sem categoria', source: 'none', confidence: 0 };
     }
     return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
   }
@@ -271,7 +271,7 @@ export async function categorizeWithAI({
   if (!quota.available) {
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
     if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
-      return { category: null, source: 'none', confidence: 0 };
+      return { category: 'Sem categoria', source: 'none', confidence: 0 };
     }
     return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
   }
@@ -296,7 +296,7 @@ export async function categorizeWithAI({
   // 5. AI failed - use fallback
   const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
   if (!fallbackResult || (fallbackResult.confidence ?? 0) < CATEGORIZATION_CONFIDENCE_THRESHOLD) {
-    return { category: null, source: 'none', confidence: 0 };
+    return { category: 'Sem categoria', source: 'none', confidence: 0 };
   }
   return { category: fallbackResult.category, source: 'fallback', confidence: fallbackResult.confidence };
 }
@@ -361,7 +361,7 @@ export async function batchCategorizeWithAI(transactions, params) {
     // Fallback
     const fallbackResult = fallbackFn ? await fallbackFn(description) : null;
     results.set(description, {
-      category: fallbackResult?.category || typeCategories[0] || 'Outros',
+      category: fallbackResult?.category || typeCategories[0] || 'Sem categoria',
       source: 'fallback',
       confidence: fallbackResult?.confidence || 0.5
     });
