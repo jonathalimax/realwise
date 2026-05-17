@@ -3,7 +3,7 @@ import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { parseFile, BANK_OPTIONS } from '../services/importers';
+import { parseFile, BANK_OPTIONS, detectBankFromFile, BANK_LABELS } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useGoals } from '../contexts/GoalsContext';
@@ -217,6 +217,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const shouldRestorePreviewScrollRef = useRef(false);
 
   const [bankType, setBankType] = useState('auto');
+  const [detectedBank, setDetectedBank] = useState(null);
+  const [bankMismatch, setBankMismatch] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reportThanks, setReportThanks] = useState(false);
   const [parseError, setParseError] = useState(null);
@@ -287,7 +289,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     }
   };
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
@@ -297,6 +299,17 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       setShowReport(false);
       setReportThanks(false);
       setParseError(null);
+      setDetectedBank(null);
+      setBankMismatch(false);
+      try {
+        const detected = await detectBankFromFile(selectedFile);
+        setDetectedBank(detected);
+        if (bankType !== 'auto' && bankType !== detected && detected !== 'unknown' && detected !== 'generic') {
+          setBankMismatch(true);
+        }
+      } catch {
+        // Detection failure is non-fatal
+      }
     }
   };
 
@@ -375,6 +388,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           date: t.date,
           imported: true,
           hash: t.hash,
+          dedupHash: t.dedupHash || null,
           bankId: selectedBankId || null,
           paymentMethod: selectedBankId ? importPaymentMethod : null,
           isInstallment: t.isInstallment || false,
@@ -537,6 +551,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     setFile(null); setTransactions([]); setStep('upload'); setError('');
     setDuplicateCount(0); setAiDuplicateCount(0); setInstallmentCount(0); setAiCount(0);
     setShowReport(false); setReportThanks(false); setParseError(null); setDetectedHeaders([]); setBankType('auto');
+    setDetectedBank(null); setBankMismatch(false);
     onClose();
   };
 
@@ -570,23 +585,28 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">{language === 'pt' ? 'Banco do Arquivo' : 'File Bank'}</label>
-              <div className="relative">
-                <select
-                  value={bankType}
-                  onChange={(e) => { setBankType(e.target.value); setShowReport(false); setReportThanks(false); setParseError(null); }}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:ring-2 focus:ring-violet-500 appearance-none shadow-sm"
-                >
-                  {BANK_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}{opt.status === 'manual' ? '  ·  Manual' : ''}
-                    </option>
-                  ))}
-                </select>
-                <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            {detectedBank && bankType === 'auto' && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">
+                Banco detectado: <span className="font-medium text-gray-700 dark:text-gray-200">{BANK_LABELS[detectedBank] || detectedBank}</span>
+              </p>
+            )}
+            {bankMismatch && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  Este arquivo parece ser do <strong>{BANK_LABELS[detectedBank]}</strong>, não do <strong>{BANK_LABELS[bankType]}</strong>.
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button className="text-xs px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                    onClick={() => { setBankType(detectedBank); setBankMismatch(false); }}>
+                    Usar {BANK_LABELS[detectedBank]}
+                  </button>
+                  <button className="text-xs px-2 py-1 text-yellow-700 dark:text-yellow-300 underline"
+                    onClick={() => setBankMismatch(false)}>
+                    Manter {BANK_LABELS[bankType]}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">{language === 'pt' ? 'Selecionar Arquivo' : 'Select File'}</label>
