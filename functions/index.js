@@ -13,7 +13,7 @@ admin.initializeApp();
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
-const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate } = require('./emailTemplates');
+const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate, newLeadTemplate } = require('./emailTemplates');
 const axios = require('axios');
 
 // Import processor functions (must come after admin.initializeApp())
@@ -625,3 +625,38 @@ exports.sendImportIssueEmail = require('./sendImportIssueEmail').sendImportIssue
 const abandonedCheckout = require('./abandonedCheckoutEmails');
 exports.abandonedCheckoutReminders = abandonedCheckout.abandonedCheckoutReminders;
 exports.sendAbandonedCheckoutEmail = abandonedCheckout.sendAbandonedCheckoutEmail;
+
+// ============================================================
+// NEW LEAD NOTIFICATION
+// ============================================================
+
+exports.onNewLead = functions.firestore
+  .document('leads/{leadId}')
+  .onCreate(async (snap) => {
+    const { name, email, whatsapp, createdAt } = snap.data();
+
+    if (!email) {
+      console.log('[onNewLead] No email on lead — skipping notification');
+      return;
+    }
+
+    const transporter = getEmailTransporter();
+    if (!transporter) {
+      console.log('[onNewLead] Email transporter not configured — skipping');
+      return;
+    }
+
+    const adminEmail = process.env.EMAIL_LEADS || 'jonathalimax@gmail.com';
+
+    try {
+      await transporter.sendMail({
+        from: `"Realwise" <${emailUserSecret.value()}>`,
+        to: adminEmail,
+        subject: `[Realwise] Novo lead: ${name || email}`,
+        html: newLeadTemplate({ name, email, whatsapp, createdAt }),
+      });
+      console.log(`[onNewLead] Notification sent to ${adminEmail} for lead ${email}`);
+    } catch (err) {
+      console.error('[onNewLead] Failed to send notification:', err);
+    }
+  });

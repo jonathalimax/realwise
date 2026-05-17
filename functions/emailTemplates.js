@@ -1,4 +1,25 @@
 
+/**
+ * Build a deep-link checkout URL that pre-fills email/name/coupon
+ * and redirects through the /checkout React page (no whatsapp required).
+ *
+ * @param {object} opts
+ * @param {string} [opts.email]
+ * @param {string} [opts.name]
+ * @param {string} [opts.couponCode]
+ * @returns {string}
+ */
+function buildCheckoutUrl({ email, name, couponCode } = {}) {
+  const base = 'https://realwise.com.br/checkout';
+  const params = new URLSearchParams();
+  if (email) params.set('email', email);
+  if (name) params.set('name', name);
+  if (couponCode) params.set('coupon', couponCode);
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+exports.buildCheckoutUrl = buildCheckoutUrl;
+
 const SHARED_STYLES = `
   <style>
     .mw-outer { background-color: #f1f5f9 !important; }
@@ -336,3 +357,32 @@ exports.acceptMigrationTemplate = (name, migrationUrl = 'https://realwise.com.br
   ctaUrl: migrationUrl,
   footerNote: 'Você está recebendo este e-mail porque é um cliente Realwise.',
 });
+
+/**
+ * Template 8: New Lead Notification (admin internal)
+ */
+exports.newLeadTemplate = ({ name, email, whatsapp, createdAt }) => {
+  const formattedDate = createdAt
+    ? new Date(createdAt.toDate?.() || createdAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    : new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const whatsappDisplay = whatsapp || 'não informado';
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><style>
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;margin:0;padding:20px}
+    .container{max-width:500px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .header{background:#10b981;padding:20px 24px}.header h1{color:#fff;margin:0;font-size:18px;font-weight:600}
+    .body{padding:24px}.field{margin-bottom:12px}
+    .field-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:2px}
+    .field-value{font-size:15px;color:#1e293b;font-weight:500}
+    .footer{padding:16px 24px;background:#f8fafc;border-top:1px solid #e2e8f0}
+    .admin-link{color:#10b981;text-decoration:none;font-size:13px;font-weight:500}
+  </style></head><body><div class="container">
+    <div class="header"><h1>🎯 Novo lead no Realwise</h1></div>
+    <div class="body">
+      <div class="field"><div class="field-label">Nome</div><div class="field-value">${name || '—'}</div></div>
+      <div class="field"><div class="field-label">Email</div><div class="field-value">${email || '—'}</div></div>
+      <div class="field"><div class="field-label">WhatsApp</div><div class="field-value">${whatsappDisplay}</div></div>
+      <div class="field"><div class="field-label">Data/hora (Brasília)</div><div class="field-value">${formattedDate}</div></div>
+    </div>
+    <div class="footer"><a href="https://realwise.com.br/admin" class="admin-link">Ver no painel admin →</a></div>
+  </div></body></html>`;
+};

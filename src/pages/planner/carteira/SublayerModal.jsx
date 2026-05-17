@@ -59,7 +59,7 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 my-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">{isNew ? 'Novo Sublayer' : 'Editar Sublayer'}</h2>
+          <h2 className="text-base font-bold text-gray-900 dark:text-white">{isNew ? 'Novo Produto' : 'Editar Produto'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg">✕</button>
         </div>
 
@@ -195,7 +195,7 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
         <div className="flex gap-2 pt-1">
           <button onClick={handleSave} disabled={!label.trim()}
             className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white rounded-xl py-2.5 text-sm font-bold transition-colors">
-            {isNew ? 'Criar sublayer' : 'Salvar'}
+            {isNew ? 'Criar produto' : 'Salvar'}
           </button>
           {!isNew && onDelete && (
             <button onClick={onDelete}

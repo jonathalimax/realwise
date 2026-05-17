@@ -12,7 +12,7 @@ const TransferScript = lazy(() => import('./TransferScript'));
 const ImportIssues = lazy(() => import('./ImportIssues'));
 const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 const GuidePage = lazy(() => import('./GuidePage'));
-const CouponsPanel = lazy(() => import('./CouponsPanel'));
+const CouponsPage = lazy(() => import('./CouponsPage'));
 
 let adminDb = null;
 let adminAuth = null;
@@ -100,7 +100,7 @@ export default function AdminApp() {
           <Routes>
             <Route index element={<Navigate to="leads" replace />} />
             <Route path="leads" element={<LeadsDashboard db={adminDb} functions={adminFunctions} />} />
-            <Route path="coupons" element={<CouponsPanel db={adminDb} functions={adminFunctions} />} />
+            <Route path="coupons" element={<CouponsPage db={adminDb} functions={adminFunctions} />} />
             <Route path="transfer" element={<TransferScript />} />
             <Route path="guia" element={<GuidePage />} />
             <Route path="onboarding/:runId" element={<OnboardingRun db={adminDb} functions={adminFunctions} />} />

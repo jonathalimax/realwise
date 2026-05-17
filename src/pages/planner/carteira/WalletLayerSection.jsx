@@ -117,7 +117,7 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
       {/* Delete confirmation */}
       {confirmDelete && (
         <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-3 flex items-center justify-between gap-3">
-          <p className="text-xs text-rose-700 dark:text-rose-300">Excluir camada <strong>{layer.label}</strong> e todos os seus sublayers?</p>
+          <p className="text-xs text-rose-700 dark:text-rose-300">Excluir meta <strong>{layer.label}</strong> e todos os seus produtos?</p>
           <div className="flex gap-2 shrink-0">
             <button onClick={() => { onDeleteLayer(); setConfirmDelete(false); }}
               className="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold">Confirmar</button>
@@ -188,7 +188,7 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
             onClick={() => setEditingSublayer('new')}
             className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-2xl p-4 flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500 transition-colors min-h-[80px]"
           >
-            <span className="text-base">+</span> Adicionar sublayer
+            <span className="text-base">+</span> Adicionar Produto
           </button>
         )}
       </div>

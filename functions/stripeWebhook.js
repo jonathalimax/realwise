@@ -115,6 +115,24 @@ exports.stripeWebhook = functions
       // Clean up abandoned checkout tracking now that payment succeeded
       await db.collection('checkout_sessions').doc(email).delete().catch(() => {});
 
+      // Increment coupon usage counter if a coupon was applied
+      const couponCode = session.metadata?.couponCode;
+      if (couponCode) {
+        try {
+          const snap = await admin.firestore().collection('coupons')
+            .where('code', '==', couponCode.toUpperCase())
+            .limit(1)
+            .get();
+          if (!snap.empty) {
+            await snap.docs[0].ref.update({
+              currentUses: admin.firestore.FieldValue.increment(1),
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to increment coupon usage:', err);
+        }
+      }
+
       await sendPurchaseEmail({ name, email, whatsapp, amountTotal });
 
       console.log('=== NOVA COMPRA (Stripe) ===');

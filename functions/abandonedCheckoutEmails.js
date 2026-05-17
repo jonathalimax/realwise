@@ -8,6 +8,7 @@ const {
   checkoutReminderTemplate,
   checkoutCouponTemplate,
   checkoutLastChanceTemplate,
+  buildCheckoutUrl,
 } = require('./emailTemplates');
 
 const emailUser = defineSecret('EMAIL_USER');
@@ -23,7 +24,9 @@ const DELAY_24H = 24 * 60 * 60 * 1000;
 const DELAY_48H = 48 * 60 * 60 * 1000;
 const COUPON_TTL_MS = 24 * 60 * 60 * 1000;
 const DISCOUNT_PERCENT = 10;
-const CHECKOUT_URL = 'https://realwise.com.br/#pricing';
+// Base checkout URL — used when no email/coupon context is available.
+// When email/coupon are known, use buildCheckoutUrl() instead.
+const CHECKOUT_URL = 'https://realwise.com.br/checkout';
 
 function emailToUsername(email) {
   return email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -77,23 +80,25 @@ async function sendStageEmail(transporter, from, session, stage) {
   const displayName = name || email.split('@')[0];
 
   if (stage === STAGES.REMINDER_SENT) {
+    const reminderUrl = buildCheckoutUrl({ email, name: name || undefined });
     await transporter.sendMail({
       from: `"Realwise" <${from}>`,
       to: email,
       subject: `${displayName}, você esqueceu algo 👀`,
-      html: checkoutReminderTemplate(displayName, CHECKOUT_URL),
+      html: checkoutReminderTemplate(displayName, reminderUrl),
     });
     return { expiresAt: null };
   }
 
   if (stage === STAGES.COUPON_SENT || stage === STAGES.LAST_CHANCE_SENT) {
     const { code, expiresAt } = await upsertCoupon(email);
+    const couponUrl = buildCheckoutUrl({ email, name: name || undefined, couponCode: code });
     const subject = stage === STAGES.COUPON_SENT
       ? `🎁 Seu cupom especial: ${code.toUpperCase()} — ${DISCOUNT_PERCENT}% off`
       : `⏰ Última chance: cupom ${code.toUpperCase()} expira hoje`;
     const html = stage === STAGES.COUPON_SENT
-      ? checkoutCouponTemplate(displayName, code, DISCOUNT_PERCENT, expiresAt, CHECKOUT_URL)
-      : checkoutLastChanceTemplate(displayName, code, expiresAt, CHECKOUT_URL);
+      ? checkoutCouponTemplate(displayName, code, DISCOUNT_PERCENT, expiresAt, couponUrl)
+      : checkoutLastChanceTemplate(displayName, code, expiresAt, couponUrl);
     await transporter.sendMail({ from: `"Realwise" <${from}>`, to: email, subject, html });
     return { expiresAt };
   }

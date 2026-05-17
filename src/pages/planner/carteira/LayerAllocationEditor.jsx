@@ -23,7 +23,7 @@ export default function LayerAllocationEditor({ layers, poupancaValue, onUpdateL
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Alocação por Camada</p>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Alocação por Meta</p>
         <span className="text-xs text-gray-400 tabular-nums">{formatBRL.format(poupancaValue)}/mês</span>
       </div>
 
@@ -87,7 +87,7 @@ export default function LayerAllocationEditor({ layers, poupancaValue, onUpdateL
           onClick={() => setShowAddLayer(true)}
           className="mt-3 w-full py-2 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500 transition-colors flex items-center justify-center gap-1"
         >
-          + Adicionar camada
+          + Nova Meta
         </button>
       )}
 

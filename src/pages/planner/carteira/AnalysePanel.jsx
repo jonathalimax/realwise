@@ -77,7 +77,7 @@ export default function AnalysePanel({ layers, poupancaValue, onApplySuggestions
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${TYPE_BADGE[s.type] ?? TYPE_BADGE.allocation}`}>
-                        {s.type === 'allocation' ? 'Alocação' : s.type === 'instrument' ? 'Instrumento' : 'Sublayer'}
+                        {s.type === 'allocation' ? 'Alocação' : s.type === 'instrument' ? 'Instrumento' : 'Produto'}
                       </span>
                       <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{s.title}</span>
                     </div>

@@ -26,10 +26,10 @@ exports.createCheckoutSession = functions
         return;
       }
 
-      const { name, email, whatsapp, clientId } = req.body;
+      const { name, email, whatsapp, clientId, couponCode } = req.body;
 
-      if (!name || !email || !whatsapp) {
-        res.status(400).json({ error: 'name, email e whatsapp são obrigatórios.' });
+      if (!email) {
+        res.status(400).json({ error: 'email é obrigatório.' });
         return;
       }
 
@@ -44,6 +44,52 @@ exports.createCheckoutSession = functions
 
       const stripe = Stripe(secretKey);
 
+      // Validate coupon if provided
+      let stripeDiscounts = [];
+      if (couponCode) {
+        const snap = await admin.firestore().collection('coupons')
+          .where('code', '==', couponCode.toUpperCase())
+          .limit(1)
+          .get();
+
+        if (snap.empty) {
+          res.status(400).json({ error: 'Cupom não encontrado.' });
+          return;
+        }
+
+        const couponDoc = snap.docs[0];
+        const cd = couponDoc.data();
+        const now = new Date();
+
+        if (!cd.enabled) {
+          res.status(400).json({ error: 'Cupom desabilitado.' });
+          return;
+        }
+        if (cd.maxUses !== null && cd.maxUses !== undefined && (cd.currentUses || 0) >= cd.maxUses) {
+          res.status(400).json({ error: 'Cupom atingiu o limite de usos.' });
+          return;
+        }
+        if (cd.validUntil && cd.validUntil.toDate() < now) {
+          res.status(400).json({ error: 'Cupom expirado.' });
+          return;
+        }
+        if (cd.validFrom && cd.validFrom.toDate() > now) {
+          res.status(400).json({ error: 'Cupom ainda não é válido.' });
+          return;
+        }
+
+        let stripeCouponId = cd.stripeCouponId;
+        if (!stripeCouponId) {
+          const params = { id: `rw_${couponDoc.id}`, duration: 'once' };
+          if (cd.discountType === 'percentage') params.percent_off = cd.discountValue;
+          else { params.amount_off = cd.discountValue; params.currency = 'brl'; }
+          const sc = await stripe.coupons.create(params);
+          stripeCouponId = sc.id;
+          await couponDoc.ref.update({ stripeCouponId });
+        }
+        stripeDiscounts = [{ coupon: stripeCouponId }];
+      }
+
       try {
         // Upsert lead before hitting Stripe — captures abandons if they never complete payment
         const leadRef = db.collection('leads').doc(emailLower);
@@ -51,9 +97,9 @@ exports.createCheckoutSession = functions
         const isNew = !leadSnap.exists;
         await leadRef.set(
           {
-            name: name.trim(),
+            name: name ? name.trim() : (leadSnap.data()?.name ?? ''),
             email: emailLower,
-            whatsapp: whatsapp.trim(),
+            ...(whatsapp ? { whatsapp: whatsapp.trim() } : {}),
             paid: false,
             state: leadSnap.data()?.state ?? 'checkout_started',
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -65,7 +111,10 @@ exports.createCheckoutSession = functions
         const session = await stripe.checkout.sessions.create({
           mode: 'payment',
           customer_email: emailLower,
-          allow_promotion_codes: true,
+          // allow_promotion_codes and discounts are mutually exclusive in Stripe
+          ...(stripeDiscounts.length > 0
+            ? { discounts: stripeDiscounts }
+            : { allow_promotion_codes: true }),
           line_items: [
             {
               price_data: {
@@ -86,9 +135,10 @@ exports.createCheckoutSession = functions
             },
           },
           metadata: {
-            name: name.trim(),
-            whatsapp: whatsapp.trim(),
+            name: name ? name.trim() : '',
+            whatsapp: whatsapp ? whatsapp.trim() : '',
             email: emailLower,
+            couponCode: couponCode || '',
           },
           success_url: clientId && clientId !== 'app'
             ? `https://${clientId}.realwise.com.br/purchase-success`

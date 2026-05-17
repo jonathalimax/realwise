@@ -5,6 +5,7 @@ import { httpsCallable } from 'firebase/functions';
 import { useNavigate } from 'react-router-dom';
 import EmailModal from './EmailModal';
 import DiscountModal from './DiscountModal';
+import ActionsDropdown from './ActionsDropdown';
 
 const STATES = ['pending', 'not_paid', 'paid', 'onboarding', 'active', 'cancelled', 'refunded'];
 const FILTERS = ['all', ...STATES];
@@ -22,8 +23,8 @@ export default function LeadsDashboard({ db, functions }) {
   const [emailTarget, setEmailTarget] = useState(null);
   const [discountTarget, setDiscountTarget] = useState(null);
   const [updatingState, setUpdatingState] = useState({});
-  const [sendingRecovery, setSendingRecovery] = useState({});
   const [recoveryToast, setRecoveryToast] = useState(null);
+  const [loadingActions, setLoadingActions] = useState({});
 
   useEffect(() => {
     const unsubLeads = onSnapshot(
@@ -66,24 +67,53 @@ export default function LeadsDashboard({ db, functions }) {
     }
   }, [functions]);
 
-  const handleSendRecovery = useCallback(async (email, stage) => {
-    const key = `${email}-${stage}`;
-    setSendingRecovery(prev => ({ ...prev, [key]: true }));
-    try {
-      await httpsCallable(functions, 'sendAbandonedCheckoutEmail')({ email, stage });
-      setRecoveryToast(`Email sent to ${email}`);
-      setTimeout(() => setRecoveryToast(null), 3000);
-    } catch (err) {
-      alert(`Error: ${err.message}`);
-    } finally {
-      setSendingRecovery(prev => ({ ...prev, [key]: false }));
-    }
-  }, [functions]);
-
   function startOnboarding(email) {
     const runId = `${Date.now()}-${email.split('@')[0]}`;
     navigate(`/onboarding/${runId}`, { state: { email } });
   }
+
+  const handleAction = useCallback(async (actionId, lead) => {
+    const { email, name } = lead;
+    const setLoading = (on) => setLoadingActions(prev => {
+      const current = new Set(prev[email]);
+      on ? current.add(actionId) : current.delete(actionId);
+      return { ...prev, [email]: current };
+    });
+
+    if (actionId === 'onboard') {
+      startOnboarding(email);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (actionId === 'welcome') {
+        await httpsCallable(functions, 'sendAdminEmail')({ to: email, template: 'welcome', fields: { name: name || '' } });
+        setRecoveryToast(`Boas-vindas enviado para ${email}`);
+      } else if (actionId === 'access') {
+        await httpsCallable(functions, 'sendAdminEmail')({ to: email, template: 'access_granted', fields: { name: name || '', loginUrl: '' } });
+        setRecoveryToast(`Email de acesso enviado para ${email}`);
+      } else if (actionId === 'migration') {
+        await httpsCallable(functions, 'sendAdminEmail')({ to: email, template: 'accept_migration', fields: { name: name || '', migrationUrl: '' } });
+        setRecoveryToast(`Email de migração enviado para ${email}`);
+      } else if (actionId === 'coupon') {
+        await httpsCallable(functions, 'sendAbandonedCheckoutEmail')({ email, stage: 2 });
+        setRecoveryToast(`Cupom enviado para ${email}`);
+      } else if (actionId === 'lastchance') {
+        await httpsCallable(functions, 'sendAbandonedCheckoutEmail')({ email, stage: 3 });
+        setRecoveryToast(`Última oferta enviada para ${email}`);
+      } else if (actionId === 'state') {
+        // inline state change is handled by the existing select — nothing to do
+        return;
+      }
+      setTimeout(() => setRecoveryToast(null), 3000);
+    } catch (err) {
+      alert(`Erro: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [functions]);
 
   const visible = leads
     .filter(l => filter === 'all' || l.state === filter)
@@ -169,41 +199,11 @@ export default function LeadsDashboard({ db, functions }) {
                   {revenueForLead(lead) ? brl(revenueForLead(lead)) : '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-1">
-                    <button
-                      onClick={() => setEmailTarget(lead)}
-                      className="px-3 py-1 bg-blue-800 hover:bg-blue-700 text-white text-xs rounded-lg"
-                    >
-                      Email
-                    </button>
-                    <button
-                      onClick={() => setDiscountTarget(lead)}
-                      className="px-3 py-1 bg-amber-700 hover:bg-amber-600 text-white text-xs rounded-lg"
-                    >
-                      Discount
-                    </button>
-                    {['pending', 'not_paid'].includes(lead.state) && [
-                      { stage: 1, label: 'Reminder', color: 'bg-yellow-700 hover:bg-yellow-600' },
-                      { stage: 2, label: 'Coupon', color: 'bg-emerald-700 hover:bg-emerald-600' },
-                      { stage: 3, label: 'Last Chance', color: 'bg-red-700 hover:bg-red-600' },
-                    ].map(({ stage, label, color }) => (
-                      <button
-                        key={stage}
-                        disabled={sendingRecovery[`${lead.email}-${stage}`]}
-                        onClick={() => handleSendRecovery(lead.email, stage)}
-                        className={`px-2 py-1 ${color} disabled:opacity-40 text-white text-xs rounded-lg`}
-                      >
-                        {sendingRecovery[`${lead.email}-${stage}`] ? '…' : label}
-                      </button>
-                    ))}
-                    <button
-                      disabled={lead.state !== 'paid'}
-                      onClick={() => startOnboarding(lead.email)}
-                      className="px-3 py-1 bg-purple-700 hover:bg-purple-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs rounded-lg"
-                    >
-                      Onboard
-                    </button>
-                  </div>
+                  <ActionsDropdown
+                    lead={lead}
+                    onAction={handleAction}
+                    loading={loadingActions[lead.email] || new Set()}
+                  />
                 </td>
               </tr>
             ))}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHelp from '@/components/ui/PageHelp';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
@@ -11,13 +11,14 @@ import { AdjustmentsHorizontalIcon, MagnifyingGlassIcon, XMarkIcon, PlusIcon } f
 import PageHeader from '../components/PageHeader';
 import CarteiraTab from './planner/carteira';
 import usePlannerState from './planner/usePlannerState';
+import { getActiveVersion } from './planner/carteira/walletVersion';
 
 function SubTabs({ active, onChange }) {
   return (
     <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
       {[
-        { value: 'plano', label: 'Plano' },
-        { value: 'lista', label: 'Lista' },
+        { value: 'plano', label: 'Metas' },
+        { value: 'lista', label: 'Ativos' },
       ].map(t => (
         <button
           key={t.value}
@@ -44,6 +45,100 @@ const BADGE_COLORS = {
   real_estate: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
 };
 
+function InvestmentItem({
+  investment,
+  onNavigate,
+  formatCurrency,
+  t,
+  language,
+  getBankInfo,
+  getInvestmentType,
+  calculateProjectedValue,
+  getGoalLabel,
+}) {
+  const typeInfo = getInvestmentType(investment.type);
+  const knownBankInfo = investment.bank ? getBankInfo(investment.bank) : null;
+  const isKnownBank = knownBankInfo && knownBankInfo.id !== 'other';
+  const bankDisplayName = isKnownBank ? knownBankInfo.name : investment.bank;
+  const bankIcon = isKnownBank ? knownBankInfo.icon : '🏦';
+
+  const purchaseDate = investment.purchaseDate
+    ? new Date(investment.purchaseDate).toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+    : null;
+
+  const projectedValue = calculateProjectedValue(investment);
+  const initialAmount = investment.initialAmount || 0;
+  const delta = projectedValue - initialAmount;
+  const deltaPct = initialAmount > 0 ? (delta / initialAmount) * 100 : 0;
+  const hasGrowth = projectedValue > 0 && projectedValue !== initialAmount;
+  const goalLabel = getGoalLabel(investment.plannerGoalId);
+
+  return (
+    <button
+      onClick={() => onNavigate(investment)}
+      className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all text-left"
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0
+          ${investment.type === 'fixed_income' ? 'bg-blue-100 dark:bg-blue-900/40' : ''}
+          ${investment.type === 'stocks' ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}
+          ${investment.type === 'crypto' ? 'bg-orange-100 dark:bg-orange-900/40' : ''}
+          ${investment.type === 'funds' ? 'bg-purple-100 dark:bg-purple-900/40' : ''}
+          ${investment.type === 'real_estate' ? 'bg-amber-100 dark:bg-amber-900/40' : ''}
+          ${investment.type === 'fii' ? 'bg-teal-100 dark:bg-teal-900/40' : ''}
+        `}>
+          {typeInfo.icon}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="font-bold text-gray-900 dark:text-white text-sm truncate">{investment.name}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${BADGE_COLORS[investment.type] || 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+              {t(`investments.types.${investment.type}`)}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+              {investment.bank && (
+                <div className="flex items-center gap-1 min-w-0 max-w-[100px]">
+                  <span className="text-xs flex-shrink-0">{bankIcon}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{bankDisplayName}</span>
+                </div>
+              )}
+              {purchaseDate && (
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{purchaseDate}</span>
+              )}
+              {goalLabel && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-medium flex-shrink-0 self-end">
+                  {goalLabel}
+                </span>
+              )}
+            </div>
+            <div className="flex items-end gap-2 flex-shrink-0">
+              <div className="text-right">
+                <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
+                  {formatCurrency(initialAmount)}
+                </span>
+                {hasGrowth && (
+                  <div className="flex items-center justify-end gap-1 mt-0.5">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                      {formatCurrency(projectedValue)}
+                    </span>
+                    <span className="text-[10px] text-emerald-500 tabular-nums">
+                      (+{deltaPct.toFixed(2)}%)
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export default function InvestmentsPage() {
   const navigate = useNavigate();
   const { selectedMonth } = useMonth();
@@ -52,6 +147,7 @@ export default function InvestmentsPage() {
     loading,
     getTotalInvested,
     getInvestmentType,
+    calculateProjectedValue,
   } = useInvestments();
   const { formatCurrency, t, language } = useSettings();
   const { getBankInfo } = useCards();
@@ -69,6 +165,15 @@ export default function InvestmentsPage() {
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
+
+  const goalLayers = useMemo(
+    () => getActiveVersion(state?.walletVersions, selectedMonth)?.layers ?? [],
+    [state?.walletVersions, selectedMonth]
+  );
+  const getGoalLabel = useCallback(
+    (plannerGoalId) => goalLayers.find(l => l.id === plannerGoalId)?.label ?? null,
+    [goalLayers]
+  );
 
   const handleInvestmentClick = (investment) => {
     navigate(`/investments/${investment.id}/edit`);
@@ -106,64 +211,6 @@ export default function InvestmentsPage() {
   }, {});
 
   const activeFiltersCount = [filterType !== 'all', searchQuery !== ''].filter(Boolean).length;
-
-  const InvestmentItem = ({ investment }) => {
-    const typeInfo = getInvestmentType(investment.type);
-    const knownBankInfo = investment.bank ? getBankInfo(investment.bank) : null;
-    const isKnownBank = knownBankInfo && knownBankInfo.id !== 'other';
-    const bankDisplayName = isKnownBank ? knownBankInfo.name : investment.bank;
-    const bankIcon = isKnownBank ? knownBankInfo.icon : '🏦';
-
-    const purchaseDate = investment.purchaseDate
-      ? new Date(investment.purchaseDate).toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
-      : null;
-
-    return (
-      <button
-        onClick={() => handleInvestmentClick(investment)}
-        className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all text-left"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0
-            ${investment.type === 'fixed_income' ? 'bg-blue-100 dark:bg-blue-900/40' : ''}
-            ${investment.type === 'stocks' ? 'bg-emerald-100 dark:bg-emerald-900/40' : ''}
-            ${investment.type === 'crypto' ? 'bg-orange-100 dark:bg-orange-900/40' : ''}
-            ${investment.type === 'funds' ? 'bg-purple-100 dark:bg-purple-900/40' : ''}
-            ${investment.type === 'real_estate' ? 'bg-amber-100 dark:bg-amber-900/40' : ''}
-            ${investment.type === 'fii' ? 'bg-teal-100 dark:bg-teal-900/40' : ''}
-          `}>
-            {typeInfo.icon}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="font-bold text-gray-900 dark:text-white text-sm truncate">{investment.name}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${BADGE_COLORS[investment.type] || 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
-                {t(`investments.types.${investment.type}`)}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                {investment.bank && (
-                  <div className="flex items-center gap-1 min-w-0 max-w-[100px]">
-                    <span className="text-xs flex-shrink-0">{bankIcon}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{bankDisplayName}</span>
-                  </div>
-                )}
-                {purchaseDate && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{purchaseDate}</span>
-                )}
-              </div>
-              <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums flex-shrink-0">
-                {formatCurrency(investment.initialAmount || 0)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </button>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -339,7 +386,18 @@ export default function InvestmentsPage() {
                   {activeFiltersCount > 0 && ` · ${language === 'pt' ? 'filtrado' : 'filtered'}`}
                 </p>
                 {sortedInvestments.map((investment) => (
-                  <InvestmentItem key={investment.id} investment={investment} />
+                  <InvestmentItem
+                    key={investment.id}
+                    investment={investment}
+                    onNavigate={handleInvestmentClick}
+                    formatCurrency={formatCurrency}
+                    t={t}
+                    language={language}
+                    getBankInfo={getBankInfo}
+                    getInvestmentType={getInvestmentType}
+                    calculateProjectedValue={calculateProjectedValue}
+                    getGoalLabel={getGoalLabel}
+                  />
                 ))}
               </div>
             )}
@@ -357,7 +415,7 @@ export default function InvestmentsPage() {
       </button>
       <PageHelp
         title="Investimentos"
-        text="Organize seus investimentos em Camadas e Sublayers. Camada = objetivo (ex: Proteção, Crescimento). Sublayer = produto real (ex: CDB, Tesouro Selic). Defina o % de cada camada no Plano e adicione os ativos reais na Lista."
+        text="Organize seus investimentos em Metas e Produtos. Meta = objetivo (ex: Emergência, Aposentadoria). Produto = ativo real (ex: CDB, Tesouro Selic). Defina o % de cada meta no Plano e adicione os ativos na aba Ativos."
         hasFab={true}
       />
     </div>

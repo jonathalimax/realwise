@@ -46,7 +46,7 @@ export default function WalletSublayerCard({
             {sublayer.type ?? 'Outro'}
           </span>
           {!readOnly && (
-            <button onClick={onEdit} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs transition-colors" title="Editar sublayer">✏️</button>
+            <button onClick={onEdit} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs transition-colors" title="Editar produto">✏️</button>
           )}
         </div>
       </div>
