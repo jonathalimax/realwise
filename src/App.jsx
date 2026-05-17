@@ -17,6 +17,9 @@ import { MonthProvider } from './contexts/MonthContext';
 import { devMark } from './lib/devMarker';
 import { isLoginSessionExpired } from './lib/auth/sessionAge';
 import AppErrorBoundary from './components/AppErrorBoundary';
+// Eager import: LoadingPage is on the critical login path. Lazy-loading
+// causes Suspense's PageLoader spinner to flash before LoginLoader paints.
+import LoadingPage from './pages/LoadingPage';
 
 // Lazy-loaded page components (code splitting — each page is its own chunk)
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -36,7 +39,6 @@ const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlannerPage = lazy(() => import('./pages/planner/PlannerPage'));
 const PlanningPage = lazy(() => import('./pages/Planning'));
 const BanksPage = lazy(() => import('./pages/Banks'));
-const LoadingPage = lazy(() => import('./pages/LoadingPage'));
 
 // Feature-flagged pages (only imported when flags are enabled)
 const GoalsPage = lazy(() => import('./pages/Goals'));

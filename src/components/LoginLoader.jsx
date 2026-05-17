@@ -61,26 +61,31 @@ export default function LoginLoader({ isReady, onFinished, onTimeout }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-6">
-      <div className="w-48 h-48">
-        <Lottie
-          animationData={animationData}
-          loop={true}
-          speed={2}
-          onLoopComplete={() => {
-            if (isReady && elapsedMs >= MIN_DISPLAY_MS && !firedRef.current) {
-              firedRef.current = true;
-              onFinished?.();
-            }
-          }}
-        />
+      <div className="flex flex-col items-center -space-y-2">
+        <div className="w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center">
+          <Lottie
+            animationData={animationData}
+            loop={true}
+            speed={2}
+            onLoopComplete={() => {
+              if (isReady && elapsedMs >= MIN_DISPLAY_MS && !firedRef.current) {
+                firedRef.current = true;
+                onFinished?.();
+              }
+            }}
+          />
+        </div>
+        <p
+          key={message}
+          className="text-lg font-medium tracking-tight text-gray-800 dark:text-gray-100 text-center min-h-[1.75rem] animate-[fadeIn_400ms_ease-out]"
+        >
+          {message}
+        </p>
       </div>
-      <p className="mt-6 text-base text-gray-600 dark:text-gray-300 text-center min-h-[1.5rem]">
-        {message}
-      </p>
       {timedOut && (
         <button
           onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 text-sm rounded-lg bg-rose-500 text-white hover:bg-rose-600"
+          className="mt-6 px-5 py-2.5 text-sm font-medium rounded-full bg-rose-500 text-white shadow-sm hover:bg-rose-600 transition-colors"
         >
           Tentar novamente
         </button>
