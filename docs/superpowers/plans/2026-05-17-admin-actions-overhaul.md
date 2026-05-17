@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace per-row action buttons in LeadsDashboard with a single "Ações" dropdown menu (with descriptions and timing badges), and add an `onNewLead` Cloud Function that emails `leads@realwise.com.br` when a new lead is created.
+**Goal:** Replace per-row action buttons in LeadsDashboard with a single "Ações" dropdown menu (with descriptions and timing badges), and add an `onNewLead` Cloud Function that emails the address in `EMAIL_LEADS` env var when a new lead is created.
 
 **Architecture:** New `ActionsDropdown` component replaces inline buttons. Each action maps to an existing callable function or navigation path. Cloud Function uses a Firestore `onCreate` trigger on the `leads` collection, sends a simple notification email via existing Nodemailer setup.
 
@@ -457,7 +457,7 @@ export const onNewLead = onDocumentCreated('leads/{leadId}', async (event) => {
     const transporter = createTransporter(); // reuse existing helper
     await transporter.sendMail({
       from: `"Realwise" <${process.env.EMAIL_USER}>`,
-      to: 'leads@realwise.com.br',
+      to: process.env.EMAIL_LEADS, // set via Firebase secret: leads@realwise.com.br
       subject: `[Realwise] Novo lead: ${name || email}`,
       html: newLeadTemplate({ name, email, whatsapp, createdAt }),
     });
@@ -488,13 +488,27 @@ firebase deploy --only functions:onNewLead
 - [ ] **Step 4: Test the trigger**
 
 Create a test lead document in the `leads` collection via Firestore console or via the landing page form. Check:
-- Email arrives at `leads@realwise.com.br`.
+- Email arrives at the address set in `EMAIL_LEADS` (`leads@realwise.com.br`).
 - Subject: `[Realwise] Novo lead: {name}`.
 - Body shows name, email, whatsapp, date/time.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Set the `EMAIL_LEADS` secret**
+
+```bash
+firebase functions:secrets:set EMAIL_LEADS
+# Enter value when prompted: leads@realwise.com.br
+```
+
+Follow the same secrets pattern already used for `EMAIL_USER` / `EMAIL_PASSWORD` in the project. If the project uses `functions.config()` instead of secrets, use:
+
+```bash
+firebase functions:config:set admin.leads_email="leads@realwise.com.br"
+# and read as: functions.config().admin.leads_email
+```
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add functions/index.js
-git commit -m "feat: onNewLead Cloud Function — emails leads@realwise.com.br on new lead creation"
+git commit -m "feat: onNewLead Cloud Function — notifies EMAIL_LEADS on new lead creation"
 ```

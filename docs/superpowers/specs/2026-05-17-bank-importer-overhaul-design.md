@@ -11,7 +11,7 @@ Four targeted improvements to the bank import pipeline:
 
 1. **Deduplication hash overhaul** — exclude description/name/type; use date + amount + bankType + originalId.
 2. **Auto-detect UX** — file-first flow; bank selector becomes optional; format selector removed.
-3. **Import issue email fix** — route to `support@realwise.com.br`, not `jonathalimax@gmail.com`.
+3. **Import issue email fix** — route to `suporte@realwise.com.br` (via env var `EMAIL_IMPORT_ISSUES`), not `jonathalimax@gmail.com`.
 4. **Dark mode audit** — every element in `ImportModal.jsx` and `ImportIssueReport.jsx`.
 
 Parser status (from existing spec + codebase audit) is documented for completeness but most parsers are already implemented.
@@ -159,8 +159,9 @@ const BANK_LABELS = {
 
 The existing spec (`2026-05-05-bank-importer-expansion-design.md`) hardcoded `jonathalimax@gmail.com` as the admin email recipient. This spec supersedes that decision:
 
-- `sendImportIssueEmail` Cloud Function must send to **`support@realwise.com.br`**.
-- Change the `to:` field in the Nodemailer call inside `sendImportIssueEmail` from the hardcoded personal email to `support@realwise.com.br`.
+- `sendImportIssueEmail` Cloud Function must send to **`process.env.EMAIL_IMPORT_ISSUES`** (default: `suporte@realwise.com.br`).
+- Set via Firebase secret: `EMAIL_IMPORT_ISSUES=suporte@realwise.com.br`.
+- Remove the hardcoded personal email entirely — never hardcode recipient addresses in function code.
 - No other changes to the Cloud Function.
 
 ---

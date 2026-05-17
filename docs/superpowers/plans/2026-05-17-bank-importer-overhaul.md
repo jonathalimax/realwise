@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Overhaul transaction deduplication to use a stable hash (no description/name/type), add file-first auto-detect UX to ImportModal, fix import issue emails to route to support@realwise.com.br, and audit dark mode for ImportModal and ImportIssueReport.
+**Goal:** Overhaul transaction deduplication to use a stable hash (no description/name/type), add file-first auto-detect UX to ImportModal, fix import issue emails to route to `EMAIL_IMPORT_ISSUES` env var (`suporte@realwise.com.br`), and audit dark mode for ImportModal and ImportIssueReport.
 
 **Architecture:** New `generateTransactionHash` formula using date+amount+bankType+originalId+positionalIndex. New `detectBankFromFile` utility for pre-upload detection. ImportModal becomes file-first with optional bank override. Cloud Function email recipient updated to support@.
 
@@ -19,7 +19,7 @@
 | Modify | `src/services/installments.js` | Update `generateTransactionHash` to new formula |
 | Modify | `src/services/importers/index.js` | Add `detectBankFromFile`, positional index computation, dedup check before save |
 | Modify | `src/components/ImportModal.jsx` | File-first UX, optional bank selector, no format selector, mismatch warning |
-| Modify | `functions/index.js` or `functions/sendImportIssueEmail.js` | Change recipient to support@realwise.com.br |
+| Modify | `functions/index.js` or `functions/sendImportIssueEmail.js` | Change recipient to `process.env.EMAIL_IMPORT_ISSUES` |
 | Modify | Various (`ImportModal.jsx`, `ImportIssueReport.jsx`) | Dark mode audit and fixes |
 | Create | `scripts/backfill-dedup-hash.js` | One-time migration script (standalone Node.js) |
 | Create | `src/services/importers/__tests__/dedup.test.js` | Unit tests for hash stability |
@@ -509,29 +509,41 @@ git commit -m "feat: file-first import UX — auto-detect bank, remove format se
 grep -rn "jonathalimax@gmail.com\|admin.*email\|to:.*gmail" functions/
 ```
 
-- [ ] **Step 2: Change recipient to support@realwise.com.br**
+- [ ] **Step 2: Replace hardcoded recipient with env var**
 
-Find the `sendImportIssueEmail` function. Change the `to:` field:
+Find the `sendImportIssueEmail` function. Change the `to:` field to use an environment variable:
 
 ```js
-// BEFORE:
+// BEFORE (any hardcoded address):
 to: 'jonathalimax@gmail.com',
+// or:
+to: functions.config().admin.email,
 
 // AFTER:
-to: 'support@realwise.com.br',
+to: process.env.EMAIL_IMPORT_ISSUES,
 ```
 
-Also check if there's a config variable (e.g., `functions.config().admin.email`) being used. If so, update the deployed config:
+Then set the secret in Firebase:
 
 ```bash
-firebase functions:config:set admin.import_issues_email="support@realwise.com.br"
+firebase functions:secrets:set EMAIL_IMPORT_ISSUES
+# Enter value when prompted: suporte@realwise.com.br
 ```
+
+If the function uses Firebase Functions v1 config instead of secrets, set it as:
+
+```bash
+firebase functions:config:set admin.import_issues_email="suporte@realwise.com.br"
+# and read it as: functions.config().admin.import_issues_email
+```
+
+Prefer the secrets approach (v2 `defineSecret`) to keep credentials out of config. Check which pattern is already used for `EMAIL_USER` / `EMAIL_PASSWORD` in the same file and follow that.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add functions/
-git commit -m "fix: route import issue emails to support@realwise.com.br"
+git commit -m "fix: route import issue emails to EMAIL_IMPORT_ISSUES env var (suporte@realwise.com.br)"
 ```
 
 ---

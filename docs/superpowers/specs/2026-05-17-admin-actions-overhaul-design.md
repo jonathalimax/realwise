@@ -10,7 +10,7 @@
 Two changes to the admin interface:
 
 1. **Replace per-row action buttons with a single "Ações" dropdown** in `LeadsDashboard.jsx`, with descriptions and recommended-timing badges for each action.
-2. **New `onNewLead` Cloud Function** — Firestore trigger that emails `leads@realwise.com.br` whenever a new document is created in the `leads` collection.
+2. **New `onNewLead` Cloud Function** — Firestore trigger that emails `leads@realwise.com.br` (via env var `EMAIL_LEADS`) whenever a new document is created in the `leads` collection.
 
 ---
 
@@ -84,7 +84,7 @@ When a lead fills out the landing page form, the admin currently has no real-tim
 
 ### Solution
 
-A Firestore trigger on `leads/{leadId}` that fires on document create and sends an email to `leads@realwise.com.br`.
+A Firestore trigger on `leads/{leadId}` that fires on document create and sends an email to `process.env.EMAIL_LEADS` (`leads@realwise.com.br`). The address is never hardcoded — it is read from the `EMAIL_LEADS` Firebase secret.
 
 ### Function: `onNewLead` in `functions/index.js`
 
@@ -94,7 +94,7 @@ export const onNewLead = onDocumentCreated('leads/{leadId}', async (event) => {
   const { name, email, whatsapp, createdAt } = lead;
 
   await sendEmail({
-    to: 'leads@realwise.com.br',
+    to: process.env.EMAIL_LEADS, // set to leads@realwise.com.br via Firebase secret
     subject: `[Realwise] Novo lead: ${name}`,
     html: newLeadTemplate({ name, email, whatsapp, createdAt }),
   });
