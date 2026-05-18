@@ -82,42 +82,13 @@ input[type="number"] {
   color-scheme: dark;
 }
 
-/* Custom scrollbar styles */
+/* Hide all scrollbars globally — scroll still works, bar is invisible */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
-}
-
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(75, 85, 99, 0.6);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 85, 99, 0.8);
-}
-
-/* Firefox scrollbar */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-}
-
-.dark * {
-  scrollbar-color: rgba(75, 85, 99, 0.6) transparent;
+  scrollbar-width: none;
 }
 
 /* Styled range slider */
