@@ -241,10 +241,10 @@ export default function ImportSwipeSheet({
               {!isCreditCard && (
                 <div className="flex-1">
                   {fieldLabel(label('Tipo', 'Type'))}
-                  <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5" style={{ height: '42px' }}>
+                  <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5 overflow-hidden" style={{ height: '42px' }}>
                     <button
                       onClick={() => patch('type', 'expense')}
-                      className={`flex-1 py-2 text-[11px] font-black rounded-lg transition-all ${
+                      className={`flex-1 h-full text-[11px] font-black rounded-[10px] transition-all ${
                         trans.type === 'expense'
                           ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
                           : 'text-gray-400'
@@ -254,7 +254,7 @@ export default function ImportSwipeSheet({
                     </button>
                     <button
                       onClick={() => patch('type', 'income')}
-                      className={`flex-1 py-2 text-[11px] font-black rounded-lg transition-all ${
+                      className={`flex-1 h-full text-[11px] font-black rounded-[10px] transition-all ${
                         trans.type === 'income'
                           ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
                           : 'text-gray-400'
@@ -271,7 +271,7 @@ export default function ImportSwipeSheet({
             {!isCreditCard && (
               <div>
                 {fieldLabel(label('Método de pagamento', 'Payment method'))}
-                <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5">
+                <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5 overflow-hidden" style={{ height: '42px' }}>
                   {[
                     { value: 'debit', label: label('Débito', 'Debit') },
                     { value: 'pix', label: 'PIX' },
@@ -280,7 +280,7 @@ export default function ImportSwipeSheet({
                     <button
                       key={value}
                       onClick={() => patch('paymentMethod', value)}
-                      className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all ${
+                      className={`flex-1 h-full text-[10px] font-black rounded-[10px] transition-all ${
                         (trans.paymentMethod || 'debit') === value
                           ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
                           : 'text-gray-400'
@@ -292,6 +292,17 @@ export default function ImportSwipeSheet({
                 </div>
               </div>
             )}
+
+            {/* Date */}
+            <div>
+              {fieldLabel(label('Data', 'Date'))}
+              <input
+                type="date"
+                value={trans.date ? trans.date.split('T')[0] : ''}
+                onChange={(e) => patch('date', e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+              />
+            </div>
 
             {/* Category */}
             <div>
@@ -423,17 +434,6 @@ export default function ImportSwipeSheet({
                 )}
               </>
             )}
-
-            {/* Date */}
-            <div>
-              {fieldLabel(label('Data', 'Date'))}
-              <input
-                type="date"
-                value={trans.date ? trans.date.split('T')[0] : ''}
-                onChange={(e) => patch('date', e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-              />
-            </div>
 
             {/* Goal */}
             {availableGoals.length > 0 && (
