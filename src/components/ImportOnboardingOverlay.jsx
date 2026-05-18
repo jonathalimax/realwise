@@ -9,7 +9,7 @@ export default function ImportOnboardingOverlay({ onDismiss }) {
       {/* Spotlight nav row — aligned with where the nav header sits inside the 85svh sheet */}
       <div
         className="relative flex items-center justify-center gap-3"
-        style={{ marginTop: 'calc(15svh + 2.75rem)' }}
+        style={{ marginTop: 'calc(10svh + 2.75rem)' }}
       >
         <div className="w-9 h-9 rounded-xl border-2 border-violet-400 shadow-[0_0_0_6px_rgba(167,139,250,0.25)] bg-gray-800 flex items-center justify-center text-white text-xl font-black">
           ‹

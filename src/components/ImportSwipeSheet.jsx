@@ -88,7 +88,7 @@ export default function ImportSwipeSheet({
       {/* Sheet — fixed 85svh so height never changes between cards */}
       <div
         className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl"
-        style={{ height: '85svh' }}
+        style={{ height: '90svh' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -234,13 +234,14 @@ export default function ImportSwipeSheet({
                   min="0"
                   value={trans.amount}
                   onChange={(e) => patch('amount', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  style={{ height: '42px' }}
                 />
               </div>
               {!isCreditCard && (
                 <div className="flex-1">
                   {fieldLabel(label('Tipo', 'Type'))}
-                  <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5">
+                  <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5" style={{ height: '42px' }}>
                     <button
                       onClick={() => patch('type', 'expense')}
                       className={`flex-1 py-2 text-[11px] font-black rounded-lg transition-all ${
@@ -524,19 +525,17 @@ export default function ImportSwipeSheet({
           </div>
         </div>
 
-        {/* Footer — always rendered so scroll area height stays constant */}
-        <div className="flex-shrink-0 px-4 py-4 border-t border-gray-100 dark:border-gray-700">
-          {isLast ? (
+        {/* Footer — only shown on the last card */}
+        {isLast && (
+          <div className="flex-shrink-0 px-4 py-4 border-t border-gray-100 dark:border-gray-700">
             <button
               onClick={onClose}
               className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-xl shadow-emerald-600/20"
             >
               {label('Fechar', 'Close')}
             </button>
-          ) : (
-            <div className="h-14" />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </>
   );
