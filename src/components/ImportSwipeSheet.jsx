@@ -1,5 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useGoals } from '../contexts/GoalsContext';
+import { INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
+import usePlannerGoals from '../pages/planner/usePlannerGoals';
 import ImportOnboardingOverlay, { ONBOARDING_KEY } from './ImportOnboardingOverlay';
 
 export default function ImportSwipeSheet({
@@ -10,15 +13,12 @@ export default function ImportSwipeSheet({
   onClose,
 }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const touchStartX = useRef(null);
   const { categories, formatCurrency, language } = useSettings();
-
-  useEffect(() => {
-    if (!localStorage.getItem(ONBOARDING_KEY)) {
-      setShowOnboarding(true);
-    }
-  }, []);
+  const { goals } = useGoals();
+  const plannerGoals = usePlannerGoals();
+  const availableGoals = goals.filter(g => !g.completed);
 
   const dismissOnboarding = () => {
     localStorage.setItem(ONBOARDING_KEY, '1');
@@ -54,6 +54,17 @@ export default function ImportSwipeSheet({
     type === 'income'
       ? language === 'pt' ? 'ENTRADA' : 'INCOME'
       : language === 'pt' ? 'SAÍDA' : 'EXPENSE';
+
+  const isInvestmentCategory =
+    trans.category === 'Investimentos' || trans.category === 'Investments';
+
+  const label = (pt, en) => (language === 'pt' ? pt : en);
+
+  const fieldLabel = (text) => (
+    <label className="block text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
+      {text}
+    </label>
+  );
 
   return (
     <>
@@ -161,13 +172,12 @@ export default function ImportSwipeSheet({
             </div>
           </div>
 
-          {/* Fields */}
+          {/* ── Fields ── */}
           <div className="flex flex-col gap-3">
+
             {/* Description */}
             <div>
-              <label className="block text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
-                {language === 'pt' ? 'Descrição' : 'Description'}
-              </label>
+              {fieldLabel(label('Descrição', 'Description'))}
               <input
                 type="text"
                 value={trans.description}
@@ -176,12 +186,10 @@ export default function ImportSwipeSheet({
               />
             </div>
 
-            {/* Amount + Type */}
+            {/* Amount + Type (type hidden for credit card) */}
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
-                  {language === 'pt' ? 'Valor' : 'Amount'}
-                </label>
+                {fieldLabel(label('Valor', 'Amount'))}
                 <input
                   type="number"
                   step="0.01"
@@ -193,9 +201,7 @@ export default function ImportSwipeSheet({
               </div>
               {!isCreditCard && (
                 <div className="flex-1">
-                  <label className="block text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
-                    {language === 'pt' ? 'Tipo' : 'Type'}
-                  </label>
+                  {fieldLabel(label('Tipo', 'Type'))}
                   <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5">
                     <button
                       onClick={() => patch('type', 'expense')}
@@ -222,40 +228,164 @@ export default function ImportSwipeSheet({
               )}
             </div>
 
+            {/* Payment method — shown only for account imports (not credit card) */}
+            {!isCreditCard && (
+              <div>
+                {fieldLabel(label('Método de pagamento', 'Payment method'))}
+                <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5">
+                  {[
+                    { value: 'debit', label: label('Débito', 'Debit') },
+                    { value: 'pix', label: 'PIX' },
+                    { value: 'boleto', label: 'Boleto' },
+                    { value: 'cash', label: label('Dinheiro', 'Cash') },
+                  ].map(({ value, label: lbl }) => (
+                    <button
+                      key={value}
+                      onClick={() => patch('paymentMethod', value)}
+                      className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all ${
+                        (trans.paymentMethod || 'debit') === value
+                          ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Category */}
             <div>
-              <label className="block text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
-                {language === 'pt' ? 'Categoria' : 'Category'}
-              </label>
+              {fieldLabel(label('Categoria', 'Category'))}
               <div className="relative">
                 <select
                   value={trans.category || ''}
                   onChange={(e) => patch('category', e.target.value)}
                   className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
                 >
-                  <option value="">{language === 'pt' ? 'Sem categoria' : 'Uncategorized'}</option>
+                  <option value="">{label('Sem categoria', 'Uncategorized')}</option>
                   {(categories[trans.type] || []).map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
+                    <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
                 <svg
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </div>
 
+            {/* Investment fields — only when category is investment */}
+            {isInvestmentCategory && (
+              <>
+                <div>
+                  {fieldLabel(label('Tipo de investimento', 'Investment type'))}
+                  <div className="relative">
+                    <select
+                      value={trans.investmentType || 'fixed_income'}
+                      onChange={(e) => patch('investmentType', e.target.value)}
+                      className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
+                    >
+                      {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                        <option key={key} value={key}>
+                          {info.icon} {language === 'pt'
+                            ? { fixed_income: 'Renda Fixa', stocks: 'Ações', crypto: 'Cripto', funds: 'Fundos', fii: 'FII', etf: 'ETF', other: 'Outro' }[key] || key
+                            : key}
+                        </option>
+                      ))}
+                    </select>
+                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Fixed income */}
+                {(trans.investmentType === 'fixed_income' || !trans.investmentType) && (
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      {fieldLabel(label('Rentab. esperada %', 'Expected return %'))}
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={trans.expectedReturn || 0}
+                        onChange={(e) => patch('expectedReturn', parseFloat(e.target.value) || 0)}
+                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      {fieldLabel(label('Vencimento', 'Maturity'))}
+                      <input
+                        type="date"
+                        value={trans.maturityDate || ''}
+                        onChange={(e) => patch('maturityDate', e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Stocks / ETF / FII */}
+                {(trans.investmentType === 'stocks' || trans.investmentType === 'etf' || trans.investmentType === 'fii') && (
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      {fieldLabel('Ticker')}
+                      <input
+                        type="text"
+                        value={trans.ticker || ''}
+                        onChange={(e) => patch('ticker', e.target.value.toUpperCase())}
+                        placeholder="PETR4"
+                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent uppercase"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      {fieldLabel(label('Plataforma', 'Platform'))}
+                      <input
+                        type="text"
+                        value={trans.platform || ''}
+                        onChange={(e) => patch('platform', e.target.value)}
+                        placeholder="XP, Clear..."
+                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Crypto */}
+                {trans.investmentType === 'crypto' && (
+                  <div>
+                    {fieldLabel(label('Moeda', 'Coin'))}
+                    <input
+                      type="text"
+                      value={trans.coinName || ''}
+                      onChange={(e) => patch('coinName', e.target.value)}
+                      placeholder="Bitcoin, Ethereum..."
+                      className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
+
+                {/* Funds */}
+                {trans.investmentType === 'funds' && (
+                  <div>
+                    {fieldLabel(label('Nome do fundo', 'Fund name'))}
+                    <input
+                      type="text"
+                      value={trans.fundName || ''}
+                      onChange={(e) => patch('fundName', e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Date */}
             <div>
-              <label className="block text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
-                {language === 'pt' ? 'Data' : 'Date'}
-              </label>
+              {fieldLabel(label('Data', 'Date'))}
               <input
                 type="date"
                 value={trans.date ? trans.date.split('T')[0] : ''}
@@ -264,10 +394,54 @@ export default function ImportSwipeSheet({
               />
             </div>
 
+            {/* Goal */}
+            {availableGoals.length > 0 && (
+              <div>
+                {fieldLabel(label('Meta', 'Goal'))}
+                <div className="relative">
+                  <select
+                    value={trans.goalId || ''}
+                    onChange={(e) => patch('goalId', e.target.value || null)}
+                    className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
+                  >
+                    <option value="">{label('Nenhuma', 'None')}</option>
+                    {availableGoals.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            )}
+
+            {/* Planner Goal */}
+            {plannerGoals.length > 0 && (
+              <div>
+                {fieldLabel(label('Meta do planejamento', 'Planner goal'))}
+                <div className="relative">
+                  <select
+                    value={trans.plannerGoalId || ''}
+                    onChange={(e) => patch('plannerGoalId', e.target.value || null)}
+                    className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
+                  >
+                    <option value="">{label('Nenhuma', 'None')}</option>
+                    {plannerGoals.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            )}
+
             {/* Include toggle */}
             <div className="flex items-center justify-between px-3.5 py-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
               <span className="text-sm font-bold text-gray-900 dark:text-white">
-                {language === 'pt' ? 'Incluir na importação' : 'Include in import'}
+                {label('Incluir na importação', 'Include in import')}
               </span>
               <button
                 onClick={() => patch('selected', !trans.selected)}
@@ -282,6 +456,31 @@ export default function ImportSwipeSheet({
                 />
               </button>
             </div>
+
+            {/* Ignored toggle */}
+            <div className="flex items-center justify-between px-3.5 py-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <div>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">
+                  {label('Ignorar transação', 'Ignore transaction')}
+                </span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {label('Não entra nos totais', 'Excluded from totals')}
+                </p>
+              </div>
+              <button
+                onClick={() => patch('ignored', !trans.ignored)}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  trans.ignored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
+                }`}
+              >
+                <div
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    trans.ignored ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -292,7 +491,7 @@ export default function ImportSwipeSheet({
               onClick={onClose}
               className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-xl shadow-emerald-600/20"
             >
-              {language === 'pt' ? 'Fechar' : 'Close'}
+              {label('Fechar', 'Close')}
             </button>
           </div>
         )}
