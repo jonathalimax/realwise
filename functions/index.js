@@ -640,6 +640,11 @@ exports.onNewLead = functions.firestore
       return;
     }
 
+    if (snap.data().state === 'form_partial') {
+      console.log('[onNewLead] Skipping notification for form_partial lead');
+      return;
+    }
+
     const transporter = getEmailTransporter();
     if (!transporter) {
       console.log('[onNewLead] Email transporter not configured — skipping');
@@ -660,3 +665,9 @@ exports.onNewLead = functions.firestore
       console.error('[onNewLead] Failed to send notification:', err);
     }
   });
+
+// ============================================================
+// PARTIAL LEAD CAPTURE
+// ============================================================
+const savePartialLeadModule = require('./savePartialLead');
+exports.savePartialLead = savePartialLeadModule.savePartialLead;
