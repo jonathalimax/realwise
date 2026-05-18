@@ -1,32 +1,88 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { landingAnalytics } from '../../landingAnalytics';
 
-export default function CheckoutModal({ open, onClose }) {
+const CHECKOUT_URL = import.meta.env.VITE_CHECKOUT_URL || '';
+const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
+
+export default function CheckoutModal({ open, onClose, section }) {
   const [form, setForm] = useState({ name: '', email: '', whatsapp: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [checkoutUrl, setCheckoutUrl] = useState('');
+  const [checkoutUrl, setCheckoutUrl] = useState(CHECKOUT_URL);
+  const [partialLeadUrl, setPartialLeadUrl] = useState(PARTIAL_LEAD_URL);
+  const savedPartialRef = useRef(false);
 
   useEffect(() => {
     const loadConfig = async () => {
       try {
         const clientId = extractClientId(window.location.pathname) || 'app';
         const config = await fetchClientConfig(clientId);
-        setCheckoutUrl(config.checkoutUrl || import.meta.env.VITE_CHECKOUT_URL);
-      } catch (err) {
-        setCheckoutUrl(import.meta.env.VITE_CHECKOUT_URL);
+        setCheckoutUrl(config.checkoutUrl || CHECKOUT_URL);
+        setPartialLeadUrl(config.partialLeadUrl || PARTIAL_LEAD_URL);
+      } catch {
+        // fallback to env vars
       }
     };
     loadConfig();
   }, []);
 
+  useEffect(() => {
+    if (open) {
+      setForm({ name: '', email: '', whatsapp: '' });
+      setError('');
+      savedPartialRef.current = false;
+    }
+  }, [open]);
+
+  function countFilledFields() {
+    return [form.name, form.email, form.whatsapp].filter(Boolean).length;
+  }
+
+  function handleClose(reason) {
+    onClose(reason, countFilledFields());
+  }
+
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
   };
+
+  function handleFocus(e) {
+    landingAnalytics.trackFieldFocused(e.target.name);
+  }
+
+  function handleBlur(e) {
+    const { name, value } = e.target;
+    if (!value.trim()) return;
+    landingAnalytics.trackFieldCompleted(name);
+
+    if (name === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !savedPartialRef.current) {
+      savedPartialRef.current = true;
+      savePartialLead({ email: value.trim().toLowerCase(), name: form.name.trim() || undefined });
+    }
+
+    if (name === 'whatsapp' && savedPartialRef.current) {
+      const email = form.email.trim().toLowerCase();
+      if (email) savePartialLead({ email, whatsapp: value.trim() });
+    }
+  }
+
+  async function savePartialLead(payload) {
+    if (!partialLeadUrl) return;
+    try {
+      await fetch(partialLeadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, utmSource: landingAnalytics.getUtmSource() }),
+      });
+    } catch {
+      // never throw — analytics must not break the product
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,20 +90,22 @@ export default function CheckoutModal({ open, onClose }) {
 
     if (!name.trim() || !email.trim() || !whatsapp.trim()) {
       setError('Preencha todos os campos.');
+      landingAnalytics.trackFormError('validation');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('E-mail inválido.');
+      landingAnalytics.trackFormError('validation');
       return;
     }
 
+    landingAnalytics.trackFormSubmitted();
     setLoading(true);
     setError('');
 
     try {
-      const functionUrl = checkoutUrl;
       const clientId = extractClientId(window.location.pathname);
-      const res = await fetch(functionUrl, {
+      const res = await fetch(checkoutUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,6 +113,7 @@ export default function CheckoutModal({ open, onClose }) {
           email: email.trim().toLowerCase(),
           whatsapp: whatsapp.trim(),
           clientId: clientId !== 'app' ? clientId : undefined,
+          utmSource: landingAnalytics.getUtmSource(),
         }),
       });
 
@@ -66,6 +125,7 @@ export default function CheckoutModal({ open, onClose }) {
       const { url } = await res.json();
       window.location.href = url;
     } catch (err) {
+      landingAnalytics.trackFormError('api');
       setError(err.message || 'Erro inesperado. Tente novamente.');
       setLoading(false);
     }
@@ -79,7 +139,7 @@ export default function CheckoutModal({ open, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => handleClose('backdrop')}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
           />
           <motion.div
@@ -98,7 +158,7 @@ export default function CheckoutModal({ open, onClose }) {
                   </p>
                 </div>
                 <button
-                  onClick={onClose}
+                  onClick={() => handleClose('button')}
                   className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   aria-label="Fechar"
                 >
@@ -116,6 +176,8 @@ export default function CheckoutModal({ open, onClose }) {
                     name="name"
                     value={form.name}
                     onChange={handleChange}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                     placeholder="Seu nome"
                     disabled={loading}
                     className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
@@ -131,6 +193,8 @@ export default function CheckoutModal({ open, onClose }) {
                     name="email"
                     value={form.email}
                     onChange={handleChange}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                     placeholder="voce@exemplo.com"
                     disabled={loading}
                     className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
@@ -146,6 +210,8 @@ export default function CheckoutModal({ open, onClose }) {
                     name="whatsapp"
                     value={form.whatsapp}
                     onChange={handleChange}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                     placeholder="(11) 99999-9999"
                     disabled={loading}
                     className="w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
