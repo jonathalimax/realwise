@@ -409,18 +409,19 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </div>
 
                     {/* Date */}
-                    <div className="min-w-0 overflow-hidden">
+                    <div className="min-w-0">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('transactionForm.date')}
                       </label>
                       <input
                         type="date"
+                        lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                         value={transactionDate}
                         onChange={(e) => setTransactionDate(e.target.value)}
                         className="w-full px-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                           text-gray-900 dark:text-white text-sm
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                          transition-all duration-200 min-w-0"
+                          transition-all duration-200"
                       />
                     </div>
                   </div>

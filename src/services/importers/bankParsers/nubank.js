@@ -115,16 +115,16 @@ function parseDate(dateStr) {
   const brParts = dateStr.split('/');
   if (brParts.length === 3) {
     const [day, month, year] = brParts;
-    return new Date(year, month - 1, day).toISOString();
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0).toISOString();
   }
 
-  // Try YYYY-MM-DD format (ISO)
+  // Try YYYY-MM-DD format (ISO) — parse manually to use noon local time
   if (dateStr.includes('-')) {
     const isoParts = dateStr.split('-');
     if (isoParts.length === 3 && isoParts[0].length === 4) {
-      const isoDate = new Date(dateStr);
-      if (!isNaN(isoDate.getTime())) {
-        return isoDate.toISOString();
+      const [y, m, d] = isoParts.map(Number);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+        return new Date(y, m - 1, d, 12, 0, 0).toISOString();
       }
     }
   }

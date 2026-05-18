@@ -15,7 +15,7 @@ function parseDate(dateStr) {
   const parts = String(dateStr).split('/');
   if (parts.length === 3) {
     const [d, m, y] = parts;
-    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toISOString();
+    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), 12, 0, 0).toISOString();
   }
   const iso = new Date(dateStr);
   return isNaN(iso.getTime()) ? new Date().toISOString() : iso.toISOString();

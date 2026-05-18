@@ -77,21 +77,25 @@ function parseBrazilianNumber(str) {
 function parseDate(dateStr) {
   if (!dateStr) return new Date().toISOString();
 
-  // DD-MM-YYYY (Mercado Pago format)
+  // DD-MM-YYYY (Mercado Pago format) or YYYY-MM-DD (ISO)
   const dashParts = dateStr.split('-');
   if (dashParts.length === 3) {
-    const [day, month, year] = dashParts;
-    if (year.length === 4) {
-      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toISOString();
+    const [a, b, c] = dashParts;
+    if (c.length === 4) {
+      // DD-MM-YYYY
+      return new Date(parseInt(c), parseInt(b) - 1, parseInt(a), 12, 0, 0).toISOString();
     }
-    // Could also be YYYY-MM-DD (ISO)
-    const isoDate = new Date(dateStr);
-    if (!isNaN(isoDate.getTime())) return isoDate.toISOString();
+    if (a.length === 4) {
+      // YYYY-MM-DD — parse manually to use noon local time
+      return new Date(parseInt(a), parseInt(b) - 1, parseInt(c), 12, 0, 0).toISOString();
+    }
   }
 
-  // Fallback
+  // Fallback — extract date parts to avoid UTC midnight
   const parsed = new Date(dateStr);
-  if (!isNaN(parsed.getTime())) return parsed.toISOString();
+  if (!isNaN(parsed.getTime())) {
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0).toISOString();
+  }
 
   return new Date().toISOString();
 }

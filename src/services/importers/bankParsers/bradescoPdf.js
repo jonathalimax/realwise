@@ -12,7 +12,7 @@ function parseBrAmount(str) {
 
 function parseDate(dmy) {
   const [d, m, y] = dmy.split('/');
-  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toISOString();
+  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), 12, 0, 0).toISOString();
 }
 
 export function parseBradescoPdf(text) {

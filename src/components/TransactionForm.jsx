@@ -29,7 +29,7 @@ export default function TransactionForm() {
   // Investment type state
   const [investmentType, setInvestmentType] = useState('fixed_income');
 
-  const { categories, t } = useSettings();
+  const { categories, t, language } = useSettings();
   const { goals, addAmountToGoal, getGoalColor } = useGoals();
   const { cards, getCardColor } = useCards();
   const { addInvestment } = useInvestments();
@@ -273,6 +273,7 @@ export default function TransactionForm() {
           </label>
           <input
             type="date"
+            lang={language === 'pt' ? 'pt-BR' : 'en-US'}
             value={transactionDate}
             onChange={(e) => setTransactionDate(e.target.value)}
             className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
