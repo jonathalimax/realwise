@@ -15,6 +15,7 @@ export default function ImportSwipeSheet({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
   const touchStartX = useRef(null);
+  const handleTouchStartY = useRef(null);
   const { categories, formatCurrency, language } = useSettings();
   const { goals } = useGoals();
   const plannerGoals = usePlannerGoals();
@@ -41,6 +42,17 @@ export default function ImportSwipeSheet({
     if (Math.abs(delta) < 50) return;
     if (delta < 0) goTo(currentIndex + 1);
     else goTo(currentIndex - 1);
+  };
+
+  const handleDragStart = (e) => {
+    handleTouchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleDragEnd = (e) => {
+    if (handleTouchStartY.current === null) return;
+    const delta = e.changedTouches[0].clientY - handleTouchStartY.current;
+    handleTouchStartY.current = null;
+    if (delta > 80) onClose();
   };
 
   const trans = transactions[currentIndex];
@@ -79,13 +91,17 @@ export default function ImportSwipeSheet({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-9 h-1 rounded-full bg-gray-200 dark:bg-gray-600" />
+        {/* Drag handle — touch here to drag down and dismiss */}
+        <div
+          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
+          onTouchStart={handleDragStart}
+          onTouchEnd={handleDragEnd}
+        >
+          <div className="w-9 h-1 rounded-full bg-gray-300 dark:bg-gray-500" />
         </div>
 
         {/* Navigation header */}
-        <div className="flex items-center gap-2.5 px-4 pt-2 pb-1">
+        <div className="flex items-center gap-2.5 px-4 pt-1 pb-1">
           <button
             onClick={() => goTo(currentIndex - 1)}
             disabled={currentIndex === 0}
@@ -122,6 +138,16 @@ export default function ImportSwipeSheet({
             className="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xl font-black disabled:opacity-30 active:scale-95 transition-all text-gray-900 dark:text-white"
           >
             ›
+          </button>
+
+          {/* Close button — always visible as fallback */}
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center active:scale-95 transition-all text-gray-500 dark:text-gray-400"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
@@ -237,7 +263,6 @@ export default function ImportSwipeSheet({
                     { value: 'debit', label: label('Débito', 'Debit') },
                     { value: 'pix', label: 'PIX' },
                     { value: 'boleto', label: 'Boleto' },
-                    { value: 'cash', label: label('Dinheiro', 'Cash') },
                   ].map(({ value, label: lbl }) => (
                     <button
                       key={value}
@@ -265,9 +290,12 @@ export default function ImportSwipeSheet({
                   className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
                 >
                   <option value="">{label('Sem categoria', 'Uncategorized')}</option>
-                  {(categories[trans.type] || []).map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
+                  {(() => {
+                    const typeCats = categories[trans.type] || [];
+                    const current = trans.category;
+                    const opts = current && !typeCats.includes(current) ? [current, ...typeCats] : typeCats;
+                    return opts.map((cat) => <option key={cat} value={cat}>{cat}</option>);
+                  })()}
                 </select>
                 <svg
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400"

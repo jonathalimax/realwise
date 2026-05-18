@@ -123,7 +123,7 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
 
         {/* Category row */}
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight inline-flex items-center gap-1 ${
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight ${
             isUncategorized
               ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
               : trans.type === 'income'
@@ -131,9 +131,6 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
                 : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
           }`}>
             {trans.category || (language === 'pt' ? 'Sem categoria' : 'Uncategorized')}
-            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-            </svg>
           </span>
           {trans.isDuplicate && (
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
