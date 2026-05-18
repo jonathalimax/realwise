@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, ArrowRight, Lock, Shield, Smartphone, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { landingAnalytics } from '../../landingAnalytics';
 
 const included = [
   'Dashboard e transações',
@@ -23,7 +24,7 @@ const trust = [
 
 export default function PricingSection({ onBuy }) {
   return (
-    <section id="preco" className="py-32 px-6">
+    <section data-section="pricing" id="preco" className="py-32 px-6">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -86,7 +87,7 @@ export default function PricingSection({ onBuy }) {
 
               <Button
                 size="lg"
-                onClick={onBuy}
+                onClick={() => { landingAnalytics.trackCtaClicked('Começar agora', 'pricing'); onBuy(); }}
                 className="w-full h-14 px-8 text-base bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl transition-all duration-300 hover:scale-105"
               >
                 Assumir o controle

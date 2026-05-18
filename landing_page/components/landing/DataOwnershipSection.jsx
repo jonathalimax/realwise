@@ -16,7 +16,7 @@ const benefits = [
 
 export default function DataOwnershipSection() {
   return (
-    <section className="py-24 px-6">
+    <section data-section="data-ownership" className="py-24 px-6">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

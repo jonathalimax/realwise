@@ -14,8 +14,8 @@ export default function ProductShowcaseSection() {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="w-full md:w-2/3"
           >
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/20 dark:shadow-black/50 border border-slate-200 dark:border-slate-700">
-              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-xl pointer-events-none" />
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-3xl blur-lg pointer-events-none" />
               <img
                 src="/screenshot-desktop.png"
                 alt="Realwise no desktop"
@@ -32,8 +32,8 @@ export default function ProductShowcaseSection() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="w-48 sm:w-56 md:w-1/4 flex-shrink-0"
           >
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/20 dark:shadow-black/50">
-              <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-3xl blur-xl pointer-events-none" />
+            <div className="relative rounded-3xl overflow-hidden">
+              <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-3xl blur-lg pointer-events-none" />
               <img
                 src="/screenshot-mobile.png"
                 alt="Realwise no celular"

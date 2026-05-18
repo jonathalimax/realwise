@@ -43,7 +43,7 @@ const clusters = [
 
 export default function FeaturesSection() {
   return (
-    <section id="funcionalidades" className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
+    <section data-section="features" id="funcionalidades" className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
       <div className="max-w-5xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

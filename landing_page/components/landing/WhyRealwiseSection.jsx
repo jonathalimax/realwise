@@ -70,7 +70,7 @@ function MobilePanel({ title, items, variant }) {
 
 export default function WhyRealwiseSection() {
   return (
-    <section className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
+    <section data-section="why-realwise" className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

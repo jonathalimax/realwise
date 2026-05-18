@@ -2,10 +2,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Lock, Smartphone, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { landingAnalytics } from '../../landingAnalytics';
 
 export default function HeroSection({ onBuy }) {
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
+    <section data-section="hero" className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20" />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-200/20 dark:bg-emerald-500/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-teal-200/20 dark:bg-teal-500/8 rounded-full blur-3xl" />
@@ -38,7 +39,7 @@ export default function HeroSection({ onBuy }) {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10 mt-8">
             <Button
               size="lg"
-              onClick={onBuy}
+              onClick={() => { landingAnalytics.trackCtaClicked('Assumir o controle', 'hero'); onBuy(); }}
               className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105"
             >
               Assumir o controle
@@ -68,8 +69,8 @@ export default function HeroSection({ onBuy }) {
           className="mt-4 relative"
         >
           <div className="relative mx-auto max-w-4xl">
-            <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-xl" />
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/20 dark:shadow-black/40">
+            <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-lg" />
+            <div className="relative rounded-2xl overflow-hidden">
               <img
                 src="/screenshot-desktop.png"
                 alt="Dashboard Realwise"

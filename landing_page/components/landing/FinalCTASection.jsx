@@ -2,10 +2,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { landingAnalytics } from '../../landingAnalytics';
 
 export default function FinalCTASection({ onBuy }) {
   return (
-    <section className="py-32 px-6">
+    <section data-section="final-cta" className="py-32 px-6">
       <div className="max-w-3xl mx-auto text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -25,7 +26,7 @@ export default function FinalCTASection({ onBuy }) {
           </p>
           <Button
             size="lg"
-            onClick={onBuy}
+            onClick={() => { landingAnalytics.trackCtaClicked('Quero o Realwise', 'final-cta'); onBuy(); }}
             className="h-14 px-10 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105"
           >
             Assumir o controle
