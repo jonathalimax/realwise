@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
 import PainPointsSection from '../components/landing/PainPointsSection';
@@ -10,25 +10,55 @@ import FinalCTASection from '../components/landing/FinalCTASection';
 import FooterSection from '../components/landing/FooterSection';
 import WhyRealwiseSection from '../components/landing/WhyRealwiseSection';
 import CheckoutModal from '../components/landing/CheckoutModal';
+import { landingAnalytics } from '../landingAnalytics';
+
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 
 export default function Home() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutSection, setCheckoutSection] = useState('');
+
+  useEffect(() => {
+    if (!GA_MEASUREMENT_ID) return;
+
+    const script = document.createElement('script');
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+    script.async = true;
+    document.head.appendChild(script);
+
+    script.onload = () => landingAnalytics.init(GA_MEASUREMENT_ID);
+  }, []);
+
+  function openCheckout(section) {
+    setCheckoutSection(section);
+    setCheckoutOpen(true);
+    landingAnalytics.trackCheckoutOpened(section);
+  }
+
+  function closeCheckout(reason, fieldsFilled) {
+    setCheckoutOpen(false);
+    landingAnalytics.trackCheckoutClosed(reason, fieldsFilled);
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
-      <Header onBuy={() => setCheckoutOpen(true)} />
+      <Header onBuy={() => openCheckout('header')} />
       <div className="pt-20">
-        <HeroSection onBuy={() => setCheckoutOpen(true)} />
+        <HeroSection onBuy={() => openCheckout('hero')} />
         <PainPointsSection />
         <FeaturesSection />
         <DataOwnershipSection />
         <WhyRealwiseSection />
-        <PricingSection onBuy={() => setCheckoutOpen(true)} />
+        <PricingSection onBuy={() => openCheckout('pricing')} />
         <FAQSection />
-        <FinalCTASection onBuy={() => setCheckoutOpen(true)} />
+        <FinalCTASection onBuy={() => openCheckout('final-cta')} />
         <FooterSection />
       </div>
-      <CheckoutModal open={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
+      <CheckoutModal
+        open={checkoutOpen}
+        section={checkoutSection}
+        onClose={closeCheckout}
+      />
     </div>
   );
 }
