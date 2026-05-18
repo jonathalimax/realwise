@@ -85,9 +85,10 @@ export default function ImportSwipeSheet({
       {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
 
-      {/* Sheet */}
+      {/* Sheet — fixed 85svh so height never changes between cards */}
       <div
-        className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl max-h-[90vh]"
+        className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl"
+        style={{ height: '85svh' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -153,8 +154,8 @@ export default function ImportSwipeSheet({
 
         {/* Scrollable edit form */}
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2 min-h-0">
-          {/* Identity row — fixed min-height to prevent layout shift between cards */}
-          <div className="flex items-start gap-2.5 mb-5" style={{ minHeight: '4.5rem' }}>
+          {/* Identity row */}
+          <div className="flex items-start gap-2.5 mb-5">
             <div
               className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 ${
                 trans.type === 'income'
@@ -180,17 +181,20 @@ export default function ImportSwipeSheet({
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              {/* Fixed 2-line height so the header doesn't shift between cards */}
-              <p className="text-base font-black text-gray-900 dark:text-white line-clamp-2 leading-snug" style={{ minHeight: '2.5rem' }}>
+              {/* Fixed 2-line height — overflow hidden prevents any layout shift */}
+              <p className="text-base font-black text-gray-900 dark:text-white line-clamp-2 leading-snug" style={{ height: '2.75rem', overflow: 'hidden' }}>
                 {trans._isGroup ? trans._baseDescription : trans.description}
               </p>
-              {(trans._isGroup || trans.isInstallment) && (
-                <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 uppercase tracking-tight">
-                  {trans._isGroup
-                    ? `${trans.installmentTotal}x · ${label('edições aplicam a todas', 'edits apply to all')}`
-                    : `${label('Parcela', 'Installment')} ${trans.installmentCurrent}/${trans.installmentTotal}`}
-                </span>
-              )}
+              {/* Always reserve badge row height to prevent shift when badge appears/disappears */}
+              <div style={{ height: '1.375rem' }}>
+                {(trans._isGroup || trans.isInstallment) && (
+                  <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 uppercase tracking-tight">
+                    {trans._isGroup
+                      ? `${trans.installmentTotal}x · ${label('edições aplicam a todas', 'edits apply to all')}`
+                      : `${label('Parcela', 'Installment')} ${trans.installmentCurrent}/${trans.installmentTotal}`}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex-shrink-0 text-right">
               <p
@@ -520,17 +524,19 @@ export default function ImportSwipeSheet({
           </div>
         </div>
 
-        {/* Footer: Fechar only on last card */}
-        {isLast && (
-          <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-700">
+        {/* Footer — always rendered so scroll area height stays constant */}
+        <div className="flex-shrink-0 px-4 py-4 border-t border-gray-100 dark:border-gray-700">
+          {isLast ? (
             <button
               onClick={onClose}
               className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-xl shadow-emerald-600/20"
             >
               {label('Fechar', 'Close')}
             </button>
-          </div>
-        )}
+          ) : (
+            <div className="h-14" />
+          )}
+        </div>
       </div>
     </>
   );
