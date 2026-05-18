@@ -153,8 +153,8 @@ export default function ImportSwipeSheet({
 
         {/* Scrollable edit form */}
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2 min-h-0">
-          {/* Identity row */}
-          <div className="flex items-start gap-2.5 mb-5">
+          {/* Identity row — fixed min-height to prevent layout shift between cards */}
+          <div className="flex items-start gap-2.5 mb-5" style={{ minHeight: '4.5rem' }}>
             <div
               className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 ${
                 trans.type === 'income'
@@ -180,9 +180,17 @@ export default function ImportSwipeSheet({
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-base font-black text-gray-900 dark:text-white line-clamp-2 leading-snug">
+              {/* Fixed 2-line height so the header doesn't shift between cards */}
+              <p className="text-base font-black text-gray-900 dark:text-white line-clamp-2 leading-snug" style={{ minHeight: '2.5rem' }}>
                 {trans._isGroup ? trans._baseDescription : trans.description}
               </p>
+              {(trans._isGroup || trans.isInstallment) && (
+                <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 uppercase tracking-tight">
+                  {trans._isGroup
+                    ? `${trans.installmentTotal}x · ${label('edições aplicam a todas', 'edits apply to all')}`
+                    : `${label('Parcela', 'Installment')} ${trans.installmentCurrent}/${trans.installmentTotal}`}
+                </span>
+              )}
             </div>
             <div className="flex-shrink-0 text-right">
               <p
