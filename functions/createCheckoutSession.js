@@ -26,7 +26,7 @@ exports.createCheckoutSession = functions
         return;
       }
 
-      const { name, email, whatsapp, clientId, couponCode } = req.body;
+      const { name, email, whatsapp, clientId, couponCode, utmSource } = req.body;
 
       if (!email) {
         res.status(400).json({ error: 'email é obrigatório.' });
@@ -107,6 +107,17 @@ exports.createCheckoutSession = functions
           },
           { merge: true }
         );
+
+        // Increment daily landing_stats checkout counter (fire-and-forget)
+        const today = new Date().toISOString().slice(0, 10);
+        const source = (utmSource && typeof utmSource === 'string') ? utmSource : 'direct';
+        db.collection('landing_stats').doc(today).set(
+          {
+            checkout_started: admin.firestore.FieldValue.increment(1),
+            [`sources.${source}`]: admin.firestore.FieldValue.increment(1),
+          },
+          { merge: true }
+        ).catch(err => console.error('[createCheckoutSession] landing_stats increment failed:', err));
 
         const session = await stripe.checkout.sessions.create({
           mode: 'payment',
