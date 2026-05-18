@@ -63,6 +63,12 @@
         "**/.*",
         "**/node_modules/**"
       ],
+      "redirects": [
+        { "source": "/go/whatsapp", "destination": "/?utm_source=whatsapp&utm_medium=social&utm_campaign=launch", "type": 301 },
+        { "source": "/go/instagram", "destination": "/?utm_source=instagram&utm_medium=social&utm_campaign=launch", "type": 301 },
+        { "source": "/go/bio", "destination": "/?utm_source=instagram&utm_medium=bio&utm_campaign=launch", "type": 301 },
+        { "source": "/go/email", "destination": "/?utm_source=email&utm_medium=newsletter&utm_campaign=launch", "type": 301 }
+      ],
       "rewrites": [
         {
           "source": "**",
