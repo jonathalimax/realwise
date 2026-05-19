@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Mail, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Clock, Mail, ArrowLeft, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function PurchaseSuccess() {
+  const isPending = new URLSearchParams(window.location.search).get('pending') === '1';
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white flex items-center justify-center px-6">
       <motion.div
@@ -12,19 +14,35 @@ export default function PurchaseSuccess() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="max-w-md w-full text-center"
       >
-        <div className="w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center mx-auto mb-8">
-          <CheckCircle className="w-10 h-10 text-emerald-500" />
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8 ${isPending ? 'bg-amber-50 dark:bg-amber-950/50' : 'bg-emerald-50 dark:bg-emerald-950/50'}`}>
+          {isPending
+            ? <Clock className="w-10 h-10 text-amber-500" />
+            : <CheckCircle className="w-10 h-10 text-emerald-500" />
+          }
         </div>
 
-        <h1 className="text-3xl font-bold mb-4">Pagamento confirmado!</h1>
+        <h1 className="text-3xl font-bold mb-4">
+          {isPending ? 'Pix gerado!' : 'Pagamento confirmado!'}
+        </h1>
         <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
-          Obrigado pela compra! Em até <strong>24 horas</strong> você receberá um e-mail com as instruções de acesso e configuração do seu Realwise.
+          {isPending
+            ? <>Escaneie o QR code no seu app do banco e complete o pagamento. Assim que o Pix for confirmado, você receberá um e-mail com o acesso ao Realwise — geralmente em <strong>poucos minutos</strong>.</>
+            : <>Obrigado pela compra! Em breve você receberá um e-mail com as instruções de acesso e configuração do seu Realwise.</>
+          }
         </p>
 
         <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 mb-8">
           <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-            <Mail className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-            <p>Verifique sua caixa de entrada (e o spam) nas próximas horas.</p>
+            {isPending
+              ? <QrCode className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              : <Mail className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+            }
+            <p>
+              {isPending
+                ? 'O QR code fica válido por 30 minutos. Verifique sua caixa de entrada após o pagamento.'
+                : 'Verifique sua caixa de entrada (e o spam) nas próximas horas.'
+              }
+            </p>
           </div>
         </div>
 

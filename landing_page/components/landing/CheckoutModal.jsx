@@ -97,7 +97,6 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
           creditCard: 'all',
           debitCard: 'all',
           bankTransfer: 'all',
-          atm: 'none',
           maxInstallments: 12,
         },
         visual: {
