@@ -138,6 +138,8 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
             if (data.status === 'approved') {
               window.location.href = 'https://realwise.com.br/purchase-success';
             } else if (data.status === 'in_process' || data.status === 'pending') {
+              if (data.pix_code) sessionStorage.setItem('pix_code', data.pix_code);
+              if (data.pix_qr_base64) sessionStorage.setItem('pix_qr_base64', data.pix_qr_base64);
               window.location.href = 'https://realwise.com.br/purchase-success?pending=1';
             } else {
               throw new Error(data.status_detail || 'Pagamento não aprovado.');

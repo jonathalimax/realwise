@@ -346,10 +346,13 @@ exports.processPayment = functions
         }
       }
 
+      const txData = response.point_of_interaction?.transaction_data;
       res.json({
         id: response.id,
         status: response.status,
         status_detail: response.status_detail,
+        ...(txData?.qr_code && { pix_code: txData.qr_code }),
+        ...(txData?.qr_code_base64 && { pix_qr_base64: txData.qr_code_base64 }),
       });
     } catch (error) {
       console.error('Error processing payment:', error);
