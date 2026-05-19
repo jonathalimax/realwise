@@ -324,7 +324,20 @@ exports.processPayment = functions.https.onRequest((req, res) => {
 
       // If approved, grant access and send email
       if (response.status === 'approved') {
-        await grantAccessAndNotify((payer?.email || email).toLowerCase(), name, couponCode);
+        const approvedEmail = (payer?.email || email).toLowerCase();
+        await grantAccessAndNotify(approvedEmail, name, couponCode, parseInt(installments) || 1);
+
+        if (couponCode && typeof couponCode === 'string') {
+          const couponSnap = await db.collection('coupons')
+            .where('code', '==', couponCode.toUpperCase())
+            .limit(1)
+            .get();
+          if (!couponSnap.empty) {
+            await couponSnap.docs[0].ref.update({
+              currentUses: admin.firestore.FieldValue.increment(1),
+            });
+          }
+        }
       }
 
       res.json({
@@ -340,13 +353,14 @@ exports.processPayment = functions.https.onRequest((req, res) => {
 });
 
 // Helper function to grant access and send notification
-async function grantAccessAndNotify(email, name, couponCode) {
+async function grantAccessAndNotify(email, name, couponCode, installments = 1) {
   try {
     // Add to purchases collection
     await db.collection('purchases').add({
       email: email.toLowerCase(),
       name: name || '',
       couponCode: couponCode || null,
+      installments,
       purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
