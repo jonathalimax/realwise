@@ -150,32 +150,104 @@ exports.createPayment = functions.https.onRequest((req, res) => {
     }
 
     try {
-      const { email, name, price, couponCode, contribution } = req.body;
+      const { email, name, whatsapp, couponCode, utmSource } = req.body;
 
-      if (!email || !price) {
-        res.status(400).json({ error: 'Email and price are required' });
+      if (!email) {
+        res.status(400).json({ error: 'email é obrigatório.' });
         return;
       }
 
       const publicKey = functions.config().mercadopago?.public_key;
       if (!publicKey) {
-        throw new Error('Mercado Pago public key not configured');
+        res.status(500).json({ error: 'Configuração de pagamento ausente.' });
+        return;
       }
 
-      // Save pending payment to Firestore
+      const emailLower = email.toLowerCase().trim();
+      const BASE_AMOUNT = 479.88;
+      let amount = BASE_AMOUNT;
+
+      // Validate coupon if provided
+      if (couponCode) {
+        const snap = await db.collection('coupons')
+          .where('code', '==', couponCode.toUpperCase())
+          .limit(1)
+          .get();
+
+        if (snap.empty) {
+          res.status(400).json({ error: 'Cupom não encontrado.' });
+          return;
+        }
+
+        const cd = snap.docs[0].data();
+        const now = new Date();
+
+        if (!cd.enabled) {
+          res.status(400).json({ error: 'Cupom desabilitado.' });
+          return;
+        }
+        if (cd.maxUses !== null && cd.maxUses !== undefined && (cd.currentUses || 0) >= cd.maxUses) {
+          res.status(400).json({ error: 'Cupom atingiu o limite de usos.' });
+          return;
+        }
+        if (cd.validUntil && cd.validUntil.toDate() < now) {
+          res.status(400).json({ error: 'Cupom expirado.' });
+          return;
+        }
+        if (cd.validFrom && cd.validFrom.toDate() > now) {
+          res.status(400).json({ error: 'Cupom ainda não é válido.' });
+          return;
+        }
+
+        if (cd.discountType === 'percentage') {
+          amount = parseFloat((BASE_AMOUNT * (1 - cd.discountValue / 100)).toFixed(2));
+        } else {
+          // fixed_amount: discountValue stored in centavos
+          amount = parseFloat((BASE_AMOUNT - cd.discountValue / 100).toFixed(2));
+        }
+      }
+
+      // Upsert lead
+      const leadRef = db.collection('leads').doc(emailLower);
+      const leadSnap = await leadRef.get();
+      const isNew = !leadSnap.exists;
+      await leadRef.set(
+        {
+          name: name ? name.trim() : (leadSnap.data()?.name ?? ''),
+          email: emailLower,
+          ...(whatsapp ? { whatsapp: whatsapp.trim() } : {}),
+          paid: false,
+          state: leadSnap.data()?.state ?? 'checkout_started',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          ...(isNew && { createdAt: admin.firestore.FieldValue.serverTimestamp() }),
+        },
+        { merge: true }
+      );
+
+      // Increment landing_stats
+      const today = new Date().toISOString().slice(0, 10);
+      const source = (utmSource && typeof utmSource === 'string') ? utmSource : 'direct';
+      db.collection('landing_stats').doc(today).set(
+        {
+          checkout_started: admin.firestore.FieldValue.increment(1),
+          [`sources.${source}`]: admin.firestore.FieldValue.increment(1),
+        },
+        { merge: true }
+      ).catch(err => console.error('[createPayment] landing_stats failed:', err));
+
+      // Save pending payment
       await db.collection('pending_payments').add({
-        email: email.toLowerCase(),
+        email: emailLower,
         name: name || '',
-        price: parseFloat(price),
-        contribution: parseFloat(contribution) || 0,
+        amount,
         couponCode: couponCode || null,
         status: 'pending',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      res.json({ publicKey });
+      res.json({ publicKey, amount });
     } catch (error) {
-      console.error('Error initializing payment:', error);
+      console.error('[createPayment] Error:', error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -613,6 +685,9 @@ exports.createDiscountCheckout = createDiscountCheckout;
 
 const { createStandaloneCoupon } = require('./createStandaloneCoupon');
 exports.createStandaloneCoupon = createStandaloneCoupon;
+
+const { syncCouponToStripe } = require('./syncCouponToStripe');
+exports.syncCouponToStripe = syncCouponToStripe;
 
 const { transferClient } = require('./transferClient');
 exports.transferClient = transferClient;
