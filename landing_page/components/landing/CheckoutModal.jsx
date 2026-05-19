@@ -34,6 +34,11 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
   const bricksControllerRef = useRef(null);
   const bricksMountedRef = useRef(false);
 
+  const formRef = useRef(form);
+  useEffect(() => { formRef.current = form; }, [form]);
+  const processPaymentUrlRef = useRef(processPaymentUrl);
+  useEffect(() => { processPaymentUrlRef.current = processPaymentUrl; }, [processPaymentUrl]);
+
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -113,13 +118,13 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
             const payload = {
               ...formData,
               installments: formData.installments || installments,
-              email: form.email,
-              name: form.name,
-              whatsapp: form.whatsapp,
-              couponCode: form.coupon.trim().toUpperCase() || undefined,
+              email: formRef.current.email,
+              name: formRef.current.name,
+              whatsapp: formRef.current.whatsapp,
+              couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
             };
 
-            const res = await fetch(processPaymentUrl, {
+            const res = await fetch(processPaymentUrlRef.current, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
@@ -144,16 +149,20 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
       },
     };
 
+    let cancelled = false;
     bricksBuilder.create('payment', 'mp-bricks-container', settings)
       .then((controller) => {
+        if (cancelled) { controller.unmount().catch(() => {}); return; }
         bricksControllerRef.current = controller;
         bricksMountedRef.current = true;
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error('[MPBricks] create failed', err);
         setError('Erro ao carregar formulário de pagamento.');
         setBricksLoading(false);
       });
+    return () => { cancelled = true; };
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (e) => {
@@ -261,7 +270,14 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
                 <div className="flex items-center gap-2">
                   {step === 2 && (
                     <button
-                      onClick={() => { setStep(1); bricksMountedRef.current = false; }}
+                      onClick={() => {
+                        if (bricksControllerRef.current) {
+                          bricksControllerRef.current.unmount().catch(() => {});
+                          bricksControllerRef.current = null;
+                        }
+                        bricksMountedRef.current = false;
+                        setStep(1);
+                      }}
                       className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mr-1"
                       aria-label="Voltar"
                     >
@@ -273,7 +289,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
                       {step === 1 ? 'Quase lá!' : 'Pagamento'}
                     </h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                      {step === 1 ? 'Preencha seus dados para continuar' : `Realwise — Acesso Vitalício · R$${amount.toFixed(2).replace('.', ',')}`}
+                      {step === 1 ? 'Preencha seus dados para continuar' : `Realwise — Acesso Vitalício · R$${(amount ?? 0).toFixed(2).replace('.', ',')}`}
                     </p>
                   </div>
                 </div>
