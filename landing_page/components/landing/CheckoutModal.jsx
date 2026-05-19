@@ -9,7 +9,7 @@ const CREATE_PAYMENT_URL = import.meta.env.VITE_CREATE_PAYMENT_URL || '';
 const PROCESS_PAYMENT_URL = import.meta.env.VITE_PROCESS_PAYMENT_URL || '';
 const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
 
-const BASE_PRICE = 479.88;
+const BASE_PRICE = 479;
 
 function maskPhone(value) {
   const digits = value.replace(/\D/g, '').slice(0, 11);

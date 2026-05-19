@@ -169,7 +169,7 @@ exports.createPayment = functions
       }
 
       const emailLower = email.toLowerCase().trim();
-      const BASE_AMOUNT = 479.88;
+      const BASE_AMOUNT = 479;
       let amount = BASE_AMOUNT;
 
       // Validate coupon if provided
@@ -207,7 +207,6 @@ exports.createPayment = functions
         if (cd.discountType === 'percentage') {
           amount = parseFloat((BASE_AMOUNT * (1 - cd.discountValue / 100)).toFixed(2));
         } else {
-          // fixed_amount: discountValue stored in centavos
           amount = parseFloat((BASE_AMOUNT - cd.discountValue / 100).toFixed(2));
         }
       }
