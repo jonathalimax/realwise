@@ -6,6 +6,8 @@ const emailUserSecret = defineSecret('EMAIL_USER');
 const emailPasswordSecret = defineSecret('EMAIL_PASSWORD');
 const emailHostSecret = defineSecret('EMAIL_HOST');
 const emailPortSecret = defineSecret('EMAIL_PORT');
+const mpAccessTokenSecret = defineSecret('MP_ACCESS_TOKEN');
+const mpPublicKeySecret = defineSecret('MP_PUBLIC_KEY');
 
 // Initialize Firebase Admin BEFORE importing other modules that depend on it
 admin.initializeApp();
@@ -22,9 +24,9 @@ const { runB3Sync } = require('./b3Sync');
 
 const db = admin.firestore();
 
-// Initialize Mercado Pago with access token from Firebase config
+// Initialize Mercado Pago with access token from Secret Manager
 const getMercadoPagoClient = () => {
-  const accessToken = functions.config().mercadopago?.access_token;
+  const accessToken = mpAccessTokenSecret.value();
   if (!accessToken) {
     throw new Error('Mercado Pago access token not configured');
   }
@@ -142,7 +144,9 @@ const sendPurchaseNotification = async (purchaseData) => {
  * Initialize payment - returns public key for Mercado Pago Bricks
  * Called from the frontend to get the public key
  */
-exports.createPayment = functions.https.onRequest((req, res) => {
+exports.createPayment = functions
+  .runWith({ secrets: [mpAccessTokenSecret, mpPublicKeySecret] })
+  .https.onRequest((req, res) => {
   cors(req, res, async () => {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
@@ -157,7 +161,7 @@ exports.createPayment = functions.https.onRequest((req, res) => {
         return;
       }
 
-      const publicKey = functions.config().mercadopago?.public_key;
+      const publicKey = mpPublicKeySecret.value();
       if (!publicKey) {
         res.status(500).json({ error: 'Configuração de pagamento ausente.' });
         return;
@@ -256,7 +260,9 @@ exports.createPayment = functions.https.onRequest((req, res) => {
 /**
  * Process payment - handles the actual payment from Mercado Pago Bricks
  */
-exports.processPayment = functions.https.onRequest((req, res) => {
+exports.processPayment = functions
+  .runWith({ secrets: [mpAccessTokenSecret] })
+  .https.onRequest((req, res) => {
   cors(req, res, async () => {
     if (req.method !== 'POST') {
       res.status(405).json({ error: 'Method not allowed' });
@@ -384,7 +390,9 @@ async function grantAccessAndNotify(email, name, couponCode, installments = 1) {
 /**
  * Webhook to receive Mercado Pago payment notifications
  */
-exports.mercadoPagoWebhook = functions.https.onRequest(async (req, res) => {
+exports.mercadoPagoWebhook = functions
+  .runWith({ secrets: [mpAccessTokenSecret] })
+  .https.onRequest(async (req, res) => {
   try {
     const { type, data } = req.body;
 
