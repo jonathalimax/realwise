@@ -145,7 +145,8 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
               throw new Error(data.status_detail || 'Pagamento não aprovado.');
             }
           } catch (err) {
-            setError(err.message || 'Erro inesperado.');
+            console.error('[processPayment]', err);
+            setError('__WPP__');
             setLoading(false);
           }
         },
@@ -279,6 +280,8 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
                           bricksControllerRef.current = null;
                         }
                         bricksMountedRef.current = false;
+                        setError('');
+                        setLoading(false);
                         setStep(1);
                       }}
                       className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mr-1"
@@ -351,7 +354,22 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
                     </div>
                   )}
                   <div id="mp-bricks-container" className={bricksLoading ? 'hidden' : ''} />
-                  {error && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+                  {error && (
+                    error === '__WPP__'
+                      ? <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                          Ocorreu um problema no pagamento.{' '}
+                          <a
+                            href="https://wa.me/5541992310339?text=Tive+um+problema+no+checkout+do+Realwise"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 dark:text-emerald-400 underline font-medium"
+                          >
+                            Fale conosco no WhatsApp
+                          </a>
+                          {' '}e te ajudamos agora.
+                        </p>
+                      : <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>
+                  )}
                   {loading && (
                     <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
                       <Loader2 className="w-4 h-4 animate-spin" />
