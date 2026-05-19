@@ -95,6 +95,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
       customization: {
         paymentMethods: {
           creditCard: 'all',
+          ticket: 'all',
           bankTransfer: 'all',
           maxInstallments: 12,
         },
@@ -106,8 +107,10 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
       callbacks: {
         onReady: () => setBricksLoading(false),
         onError: (err) => {
+          if (err?.type === 'non_critical') return;
           console.error('[MPBricks] error', err);
           setBricksLoading(false);
+          setError('Erro ao carregar pagamento. Tente novamente.');
         },
         onSubmit: async ({ selectedPaymentMethod, formData }) => {
           setLoading(true);
