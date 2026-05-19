@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # scripts/deploy-client-functions.sh
 # Deploys scheduledBillReminders to a client project using clientIndex.js
-# as the entry point — avoids shared-project secrets (Stripe, etc.) being
-# validated against the client project.
+# as the entry point — avoids shared-project secrets (Stripe, Mercado Pago, etc.)
+# being validated against the client project.
 #
 # Usage:
 #   ./scripts/deploy-client-functions.sh --project PROJECT_ID
