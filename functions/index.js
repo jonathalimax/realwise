@@ -8,6 +8,7 @@ const emailHostSecret = defineSecret('EMAIL_HOST');
 const emailPortSecret = defineSecret('EMAIL_PORT');
 const mpAccessTokenSecret = defineSecret('MP_ACCESS_TOKEN');
 const mpPublicKeySecret = defineSecret('MP_PUBLIC_KEY');
+const mpWebhookSecretSecret = defineSecret('MP_WEBHOOK_SECRET');
 
 // Initialize Firebase Admin BEFORE importing other modules that depend on it
 admin.initializeApp();
@@ -391,9 +392,44 @@ async function grantAccessAndNotify(email, name, couponCode, installments = 1) {
  * Webhook to receive Mercado Pago payment notifications
  */
 exports.mercadoPagoWebhook = functions
-  .runWith({ secrets: [mpAccessTokenSecret] })
+  .runWith({ secrets: [mpAccessTokenSecret, mpWebhookSecretSecret] })
   .https.onRequest(async (req, res) => {
   try {
+    // Validate MP webhook signature
+    const webhookSecret = mpWebhookSecretSecret.value();
+    if (webhookSecret) {
+      const xSignature = req.headers['x-signature'];
+      const xRequestId = req.headers['x-request-id'];
+      const paymentId = req.body?.data?.id;
+
+      if (!xSignature || !xRequestId) {
+        console.warn('[mercadoPagoWebhook] Missing signature headers');
+        res.status(401).send('Unauthorized');
+        return;
+      }
+
+      // Parse ts and v1 from x-signature header (format: "ts=<ts>,v1=<hash>")
+      const parts = Object.fromEntries(xSignature.split(',').map(p => p.split('=')));
+      const ts = parts['ts'];
+      const v1 = parts['v1'];
+
+      if (!ts || !v1) {
+        console.warn('[mercadoPagoWebhook] Malformed x-signature header');
+        res.status(401).send('Unauthorized');
+        return;
+      }
+
+      const crypto = require('crypto');
+      const manifest = `id:${paymentId};request-id:${xRequestId};ts:${ts};`;
+      const expected = crypto.createHmac('sha256', webhookSecret).update(manifest).digest('hex');
+
+      if (expected !== v1) {
+        console.warn('[mercadoPagoWebhook] Signature mismatch');
+        res.status(401).send('Unauthorized');
+        return;
+      }
+    }
+
     const { type, data } = req.body;
 
     // Only process payment notifications
