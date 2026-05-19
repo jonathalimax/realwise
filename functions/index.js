@@ -168,7 +168,7 @@ exports.createPayment = functions.https.onRequest((req, res) => {
       let amount = BASE_AMOUNT;
 
       // Validate coupon if provided
-      if (couponCode) {
+      if (couponCode && typeof couponCode === 'string') {
         const snap = await db.collection('coupons')
           .where('code', '==', couponCode.toUpperCase())
           .limit(1)
@@ -471,7 +471,7 @@ exports.mercadoPagoWebhook = functions.https.onRequest(async (req, res) => {
 
           if (!couponQuery.empty) {
             await couponQuery.docs[0].ref.update({
-              usedCount: admin.firestore.FieldValue.increment(1),
+              currentUses: admin.firestore.FieldValue.increment(1),
             });
           }
         }
