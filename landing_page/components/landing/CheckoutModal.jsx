@@ -95,7 +95,6 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
       customization: {
         paymentMethods: {
           creditCard: 'all',
-          debitCard: 'all',
           bankTransfer: 'all',
           maxInstallments: 12,
         },
