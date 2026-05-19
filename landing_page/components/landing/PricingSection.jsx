@@ -16,7 +16,7 @@ const included = [
 ];
 
 const trust = [
-  { icon: Lock, text: '100% seguro (Stripe)' },
+  { icon: Lock, text: '100% seguro (Mercado Pago)' },
   { icon: Shield, text: 'Dados 100% seus' },
   { icon: Smartphone, text: 'Desktop + Mobile' },
   { icon: Database, text: 'Seu Firebase' },
