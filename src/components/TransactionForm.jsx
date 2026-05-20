@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards, CARD_ICONS } from '../contexts/CardsContext';
 import { INVESTMENT_TYPES, useInvestments } from '../contexts/InvestmentContext';
@@ -302,13 +302,17 @@ export default function TransactionForm() {
               backgroundSize: '20px'
             }}
           >
-            <option value="Sem categoria">{type === 'income' ? 'Sem categoria' : 'Sem categoria'}</option>
-            <optgroup label="──────────────" />
-            {[...categories[type]].sort((a, b) => a.localeCompare(b)).map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
+            {(() => {
+              const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
+              const all = categories[type] || [];
+              const uncatEntry = all.find(c => c === uncatName);
+              const rest = all.filter(c => c !== uncatName).sort((a, b) => a.localeCompare(b));
+              return (<>
+                {uncatEntry && <option value={uncatEntry}>{uncatEntry}</option>}
+                {uncatEntry && <optgroup label="──────────────" />}
+                {rest.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </>);
+            })()}
           </select>
         </div>
 

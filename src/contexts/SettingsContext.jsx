@@ -13,15 +13,19 @@ export const CURRENCIES = {
   GBP: { symbol: '£', name: 'British Pound', locale: 'en-GB' },
 };
 
+// The special "uncategorized" sentinel values (by language). Used by components to
+// pin this entry at the top of every category select without hardcoding the string.
+export const UNCATEGORIZED_CATEGORY = { pt: 'Sem categoria', en: 'Uncategorized' };
+
 // All available predefined categories by language
 export const ALL_CATEGORIES_BY_LANG = {
   en: {
     expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Groceries', 'Healthcare', 'Education', 'Leisure', 'Sports', 'Clothing', 'Beauty', 'Shopping', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Bonus', 'Rental', 'Other']
+    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Bonus', 'Rental', 'Uncategorized', 'Other']
   },
   pt: {
     expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Mercado', 'Saúde', 'Educação', 'Lazer', 'Esporte', 'Vestuário', 'Beleza', 'Compras', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Bônus', 'Aluguel', 'Outros']
+    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Bônus', 'Aluguel', 'Sem categoria', 'Outros']
   }
 };
 
@@ -29,11 +33,11 @@ export const ALL_CATEGORIES_BY_LANG = {
 const DEFAULT_CATEGORIES_BY_LANG = {
   en: {
     expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Other']
+    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Uncategorized', 'Other']
   },
   pt: {
     expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Mercado', 'Saúde', 'Educação', 'Lazer', 'Esporte', 'Vestuário', 'Beleza', 'Compras', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Outros']
+    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Sem categoria', 'Outros']
   }
 };
 

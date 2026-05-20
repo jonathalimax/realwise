@@ -3,7 +3,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { db, auth } from '../firebase';
 import { doc, updateDoc, writeBatch, query, collection, where, getDocs } from 'firebase/firestore';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
@@ -465,11 +465,17 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           backgroundSize: '20px'
                         }}
                       >
-                        <option value="Sem categoria">Sem categoria</option>
-                        <optgroup label="──────────────" />
-                        {[...categories[type]].sort((a, b) => a.localeCompare(b)).map((cat) => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
+                        {(() => {
+                          const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
+                          const all = categories[type] || [];
+                          const uncatEntry = all.find(c => c === uncatName);
+                          const rest = all.filter(c => c !== uncatName).sort((a, b) => a.localeCompare(b));
+                          return (<>
+                            {uncatEntry && <option value={uncatEntry}>{uncatEntry}</option>}
+                            {uncatEntry && <optgroup label="──────────────" />}
+                            {rest.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                          </>);
+                        })()}
                       </select>
                     </div>
                   </div>

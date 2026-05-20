@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import EditTransactionsModal from './EditTransactionsModal';
@@ -264,12 +264,18 @@ export default function TransactionList({
                                     : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
                               } ${isSaving ? 'opacity-50' : ''}`}
                             >
-                              <option value="" disabled>{language === 'pt' ? 'Categorizar' : 'Categorize'}</option>
-                              <option value="Sem categoria">{language === 'pt' ? 'Sem categoria' : 'Uncategorized'}</option>
-                              <optgroup label="──────────────" />
-                              {[...(categories[transaction.type] || [])].sort((a, b) => a.localeCompare(b)).map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                              ))}
+                              {(() => {
+                                const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
+                                const all = categories[transaction.type] || [];
+                                const uncatEntry = all.find(c => c === uncatName);
+                                const rest = all.filter(c => c !== uncatName).sort((a, b) => a.localeCompare(b));
+                                return (<>
+                                  <option value="" disabled>{language === 'pt' ? 'Categorizar' : 'Categorize'}</option>
+                                  {uncatEntry && <option value={uncatEntry}>{uncatEntry}</option>}
+                                  {uncatEntry && <optgroup label="──────────────" />}
+                                  {rest.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </>);
+                              })()}
                             </select>
                             <svg className="absolute right-1 w-2.5 h-2.5 pointer-events-none text-current opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
