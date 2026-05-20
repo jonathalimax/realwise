@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import CurrencyInput from './ui/CurrencyInput';
 import { useGoals } from '../contexts/GoalsContext';
 import { INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
@@ -228,13 +229,10 @@ export default function ImportSwipeSheet({
             <div className="flex gap-3">
               <div className="flex-1">
                 {fieldLabel(label('Valor', 'Amount'))}
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
+                <CurrencyInput
                   value={trans.amount}
-                  onChange={(e) => patch('amount', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  onChange={(v) => patch('amount', v)}
+                  className="!py-0 !text-sm font-bold !rounded-xl !focus:border-violet-500"
                   style={{ height: '42px' }}
                 />
               </div>
