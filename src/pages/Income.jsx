@@ -128,11 +128,11 @@ export default function IncomePage() {
       <PageHeader title={language === 'pt' ? 'Entrada' : 'Income'} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        {/* Summary Card — hidden on mobile to maximise transaction list space */}
-        <div className="hidden sm:block mb-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
-          <p className="text-sm text-white/80 mb-1">{language === 'pt' ? 'Total de Entrada' : 'Total Income'}</p>
-          <p className="text-3xl font-bold">{formatCurrency(totalIncome)}</p>
-          <p className="text-sm text-white/70 mt-1">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</p>
+        {/* Summary — card style on sm+, plain inline on mobile */}
+        <div className="mb-4 sm:mb-6 sm:bg-gradient-to-r sm:from-emerald-500 sm:to-teal-600 sm:rounded-2xl sm:p-6 sm:text-white sm:shadow-lg">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:text-white/80 mb-0.5 sm:mb-1">{language === 'pt' ? 'Total de Entrada' : 'Total Income'}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white sm:text-white">{formatCurrency(totalIncome)}</p>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 sm:text-white/70 mt-0.5 sm:mt-1">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</p>
         </div>
 
         {/* Transactions Container */}
