@@ -241,8 +241,8 @@ export default function TransactionList({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">
-                          {transaction.description}
+                        <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 leading-snug">
+                          {transaction.description?.replace(/ - \(\d+\/\d+\)$/, '')}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5 min-w-0">
                           <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">
@@ -256,7 +256,7 @@ export default function TransactionList({
                               value={transaction.category || ''}
                               disabled={!canWrite || isSaving}
                               onChange={(e) => handleQuickCategoryChange(transaction, e.target.value)}
-                              className={`appearance-none pl-2 pr-6 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 max-w-[120px] truncate ${
+                              className={`appearance-none pl-1.5 pr-5 py-px text-[9px] font-bold rounded-full uppercase tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 max-w-[90px] truncate ${
                                 transaction.category === 'Sem categoria' || !transaction.category
                                   ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                                   : transaction.type === 'income'
@@ -269,7 +269,7 @@ export default function TransactionList({
                                 <option key={cat} value={cat}>{cat.toUpperCase()}</option>
                               ))}
                             </select>
-                            <svg className="absolute right-1.5 w-3 h-3 pointer-events-none text-current opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="absolute right-1 w-2.5 h-2.5 pointer-events-none text-current opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
                             </svg>
                           </div>
@@ -287,8 +287,8 @@ export default function TransactionList({
                           {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                         </p>
                         {transaction.isInstallment && (
-                          <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
-                            {transaction.installmentCurrent}/{transaction.installmentTotal}
+                          <p className="text-[11px] font-bold text-violet-400 dark:text-violet-400 mt-0.5 tabular-nums">
+                            {transaction.installmentCurrent} de {transaction.installmentTotal}
                           </p>
                         )}
                       </div>

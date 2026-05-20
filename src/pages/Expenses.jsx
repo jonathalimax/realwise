@@ -183,8 +183,8 @@ export default function ExpensesPage() {
       <PageHeader title={language === 'pt' ? 'Saída' : 'Expenses'} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        {/* Summary Card */}
-        <div className="mb-6 bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+        {/* Summary Card — hidden on mobile to maximise transaction list space */}
+        <div className="hidden sm:block mb-6 bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
           <p className="text-sm text-white/80 mb-1">{language === 'pt' ? 'Total de Saída' : 'Total Expenses'}</p>
           <p className="text-3xl font-bold">{formatCurrency(totalExpenses)}</p>
           <p className="text-sm text-white/70 mt-1">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</p>
@@ -347,6 +347,10 @@ export default function ExpensesPage() {
                 transactions={filteredTransactions}
                 formatCurrency={formatCurrency}
                 language={language}
+                onCategoryClick={(cat) => {
+                  handleSetCategoryFilter(cat);
+                  handleSetDisplayMode('list');
+                }}
               />
             </Suspense>
           ) : (

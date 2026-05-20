@@ -981,7 +981,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           type="button"
                           onClick={handleDelete}
                           disabled={loading}
-                          className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                          className="flex-1 rounded-lg bg-red-500 px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50 whitespace-nowrap"
                         >
                           {loading
                             ? (language === 'pt' ? 'Excluindo...' : 'Deleting...')
@@ -990,7 +990,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         <button
                           type="button"
                           onClick={() => setShowDeleteConfirm(false)}
-                          className="flex-1 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-gray-800"
+                          className="flex-1 rounded-lg bg-white px-3 py-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-gray-800 whitespace-nowrap"
                         >
                           {t('common.cancel')}
                         </button>
