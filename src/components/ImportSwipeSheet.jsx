@@ -315,7 +315,7 @@ export default function ImportSwipeSheet({
                 >
                   <option value="">{label('Sem categoria', 'Uncategorized')}</option>
                   {(() => {
-                    const typeCats = categories[trans.type] || [];
+                    const typeCats = [...(categories[trans.type] || [])].sort((a, b) => a.localeCompare(b));
                     const current = trans.category;
                     const opts = current && !typeCats.includes(current) ? [current, ...typeCats] : typeCats;
                     return opts.map((cat) => <option key={cat} value={cat}>{cat}</option>);

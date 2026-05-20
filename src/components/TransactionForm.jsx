@@ -302,7 +302,7 @@ export default function TransactionForm() {
               backgroundSize: '20px'
             }}
           >
-            {categories[type].map((cat) => (
+            {[...categories[type]].sort((a, b) => a.localeCompare(b)).map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
