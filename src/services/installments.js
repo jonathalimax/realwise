@@ -43,7 +43,11 @@ export function detectInstallment(description) {
  */
 export function generateInstallmentTransactions(baseTransaction, currentInstallment, totalInstallments) {
   const transactions = [];
-  const baseDate = new Date(baseTransaction.date);
+
+  // The fatura date is the billing month of the CURRENT installment, not installment 1.
+  // Back-calculate the true first installment's date so the full schedule is correct.
+  const firstInstallmentDate = new Date(baseTransaction.date);
+  firstInstallmentDate.setMonth(firstInstallmentDate.getMonth() - (currentInstallment - 1));
 
   // Clean the description to remove installment info and add our own format
   let cleanDescription = baseTransaction.description
@@ -54,11 +58,9 @@ export function generateInstallmentTransactions(baseTransaction, currentInstallm
     .replace(/\s*\d+\s*de\s*\d+\s*(?:parcelas?|x)?/gi, '')
     .trim();
 
-  // The date in the fatura is installment 1's date (original purchase).
-  // Generate the FULL schedule from 1 to N, advancing one month per installment.
-  // This shows past installments correctly AND projects future ones.
+  // Generate the FULL schedule from 1 to N, one month apart starting from installment 1.
   for (let i = 1; i <= totalInstallments; i++) {
-    const installmentDate = new Date(baseDate);
+    const installmentDate = new Date(firstInstallmentDate);
     installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
 
     const transaction = {
