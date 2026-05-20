@@ -302,6 +302,8 @@ export default function TransactionForm() {
               backgroundSize: '20px'
             }}
           >
+            <option value="Sem categoria">{type === 'income' ? 'Sem categoria' : 'Sem categoria'}</option>
+            <optgroup label="──────────────" />
             {[...categories[type]].sort((a, b) => a.localeCompare(b)).map((cat) => (
               <option key={cat} value={cat}>
                 {cat}

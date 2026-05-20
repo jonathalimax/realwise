@@ -465,6 +465,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           backgroundSize: '20px'
                         }}
                       >
+                        <option value="Sem categoria">Sem categoria</option>
+                        <optgroup label="──────────────" />
                         {[...categories[type]].sort((a, b) => a.localeCompare(b)).map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}

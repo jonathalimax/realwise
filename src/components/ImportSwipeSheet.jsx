@@ -311,12 +311,13 @@ export default function ImportSwipeSheet({
                   onChange={(e) => patch('category', e.target.value)}
                   className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
                 >
-                  <option value="">{label('Sem categoria', 'Uncategorized')}</option>
+                  <option value="Sem categoria">{label('Sem categoria', 'Uncategorized')}</option>
+                  <optgroup label="──────────────" />
                   {(() => {
                     const typeCats = [...(categories[trans.type] || [])].sort((a, b) => a.localeCompare(b));
                     const current = trans.category;
-                    const opts = current && !typeCats.includes(current) ? [current, ...typeCats] : typeCats;
-                    return opts.map((cat) => <option key={cat} value={cat}>{cat}</option>);
+                    const extras = current && current !== 'Sem categoria' && !typeCats.includes(current) ? [current] : [];
+                    return [...extras, ...typeCats].map((cat) => <option key={cat} value={cat}>{cat}</option>);
                   })()}
                 </select>
                 <svg

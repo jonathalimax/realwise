@@ -256,7 +256,7 @@ export default function TransactionList({
                               value={transaction.category || ''}
                               disabled={!canWrite || isSaving}
                               onChange={(e) => handleQuickCategoryChange(transaction, e.target.value)}
-                              className={`appearance-none pl-2 pr-5 py-px text-[9px] font-bold rounded-full uppercase tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 ${
+                              className={`appearance-none w-auto pl-2 pr-5 py-px text-[9px] font-bold rounded-full uppercase tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 ${
                                 transaction.category === 'Sem categoria' || !transaction.category
                                   ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                                   : transaction.type === 'income'
@@ -264,9 +264,11 @@ export default function TransactionList({
                                     : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
                               } ${isSaving ? 'opacity-50' : ''}`}
                             >
-                              <option value="" disabled>{language === 'pt' ? 'CATEGORIZAR' : 'CATEGORIZE'}</option>
-                              {(categories[transaction.type] || []).map(cat => (
-                                <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                              <option value="" disabled>{language === 'pt' ? 'Categorizar' : 'Categorize'}</option>
+                              <option value="Sem categoria">{language === 'pt' ? 'Sem categoria' : 'Uncategorized'}</option>
+                              <optgroup label="──────────────" />
+                              {[...(categories[transaction.type] || [])].sort((a, b) => a.localeCompare(b)).map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
                               ))}
                             </select>
                             <svg className="absolute right-1 w-2.5 h-2.5 pointer-events-none text-current opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
