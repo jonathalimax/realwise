@@ -10,7 +10,7 @@ export default function PageHelp({ title, text, hasFab = false }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className={`fixed ${fabPosition} right-6 z-40 w-10 h-10 rounded-full bg-gray-700 dark:bg-gray-600 border border-gray-600 dark:border-gray-500 text-gray-300 text-sm font-bold shadow-lg flex items-center justify-center hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors`}
+        className={`hidden sm:flex fixed ${fabPosition} right-6 z-40 w-10 h-10 rounded-full bg-gray-700 dark:bg-gray-600 border border-gray-600 dark:border-gray-500 text-gray-300 text-sm font-bold shadow-lg items-center justify-center hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors`}
         aria-label="Como funciona"
       >
         ?
