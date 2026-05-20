@@ -190,8 +190,8 @@ export default function ExpensesPage() {
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 sm:text-white/70 mt-0.5 sm:mt-1">{filteredTransactions.length} {language === 'pt' ? 'transações' : 'transactions'}</p>
         </div>
 
-        {/* Transactions Container */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100 dark:border-slate-700">
+        {/* Transactions Container — no card on mobile, card on sm+ */}
+        <div className="sm:bg-white sm:dark:bg-slate-800 sm:rounded-2xl sm:p-6 sm:shadow-sm sm:border sm:border-slate-100 sm:dark:border-slate-700">
           {/* Header row: month label + filter button + segmented toggle */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
