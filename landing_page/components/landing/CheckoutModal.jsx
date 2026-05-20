@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, Loader2, Lock, ChevronLeft } from 'lucide-react';
+import { X, ArrowRight, Loader2, Lock, ChevronLeft, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
 
@@ -10,6 +10,25 @@ const PROCESS_PAYMENT_URL = import.meta.env.VITE_PROCESS_PAYMENT_URL || '';
 const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
 
 const BASE_PRICE = 479;
+
+const MP_STATUS_MESSAGES = {
+  cc_rejected_insufficient_amount:      'Saldo insuficiente. Verifique o limite do seu cartão.',
+  cc_rejected_bad_filled_security_code: 'Código de segurança inválido. Verifique o CVV.',
+  cc_rejected_bad_filled_date:          'Data de vencimento inválida. Verifique os dados do cartão.',
+  cc_rejected_bad_filled_other:         'Dados do cartão incorretos. Verifique e tente novamente.',
+  cc_rejected_call_for_authorize:       'Ligue para o banco para autorizar o pagamento e tente novamente.',
+  cc_rejected_card_disabled:            'Cartão desativado. Entre em contato com o banco.',
+  cc_rejected_card_error:               'Erro no cartão. Tente outro cartão ou use Pix.',
+  cc_rejected_duplicated_payment:       'Pagamento duplicado detectado. Aguarde alguns minutos.',
+  cc_rejected_high_risk:                'Pagamento recusado por segurança. Tente outro cartão ou use Pix.',
+  cc_rejected_max_attempts:             'Muitas tentativas. Use outro cartão ou tente mais tarde.',
+  cc_rejected_other_reason:             'Cartão recusado. Tente outro cartão ou use Pix.',
+};
+
+function mpErrorMessage(statusDetail) {
+  if (!statusDetail) return null;
+  return MP_STATUS_MESSAGES[statusDetail] || null;
+}
 
 function maskPhone(value) {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -36,13 +55,18 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
 
   const formRef = useRef(form);
   useEffect(() => { formRef.current = form; }, [form]);
+  const amountRef = useRef(amount);
+  useEffect(() => { amountRef.current = amount; }, [amount]);
   const processPaymentUrlRef = useRef(processPaymentUrl);
   useEffect(() => { processPaymentUrlRef.current = processPaymentUrl; }, [processPaymentUrl]);
 
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const clientId = extractClientId(window.location.pathname) || 'app';
+        const hostname = window.location.hostname;
+        const rawId = extractClientId(hostname);
+        // realwise-dev.web.app → use app.dev config; apex/unknown → app
+        const clientId = rawId === 'realwise-dev' ? 'app.dev' : (rawId || 'app');
         const config = await fetchClientConfig(clientId);
         if (config.createPaymentUrl) setCreatePaymentUrl(config.createPaymentUrl);
         if (config.processPaymentUrl) setProcessPaymentUrl(config.processPaymentUrl);
@@ -87,6 +111,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
     const mp = new window.MercadoPago(window.__MP_PUBLIC_KEY__, { locale: 'pt-BR' });
     const bricksBuilder = mp.bricks();
 
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const settings = {
       initialization: {
         amount,
@@ -100,7 +125,23 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
           maxInstallments: 12,
         },
         visual: {
-          style: { theme: 'default' },
+          style: {
+            theme: prefersDark ? 'dark' : 'default',
+            customVariables: prefersDark ? {
+              textPrimaryColor: '#f1f5f9',
+              textSecondaryColor: '#94a3b8',
+              inputBackgroundColor: '#1e293b',
+              formBackgroundColor: '#0f172a',
+              baseColor: '#7c3aed',
+              baseColorFirstVariant: '#6d28d9',
+              baseColorSecondVariant: '#5b21b6',
+              errorColor: '#f87171',
+            } : {
+              baseColor: '#7c3aed',
+              baseColorFirstVariant: '#6d28d9',
+              baseColorSecondVariant: '#5b21b6',
+            },
+          },
           hidePaymentButton: false,
         },
       },
@@ -115,39 +156,52 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
         onSubmit: async ({ selectedPaymentMethod, formData }) => {
           setLoading(true);
           setError('');
-          try {
-            const payload = {
-              ...formData,
-              installments: formData.installments || installments,
-              email: formRef.current.email,
-              name: formRef.current.name,
-              whatsapp: formRef.current.whatsapp,
-              couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
-            };
 
-            const res = await fetch(processPaymentUrlRef.current, {
+          let res, data;
+          try {
+            res = await fetch(processPaymentUrlRef.current, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
+              body: JSON.stringify({
+                ...formData,
+                // Pix formData omits transaction_amount — supply it explicitly
+                transaction_amount: formData.transaction_amount ?? amountRef.current,
+                installments: formData.installments || installments,
+                email: formRef.current.email,
+                name: formRef.current.name,
+                whatsapp: formRef.current.whatsapp,
+                couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
+              }),
             });
-
-            const data = await res.json().catch(() => ({}));
-
-            if (!res.ok) throw new Error(data.error || 'Erro ao processar pagamento.');
-
-            if (data.status === 'approved') {
-              window.location.href = 'https://realwise.com.br/purchase-success';
-            } else if (data.status === 'in_process' || data.status === 'pending') {
-              if (data.pix_code) sessionStorage.setItem('pix_code', data.pix_code);
-              if (data.pix_qr_base64) sessionStorage.setItem('pix_qr_base64', data.pix_qr_base64);
-              window.location.href = 'https://realwise.com.br/purchase-success?pending=1';
-            } else {
-              throw new Error(data.status_detail || 'Pagamento não aprovado.');
-            }
-          } catch (err) {
-            console.error('[processPayment]', err);
+            data = await res.json().catch(() => ({}));
+          } catch {
+            // Network error — throw so Bricks re-enables its form
             setError('__WPP__');
             setLoading(false);
+            throw new Error('network_error');
+          }
+
+          if (!res.ok) {
+            setError('__WPP__');
+            setLoading(false);
+            throw new Error('server_error');
+          }
+
+          const baseUrl = window.location.origin;
+          if (data.status === 'approved') {
+            window.location.href = `${baseUrl}/purchase-success`;
+          } else if (data.status === 'in_process' || data.status === 'pending') {
+            if (data.pix_code) sessionStorage.setItem('pix_code', data.pix_code);
+            if (data.pix_qr_base64) sessionStorage.setItem('pix_qr_base64', data.pix_qr_base64);
+            if (data.pending_doc_id) sessionStorage.setItem('pix_doc_id', data.pending_doc_id);
+            sessionStorage.setItem('pix_email', formRef.current.email);
+            sessionStorage.setItem('pending_type', data.pix_code ? 'pix' : 'card');
+            window.location.href = `${baseUrl}/purchase-success?pending=1`;
+          } else {
+            // Rejected — throw so Bricks re-enables its form
+            setError(mpErrorMessage(data.status_detail) || '__WPP__');
+            setLoading(false);
+            throw new Error(data.status_detail || 'rejected');
           }
         },
       },
@@ -355,20 +409,25 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
                   )}
                   <div id="mp-bricks-container" className={bricksLoading ? 'hidden' : ''} />
                   {error && (
-                    error === '__WPP__'
-                      ? <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-                          Ocorreu um problema no pagamento.{' '}
-                          <a
-                            href="https://wa.me/5541992310339?text=Tive+um+problema+no+checkout+do+Realwise"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-600 dark:text-emerald-400 underline font-medium"
-                          >
-                            Fale conosco no WhatsApp
-                          </a>
-                          {' '}e te ajudamos agora.
-                        </p>
-                      : <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>
+                    <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 px-4 py-3">
+                      <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                      <p className="text-sm text-rose-700 dark:text-rose-300 leading-snug">
+                        {error === '__WPP__' ? (
+                          <>
+                            Problema no pagamento.{' '}
+                            <a
+                              href="https://wa.me/5541992310339?text=Tive+um+problema+no+checkout+do+Realwise"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline font-medium"
+                            >
+                              Fale conosco no WhatsApp
+                            </a>
+                            {' '}e te ajudamos.
+                          </>
+                        ) : error}
+                      </p>
+                    </div>
                   )}
                   {loading && (
                     <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
@@ -377,7 +436,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
                     </div>
                   )}
                   <p className="mt-4 text-xs text-slate-400 dark:text-slate-500 text-center">
-                    Parcelamentos sem juros. Acesso liberado imediatamente após aprovação.
+                    Parcelamentos sem juros · Pagamento 100% seguro
                   </p>
                 </div>
               )}

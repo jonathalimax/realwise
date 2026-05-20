@@ -122,8 +122,9 @@ const sendPurchaseNotification = async (purchaseData) => {
 
         <div style="background: #fef3c7; padding: 15px; border: 1px solid #fcd34d; border-top: none; border-radius: 0 0 12px 12px;">
           <p style="margin: 0; color: #92400e; font-size: 14px;">
-            <strong>⚡ Ação necessária:</strong> Adicione o email <strong>${purchaseData.email}</strong> à lista de acesso nas configurações do app.
+            <strong>⚡ Ação necessária:</strong> Execute o onboarding para provisionar o projeto Firebase do cliente:
           </p>
+          <pre style="margin: 10px 0 0; background: #1e293b; color: #86efac; padding: 12px; border-radius: 8px; font-size: 13px; overflow-x: auto;">node scripts/onboard-user.cjs ${purchaseData.email}</pre>
         </div>
 
         <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
@@ -261,7 +262,7 @@ exports.createPayment = functions
  * Process payment - handles the actual payment from Mercado Pago Bricks
  */
 exports.processPayment = functions
-  .runWith({ secrets: [mpAccessTokenSecret] })
+  .runWith({ secrets: [mpAccessTokenSecret, emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret] })
   .https.onRequest((req, res) => {
   cors(req, res, async () => {
     if (req.method !== 'POST') {
@@ -283,22 +284,30 @@ exports.processPayment = functions
         contribution
       } = req.body;
 
+      console.log('[processPayment] body:', JSON.stringify({ payment_method_id, token: !!token, payer, transaction_amount }));
+
       const client = getMercadoPagoClient();
       const payment = new Payment(client);
 
+      const isTicket = !token; // boleto/ticket payments don't use card tokens
+      // Pass the full payer object from MP Bricks (contains address, identification, etc.)
+      // and fill in any gaps from the step-1 form fields
+      const payerData = {
+        ...(payer || {}),
+        email: payer?.email || email,
+        first_name: payer?.first_name || name?.split(' ')[0] || '',
+        last_name: payer?.last_name || name?.split(' ').slice(1).join(' ') || '',
+      };
       const paymentData = {
         transaction_amount: parseFloat(transaction_amount),
-        token: token,
+        ...(token && { token }),
         description: 'Realwise - Acesso Completo',
         installments: parseInt(installments) || 1,
         payment_method_id: payment_method_id,
-        issuer_id: issuer_id,
-        payer: {
-          email: payer?.email || email,
-          first_name: payer?.first_name || name?.split(' ')[0] || '',
-          last_name: payer?.last_name || name?.split(' ').slice(1).join(' ') || '',
-          identification: payer?.identification || undefined,
-        },
+        ...(isTicket && { payment_type_id: 'ticket' }),
+        ...(isTicket && { date_of_expiration: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() }),
+        ...(issuer_id && { issuer_id }),
+        payer: payerData,
         external_reference: JSON.stringify({
           email: (payer?.email || email).toLowerCase(),
           name: name || '',
@@ -309,7 +318,43 @@ exports.processPayment = functions
         statement_descriptor: 'MONEYWISE',
       };
 
-      const response = await payment.create({ body: paymentData });
+      console.log('[processPayment] paymentData:', JSON.stringify(paymentData));
+      const mpAccessToken = mpAccessTokenSecret.value();
+      let response;
+      try {
+        if (isTicket) {
+          // Call MP REST API directly for ticket/boleto — SDK may strip nested fields
+          const fetch = require('node-fetch');
+          const mpRes = await fetch('https://api.mercadopago.com/v1/payments', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${mpAccessToken}`,
+              'Content-Type': 'application/json',
+              'X-Idempotency-Key': require('crypto').randomUUID(),
+            },
+            body: JSON.stringify(paymentData),
+          });
+          const mpBody = await mpRes.json();
+          console.log('[processPayment] direct API response:', JSON.stringify(mpBody));
+          if (!mpRes.ok) throw Object.assign(new Error(mpBody.message || 'MP API error'), { status: mpRes.status, cause: mpBody.cause });
+          response = mpBody;
+        } else {
+          response = await payment.create({ body: paymentData });
+        }
+      } catch (mpErr) {
+        // MP occasionally returns internal_error without creating a payment.
+        // Retry once — safe because internal_error means nothing was charged.
+        if (!isTicket && mpErr?.message === 'internal_error') {
+          console.warn('[processPayment] MP internal_error — retrying once', {
+            payment_method_id,
+            transaction_amount: paymentData.transaction_amount,
+          });
+          await new Promise(r => setTimeout(r, 1000));
+          response = await payment.create({ body: paymentData });
+        } else {
+          throw mpErr;
+        }
+      }
 
       // Update pending payment status
       const pendingQuery = await db.collection('pending_payments')
@@ -346,11 +391,21 @@ exports.processPayment = functions
         }
       }
 
+      if (response.status === 'rejected') {
+        console.warn('[processPayment] Payment rejected:', {
+          status_detail: response.status_detail,
+          payment_method_id: payment_method_id,
+          id: response.id,
+        });
+      }
+
       const txData = response.point_of_interaction?.transaction_data;
+      const pendingDocId = pendingQuery.empty ? null : pendingQuery.docs[0].id;
       res.json({
         id: response.id,
         status: response.status,
         status_detail: response.status_detail,
+        pending_doc_id: pendingDocId,
         ...(txData?.qr_code && { pix_code: txData.qr_code }),
         ...(txData?.qr_code_base64 && { pix_qr_base64: txData.qr_code_base64 }),
       });
@@ -380,8 +435,8 @@ async function grantAccessAndNotify(email, name, couponCode, installments = 1) {
       await transporter.sendMail({
         from: `"Realwise" <${fromAddr}>`,
         to: email,
-        subject: 'Tudo pronto! Seu acesso ao Realwise foi liberado 🟢',
-        html: accessGrantedTemplate(name || 'Cliente'),
+        subject: 'Bem-vindo ao Realwise! 🎉',
+        html: welcomeTemplate(name || 'Cliente'),
       });
       console.log(`Access granted email sent to ${email}`);
     }
@@ -394,7 +449,7 @@ async function grantAccessAndNotify(email, name, couponCode, installments = 1) {
  * Webhook to receive Mercado Pago payment notifications
  */
 exports.mercadoPagoWebhook = functions
-  .runWith({ secrets: [mpAccessTokenSecret, mpWebhookSecretSecret] })
+  .runWith({ secrets: [mpAccessTokenSecret, mpWebhookSecretSecret, emailUserSecret, emailPasswordSecret, emailHostSecret, emailPortSecret] })
   .https.onRequest(async (req, res) => {
   try {
     // Validate MP webhook signature
@@ -411,7 +466,12 @@ exports.mercadoPagoWebhook = functions
       }
 
       // Parse ts and v1 from x-signature header (format: "ts=<ts>,v1=<hash>")
-      const parts = Object.fromEntries(xSignature.split(',').map(p => p.split('=')));
+      // Split only on the first '=' to preserve base64 padding in the hash value
+      const parts = {};
+      xSignature.split(',').forEach(segment => {
+        const idx = segment.indexOf('=');
+        if (idx > -1) parts[segment.slice(0, idx)] = segment.slice(idx + 1);
+      });
       const ts = parts['ts'];
       const v1 = parts['v1'];
 
@@ -501,19 +561,10 @@ exports.mercadoPagoWebhook = functions
         }
       }
 
-      // If status is approved, create a record of the purchase and send notifications
+      // If status is approved, grant access, send user email, and notify admin
       if (paymentData.status === 'approved') {
-        await db.collection('purchases').add({
-          email: email,
-          name: name,
-          paymentId: paymentId,
-          amount: paymentData.transaction_amount,
-          couponCode: externalRef.couponCode || null,
-          status: 'approved',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        await grantAccessAndNotify(email, name, externalRef.couponCode, 1);
 
-        // Send email notification to admin
         await sendPurchaseNotification({
           email: email,
           name: name,

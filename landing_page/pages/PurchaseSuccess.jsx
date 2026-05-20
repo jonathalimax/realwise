@@ -1,24 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Clock, Mail, ArrowLeft, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
+
+const DEV_HOSTNAMES = new Set(['realwise-dev.web.app', 'realwise-dev.firebaseapp.com']);
+const CLIENT_CONFIG_URL = DEV_HOSTNAMES.has(window.location.hostname)
+  ? '/clients/app.dev.json'
+  : '/clients/app.json';
+
+async function getPixFirestore() {
+  const existing = getApps().find(a => a.name === 'pix-listener');
+  if (existing) return getFirestore(existing);
+  const res = await fetch(CLIENT_CONFIG_URL);
+  const config = await res.json();
+  const app = initializeApp(config.firebase, 'pix-listener');
+  return getFirestore(app);
+}
 
 export default function PurchaseSuccess() {
-  const isPending = new URLSearchParams(window.location.search).get('pending') === '1';
+  const [isPending, setIsPending] = useState(
+    new URLSearchParams(window.location.search).get('pending') === '1'
+  );
+  const [pendingType, setPendingType] = useState('pix'); // 'pix' | 'card'
   const [pixCode, setPixCode] = useState('');
   const [pixQr, setPixQr] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (isPending) {
-      const code = sessionStorage.getItem('pix_code') || '';
-      const qr = sessionStorage.getItem('pix_qr_base64') || '';
-      setPixCode(code);
-      setPixQr(qr);
-      sessionStorage.removeItem('pix_code');
-      sessionStorage.removeItem('pix_qr_base64');
-    }
-  }, [isPending]);
+    if (!isPending) return;
+
+    const code = sessionStorage.getItem('pix_code') || '';
+    const qr = sessionStorage.getItem('pix_qr_base64') || '';
+    const docId = sessionStorage.getItem('pix_doc_id') || '';
+    const type = sessionStorage.getItem('pending_type') || 'pix';
+    setPixCode(code);
+    setPixQr(qr);
+    setPendingType(type);
+    sessionStorage.removeItem('pix_code');
+    sessionStorage.removeItem('pix_qr_base64');
+    sessionStorage.removeItem('pending_type');
+
+    if (!docId) return;
+
+    let unsub = () => {};
+    // Listen for the webhook updating pending_payments/{docId}.status → 'approved'
+    getPixFirestore().then((db) => {
+      unsub = onSnapshot(
+        doc(db, 'pending_payments', docId),
+        (snap) => {
+          if (snap.exists() && snap.data().status === 'approved') {
+            unsub();
+            sessionStorage.removeItem('pix_email');
+            sessionStorage.removeItem('pix_doc_id');
+            setIsPending(false);
+            setPixCode('');
+            setPixQr('');
+          }
+        },
+        () => { /* permission error — silently ignore */ }
+      );
+    });
+
+    return () => unsub();
+  }, []);
 
   function handleCopy() {
     if (!pixCode) return;
@@ -44,12 +90,18 @@ export default function PurchaseSuccess() {
         </div>
 
         <h1 className="text-3xl font-bold mb-4">
-          {isPending ? 'Pix gerado!' : 'Pagamento confirmado!'}
+          {!isPending
+            ? 'Pagamento confirmado!'
+            : pendingType === 'card'
+              ? 'Pagamento em análise'
+              : 'Pix gerado!'}
         </h1>
         <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
-          {isPending
-            ? <>Escaneie o QR code ou copie o código Pix no seu app do banco. Assim que confirmado, você receberá um e-mail com o acesso — geralmente em <strong>poucos minutos</strong>.</>
-            : <>Obrigado pela compra! Em breve você receberá um e-mail com as instruções de acesso ao Realwise.</>
+          {!isPending
+            ? <>Obrigado pela compra! Em breve você receberá um e-mail com as instruções de acesso ao Realwise.</>
+            : pendingType === 'card'
+              ? <>Seu pagamento está sendo analisado pelo banco. Assim que aprovado, você receberá um e-mail com o acesso — geralmente em <strong>alguns minutos</strong>. Pode fechar esta página.</>
+              : <>Escaneie o QR code ou copie o código Pix no seu app do banco. Assim que confirmado, você receberá um e-mail com o acesso — geralmente em <strong>poucos minutos</strong>.</>
           }
         </p>
 
@@ -89,11 +141,12 @@ export default function PurchaseSuccess() {
           </div>
         )}
 
-        {isPending && !pixCode && (
-          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 mb-8">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Escaneie o QR code gerado no app do banco. Código válido por 30 minutos.
-            </p>
+        {isPending && pendingType === 'card' && (
+          <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 mb-8">
+            <div className="flex items-center gap-3 text-sm text-amber-700 dark:text-amber-300">
+              <Mail className="w-5 h-5 shrink-0" />
+              <p>Você receberá um e-mail assim que o banco confirmar o pagamento.</p>
+            </div>
           </div>
         )}
 

@@ -23,7 +23,8 @@ const DELAY_4H  = 4  * 60 * 60 * 1000;
 const DELAY_24H = 24 * 60 * 60 * 1000;
 const DELAY_48H = 48 * 60 * 60 * 1000;
 const COUPON_TTL_MS = 24 * 60 * 60 * 1000;
-const DISCOUNT_PERCENT = 10;
+const DISCOUNT_COUPON = 5;
+const DISCOUNT_LAST_CHANCE = 10;
 // Base checkout URL — used when no email/coupon context is available.
 // When email/coupon are known, use buildCheckoutUrl() instead.
 const CHECKOUT_URL = 'https://realwise.com.br/checkout';
@@ -46,19 +47,21 @@ async function getTransporter() {
   }
 }
 
-async function upsertCoupon(email) {
-  const code = emailToUsername(email);
+async function upsertCoupon(email, discountPercent) {
+  const base = emailToUsername(email);
+  const code = `${base}${discountPercent}`;
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + COUPON_TTL_MS);
 
   const existing = await db.collection('coupons')
     .where('email', '==', email)
     .where('source', '==', 'abandoned_checkout')
+    .where('discountPercent', '==', discountPercent)
     .limit(1)
     .get();
 
   if (!existing.empty) {
-    await existing.docs[0].ref.update({ issuedAt, expiresAt, usedCount: 0 });
+    await existing.docs[0].ref.update({ code, issuedAt, expiresAt, usedCount: 0 });
     return { code, expiresAt };
   }
 
@@ -67,8 +70,12 @@ async function upsertCoupon(email) {
     email,
     issuedAt,
     expiresAt,
-    discountPercent: DISCOUNT_PERCENT,
+    discountPercent,
+    discountType: 'percentage',
+    discountValue: discountPercent,
+    enabled: true,
     maxUses: 1,
+    currentUses: 0,
     usedCount: 0,
     source: 'abandoned_checkout',
   });
@@ -91,13 +98,14 @@ async function sendStageEmail(transporter, from, session, stage) {
   }
 
   if (stage === STAGES.COUPON_SENT || stage === STAGES.LAST_CHANCE_SENT) {
-    const { code, expiresAt } = await upsertCoupon(email);
+    const discountPercent = stage === STAGES.COUPON_SENT ? DISCOUNT_COUPON : DISCOUNT_LAST_CHANCE;
+    const { code, expiresAt } = await upsertCoupon(email, discountPercent);
     const couponUrl = buildCheckoutUrl({ email, name: name || undefined, couponCode: code });
     const subject = stage === STAGES.COUPON_SENT
-      ? `🎁 Seu cupom especial: ${code.toUpperCase()} — ${DISCOUNT_PERCENT}% off`
+      ? `🎁 Seu cupom especial: ${code.toUpperCase()} — ${discountPercent}% off`
       : `⏰ Última chance: cupom ${code.toUpperCase()} expira hoje`;
     const html = stage === STAGES.COUPON_SENT
-      ? checkoutCouponTemplate(displayName, code, DISCOUNT_PERCENT, expiresAt, couponUrl)
+      ? checkoutCouponTemplate(displayName, code, discountPercent, expiresAt, couponUrl)
       : checkoutLastChanceTemplate(displayName, code, expiresAt, couponUrl);
     await transporter.sendMail({ from: `"Realwise" <${from}>`, to: email, subject, html });
     return { expiresAt };

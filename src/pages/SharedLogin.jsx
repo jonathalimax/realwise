@@ -8,12 +8,6 @@ import { initSharedFirebase } from '../lib/sharedFirebase';
 import { devMark } from '../lib/devMarker';
 import { isLoginSessionExpired, markLoginSession } from '../lib/auth/sessionAge';
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500" />
-  </div>
-);
-
 export default function SharedLogin() {
   const [loading, setLoading] = useState(false);
   const [initDone, setInitDone] = useState(false);
@@ -175,8 +169,6 @@ export default function SharedLogin() {
     }
   };
 
-  if (!initDone) return <PageLoader />;
-
   return (
     <div className="min-h-screen flex">
       {/* Left side — Branding */}
@@ -195,7 +187,10 @@ export default function SharedLogin() {
           </p>
         </div>
 
-        <p className="text-sm text-gray-500">Realwise — feito com cuidado</p>
+        <p className="text-sm text-gray-500">
+          Realwise — feito com ❤️ pela{' '}
+          <a href="https://www.arealsolutions.com.br/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Real Solutions</a>
+        </p>
       </div>
 
       {/* Right side — Form */}
@@ -222,7 +217,7 @@ export default function SharedLogin() {
 
           <button
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={loading || !initDone}
             className="w-full flex items-center justify-center gap-3 py-3.5 border border-gray-200 dark:border-gray-600 rounded-xl
               font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700
               active:bg-gray-100 dark:active:bg-gray-600 transition-colors
@@ -254,7 +249,7 @@ export default function SharedLogin() {
               </div>
               <button
                 onClick={handleDevEmulatorSignIn}
-                disabled={loading}
+                disabled={loading || !initDone}
                 className="w-full py-3 border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30
                   rounded-xl font-medium text-amber-700 dark:text-amber-300
                   hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors

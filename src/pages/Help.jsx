@@ -155,7 +155,8 @@ export default function HelpPage() {
         <div className="mt-8 text-center text-sm text-gray-400 dark:text-gray-500">
           <p>Realwise v1.0.0</p>
           <p className="mt-1">
-            {language === 'pt' ? 'Feito com ❤️ para você' : 'Made with ❤️ for you'}
+            {language === 'pt' ? 'Feito com ❤️ pela ' : 'Made with ❤️ by '}
+            <a href="https://www.arealsolutions.com.br/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600 dark:hover:text-gray-300">Real Solutions</a>
           </p>
         </div>
       </main>

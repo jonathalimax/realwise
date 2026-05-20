@@ -64,8 +64,13 @@ function AuthenticatedShell({ children }) {
 }
 
 function RedirectToGlobalLogin() {
-  useEffect(() => { window.location.replace('/login'); }, []);
-  return <PageLoader />;
+  useEffect(() => {
+    // Delay gives in-flight onAuthStateChanged (fired by signInWithCustomToken
+    // in LoadingPage) time to arrive before we hard-redirect away.
+    const id = setTimeout(() => { window.location.replace('/login'); }, 600);
+    return () => clearTimeout(id);
+  }, []);
+  return null;
 }
 
 function AuthenticatedApp() {
@@ -303,6 +308,11 @@ function App() {
         <AdminApp />
       </Suspense>
     );
+  } else if (window.location.pathname === '/loading') {
+    // PWA start_url entry point — redirect to the last known tenant's loading page
+    const lastClient = localStorage.getItem('rw_last_client');
+    window.location.replace(lastClient ? `/${lastClient}/loading` : '/login');
+    inner = <PageLoader />;
   } else {
     const clientId = extractClientId(window.location.hostname)
       || window.location.pathname.split('/').filter(Boolean)[0]

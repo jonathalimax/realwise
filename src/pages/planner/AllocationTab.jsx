@@ -16,7 +16,7 @@ const RULE_LABELS = {
   savings: { short: 'P', label: 'Poupança',     color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' },
 };
 
-function InnerTabs({ tabs, active, onChange }) {
+export function InnerTabs({ tabs, active, onChange }) {
   return (
     <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
       {tabs.map(t => (
@@ -49,6 +49,8 @@ export default function AllocationTab({ onGoToRenda,
   categoryBudgetsPct,
   updateCategoryBudgetPct,
   copyFromPreviousMonth,
+  innerTab,
+  setInnerTab,
 }) {
   const { ownerId } = useAccess();
   const { categories } = useSettings();
@@ -94,12 +96,6 @@ export default function AllocationTab({ onGoToRenda,
     return sums;
   }, [allCategories, categoryBudgetsPct, liquidezFinal, getCategoryRule]);
 
-  const INNER_TABS = [
-    { value: 'regra',      label: '⚖️ Regra' },
-    { value: 'categorias', label: '📂 Categorias' },
-  ];
-  const [innerTab, setInnerTab] = useState('regra');
-
   const allocationTotal = monthAllocation.necessidades + monthAllocation.poupanca + monthAllocation.desejos;
   const isValid    = allocationTotal === 100;
   const hasOverride = state.plannerVersions?.some(v => v.from === selectedMonth);
@@ -128,8 +124,6 @@ export default function AllocationTab({ onGoToRenda,
 
   return (
     <div className="space-y-6">
-      <InnerTabs tabs={INNER_TABS} active={innerTab} onChange={setInnerTab} />
-
       {/* ── MASTER PLAN (70/20/10) ───────────────────────────────────────── */}
       {innerTab === 'regra' && <div className="space-y-4">
         <div className="flex items-center justify-between">
