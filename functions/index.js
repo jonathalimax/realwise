@@ -77,11 +77,9 @@ const sendPurchaseNotification = async (purchaseData) => {
     return;
   }
 
-  const adminEmail = 'jonathalimax@gmail.com';
-
   const mailOptions = {
-    from: `"Realwise" <${functions.config().email?.user || 'noreply@realwise.com.br'}>`,
-    to: adminEmail,
+    from: `"Realwise" <${emailUserSecret.value()}>`,
+    to: 'financeiro@realwise.com.br',
     subject: `💰 Nova Compra - Realwise - R$ ${purchaseData.amount.toFixed(2)}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -315,7 +313,7 @@ exports.processPayment = functions
           contribution: parseFloat(contribution) || 0,
           timestamp: Date.now(),
         }),
-        statement_descriptor: 'MONEYWISE',
+        statement_descriptor: 'REALWISE',
       };
 
       console.log('[processPayment] paymentData:', JSON.stringify(paymentData));
@@ -376,7 +374,7 @@ exports.processPayment = functions
       // If approved, grant access and send email
       if (response.status === 'approved') {
         const approvedEmail = (payer?.email || email).toLowerCase();
-        await grantAccessAndNotify(approvedEmail, name, couponCode, parseInt(installments) || 1);
+        await grantAccessAndNotify(approvedEmail, name, couponCode, parseInt(installments) || 1, response.transaction_amount || 0);
 
         if (couponCode && typeof couponCode === 'string') {
           const couponSnap = await db.collection('coupons')
@@ -417,28 +415,47 @@ exports.processPayment = functions
 });
 
 // Helper function to grant access and send notification
-async function grantAccessAndNotify(email, name, couponCode, installments = 1) {
+async function grantAccessAndNotify(email, name, couponCode, installments = 1, amountBRL = 0) {
   try {
+    const normalizedEmail = email.toLowerCase();
+
+    // Dashboard's brl() formatter expects centavos (integer), MP gives decimal BRL
+    const amountCentavos = Math.round(amountBRL * 100);
+
     // Add to purchases collection
     await db.collection('purchases').add({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       name: name || '',
       couponCode: couponCode || null,
       installments,
+      amountTotal: amountCentavos,
       purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Send notification email
+    // Upsert lead state — set with merge so it works even if the doc doesn't exist yet
+    try {
+      await db.collection('leads').doc(normalizedEmail).set({
+        state: 'paid',
+        paidAt: admin.firestore.FieldValue.serverTimestamp(),
+        amountTotal: amountCentavos,
+      }, { merge: true });
+    } catch (leadErr) {
+      console.warn(`[grantAccess] Could not update lead state for ${normalizedEmail}:`, leadErr.message);
+    }
+
+    // Send welcome email
     const transporter = getEmailTransporter();
     if (transporter) {
-      const fromAddr = functions.config().email?.user || 'contato@realwise.com.br';
+      const fromAddr = emailUserSecret.value() || 'contato@realwise.com.br';
       await transporter.sendMail({
         from: `"Realwise" <${fromAddr}>`,
-        to: email,
+        to: normalizedEmail,
         subject: 'Bem-vindo ao Realwise! 🎉',
         html: welcomeTemplate(name || 'Cliente'),
       });
-      console.log(`Access granted email sent to ${email}`);
+      console.log(`[grantAccess] Welcome email sent to ${normalizedEmail}`);
+    } else {
+      console.warn('[grantAccess] Email transporter not available — welcome email skipped');
     }
   } catch (error) {
     console.error('Error granting access:', error);
@@ -563,7 +580,7 @@ exports.mercadoPagoWebhook = functions
 
       // If status is approved, grant access, send user email, and notify admin
       if (paymentData.status === 'approved') {
-        await grantAccessAndNotify(email, name, externalRef.couponCode, 1);
+        await grantAccessAndNotify(email, name, externalRef.couponCode, 1, paymentData.transaction_amount || 0);
 
         await sendPurchaseNotification({
           email: email,

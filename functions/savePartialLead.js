@@ -4,7 +4,7 @@ const cors = require('cors')({ origin: true });
 
 const db = admin.firestore();
 
-const PROTECTED_STATES = ['checkout_started', 'not_paid', 'paid', 'onboarding', 'active', 'cancelled', 'refunded'];
+const PROTECTED_STATES = ['checkout_started', 'not_paid', 'paid', 'active', 'cancelled', 'refunded'];
 
 exports.savePartialLead = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {

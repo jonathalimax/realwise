@@ -7,7 +7,6 @@ const ClientConfigContext = createContext(null);
 
 export function ClientConfigProvider({ children }) {
   const [config, setConfig] = useState(null);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -26,6 +25,7 @@ export function ClientConfigProvider({ children }) {
         } else {
           const clientId = extractClientId(window.location.hostname)
             || window.location.pathname.split('/').filter(Boolean)[0];
+          if (!clientId) return;
           cfg = await fetchClientConfig(clientId);
           appName = clientId;
         }
@@ -34,30 +34,10 @@ export function ClientConfigProvider({ children }) {
         setConfig(cfg);
       } catch (err) {
         devMark('ClientConfig ERR: ' + (err?.message || 'unknown'));
-        console.error('[ClientConfig] Failed to load config:', err);
-        setError(err.message);
       }
     }
     load();
   }, []);
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-6">
-        <div className="max-w-md text-center space-y-4">
-          <p className="text-gray-600 dark:text-gray-300">
-            Não foi possível carregar a configuração.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 rounded-lg bg-rose-500 text-white hover:bg-rose-600"
-          >
-            Recarregar
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (!config) {
     return (

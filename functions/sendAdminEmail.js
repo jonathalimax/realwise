@@ -70,7 +70,7 @@ exports.sendAdminEmail = functions
     const { subject, html } = templateFn(fields);
 
     await transporter.sendMail({
-      from: emailUser,
+      from: `"Realwise" <${emailUser}>`,
       to,
       subject,
       html,

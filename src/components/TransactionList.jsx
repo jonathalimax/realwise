@@ -255,7 +255,7 @@ export default function TransactionList({
                               select stretches to fill it — the only cross-browser way to shrink
                               a <select> to its selected text without JavaScript measurement. */}
                           <div
-                            className={`inline-grid text-[11px] font-bold rounded-full ${
+                            className={`relative inline-grid text-[11px] font-bold rounded-full ${
                               transaction.category === 'Sem categoria' || !transaction.category
                                 ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                                 : transaction.type === 'income'

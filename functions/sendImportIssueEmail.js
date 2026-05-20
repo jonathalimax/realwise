@@ -45,7 +45,7 @@ exports.sendImportIssueEmail = functions
     ];
 
     await transporter.sendMail({
-      from: emailUserSecret.value(),
+      from: `"Realwise" <${emailUserSecret.value()}>`,
       to: process.env.EMAIL_IMPORT_ISSUES || process.env.EMAIL_USER,
       subject: `[Realwise] Import failed — ${issue.bankType} — ${issue.clientId}`,
       text: lines.join('\n'),

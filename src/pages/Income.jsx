@@ -239,6 +239,7 @@ export default function IncomePage() {
                 transactions={filteredTransactions}
                 formatCurrency={formatCurrency}
                 language={language}
+                onCategoryClick={(cat) => { handleSetCategoryFilter(cat); handleSetDisplayMode('list'); }}
               />
             </Suspense>
           ) : (

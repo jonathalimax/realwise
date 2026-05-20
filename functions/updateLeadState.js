@@ -4,7 +4,7 @@ const admin = require('firebase-admin');
 
 const db = admin.firestore();
 
-const VALID_STATES = ['pending', 'not_paid', 'paid', 'onboarding', 'active', 'cancelled', 'refunded'];
+const VALID_STATES = ['pending', 'not_paid', 'paid', 'active', 'cancelled', 'refunded'];
 
 exports.updateLeadState = functions.https.onCall(async (data, context) => {
   // Auth + admin check

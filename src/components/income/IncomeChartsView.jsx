@@ -14,7 +14,7 @@ import SpendingChart from '@/components/charts/SpendingChart';
  *   formatCurrency — locale-aware formatter function (amount: number) => string
  *   language — "pt" | "en" from SettingsContext
  */
-export default function IncomeChartsView({ transactions, formatCurrency, language }) {
+export default function IncomeChartsView({ transactions, formatCurrency, language, onCategoryClick }) {
   const totalIncome = useMemo(
     () => transactions.filter(t => !t.ignored).reduce((s, t) => s + t.amount, 0),
     [transactions]
@@ -45,7 +45,7 @@ export default function IncomeChartsView({ transactions, formatCurrency, languag
 
       {/* Income breakdown chart */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700">
-        <SpendingChart transactions={transactions} />
+        <SpendingChart transactions={transactions} onCategoryClick={onCategoryClick} />
       </div>
     </div>
   );

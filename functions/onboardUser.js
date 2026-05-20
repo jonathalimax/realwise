@@ -23,6 +23,16 @@ const BILLING_ACCOUNT_ID = '01F570-F17CDE-9379F7';
 const SHARED_PROJECT_ID = 'moneywise-ad9ec';
 const HOSTING_SITE_ID = 'mymoneywise'; // Firebase Hosting site (realwise.com.br custom domain)
 
+// Operator: deploy-only access (no Firestore/Storage/Auth data)
+const OPERATOR_EMAIL = 'jonathalimax@gmail.com';
+const OPERATOR_ROLES = [
+  'roles/cloudfunctions.developer',
+  'roles/firebasehosting.admin',
+  'roles/cloudbuild.builds.editor',
+  'roles/artifactregistry.writer',
+  'roles/iam.serviceAccountUser',
+];
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 async function log(runId, step, message, level = 'info') {
@@ -244,8 +254,24 @@ exports.onboardUser = functions
 
     // ── Step 4: Enable APIs + create Firestore DB + init Auth ─────────────
     if (!(await step(4, 'Enable APIs & initialize Firebase services', async () => {
+      // Billing propagation can take up to ~2 min after linking — retry with backoff
       for (const api of ['firestore.googleapis.com', 'identitytoolkit.googleapis.com']) {
-        await serviceUsage.services.enable({ name: `projects/${projectId}/services/${api}`, requestBody: {} });
+        let lastErr;
+        for (let attempt = 0; attempt < 6; attempt++) {
+          try {
+            await serviceUsage.services.enable({ name: `projects/${projectId}/services/${api}`, requestBody: {} });
+            lastErr = null;
+            break;
+          } catch (err) {
+            if (err.message?.includes('billing')) {
+              lastErr = err;
+              await sleep(20000); // wait 20s for billing to propagate
+            } else {
+              throw err;
+            }
+          }
+        }
+        if (lastErr) throw lastErr;
         await sleep(1000);
       }
       await sleep(5000);
@@ -354,7 +380,8 @@ exports.onboardUser = functions
     const tempPassword = crypto.randomBytes(12).toString('base64') + '!1';
     if (!(await step(8, `Create Firebase Auth user for ${email}`, async () => {
       let userCreated = false;
-      for (let attempt = 1; attempt <= 10; attempt++) {
+      // CONFIGURATION_NOT_FOUND means Auth isn't provisioned yet — retry for up to 3 minutes
+      for (let attempt = 1; attempt <= 20; attempt++) {
         try {
           await authClient.request({
             url: `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
@@ -367,7 +394,7 @@ exports.onboardUser = functions
         } catch (err) {
           const msg = err.message || '';
           if (msg.includes('EMAIL_EXISTS') || msg.includes('email-already-exists') || msg.includes('DUPLICATE_LOCAL_ID')) { userCreated = true; break; }
-          if (attempt < 10) { await sleep(6000); }
+          if (attempt < 20) { await sleep(10000); }
           else throw err;
         }
       }
@@ -451,8 +478,48 @@ service cloud.firestore {
       return `clients/${username}.json deployed to Hosting`;
     }))) return;
 
+    // ── Step 11: Grant owner to client + deploy-only access to operator ──
+    if (!(await step(11, `Grant owner to ${email} + deploy access to operator`, async () => {
+      const crm = google.cloudresourcemanager('v1');
+      // Request v3 so GCP returns the full policy (Firebase/billing add conditional bindings).
+      // Strip conditional bindings before writing back — GCP manages those and rejects them
+      // if included in a setIamPolicy call alongside unconditional changes.
+      const { data: policy } = await crm.projects.getIamPolicy({
+        resource: projectId,
+        requestBody: { options: { requestedPolicyVersion: 3 } },
+      });
+      // Strip conditional bindings (added by Firebase/billing) — they require v3 to read
+      // but must not be included in a v1 setIamPolicy write. GCP rejects v3 policies
+      // that have no remaining conditions, so downgrade to v1 after stripping.
+      policy.version = 1;
+      policy.bindings = (policy.bindings || []).filter((b) => !b.condition);
+
+      // Grant roles/owner to the client so the project appears in their Firebase Console
+      const clientMember = `user:${email.toLowerCase().trim()}`;
+      const ownerBinding = policy.bindings.find((b) => b.role === 'roles/owner');
+      if (ownerBinding) {
+        if (!ownerBinding.members.includes(clientMember)) ownerBinding.members.push(clientMember);
+      } else {
+        policy.bindings.push({ role: 'roles/owner', members: [clientMember] });
+      }
+
+      // Grant deploy-only roles to operator (no Firestore/Storage/Auth data access)
+      const operatorMember = `user:${OPERATOR_EMAIL}`;
+      for (const role of OPERATOR_ROLES) {
+        const binding = policy.bindings.find((b) => b.role === role);
+        if (binding) {
+          if (!binding.members.includes(operatorMember)) binding.members.push(operatorMember);
+        } else {
+          policy.bindings.push({ role, members: [operatorMember] });
+        }
+      }
+
+      await crm.projects.setIamPolicy({ resource: projectId, requestBody: { policy } });
+      return `Owner granted to ${email}; deploy-only roles granted to ${OPERATOR_EMAIL}`;
+    }))) return;
+
     // ── Done ──────────────────────────────────────────────────────────────
-    await db.collection('leads').doc(email).update({ state: 'onboarding' });
+    await db.collection('leads').doc(email).update({ state: 'active' });
     await runRef.update({ status: 'success', completedAt: admin.firestore.FieldValue.serverTimestamp() });
 
     // Send green-light email to the user
@@ -482,7 +549,7 @@ service cloud.firestore {
       await log(runId, 10, `Warning: could not send access email — ${emailErr.message}`, 'warn');
     }
 
-    await log(runId, 10, `Onboarding complete for ${email}. Lead state → onboarding.`, 'success');
+    await log(runId, 11, `Onboarding complete for ${email}. Lead state → active.`, 'success');
 
     return { success: true };
   });

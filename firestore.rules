@@ -250,5 +250,11 @@ service cloud.firestore {
       allow read: if request.auth != null && isAdmin();
       allow write: if false;
     }
+
+    // Landing stats — admin read; write only via Cloud Functions
+    match /landing_stats/{day} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false;
+    }
   }
 }

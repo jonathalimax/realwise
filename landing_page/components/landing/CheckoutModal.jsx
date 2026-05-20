@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, Loader2, Lock, ChevronLeft, AlertCircle } from 'lucide-react';
+import { ArrowRight, Loader2, Lock, ChevronLeft, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
 
@@ -39,6 +38,9 @@ function maskPhone(value) {
 }
 
 export default function CheckoutModal({ open, onClose, section, prefill = {} }) {
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
+
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: '', email: '', whatsapp: '', coupon: '' });
   const [installments, setInstallments] = useState(1);
@@ -60,12 +62,37 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
   const processPaymentUrlRef = useRef(processPaymentUrl);
   useEffect(() => { processPaymentUrlRef.current = processPaymentUrl; }, [processPaymentUrl]);
 
+  // Mount/unmount with CSS transition
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      // Two rAFs ensure the element is painted before the transition starts
+      const raf = requestAnimationFrame(() =>
+        requestAnimationFrame(() => setVisible(true))
+      );
+      return () => cancelAnimationFrame(raf);
+    } else {
+      setVisible(false);
+      const t = setTimeout(() => setMounted(false), 350);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
   useEffect(() => {
     const loadConfig = async () => {
       try {
         const hostname = window.location.hostname;
         const rawId = extractClientId(hostname);
-        // realwise-dev.web.app → use app.dev config; apex/unknown → app
         const clientId = rawId === 'realwise-dev' ? 'app.dev' : (rawId || 'app');
         const config = await fetchClientConfig(clientId);
         if (config.createPaymentUrl) setCreatePaymentUrl(config.createPaymentUrl);
@@ -87,16 +114,20 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
       });
       setInstallments(1);
       setError('');
+      setAmount(BASE_PRICE);
       savedPartialRef.current = false;
     } else {
-      // Destroy bricks on close
-      if (bricksControllerRef.current) {
-        bricksControllerRef.current.unmount().catch(() => {});
-        bricksControllerRef.current = null;
-        bricksMountedRef.current = false;
-      }
+      destroyBricks();
     }
-  }, [open, prefill]);
+  }, [open, prefill]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function destroyBricks() {
+    if (bricksControllerRef.current) {
+      try { bricksControllerRef.current.unmount(); } catch (_) {}
+      bricksControllerRef.current = null;
+    }
+    bricksMountedRef.current = false;
+  }
 
   // Mount MP Bricks when entering step 2
   useEffect(() => {
@@ -164,7 +195,6 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 ...formData,
-                // Pix formData omits transaction_amount — supply it explicitly
                 transaction_amount: formData.transaction_amount ?? amountRef.current,
                 installments: formData.installments || installments,
                 email: formRef.current.email,
@@ -175,7 +205,6 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
             });
             data = await res.json().catch(() => ({}));
           } catch {
-            // Network error — throw so Bricks re-enables its form
             setError('__WPP__');
             setLoading(false);
             throw new Error('network_error');
@@ -198,7 +227,6 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
             sessionStorage.setItem('pending_type', data.pix_code ? 'pix' : 'card');
             window.location.href = `${baseUrl}/purchase-success?pending=1`;
           } else {
-            // Rejected — throw so Bricks re-enables its form
             setError(mpErrorMessage(data.status_detail) || '__WPP__');
             setLoading(false);
             throw new Error(data.status_detail || 'rejected');
@@ -210,7 +238,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
     let cancelled = false;
     bricksBuilder.create('payment', 'mp-bricks-container', settings)
       .then((controller) => {
-        if (cancelled) { controller.unmount().catch(() => {}); return; }
+        if (cancelled) { try { controller.unmount(); } catch (_) {} return; }
         bricksControllerRef.current = controller;
         bricksMountedRef.current = true;
       })
@@ -220,7 +248,11 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
         setError('Erro ao carregar formulário de pagamento.');
         setBricksLoading(false);
       });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+      destroyBricks();
+    };
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (e) => {
@@ -304,146 +336,176 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
     onClose(reason, [form.name, form.email, form.whatsapp].filter(Boolean).length);
   }
 
-  const inputClass = "w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition";
+  const inputClass = "w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition";
+
+  const displayAmount = amount ?? BASE_PRICE;
+  const hasCouponDiscount = step === 2 && displayAmount < BASE_PRICE;
+  const fmt = (v) => `R ${v.toFixed(2).replace('.', ',')}`; 
+
+  if (!mounted) return null;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => handleClose('backdrop')}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
-          >
-            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 pointer-events-auto max-h-[90vh] overflow-y-auto">
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2">
-                  {step === 2 && (
-                    <button
-                      onClick={() => {
-                        if (bricksControllerRef.current) {
-                          bricksControllerRef.current.unmount().catch(() => {});
-                          bricksControllerRef.current = null;
-                        }
-                        bricksMountedRef.current = false;
-                        setError('');
-                        setLoading(false);
-                        setStep(1);
-                      }}
-                      className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mr-1"
-                      aria-label="Voltar"
-                    >
-                      <ChevronLeft className="w-4 h-4 text-slate-500" />
-                    </button>
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <div
+        onClick={() => handleClose('backdrop')}
+        className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+      />
+
+      {/* Sheet — slides up from bottom on mobile, centered modal on md+ */}
+      <div className="absolute inset-0 flex items-end justify-center md:items-center pointer-events-none">
+        <div
+          className={`
+            pointer-events-auto w-full md:max-w-md
+            bg-white dark:bg-slate-900
+            rounded-t-3xl md:rounded-2xl
+            shadow-2xl border border-slate-200 dark:border-slate-700
+            max-h-[92dvh] md:max-h-[90vh] flex flex-col
+            transition-transform duration-300 ease-out
+            ${visible ? 'translate-y-0' : 'translate-y-full md:translate-y-4'}
+          `}
+        >
+          {/* Drag handle (mobile only) */}
+          <div className="flex justify-center pt-3 pb-1 md:hidden shrink-0">
+            <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+          </div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="flex items-center gap-2">
+              {step === 2 && (
+                <button
+                  onClick={() => {
+                    destroyBricks();
+                    setError('');
+                    setLoading(false);
+                    setStep(1);
+                  }}
+                  className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mr-1"
+                  aria-label="Voltar"
+                >
+                  <ChevronLeft className="w-4 h-4 text-slate-500" />
+                </button>
+              )}
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {step === 1 ? 'Quase lá!' : 'Pagamento seguro'}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {step === 1 ? 'Preencha seus dados para continuar' : 'Pagamento único · acesso vitalício'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleClose('button')}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Fechar"
+            >
+              <X className="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Price badge */}
+            <div className="px-6 pt-4">
+              <div className="rounded-2xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/50 px-5 py-3 flex items-center gap-3">
+                {hasCouponDiscount ? (
+                  <>
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(BASE_PRICE)}</p>
+                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(displayAmount)}</p>
+                    </div>
+                    <span className="text-xs font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">
+                      {form.coupon.trim().toUpperCase()}
+                    </span>
+                  </>
+                ) : (
+                  <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-none">{fmt(displayAmount)}</p>
+                )}
+              </div>
+            </div>
+            {/* Step 1 — Contact fields */}
+            {step === 1 && (
+              <form onSubmit={handleStep1Submit} className="px-6 pt-4 pb-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nome completo</label>
+                  <input type="text" name="name" value={form.name} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="Seu nome" disabled={loading} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">E-mail</label>
+                  <input type="email" name="email" value={form.email} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="voce@exemplo.com" disabled={loading} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">WhatsApp</label>
+                  <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="(11) 99999-9999" disabled={loading} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Cupom de desconto <span className="text-slate-400 font-normal">(opcional)</span>
+                  </label>
+                  <input type="text" name="coupon" value={form.coupon} onChange={handleChange} placeholder="BEMVINDO10" disabled={loading} className={`${inputClass} uppercase`} />
+                </div>
+
+                {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+
+                <Button type="submit" disabled={loading} className="w-full h-12 text-base bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition-all duration-200 active:scale-95">
+                  {loading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Aguarde...</>
+                  ) : (
+                    <>Continuar para pagamento<ArrowRight className="ml-2 h-4 w-4" /></>
                   )}
-                  <div>
-                    <h2 className="text-lg font-bold">
-                      {step === 1 ? 'Quase lá!' : 'Pagamento'}
-                    </h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                      {step === 1 ? 'Preencha seus dados para continuar' : `Realwise — Acesso Vitalício · R$${(amount ?? 0).toFixed(2).replace('.', ',')}`}
+                </Button>
+
+                <p className="text-xs text-slate-400 dark:text-slate-500 text-center flex items-center justify-center gap-1.5 pb-2">
+                  <Lock className="w-3 h-3" />
+                  Pagamento seguro · Seus dados só seus
+                </p>
+              </form>
+            )}
+
+            {/* Step 2 — MP Bricks */}
+            {step === 2 && (
+              <div className="px-6 pt-4 pb-5">
+                {bricksLoading && (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+                  </div>
+                )}
+                <div id="mp-bricks-container" className={bricksLoading ? 'hidden' : ''} />
+                {error && (
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 px-4 py-3">
+                    <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                    <p className="text-sm text-rose-700 dark:text-rose-300 leading-snug">
+                      {error === '__WPP__' ? (
+                        <>
+                          Problema no pagamento.{' '}
+                          <a
+                            href="https://wa.me/5541992310339?text=Tive+um+problema+no+checkout+do+Realwise"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline font-medium"
+                          >
+                            Fale conosco no WhatsApp
+                          </a>
+                          {' '}e te ajudamos.
+                        </>
+                      ) : error}
                     </p>
                   </div>
-                </div>
-                <button
-                  onClick={() => handleClose('button')}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  aria-label="Fechar"
-                >
-                  <X className="w-4 h-4 text-slate-500" />
-                </button>
+                )}
+                {loading && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processando pagamento...
+                  </div>
+                )}
+
               </div>
-
-              {/* Step 1 — Contact fields */}
-              {step === 1 && (
-                <form onSubmit={handleStep1Submit} className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nome completo</label>
-                    <input type="text" name="name" value={form.name} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="Seu nome" disabled={loading} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">E-mail</label>
-                    <input type="email" name="email" value={form.email} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="voce@exemplo.com" disabled={loading} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">WhatsApp</label>
-                    <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="(11) 99999-9999" disabled={loading} className={inputClass} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Cupom de desconto <span className="text-slate-400 font-normal">(opcional)</span></label>
-                    <input type="text" name="coupon" value={form.coupon} onChange={handleChange} placeholder="BEMVINDO10" disabled={loading} className={`${inputClass} uppercase`} />
-                  </div>
-
-                  {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
-
-                  <Button type="submit" disabled={loading} className="w-full h-12 text-base bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-xl font-semibold transition-all duration-200 hover:scale-[1.02]">
-                    {loading ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Aguarde...</>
-                    ) : (
-                      <>Continuar para pagamento<ArrowRight className="ml-2 h-4 w-4" /></>
-                    )}
-                  </Button>
-
-                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center flex items-center justify-center gap-1.5">
-                    <Lock className="w-3 h-3" />
-                    Pagamento seguro · Seus dados só seus
-                  </p>
-                </form>
-              )}
-
-              {/* Step 2 — MP Bricks */}
-              {step === 2 && (
-                <div className="p-6">
-                  {bricksLoading && (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-                    </div>
-                  )}
-                  <div id="mp-bricks-container" className={bricksLoading ? 'hidden' : ''} />
-                  {error && (
-                    <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 px-4 py-3">
-                      <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
-                      <p className="text-sm text-rose-700 dark:text-rose-300 leading-snug">
-                        {error === '__WPP__' ? (
-                          <>
-                            Problema no pagamento.{' '}
-                            <a
-                              href="https://wa.me/5541992310339?text=Tive+um+problema+no+checkout+do+Realwise"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline font-medium"
-                            >
-                              Fale conosco no WhatsApp
-                            </a>
-                            {' '}e te ajudamos.
-                          </>
-                        ) : error}
-                      </p>
-                    </div>
-                  )}
-                  {loading && (
-                    <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Processando pagamento...
-                    </div>
-                  )}
-                  <p className="mt-4 text-xs text-slate-400 dark:text-slate-500 text-center">
-                    Parcelamentos sem juros · Pagamento 100% seguro
-                  </p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

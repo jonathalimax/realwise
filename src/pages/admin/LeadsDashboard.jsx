@@ -7,7 +7,7 @@ import EmailModal from './EmailModal';
 import DiscountModal from './DiscountModal';
 import ActionsDropdown from './ActionsDropdown';
 
-const STATES = ['pending', 'not_paid', 'paid', 'onboarding', 'active', 'cancelled', 'refunded'];
+const STATES = ['pending', 'not_paid', 'paid', 'active', 'cancelled', 'refunded'];
 
 function useLandingStats(db) {
   const [stats, setStats] = useState([]);
@@ -75,7 +75,7 @@ export default function LeadsDashboard({ db, functions }) {
   }
 
   const totalRevenue = leads.reduce((sum, l) => sum + revenueForLead(l), 0);
-  const paidLeads = leads.filter(l => ['paid', 'onboarding', 'active'].includes(l.state)).length;
+  const paidLeads = leads.filter(l => ['paid', 'active'].includes(l.state)).length;
   const conversionRate = leads.length ? ((paidLeads / leads.length) * 100).toFixed(1) : '0.0';
 
   const landingStats = useLandingStats(db);
@@ -250,7 +250,7 @@ export default function LeadsDashboard({ db, functions }) {
                     disabled={updatingState[lead.email]}
                     className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 disabled:opacity-50"
                   >
-                    <option value="">unknown</option>
+                    <option value="">visitante</option>
                     {STATES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </td>

@@ -24,6 +24,10 @@ export async function fetchClientConfig(clientId) {
   if (!response.ok) {
     throw new Error(`Config not found for client: ${clientId} (${response.status})`);
   }
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Config not found for client: ${clientId} (unexpected content-type)`);
+  }
   return response.json();
 }
 

@@ -23,7 +23,7 @@ export default function TransferScript() {
   // Load active/paid leads
   useEffect(() => {
     if (!adminDb) return;
-    const q = query(collection(adminDb, 'leads'), where('state', 'in', ['active', 'paid', 'onboarding']));
+    const q = query(collection(adminDb, 'leads'), where('state', 'in', ['active', 'paid']));
     return onSnapshot(q, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setLeads(docs);

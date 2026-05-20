@@ -45,9 +45,9 @@ const GoalsPage = lazy(() => import('./pages/Goals'));
 const InvestmentsPage = lazy(() => import('./pages/Investments'));
 const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 
-// Landing pages (served at "/" and "/purchase-success" outside any clientId scope)
-const LandingPage = lazy(() => import('../landing_page/pages/home'));
-const PurchaseSuccessPage = lazy(() => import('../landing_page/pages/PurchaseSuccess'));
+// Landing pages — eager imports so marketing links don't show the full-screen loader
+import LandingPage from '../landing_page/pages/home';
+import PurchaseSuccessPage from '../landing_page/pages/PurchaseSuccess';
 const SharedLogin = lazy(() => import('./pages/SharedLogin'));
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 
