@@ -50,6 +50,7 @@ export default function LoadingPage() {
 
         await signInWithCustomToken(userAuth, token);
         markLoginSession();
+        localStorage.setItem('rw_last_client', username);
 
         devMark('LoadingPage: set isReady');
         setIsReady(true);

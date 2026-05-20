@@ -40,7 +40,7 @@ export default {
     cloudStorage: 'Armazenamento na nuvem',
     simple: 'Simples',
     easyToUse: 'Fácil de usar',
-    madeWithCare: 'Feito com carinho para o seu bem-estar financeiro',
+    madeWithCare: 'Feito com carinho pela',
     // Errors
     errors: {
       invalidEmail: 'Endereço de e-mail inválido',

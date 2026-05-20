@@ -206,9 +206,9 @@ function SupportContent() {
                   <Mail className="w-5 h-5" />
                   <span>contato@realwise.com.br</span>
                 </a>
-                <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                <a href="https://wa.me/5541992310339" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                   <Phone className="w-5 h-5" />
-                  <span>WhatsApp: +55 (11) 99999-9999</span>
+                  <span>WhatsApp: +55 (41) 99231-0339</span>
                 </a>
               </div>
             </div>

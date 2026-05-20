@@ -5,7 +5,12 @@ import { Shimmer } from '../components/ui/shimmer';
 import { useMonth } from '../contexts/MonthContext';
 import usePlannerState from './planner/usePlannerState';
 import RendaTab from './planner/RendaTab';
-import AllocationTab from './planner/AllocationTab';
+import AllocationTab, { InnerTabs } from './planner/AllocationTab';
+
+const INNER_TABS = [
+  { value: 'regra',      label: '⚖️ Regra' },
+  { value: 'categorias', label: '📂 Categorias' },
+];
 
 function PlannerSkeleton() {
   return (
@@ -57,6 +62,7 @@ function CollapsibleSection({ title, description, defaultOpen = true, open: cont
 export default function PlanningPage() {
   const { selectedMonth } = useMonth();
   const [rendaOpen, setRendaOpen] = useState(true);
+  const [innerTab, setInnerTab] = useState('regra');
   const rendaRef = useRef(null);
 
   const focusRenda = () => {
@@ -114,6 +120,9 @@ export default function PlanningPage() {
             </CollapsibleSection>
             </div>
 
+            {/* Tabs between Renda and Orçamento */}
+            <InnerTabs tabs={INNER_TABS} active={innerTab} onChange={setInnerTab} />
+
             {/* Section 2 — Orçamento */}
             <CollapsibleSection
               title="Orçamento"
@@ -134,6 +143,8 @@ export default function PlanningPage() {
                 updateCategoryBudgetPct={updateCategoryBudgetPct}
                 copyFromPreviousMonth={copyFromPreviousMonth}
                 onGoToRenda={focusRenda}
+                innerTab={innerTab}
+                setInnerTab={setInnerTab}
               />
             </CollapsibleSection>
           </>

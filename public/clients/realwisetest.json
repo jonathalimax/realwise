@@ -1,0 +1,18 @@
+{
+  "clientName": "Realwise",
+  "firebase": {
+    "apiKey": "AIzaSyBCyPEsaKNn0V5KMQsgm9mxpTxgrAfSVOg",
+    "authDomain": "realwise-realwisetest.firebaseapp.com",
+    "projectId": "realwise-realwisetest",
+    "storageBucket": "realwise-realwisetest.firebasestorage.app",
+    "messagingSenderId": "192281607487",
+    "appId": "1:192281607487:web:8f70602e3e42d2e428a78a"
+  },
+  "features": {
+    "investments": true,
+    "goals": false,
+    "b3Sync": true,
+    "whatsapp": false,
+    "salaryBreakdown": true
+  }
+}

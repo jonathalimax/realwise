@@ -16,7 +16,7 @@ const included = [
 ];
 
 const trust = [
-  { icon: Lock, text: '100% seguro (Stripe)' },
+  { icon: Lock, text: '100% seguro (Mercado Pago)' },
   { icon: Shield, text: 'Dados 100% seus' },
   { icon: Smartphone, text: 'Desktop + Mobile' },
   { icon: Database, text: 'Seu Firebase' },
@@ -58,9 +58,9 @@ export default function PricingSection({ onBuy }) {
                   </span>
                 </div>
                 <div className="text-left sm:text-right">
-                  <div className="text-4xl font-bold">12x de R$39,99</div>
+                  <div className="text-4xl font-bold">em até 12x sem juros</div>
                   <div className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                    ou R$479,88 à vista
+                    ou R$479 à vista
                   </div>
                 </div>
               </div>
@@ -81,7 +81,7 @@ export default function PricingSection({ onBuy }) {
                 </div>
                 <div className="grid grid-cols-[1fr_auto] gap-4 font-semibold text-emerald-600 dark:text-emerald-400">
                   <span>Realwise (sempre)</span>
-                  <span className="text-right">R$ 479,88</span>
+                  <span className="text-right">R$ 479</span>
                 </div>
               </div>
 

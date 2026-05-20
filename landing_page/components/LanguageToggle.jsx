@@ -166,8 +166,8 @@ export const translations = {
     'footer.donations': 'Donations',
     'footer.privacy': 'Privacy',
     'footer.terms': 'Terms',
-    'footer.made': 'Made with',
-    
+    'footer.made': 'Made with ❤️ by',
+
     // Navigation
     'nav.back': 'Back to Home',
     
@@ -323,8 +323,8 @@ export const translations = {
     'footer.donations': 'Doações',
     'footer.privacy': 'Privacidade',
     'footer.terms': 'Termos',
-    'footer.made': 'Feito com',
-    
+    'footer.made': 'Feito com ❤️ pela',
+
     // Navigation
     'nav.back': 'Voltar para Home',
     

@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import {
-  doc, setDoc, onSnapshot, collection,
-  query, orderBy, serverTimestamp
+  doc, onSnapshot, collection,
+  query, orderBy
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 
@@ -33,13 +33,7 @@ export default function OnboardingRun({ db, functions }) {
   const [copied, setCopied] = useState(false);
   const terminalRef = useRef(null);
 
-  useEffect(() => {
-    if (!runId || !email) return;
-    setDoc(doc(db, 'onboardingRuns', runId),
-      { email, status: 'queued', createdAt: serverTimestamp() },
-      { merge: true }
-    );
-  }, [db, runId, email]);
+  // Run doc is created by the Cloud Function — client only reads
 
   useEffect(() => {
     if (!runId) return;

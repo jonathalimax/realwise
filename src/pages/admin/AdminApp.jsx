@@ -20,7 +20,8 @@ let adminFunctions = null;
 
 async function initAdminFirebase() {
   if (adminAuth) return { auth: adminAuth, db: adminDb };
-  const configFile = import.meta.env.VITE_CLIENT_ENV === 'dev' ? 'app.dev' : 'app';
+  const devHostnames = new Set(['realwise-dev.web.app', 'realwise-dev.firebaseapp.com', 'localhost']);
+  const configFile = devHostnames.has(window.location.hostname) ? 'app.dev' : 'app';
   const res = await fetch(`/clients/${configFile}.json`);
   const config = await res.json();
   const isNew = !getApps().find(a => a.name === 'admin');
@@ -57,6 +58,11 @@ export default function AdminApp() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authError, setAuthError] = useState('');
+
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    return () => document.documentElement.classList.remove('dark');
+  }, []);
 
   useEffect(() => {
     initAdminFirebase().then(({ auth, db }) => {

@@ -3,6 +3,7 @@ import {
   collection, onSnapshot, query, orderBy,
   updateDoc, doc, addDoc, serverTimestamp,
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 // Module-level function to get coupon status with fresh `now`
 function getCouponStatus(coupon, now) {
@@ -176,6 +177,7 @@ export default function CouponsPage({ db, functions }) {
       {showModal && (
         <CreateEditCouponModal
           db={db}
+          functions={functions}
           coupon={editingCoupon}
           onClose={() => { setShowModal(false); setEditingCoupon(null); }}
         />
@@ -184,15 +186,15 @@ export default function CouponsPage({ db, functions }) {
   );
 }
 
-function CreateEditCouponModal({ db, coupon, onClose }) {
+function CreateEditCouponModal({ db, functions, coupon, onClose }) {
   const isEdit = !!coupon;
   const [code, setCode] = useState(coupon?.code || '');
   const [discountType, setDiscountType] = useState(coupon?.discountType || 'percentage');
   const [discountValue, setDiscountValue] = useState(
     coupon
       ? (coupon.discountType === 'fixed_amount'
-        ? (coupon.discountValue / 100).toString()
-        : coupon.discountValue.toString())
+        ? ((coupon.discountValue ?? 0) / 100).toString()
+        : (coupon.discountValue ?? 0).toString())
       : ''
   );
   const [maxUses, setMaxUses] = useState(coupon?.maxUses?.toString() || '');
@@ -234,10 +236,12 @@ function CreateEditCouponModal({ db, coupon, onClose }) {
       enabled,
     };
     try {
+      let couponDocId;
       if (isEdit) {
         await updateDoc(doc(db, 'coupons', coupon.id), { ...data, updatedAt: serverTimestamp() });
+        couponDocId = coupon.id;
       } else {
-        await addDoc(collection(db, 'coupons'), {
+        const ref = await addDoc(collection(db, 'coupons'), {
           ...data,
           currentUses: 0,
           source: 'admin',
@@ -245,7 +249,17 @@ function CreateEditCouponModal({ db, coupon, onClose }) {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+        couponDocId = ref.id;
       }
+
+      // Sync to Stripe (creates Coupon + Promotion Code so it works in Stripe's checkout UI)
+      try {
+        const sync = httpsCallable(functions, 'syncCouponToStripe');
+        await sync({ couponId: couponDocId });
+      } catch (syncErr) {
+        console.warn('syncCouponToStripe failed (non-fatal):', syncErr.message);
+      }
+
       onClose();
     } catch (err) {
       setError(err.message || 'Erro ao salvar cupom.');

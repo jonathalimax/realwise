@@ -78,14 +78,43 @@ exports.createCheckoutSession = functions
           return;
         }
 
-        let stripeCouponId = cd.stripeCouponId;
-        if (!stripeCouponId) {
-          const params = { id: `rw_${couponDoc.id}`, duration: 'once' };
+        const createStripeCoupon = async () => {
+          const params = { id: `rw_${couponDoc.id}_${Date.now()}`, duration: 'once' };
           if (cd.discountType === 'percentage') params.percent_off = cd.discountValue;
           else { params.amount_off = cd.discountValue; params.currency = 'brl'; }
           const sc = await stripe.coupons.create(params);
-          stripeCouponId = sc.id;
-          await couponDoc.ref.update({ stripeCouponId });
+          // Also create a Promotion Code so users can type it in Stripe's checkout UI (raw HTTP — SDK v22 rejects 'coupon' param)
+          try {
+            const axios = require('axios');
+            const { URLSearchParams } = require('url');
+            const p = new URLSearchParams();
+            p.append('coupon', sc.id);
+            p.append('code', cd.code);
+            await axios.post('https://api.stripe.com/v1/promotion_codes', p, {
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              auth: { username: stripeSecretKey.value(), password: '' },
+            });
+          } catch (e) {
+            console.warn('[createCheckoutSession] promotionCode create skipped:', e.response?.data?.error?.message || e.message);
+          }
+          await couponDoc.ref.update({ stripeCouponId: sc.id });
+          return sc.id;
+        };
+
+        let stripeCouponId = cd.stripeCouponId;
+        if (!stripeCouponId) {
+          stripeCouponId = await createStripeCoupon();
+        } else {
+          // Verify the cached Stripe coupon still exists; recreate if deleted
+          try {
+            await stripe.coupons.retrieve(stripeCouponId);
+          } catch (e) {
+            if (e.code === 'resource_missing') {
+              stripeCouponId = await createStripeCoupon();
+            } else {
+              throw e;
+            }
+          }
         }
         stripeDiscounts = [{ coupon: stripeCouponId }];
       }
@@ -139,10 +168,13 @@ exports.createCheckoutSession = functions
               quantity: 1,
             },
           ],
-          payment_method_types: ['card'],
+          payment_method_types: ['card', 'pix'],
           payment_method_options: {
             card: {
               installments: { enabled: true },
+            },
+            pix: {
+              expires_after_seconds: 3600,
             },
           },
           metadata: {

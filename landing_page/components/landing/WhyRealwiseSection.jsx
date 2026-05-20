@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 
 const rows = [
-  { label: 'Pagamento', realwise: 'Uma vez (R$ 479,88)', others: 'Todo mês, para sempre' },
-  { label: 'Custo em 30 anos', realwise: 'R$ 479,88', others: 'R$ 3.600 – 14.400' },
+  { label: 'Pagamento', realwise: 'Uma vez (R$ 479)', others: 'Todo mês, para sempre' },
+  { label: 'Custo em 30 anos', realwise: 'R$ 479', others: 'R$ 3.600 – 14.400' },
   { label: 'Renovação automática', realwise: 'Nunca', others: 'Todo mês' },
   { label: 'Seus dados ficam', realwise: 'No seu Google Firebase', others: 'Nos servidores deles' },
   { label: 'Se o preço subir', realwise: 'Não te afeta', others: 'Você paga mais ou sai' },

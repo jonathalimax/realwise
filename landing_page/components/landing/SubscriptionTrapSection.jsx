@@ -44,7 +44,7 @@ export default function SubscriptionTrapSection() {
             className="p-8 rounded-2xl text-center border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
           >
             <div className="text-3xl font-bold mb-2 whitespace-nowrap text-emerald-600 dark:text-emerald-400">
-              R$ 479,88
+              R$ 479
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Realwise. Para sempre.

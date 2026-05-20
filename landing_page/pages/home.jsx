@@ -17,6 +17,20 @@ const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 export default function Home() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutSection, setCheckoutSection] = useState('');
+  const [checkoutPrefill, setCheckoutPrefill] = useState({});
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === '1') {
+      const email = params.get('email') || '';
+      const coupon = params.get('coupon') || '';
+      const name = params.get('name') || '';
+      setCheckoutOpen(true);
+      if (email || coupon || name) {
+        setCheckoutPrefill({ email, coupon, name });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!GA_MEASUREMENT_ID) return;
@@ -58,6 +72,7 @@ export default function Home() {
         open={checkoutOpen}
         section={checkoutSection}
         onClose={closeCheckout}
+        prefill={checkoutPrefill}
       />
     </div>
   );

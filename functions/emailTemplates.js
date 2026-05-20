@@ -1,7 +1,7 @@
 
 /**
  * Build a deep-link checkout URL that pre-fills email/name/coupon
- * and redirects through the /checkout React page (no whatsapp required).
+ * and opens the MP modal flow on the landing page.
  *
  * @param {object} opts
  * @param {string} [opts.email]
@@ -10,13 +10,13 @@
  * @returns {string}
  */
 function buildCheckoutUrl({ email, name, couponCode } = {}) {
-  const base = 'https://realwise.com.br/checkout';
+  const base = 'https://realwise.com.br';
   const params = new URLSearchParams();
+  params.set('checkout', '1');
   if (email) params.set('email', email);
   if (name) params.set('name', name);
   if (couponCode) params.set('coupon', couponCode);
-  const qs = params.toString();
-  return qs ? `${base}?${qs}` : base;
+  return `${base}/?${params.toString()}`;
 }
 exports.buildCheckoutUrl = buildCheckoutUrl;
 
@@ -79,6 +79,13 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
           <a href="${ctaUrl || 'https://realwise.com.br'}" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">${cta}</a>
         </td></tr>
         ` : ''}
+
+        <!-- WhatsApp CTA -->
+        <tr><td style="padding:8px 4px 0;text-align:center;">
+          <a href="https://wa.me/5541992310339" style="display:inline-block;padding:11px 28px;background:#ffffff;color:#25d366;text-decoration:none;border-radius:6px;font-size:13px;font-weight:700;border:2px solid #25d366;">
+            💬 Falar com a gente no WhatsApp
+          </a>
+        </td></tr>
 
         <!-- Footer -->
         <tr><td class="mw-footer" style="padding:24px 4px 8px;text-align:center;font-size:11px;color:#9ca3af;">
@@ -322,6 +329,13 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
           <!-- CTA -->
           <tr><td style="padding:20px 4px 8px;text-align:center;">
             <a href="${ctaUrl}" style="display:inline-block;padding:13px 36px;background:#10b981;color:#fff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:700;">Ver Contas no Realwise →</a>
+          </td></tr>
+
+          <!-- WhatsApp CTA -->
+          <tr><td style="padding:8px 4px 0;text-align:center;">
+            <a href="https://wa.me/5541992310339" style="display:inline-block;padding:11px 28px;background:#ffffff;color:#25d366;text-decoration:none;border-radius:6px;font-size:13px;font-weight:700;border:2px solid #25d366;">
+              💬 Falar com a gente no WhatsApp
+            </a>
           </td></tr>
 
           <!-- Footer -->

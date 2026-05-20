@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     question: 'Diferença para Mobills, YNAB, Organizze?',
-    answer: 'Eles são assinatura — você paga enquanto usa. Realwise é compra única — você é dono. Seus dados ficam com você, não com eles. Em 30 anos, você gastaria R$3.600–14.400 com eles e R$479,88 conosco. Uma vez.',
+    answer: 'Eles são assinatura — você paga enquanto usa. Realwise é compra única — você é dono. Seus dados ficam com você, não com eles. Em 30 anos, você gastaria R$3.600–14.400 com eles e R$479 conosco. Uma vez.',
   },
 ];
 
