@@ -251,18 +251,30 @@ export default function TransactionList({
                           <span className="text-slate-300 dark:text-slate-600 text-[10px]">•</span>
 
                           {/* Native Category Selector Styled as Badge */}
-                          <div className="relative inline-flex items-center min-w-0" onClick={e => e.stopPropagation()}>
+                          {/* Grid mirror trick: hidden span sizes the container to content width;
+                              select stretches to fill it — the only cross-browser way to shrink
+                              a <select> to its selected text without JavaScript measurement. */}
+                          <div
+                            className={`inline-grid text-[11px] font-bold rounded-full ${
+                              transaction.category === 'Sem categoria' || !transaction.category
+                                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+                                : transaction.type === 'income'
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                  : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                            }`}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {/* Mirror span — invisible, drives width. Both children share grid cell 1/1. */}
+                            <span className="invisible pl-2 pr-5 py-0.5 whitespace-nowrap pointer-events-none" aria-hidden="true"
+                              style={{ gridArea: '1/1' }}>
+                              {transaction.category || (language === 'pt' ? 'Categorizar' : 'Categorize')}
+                            </span>
                             <select
                               value={transaction.category || ''}
                               disabled={!canWrite || isSaving}
                               onChange={(e) => handleQuickCategoryChange(transaction, e.target.value)}
-                              className={`appearance-none w-auto max-w-[120px] pl-2 pr-5 py-px text-[9px] font-bold rounded-full tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 ${
-                                transaction.category === 'Sem categoria' || !transaction.category
-                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-                                  : transaction.type === 'income'
-                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
-                              } ${isSaving ? 'opacity-50' : ''}`}
+                              style={{ gridArea: '1/1' }}
+                              className={`appearance-none w-full pl-2 pr-5 py-0.5 bg-transparent font-bold tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 focus:rounded-full ${isSaving ? 'opacity-50' : ''}`}
                             >
                               {(() => {
                                 const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
