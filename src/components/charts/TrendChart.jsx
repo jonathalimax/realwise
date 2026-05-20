@@ -254,8 +254,9 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
             style={{ touchAction: 'pan-x pinch-zoom' }}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
-              const scrollLeft = scrollContainerRef.current?.scrollLeft ?? 0;
-              const x = e.clientX - rect.left + scrollLeft;
+              // rect.left already reflects the element's viewport position after scroll —
+              // do NOT add scrollLeft here (that would double-count the offset).
+              const x = e.clientX - rect.left;
               const chartWidth = e.currentTarget.offsetWidth;
               const leftMargin = 50;
               const rightMargin = 20;
