@@ -534,13 +534,13 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                       <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       </div>
-                      <p className="text-sm font-bold truncate max-w-full px-4">{file.name}</p>
+                      <p className="text-sm font-bold truncate max-w-full px-4 text-gray-800 dark:text-gray-100">{file.name}</p>
                       <button onClick={(e) => {e.preventDefault(); setFile(null); setPdfPassword(''); setRequiresPdfPassword(false);}} className="text-xs text-rose-500 font-bold uppercase underline">remover</button>
                     </div>
                   ) : (
                     <>
                       <svg className="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">CSV, XLS, XLSX ou PDF</p>
+                      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">CSV ou PDF</p>
                     </>
                   )}
                 </div>
