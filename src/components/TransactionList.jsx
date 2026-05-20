@@ -242,7 +242,7 @@ export default function TransactionList({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 leading-snug">
-                          {transaction.description?.replace(/ - \(\d+\/\d+\)$/, '')}
+                          {transaction.description?.replace(/\s*\(\d+\/\d+\)\s*$/, '')}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5 min-w-0">
                           <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">
