@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useBudget } from '../../contexts/BudgetContext';
+import { useMonth } from '../../contexts/MonthContext';
 import usePlannerState, { getActivePlannerVersion } from '../../pages/planner/usePlannerState';
 import { computeNetSalary } from '../../pages/planner/rendaCalc';
 
@@ -44,6 +45,8 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
   const { formatCurrency, t, categories } = useSettings();
   const { getTemplateBudget } = useBudget();
   const { state: plannerStateData } = usePlannerState();
+  const { selectedMonth: contextMonth } = useMonth();
+  const month = selectedMonth || contextMonth;
   const navigate = useNavigate();
 
   const goToCategory = (category) => {
@@ -61,8 +64,8 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
     [templateBudget]
   );
   const plannerVersion = useMemo(
-    () => getActivePlannerVersion(plannerStateData?.plannerVersions, selectedMonth),
-    [plannerStateData?.plannerVersions, selectedMonth]
+    () => getActivePlannerVersion(plannerStateData?.plannerVersions, month),
+    [plannerStateData?.plannerVersions, month]
   );
   const liquidezFinal = useMemo(
     () => computeNetSalary(plannerVersion?.salarioBruto, plannerVersion?.salarioDeductions),
