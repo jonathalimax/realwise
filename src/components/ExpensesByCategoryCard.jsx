@@ -41,7 +41,7 @@ const CATEGORY_ICONS = {
 const MAX_VISIBLE = 7;
 
 export default function ExpensesByCategoryCard({ transactions, selectedMonth }) {
-  const { language, formatCurrency } = useSettings();
+  const { language, formatCurrency, categories } = useSettings();
   const { getTemplateBudget } = useBudget();
   const { selectedMonth: contextMonth } = useMonth();
   const { state: plannerStateData } = usePlannerState();
@@ -74,23 +74,35 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
       });
 
     const total = Object.values(spending).reduce((s, v) => s + v, 0);
-    if (total === 0) return { rows: [], total: 0 };
 
-    const rows = Object.entries(spending)
-      .filter(([, v]) => v > 0)
-      .map(([cat, amount]) => {
-        const pctValue = categoryPct[cat] ?? 0;
-        const pctLimit = pctValue > 0 ? liquidezFinal * (pctValue / 100) : 0;
-        const templateLimit = categoryBudgets[cat] ?? 0;
-        const limit = pctLimit > 0 ? pctLimit : templateLimit;
-        const hasLimit = limit > 0;
-        const pct = hasLimit ? (amount / limit) * 100 : (amount / total) * 100;
-        return { category: cat, amount, pct, hasLimit, limit, icon: CATEGORY_ICONS[cat] || '💰' };
-      })
-      .sort((a, b) => b.amount - a.amount);
+    const allCats = Array.from(new Set([
+      ...(categories?.expense ?? []),
+      ...Object.keys(spending),
+    ]));
+
+    const rows = allCats.map(cat => {
+      const amount = spending[cat] ?? 0;
+      const pctValue = categoryPct[cat] ?? 0;
+      const pctLimit = pctValue > 0 ? liquidezFinal * (pctValue / 100) : 0;
+      const templateLimit = categoryBudgets[cat] ?? 0;
+      const limit = pctLimit > 0 ? pctLimit : templateLimit;
+      const hasLimit = limit > 0;
+      const hasSpending = amount > 0;
+      const pct = hasLimit
+        ? (amount / limit) * 100
+        : (total > 0 ? (amount / total) * 100 : 0);
+      return { category: cat, amount, pct, hasLimit, hasSpending, limit, icon: CATEGORY_ICONS[cat] || '💰' };
+    });
+
+    rows.sort((a, b) => {
+      if (a.hasSpending !== b.hasSpending) return b.hasSpending ? 1 : -1;
+      if (a.amount !== b.amount) return b.amount - a.amount;
+      if (a.hasLimit !== b.hasLimit) return b.hasLimit ? 1 : -1;
+      return a.category.localeCompare(b.category);
+    });
 
     return { rows, total };
-  }, [transactions, categoryPct, categoryBudgets, liquidezFinal]);
+  }, [transactions, categories, categoryPct, categoryBudgets, liquidezFinal]);
 
   if (rows.length === 0) return null;
 
@@ -115,40 +127,65 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-x-6 gap-y-4">
-        {visibleRows.map((row, idx) => {
+        {visibleRows.map((row) => {
           const color = COLORS[rows.indexOf(row) % COLORS.length];
           const barWidth = Math.min(row.pct, 100);
           const isOver = row.hasLimit && row.pct > 100;
+          const isDimmed = !row.hasSpending && !row.hasLimit;
+          const remaining = row.limit - row.amount;
 
           return (
             <button
               key={row.category}
               onClick={() => handleCategoryClick(row.category)}
-              className="w-full text-left rounded-xl p-2 -m-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 active:scale-[0.99] transition-all group"
+              className={`w-full text-left rounded-xl p-2 -m-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 active:scale-[0.99] transition-all group ${isDimmed ? 'opacity-40' : ''}`}
             >
-              <div className="flex justify-between mb-1.5 items-end">
+              <div className="flex justify-between mb-1.5 items-center">
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate flex items-center gap-1.5">
                   <span className="text-base leading-none">{row.icon}</span>
                   {row.category}
                 </span>
-                <div className="flex flex-col items-end gap-0.5">
-                  <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums">
-                    {formatCurrency(row.amount)}
-                  </span>
-                  <span className={`text-[10px] tabular-nums ${isOver ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'}`}>
-                    {row.pct.toFixed(0)}%{row.hasLimit ? ` de ${formatCurrency(row.limit)}` : ''}
-                  </span>
-                </div>
+                <span className="text-xs font-bold text-gray-900 dark:text-white tabular-nums ml-2 shrink-0">
+                  {formatCurrency(row.amount)}
+                </span>
               </div>
-              <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${barWidth}%`,
-                    backgroundColor: isOver ? '#EF4444' : color,
-                  }}
-                />
-              </div>
+
+              {(row.hasSpending || row.hasLimit) && (
+                <>
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${barWidth}%`,
+                        backgroundColor: isOver ? '#EF4444' : color,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    {row.hasLimit ? (
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                        {row.pct.toFixed(0)}% de {formatCurrency(row.limit)}
+                      </span>
+                    ) : <span />}
+                    {row.hasLimit && row.hasSpending && (
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums ${
+                        isOver
+                          ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+                          : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
+                      }`}>
+                        {isOver
+                          ? `↑ ${formatCurrency(Math.abs(remaining))} acima`
+                          : `↓ ${formatCurrency(remaining)} livres`}
+                      </span>
+                    )}
+                    {row.hasLimit && !row.hasSpending && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20">
+                        {formatCurrency(row.limit)} disponíveis
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </button>
           );
         })}
