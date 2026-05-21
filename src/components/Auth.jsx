@@ -70,6 +70,7 @@ export default function Auth() {
         analytics.userSignup(result.user.uid);
       }
     } catch (err) {
+      await signOut(auth).catch(() => {});
       setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
