@@ -11,7 +11,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "emulators": "firebase emulators:start",
-    "dev:full": "concurrently \"npm run emulators\" \"npm run dev\""
+    "dev:full": "concurrently \"npm run emulators\" \"npm run dev\"",
+    "deploy:prod": "bash scripts/deploy.sh prod all",
+    "deploy:dev": "bash scripts/deploy.sh dev all",
+    "deploy:hosting:prod": "bash scripts/deploy.sh prod hosting",
+    "deploy:hosting:dev": "bash scripts/deploy.sh dev hosting",
+    "deploy:functions:prod": "bash scripts/deploy.sh prod functions",
+    "deploy:functions:dev": "bash scripts/deploy.sh dev functions",
+    "deploy:redirect": "bash scripts/deploy.sh prod redirect"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
