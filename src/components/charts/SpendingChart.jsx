@@ -41,7 +41,7 @@ const CATEGORY_ICONS = {
 };
 
 export default function SpendingChart({ transactions, onCategoryClick, selectedMonth }) {
-  const { formatCurrency, t } = useSettings();
+  const { formatCurrency, t, categories } = useSettings();
   const { getTemplateBudget } = useBudget();
   const { state: plannerStateData } = usePlannerState();
   const navigate = useNavigate();
@@ -88,19 +88,40 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
       return acc;
     }, {});
 
-  const data = Object.entries(categoryTotals)
-    .map(([name, value], index) => ({
-      id: index,
-      value,
-      label: name,
-      color: COLORS[index % COLORS.length].main,
-      limit: resolveLimit(name),
-    }))
-    .sort((a, b) => b.value - a.value);
+  const total = Object.values(categoryTotals).reduce((s, v) => s + v, 0);
 
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+  // All categories: union of enabled list + any from actual spending
+  const allCats = Array.from(new Set([
+    ...(categories?.expense ?? []),
+    ...Object.keys(categoryTotals),
+  ]));
 
-  if (data.length === 0) {
+  // Full legend data — all categories, sorted: spending desc → unspent with limit → unspent no limit
+  const legendData = allCats
+    .map((name, index) => {
+      const value = categoryTotals[name] ?? 0;
+      const limit = resolveLimit(name);
+      return {
+        id: index,
+        value,
+        label: name,
+        color: COLORS[index % COLORS.length].main,
+        limit,
+        hasSpending: value > 0,
+        hasLimit: limit > 0,
+      };
+    })
+    .sort((a, b) => {
+      if (a.hasSpending !== b.hasSpending) return b.hasSpending ? 1 : -1;
+      if (a.value !== b.value) return b.value - a.value;
+      if (a.hasLimit !== b.hasLimit) return b.hasLimit ? 1 : -1;
+      return a.label.localeCompare(b.label);
+    });
+
+  // Pie chart only gets categories with actual spending (zero slices cause MUI artifacts)
+  const pieData = legendData.filter(d => d.value > 0);
+
+  if (pieData.length === 0 && legendData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-gray-400">
         <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
@@ -118,7 +139,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
 
   const handleItemClick = (event, itemIdentifier) => {
     if (itemIdentifier?.dataIndex === undefined) return;
-    const clickedItem = data[itemIdentifier.dataIndex];
+    const clickedItem = pieData[itemIdentifier.dataIndex];
     if (clickedItem) goToCategory(clickedItem.label);
   };
 
@@ -128,7 +149,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
       <div className="relative w-full flex items-center justify-center">
         <PieChart
           series={[{
-            data,
+            data: pieData,
             innerRadius: 78,
             outerRadius: 120,
             paddingAngle: 3,
@@ -155,18 +176,23 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
 
       {/* Category Breakdown - 2-column grid below chart */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {data.map((item, index) => {
-          const hasLimit = item.limit > 0;
-          const pct = hasLimit ? (item.value / item.limit) * 100 : (total > 0 ? (item.value / total) * 100 : 0);
+        {legendData.map((item) => {
+          const hasLimit = item.hasLimit;
+          const hasSpending = item.hasSpending;
+          const pct = hasLimit
+            ? (item.value / item.limit) * 100
+            : (total > 0 ? (item.value / total) * 100 : 0);
           const isOver = hasLimit && pct > 100;
           const barWidth = Math.min(pct, 100);
-          const color = COLORS[index % COLORS.length];
+          const remaining = item.limit - item.value;
+          const isDimmed = !hasSpending && !hasLimit;
+          const color = COLORS[legendData.indexOf(item) % COLORS.length];
 
           return (
             <button
               key={item.label}
               onClick={() => goToCategory(item.label)}
-              className="w-full group text-left"
+              className={`w-full group text-left ${isDimmed ? 'opacity-40' : ''}`}
             >
               <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 group-hover:bg-gray-100 dark:group-hover:bg-gray-700/70 transition-all duration-200">
                 {/* Icon */}
@@ -174,7 +200,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
                   className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
                   style={{
                     background: `linear-gradient(135deg, ${color.light}20, ${color.main}30)`,
-                    border: `1px solid ${color.main}30`
+                    border: `1px solid ${color.main}30`,
                   }}
                 >
                   {getIcon(item.label)}
@@ -186,24 +212,47 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
                     <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
                       {item.label}
                     </span>
-                    <div className="flex flex-col items-end gap-0.5 ml-2">
-                      <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums">
-                        {formatCurrency(item.value)}
-                      </span>
-                      <span className={`text-[10px] tabular-nums ${isOver ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'}`}>
-                        {pct.toFixed(0)}%{hasLimit ? ` / ${formatCurrency(item.limit)}` : ''}
-                      </span>
-                    </div>
+                    <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums ml-2 shrink-0">
+                      {formatCurrency(item.value)}
+                    </span>
                   </div>
-                  <div className="h-1.5 bg-gray-200 dark:bg-gray-600/50 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${barWidth}%`,
-                        backgroundColor: isOver ? '#EF4444' : color.main,
-                      }}
-                    />
-                  </div>
+
+                  {(hasSpending || hasLimit) && (
+                    <>
+                      <div className="h-1.5 bg-gray-200 dark:bg-gray-600/50 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${barWidth}%`,
+                            backgroundColor: isOver ? '#EF4444' : color.main,
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        {hasLimit ? (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                            {pct.toFixed(0)}% de {formatCurrency(item.limit)}
+                          </span>
+                        ) : <span />}
+                        {hasLimit && hasSpending && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums ${
+                            isOver
+                              ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
+                              : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
+                          }`}>
+                            {isOver
+                              ? `↑ ${formatCurrency(Math.abs(remaining))} acima`
+                              : `↓ ${formatCurrency(remaining)} livres`}
+                          </span>
+                        )}
+                        {hasLimit && !hasSpending && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20">
+                            {formatCurrency(item.limit)} disponíveis
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </button>
