@@ -44,6 +44,7 @@ describe('fetchClientConfig', () => {
     const mockConfig = { clientName: 'Test', firebase: {}, features: {} };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
+      headers: { get: () => 'application/json' },
       json: () => Promise.resolve(mockConfig),
     }));
     const result = await fetchClientConfig('testclient');
