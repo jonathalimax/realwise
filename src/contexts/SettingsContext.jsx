@@ -142,6 +142,7 @@ export function SettingsProvider({ children }) {
       return;
     }
 
+    setLoading(true);
     const settingsRef = doc(db, 'settings', ownerId); // Use ownerId instead of currentUser.uid
 
     const unsubscribe = onSnapshot(settingsRef, (docSnap) => {

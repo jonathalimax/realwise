@@ -58,8 +58,10 @@ async function runStep(runId, runRef, stepNum, description, fn) {
     await log(runId, stepNum, result || `Done: ${description}`, 'success');
     return true;
   } catch (err) {
-    await log(runId, stepNum, `FAILED: ${description} — ${err.message}`, 'error');
-    await runRef.update({ status: 'failed', error: err.message });
+    const details = err.response?.data ? JSON.stringify(err.response.data) : (err.errors ? JSON.stringify(err.errors) : '');
+    const fullMsg = `FAILED: ${description} — ${err.message}${details ? ` | details: ${details}` : ''}`;
+    await log(runId, stepNum, fullMsg, 'error');
+    await runRef.update({ status: 'failed', error: fullMsg });
     return false;
   }
 }
@@ -101,7 +103,9 @@ async function deployFileToHosting(authClient, siteId, filePath, content) {
   const currentVersionName = releasesData.releases?.[0]?.version?.name;
 
   const existingFiles = {};
+  let previousConfig = {};
   if (currentVersionName) {
+    // Fetch files
     let pageToken;
     do {
       const url = `${base}/${currentVersionName}/files?pageSize=1000${pageToken ? `&pageToken=${pageToken}` : ''}`;
@@ -112,6 +116,11 @@ async function deployFileToHosting(authClient, siteId, filePath, content) {
       }
       pageToken = filesData.nextPageToken;
     } while (pageToken);
+
+    // Fetch version config (rewrites, redirects, headers) to carry it forward
+    const versionRes = await fetch(`${base}/${currentVersionName}`, { headers });
+    const versionData = await versionRes.json();
+    if (versionData.config) previousConfig = versionData.config;
   }
 
   // 2 — gzip the new file and compute its SHA256
@@ -119,10 +128,10 @@ async function deployFileToHosting(authClient, siteId, filePath, content) {
   const compressed = await gzip(buf);
   const hash = crypto.createHash('sha256').update(compressed).digest('hex');
 
-  // 3 — create new version
+  // 3 — create new version, preserving the previous version's hosting config
   const versionRes = await fetch(`${base}/sites/${siteId}/versions`, {
     method: 'POST', headers,
-    body: JSON.stringify({ config: { headers: [] } }),
+    body: JSON.stringify({ config: previousConfig }),
   });
   const versionData = await versionRes.json();
   const versionName = versionData.name;
@@ -478,29 +487,26 @@ service cloud.firestore {
       return `clients/${username}.json deployed to Hosting`;
     }))) return;
 
-    // ── Step 11: Grant owner to client + deploy-only access to operator ──
-    if (!(await step(11, `Grant owner to ${email} + deploy access to operator`, async () => {
+    // ── Step 11: Grant Firebase admin to client + deploy-only access to operator ──
+    // roles/owner cannot be granted programmatically on personal (non-org) GCP projects
+    // (SOLO_MUST_INVITE_OWNERS). roles/firebase.admin gives full Firebase Console access.
+    if (!(await step(11, `Grant Firebase admin to ${email} + deploy access to operator`, async () => {
       const crm = google.cloudresourcemanager('v1');
-      // Request v3 so GCP returns the full policy (Firebase/billing add conditional bindings).
-      // Strip conditional bindings before writing back — GCP manages those and rejects them
-      // if included in a setIamPolicy call alongside unconditional changes.
       const { data: policy } = await crm.projects.getIamPolicy({
         resource: projectId,
-        requestBody: { options: { requestedPolicyVersion: 3 } },
+        requestBody: {},
       });
-      // Strip conditional bindings (added by Firebase/billing) — they require v3 to read
-      // but must not be included in a v1 setIamPolicy write. GCP rejects v3 policies
-      // that have no remaining conditions, so downgrade to v1 after stripping.
-      policy.version = 1;
-      policy.bindings = (policy.bindings || []).filter((b) => !b.condition);
 
-      // Grant roles/owner to the client so the project appears in their Firebase Console
       const clientMember = `user:${email.toLowerCase().trim()}`;
-      const ownerBinding = policy.bindings.find((b) => b.role === 'roles/owner');
-      if (ownerBinding) {
-        if (!ownerBinding.members.includes(clientMember)) ownerBinding.members.push(clientMember);
-      } else {
-        policy.bindings.push({ role: 'roles/owner', members: [clientMember] });
+      const CLIENT_ROLES = ['roles/firebase.admin', 'roles/viewer'];
+
+      for (const role of CLIENT_ROLES) {
+        const binding = policy.bindings.find((b) => b.role === role);
+        if (binding) {
+          if (!binding.members.includes(clientMember)) binding.members.push(clientMember);
+        } else {
+          policy.bindings.push({ role, members: [clientMember] });
+        }
       }
 
       // Grant deploy-only roles to operator (no Firestore/Storage/Auth data access)
@@ -515,7 +521,7 @@ service cloud.firestore {
       }
 
       await crm.projects.setIamPolicy({ resource: projectId, requestBody: { policy } });
-      return `Owner granted to ${email}; deploy-only roles granted to ${OPERATOR_EMAIL}`;
+      return `Firebase admin granted to ${email}; deploy-only roles granted to ${OPERATOR_EMAIL}`;
     }))) return;
 
     // ── Done ──────────────────────────────────────────────────────────────
