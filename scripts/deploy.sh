@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # ── Arguments ────────────────────────────────────────────────────────────────
-ENV="${1:-}"      # prod | dev
-TARGET="${2:-}"   # all | hosting | functions | redirect
+ENV="${1:-}"
+TARGET="${2:-}"
 
 if [[ -z "$ENV" || -z "$TARGET" ]]; then
   echo "Usage: deploy.sh <env> <target>"
@@ -27,4 +27,77 @@ if [[ "$TARGET" == "redirect" && "$ENV" != "prod" ]]; then
   exit 1
 fi
 
-echo "✅  Args valid: env=$ENV target=$TARGET"
+# ── Colors ───────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# ── Build summary lines ───────────────────────────────────────────────────────
+LINES=()
+
+needs_build=false
+if [[ "$ENV" == "prod" ]]; then
+  ICON="🔴"
+  LABEL="${RED}${BOLD}DEPLOYING TO PRODUCTION${RESET}"
+else
+  ICON="🟢"
+  LABEL="${GREEN}${BOLD}DEPLOYING TO DEV${RESET}"
+fi
+
+if [[ "$TARGET" == "all" || "$TARGET" == "hosting" ]]; then
+  needs_build=true
+  LINES+=("  Build:     npm run build")
+fi
+
+if [[ "$TARGET" == "all" || "$TARGET" == "hosting" ]]; then
+  if [[ "$ENV" == "prod" ]]; then
+    LINES+=("  Hosting:   mymoneywise (realwise.com.br)")
+    LINES+=("  Rules:     firestore.rules")
+  else
+    LINES+=("  Hosting:   realwise-dev")
+  fi
+fi
+
+if [[ "$TARGET" == "all" || "$TARGET" == "functions" ]]; then
+  if [[ "$ENV" == "prod" ]]; then
+    LINES+=("  Functions: moneywise-ad9ec (prod)")
+  else
+    LINES+=("  Functions: realwise-dev (dev)")
+  fi
+fi
+
+if [[ "$TARGET" == "redirect" ]]; then
+  needs_build=false
+  LINES+=("  Hosting:   realwise-redirect (short URL domain)")
+fi
+
+# ── Print box ────────────────────────────────────────────────────────────────
+echo ""
+echo -e "╔══════════════════════════════════════╗"
+echo -e "║  $ICON  $LABEL"
+echo -e "╠══════════════════════════════════════╣"
+for line in "${LINES[@]}"; do
+  echo -e "║$line"
+done
+echo -e "╚══════════════════════════════════════╝"
+echo ""
+
+# ── Dirty tree warning (prod only) ───────────────────────────────────────────
+if [[ "$ENV" == "prod" ]]; then
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo -e "${YELLOW}⚠️  Warning: you have uncommitted changes. Proceeding anyway.${RESET}"
+    echo ""
+  fi
+fi
+
+# ── Confirm ──────────────────────────────────────────────────────────────────
+read -r -p 'Type "y" to continue, anything else aborts: ' answer
+if [[ "$answer" != "y" ]]; then
+  echo "Aborted."
+  exit 0
+fi
+
+echo ""
+echo "Placeholder: would deploy here"
