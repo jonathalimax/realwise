@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken } from 'firebase/auth';
 import { initSharedFirebase } from '../lib/sharedFirebase';
+import { auth as clientAuth } from '../firebase';
 import LoginLoader from '../components/LoginLoader';
 import { devMark } from '../lib/devMarker';
 import { markLoginSession } from '../lib/auth/sessionAge';
@@ -39,16 +39,7 @@ export default function LoadingPage() {
         const tokenResp = await getCustomToken({ username });
         const token = tokenResp.data.token;
 
-        const configRes = await fetch(`/clients/${username}.json`);
-        if (!configRes.ok) throw new Error('client_config_not_found');
-        const userConfig = await configRes.json();
-
-        const userAppName = username;
-        const existingUserApp = getApps().find((a) => a.name === userAppName);
-        const userApp = existingUserApp ?? initializeApp(userConfig.firebase, userAppName);
-        const userAuth = getAuth(userApp);
-
-        await signInWithCustomToken(userAuth, token);
+        await signInWithCustomToken(clientAuth, token);
         markLoginSession();
         localStorage.setItem('rw_last_client', username);
 
