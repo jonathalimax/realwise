@@ -99,5 +99,41 @@ if [[ "$answer" != "y" ]]; then
   exit 0
 fi
 
-echo ""
-echo "Placeholder: would deploy here"
+
+# ── Build ────────────────────────────────────────────────────────────────────
+if [[ "$needs_build" == true ]]; then
+  echo "📦  Building..."
+  npm run build
+  echo ""
+fi
+
+# ── Deploy ───────────────────────────────────────────────────────────────────
+if [[ "$TARGET" == "all" || "$TARGET" == "hosting" ]]; then
+  if [[ "$ENV" == "prod" ]]; then
+    echo "🚀  Deploying hosting + rules to prod..."
+    firebase deploy --only hosting:mymoneywise,firestore:rules
+  else
+    echo "🚀  Deploying hosting to dev..."
+    firebase deploy --only hosting:realwise-dev --project realwise-dev
+  fi
+  echo ""
+fi
+
+if [[ "$TARGET" == "all" || "$TARGET" == "functions" ]]; then
+  if [[ "$ENV" == "prod" ]]; then
+    echo "⚡  Deploying functions to prod..."
+    firebase deploy --only functions
+  else
+    echo "⚡  Deploying functions to dev..."
+    firebase deploy --only functions --project realwise-dev
+  fi
+  echo ""
+fi
+
+if [[ "$TARGET" == "redirect" ]]; then
+  echo "🔀  Deploying redirect site..."
+  firebase deploy --only hosting:realwise-redirect
+  echo ""
+fi
+
+echo "✅  Deploy complete."
