@@ -37,7 +37,7 @@ function maskPhone(value) {
   return digits.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
 }
 
-export default function CheckoutModal({ open, onClose, section, prefill = {} }) {
+export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -119,11 +119,11 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
     } else {
       destroyBricks();
     }
-  }, [open, prefill]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, prefill]);
 
   function destroyBricks() {
     if (bricksControllerRef.current) {
-      try { bricksControllerRef.current.unmount(); } catch (_) {}
+      try { bricksControllerRef.current.unmount(); } catch { /* ignore */ }
       bricksControllerRef.current = null;
     }
     bricksMountedRef.current = false;
@@ -132,6 +132,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
   // Mount MP Bricks when entering step 2
   useEffect(() => {
     if (step !== 2 || bricksMountedRef.current) return;
+    if (amountRef.current === 0) return; // free order — skip bricks
     if (!window.MercadoPago) {
       setError('SDK de pagamento não carregado. Recarregue a página.');
       return;
@@ -184,7 +185,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
           setBricksLoading(false);
           setError('Erro ao carregar pagamento. Tente novamente.');
         },
-        onSubmit: async ({ selectedPaymentMethod, formData }) => {
+        onSubmit: async ({ formData }) => {
           setLoading(true);
           setError('');
 
@@ -238,7 +239,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
     let cancelled = false;
     bricksBuilder.create('payment', 'mp-bricks-container', settings)
       .then((controller) => {
-        if (cancelled) { try { controller.unmount(); } catch (_) {} return; }
+        if (cancelled) { try { controller.unmount(); } catch { /* ignore */ } return; }
         bricksControllerRef.current = controller;
         bricksMountedRef.current = true;
       })
@@ -254,6 +255,35 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
       destroyBricks();
     };
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleFreeCheckout = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(processPaymentUrlRef.current, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_amount: 0,
+          email: formRef.current.email,
+          name: formRef.current.name,
+          whatsapp: formRef.current.whatsapp,
+          couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Erro ao processar acesso.');
+      if (data.status === 'approved') {
+        const baseUrl = window.location.origin;
+        window.location.href = `${baseUrl}/purchase-success`;
+      } else {
+        throw new Error('Não foi possível ativar o acesso. Tente novamente.');
+      }
+    } catch (err) {
+      setError(err.message || 'Erro inesperado. Tente novamente.');
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -340,7 +370,7 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
 
   const displayAmount = amount ?? BASE_PRICE;
   const hasCouponDiscount = step === 2 && displayAmount < BASE_PRICE;
-  const fmt = (v) => `R ${v.toFixed(2).replace('.', ',')}`; 
+  const fmt = (v) => `R ${v.toFixed(2).replace('.', ',')}`;
 
   if (!mounted) return null;
 
@@ -464,15 +494,36 @@ export default function CheckoutModal({ open, onClose, section, prefill = {} }) 
               </form>
             )}
 
-            {/* Step 2 — MP Bricks */}
+            {/* Step 2 — MP Bricks or free checkout */}
             {step === 2 && (
               <div className="px-6 pt-4 pb-5">
-                {bricksLoading && (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+                {amount === 0 ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                      Seu cupom cobre 100% do valor. Clique para ativar seu acesso gratuito.
+                    </p>
+                    <Button
+                      onClick={handleFreeCheckout}
+                      disabled={loading}
+                      className="w-full h-12 text-base bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition-all duration-200 active:scale-95"
+                    >
+                      {loading ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Aguarde...</>
+                      ) : (
+                        <>Ativar acesso gratuito<ArrowRight className="ml-2 h-4 w-4" /></>
+                      )}
+                    </Button>
                   </div>
+                ) : (
+                  <>
+                    {bricksLoading && (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+                      </div>
+                    )}
+                    <div id="mp-bricks-container" className={bricksLoading ? 'hidden' : ''} />
+                  </>
                 )}
-                <div id="mp-bricks-container" className={bricksLoading ? 'hidden' : ''} />
                 {error && (
                   <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/40 px-4 py-3">
                     <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />

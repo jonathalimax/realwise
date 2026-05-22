@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, signOut } from 'firebase/auth';
 import { initSharedFirebase } from '../lib/sharedFirebase';
 import { auth as clientAuth } from '../firebase';
 import LoginLoader from '../components/LoginLoader';
@@ -49,6 +49,8 @@ export default function LoadingPage() {
         devMark('LoadingPage ERR: ' + (err?.message || 'unknown'));
         console.error('[LoadingPage] sign-in pipeline failed', err);
         sessionStorage.setItem('__rw_login_error', err?.message || 'unknown');
+        const { auth: sharedAuthForLogout } = await initSharedFirebase().catch(() => ({ auth: null }));
+        if (sharedAuthForLogout) await signOut(sharedAuthForLogout).catch(() => {});
         window.location.href = '/login';
       }
     }

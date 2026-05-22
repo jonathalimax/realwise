@@ -102,17 +102,24 @@ const getBaseTemplate = ({ title, subtitle, body, cta, ctaUrl, footerNote }) => 
  */
 exports.welcomeTemplate = (name) => getBaseTemplate({
   title: `Bem-vindo ao Realwise, ${name}! 🎉`,
-  subtitle: 'Você acaba de dar um passo incrível rumo ao controle total das suas finanças.',
+  subtitle: 'Sua compra foi confirmada. Veja o que acontece a seguir.',
   body: `
     <div class="mw-body-text" style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:20px;">
-      Estamos muito felizes em ter você aqui! Saber que você escolheu cuidar melhor do seu dinheiro é algo que nos motiva todos os dias. 💚
+      Estamos configurando seu ambiente — isso pode levar algumas horas. Você receberá um novo e-mail assim que tudo estiver pronto e seu acesso liberado.
     </div>
     <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">O que acontece agora?</div>
-      <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.8;">
-        <div style="margin-bottom:8px;">⏳ <strong>Estamos configurando seu acesso</strong> — você receberá um novo e-mail assim que tudo estiver pronto.</div>
-        <div style="margin-bottom:8px;">📄 <strong>Prepare-se para o primeiro dia</strong> — separe seus extratos bancários (CSV, OFX ou PDF) e tenha em mãos os dados dos seus cartões.</div>
-        <div>💬 <strong>Qualquer dúvida?</strong> Basta responder a este e-mail. Estamos aqui.</div>
+      <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">O que está acontecendo agora?</div>
+      <div style="font-size:13px;color:#374151;line-height:1.8;">
+        <div style="margin-bottom:8px;">🔐 <strong>Criando seu banco de dados exclusivo</strong> — seus dados financeiros serão armazenados em uma infraestrutura isolada, criada única e exclusivamente para você.</div>
+        <div>🔑 <strong>Configurando seu acesso</strong> — estamos preparando as credenciais de segurança para que apenas você consiga entrar.</div>
+      </div>
+    </div>
+    <div class="mw-info-box" style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:#1e3a8a;margin-bottom:8px;">📧 Fique atento: você receberá um e-mail do Google</div>
+      <div style="font-size:13px;color:#374151;line-height:1.8;">
+        <div style="margin-bottom:8px;">Para garantir que <strong>você é o único proprietário dos seus dados</strong>, enviamos um convite para que você assuma o controle total do seu banco de dados — sem que a equipe Realwise tenha acesso.</div>
+        <div style="margin-bottom:8px;">O e-mail virá de <strong>cloudplatform-noreply@google.com</strong> com o assunto <em>"You've been invited to a Google Cloud project"</em>. Clique em <strong>"Accept Invitation"</strong> para confirmar a propriedade.</div>
+        <div style="color:#6b7280;font-size:12px;">Verifique a caixa de spam se não receber em até 24 horas. Qualquer dúvida, basta responder a este e-mail.</div>
       </div>
     </div>
     <div class="mw-body-text" style="font-size:13px;color:#4b5563;line-height:1.7;">
@@ -124,15 +131,15 @@ exports.welcomeTemplate = (name) => getBaseTemplate({
 });
 
 /**
- * Template 2: Access Granted (green light — access is live)
+ * Template 2: Access Granted (green light — access is live, tell them how to start)
  */
 exports.accessGrantedTemplate = (name, loginUrl = 'https://realwise.com.br/login') => getBaseTemplate({
   title: `Tudo pronto, ${name}! 🟢`,
-  subtitle: 'Seu acesso ao Realwise foi liberado. Você já pode começar agora mesmo.',
+  subtitle: 'Seu acesso está liberado. Veja por onde começar.',
   body: `
     <div class="mw-info-box" style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
       <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">Por onde começar?</div>
-      <div class="mw-info-text" style="font-size:13px;color:#374151;line-height:1.8;">
+      <div style="font-size:13px;color:#374151;line-height:1.8;">
         <div style="margin-bottom:8px;">🏦 <strong>Adicione seu banco ou cartão</strong> — vá em "Bancos e Cartões" e cadastre suas contas. Isso é o primeiro passo para tudo funcionar.</div>
         <div style="margin-bottom:8px;">📥 <strong>Importe seus extratos</strong> — na aba "Importar", envie seu extrato em CSV, OFX ou PDF e suas transações aparecem automaticamente.</div>
         <div>✏️ <strong>Ou lance manualmente</strong> — prefere digitar? Sem problema, você pode registrar cada transação na hora que quiser.</div>

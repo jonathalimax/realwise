@@ -16,10 +16,18 @@ export default function SharedLogin() {
 
   useEffect(() => {
     initSharedFirebase()
-      .then((shared) => {
+      .then(async (shared) => {
         sharedRef.current = shared;
-        // Auto-redirect: already signed in → go straight through the loader
-        if (shared.auth.currentUser) {
+        // Explicit login intent from landing page suppresses auto-redirect.
+        // One-shot: consume immediately so refresh / PWA reopen behaves normally.
+        const showLogin = sessionStorage.getItem('__rw_show_login');
+        if (showLogin) {
+          sessionStorage.removeItem('__rw_show_login');
+          if (shared.auth.currentUser) {
+            await signOut(shared.auth).catch(() => {});
+          }
+        } else if (shared.auth.currentUser) {
+          // Auto-redirect: already signed in → go straight through the loader
           if (isLoginSessionExpired()) {
             signOut(shared.auth).finally(() => setInitDone(true));
             return;

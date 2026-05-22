@@ -19,8 +19,10 @@ export function extractClientId(hostname) {
  * Fetches the client config JSON from the hosting's public folder.
  * Used in production. Throws if response is not ok.
  */
-export async function fetchClientConfig(clientId) {
-  const response = await fetch(`/clients/${clientId}.json`);
+export async function fetchClientConfig(clientId, signal) {
+  const response = signal
+    ? await fetch(`/clients/${clientId}.json`, { signal })
+    : await fetch(`/clients/${clientId}.json`);
   if (!response.ok) {
     throw new Error(`Config not found for client: ${clientId} (${response.status})`);
   }

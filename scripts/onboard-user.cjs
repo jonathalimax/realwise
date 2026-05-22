@@ -177,6 +177,38 @@ async function main() {
     console.log('[2/9] Skipping billing link (BILLING_ACCOUNT_ID not set)');
   }
 
+  // ── Step 2b: Grant client Editor + set up Realwise service account roles ──
+  // NOTE: roles/owner cannot be granted via API for Gmail accounts — Google
+  // enforces a Console-only invitation flow. We grant roles/editor here so
+  // the client has full resource access. The Owner invitation must be sent
+  // manually via the Console link printed at the end of this script.
+  console.log('[2b] Granting client roles/editor and scoping Realwise service account...');
+  try {
+    const crm0 = google.cloudresourcemanager('v1');
+    const { data: iamPolicy } = await crm0.projects.getIamPolicy({
+      resource: projectId,
+      requestBody: {},
+    });
+    iamPolicy.bindings = iamPolicy.bindings || [];
+
+    const addBinding = (role, member) => {
+      const existing = iamPolicy.bindings.find((b) => b.role === role);
+      if (existing) {
+        if (!existing.members.includes(member)) existing.members.push(member);
+      } else {
+        iamPolicy.bindings.push({ role, members: [member] });
+      }
+    };
+
+    // Client gets Editor — full resource CRUD but cannot manage IAM policies
+    addBinding('roles/editor', `user:${email}`);
+
+    await crm0.projects.setIamPolicy({ resource: projectId, requestBody: { policy: iamPolicy } });
+    console.log('    roles/editor granted to', email);
+  } catch (err) {
+    console.warn('    Warning: could not grant editor role:', err.message);
+  }
+
   // ── Step 3: Add Firebase to project ──────────────────────────────────────
   console.log('[3/9] Adding Firebase to project...');
   try {
@@ -280,31 +312,32 @@ async function main() {
     };
   };
 
-  try {
-    const createOp = await firebaseApi.projects.webApps.create({
-      parent: `projects/${projectId}`,
-      requestBody: { displayName: `Realwise ${username}` },
-    });
-    let opName = createOp.data.name;
-    let appData;
-    let done = false;
-    while (!done) {
-      await sleep(3000);
-      const { data: opData } = await firebaseApi.operations.get({ name: opName });
-      done = opData.done;
-      if (done) appData = opData.response;
-      else console.log('    Waiting for web app creation...');
-    }
-    console.log('    Web app created:', appData?.appId);
-    sdkConfig = await fetchSdkConfig(appData.appId);
-  } catch (err) {
-    if (err.message?.includes('already')) {
-      console.log('    Web app already exists — fetching config...');
-      const { data } = await firebaseApi.projects.webApps.list({
+  // Check for existing web apps first to avoid creating duplicates on re-runs
+  const { data: existingApps } = await firebaseApi.projects.webApps.list({
+    parent: `projects/${projectId}`,
+  });
+  if (existingApps.apps?.length) {
+    console.log(`    Web app already exists (${existingApps.apps.length} found) — reusing first`);
+    sdkConfig = await fetchSdkConfig(existingApps.apps[0].appId);
+  } else {
+    try {
+      const createOp = await firebaseApi.projects.webApps.create({
         parent: `projects/${projectId}`,
+        requestBody: { displayName: `Realwise ${username}` },
       });
-      sdkConfig = await fetchSdkConfig(data.apps[0].appId);
-    } else {
+      let opName = createOp.data.name;
+      let appData;
+      let done = false;
+      while (!done) {
+        await sleep(3000);
+        const { data: opData } = await firebaseApi.operations.get({ name: opName });
+        done = opData.done;
+        if (done) appData = opData.response;
+        else console.log('    Waiting for web app creation...');
+      }
+      console.log('    Web app created:', appData?.appId);
+      sdkConfig = await fetchSdkConfig(appData.appId);
+    } catch (err) {
       throw err;
     }
   }
@@ -332,23 +365,36 @@ async function main() {
     }
   }
 
-  // Grant Firebase Admin role
+  // Grant scoped roles to Realwise service account:
+  //   - cloudfunctions.admin   → deploy / update / delete functions
+  //   - iam.serviceAccountUser → act as the functions runtime service account
+  //   - firebase.developAdmin  → read Firebase project config, deploy rules/hosting
+  //   - cloudbuild.builds.editor → trigger builds during function deploy
+  //   - datastore.user         → Firestore CRUD at function runtime (no admin/export)
   const crm = google.cloudresourcemanager('v1');
   const { data: policy } = await crm.projects.getIamPolicy({
     resource: projectId,
     requestBody: {},
   });
   policy.bindings = policy.bindings || [];
-  const adminRole = 'roles/firebase.admin';
-  const member = `serviceAccount:${saEmail}`;
-  const binding = policy.bindings.find((b) => b.role === adminRole);
-  if (binding) {
-    if (!binding.members.includes(member)) binding.members.push(member);
-  } else {
-    policy.bindings.push({ role: adminRole, members: [member] });
+  const saMember = `serviceAccount:${saEmail}`;
+  const saRoles = [
+    'roles/cloudfunctions.admin',
+    'roles/iam.serviceAccountUser',
+    'roles/firebase.developAdmin',
+    'roles/cloudbuild.builds.editor',
+    'roles/datastore.user',
+  ];
+  for (const role of saRoles) {
+    const binding = policy.bindings.find((b) => b.role === role);
+    if (binding) {
+      if (!binding.members.includes(saMember)) binding.members.push(saMember);
+    } else {
+      policy.bindings.push({ role, members: [saMember] });
+    }
   }
   await crm.projects.setIamPolicy({ resource: projectId, requestBody: { policy } });
-  console.log('    Granted roles/firebase.admin to service account');
+  console.log('    Granted deploy roles to service account (functions, build, firestore CRUD)');
 
   // ── Step 7: Generate private key ─────────────────────────────────────────
   console.log('[7/9] Generating private key...');
@@ -515,8 +561,15 @@ service cloud.firestore {
   console.log('    Lead state → active');
 
   console.log('\nOnboarding complete for', email);
-  console.log('  Login URL :', `https://${username}.realwise.com.br/login`);
-  console.log('  Dashboard :', `https://${username}.realwise.com.br/dashboard\n`);
+  console.log('  Login URL :', `https://realwise.com.br/login`);
+  console.log('  Dashboard :', `https://realwise.com.br/${username}/dashboard`);
+  console.log('\n⚠️  MANUAL STEP REQUIRED — Transfer project ownership to client:');
+  console.log('  1. Open:', `https://console.cloud.google.com/iam-admin/iam?project=${projectId}`);
+  console.log('  2. Click "+ Grant Access"');
+  console.log('  3. Enter:', email);
+  console.log('  4. Select role: "Owner"');
+  console.log('  5. Save — client will receive an email to accept');
+  console.log('  6. Once accepted, you can remove your own Owner access from that same page.\n');
 }
 
 main().catch((err) => {

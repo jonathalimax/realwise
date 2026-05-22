@@ -16,6 +16,8 @@ admin.initializeApp();
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
+
+const BASE_AMOUNT = 479;
 const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate, newLeadTemplate } = require('./emailTemplates');
 const axios = require('axios');
 
@@ -33,6 +35,52 @@ const getMercadoPagoClient = () => {
   }
   return new MercadoPagoConfig({ accessToken });
 };
+
+/**
+ * Validate a coupon code and compute the discounted amount server-side.
+ * Returns { amount, couponDoc } where couponDoc is the Firestore DocumentSnapshot (or null).
+ * Throws an Error with a user-facing message if the coupon is invalid.
+ */
+async function validateCouponAndComputeAmount(couponCode) {
+  if (!couponCode || typeof couponCode !== 'string') {
+    return { amount: BASE_AMOUNT, couponDoc: null };
+  }
+
+  const snap = await db.collection('coupons')
+    .where('code', '==', couponCode.toUpperCase())
+    .limit(1)
+    .get();
+
+  if (snap.empty) {
+    throw new Error('Cupom não encontrado.');
+  }
+
+  const couponDoc = snap.docs[0];
+  const cd = couponDoc.data();
+  const now = new Date();
+
+  if (!cd.enabled) {
+    throw new Error('Cupom desabilitado.');
+  }
+  if (cd.maxUses !== null && cd.maxUses !== undefined && (cd.currentUses || 0) >= cd.maxUses) {
+    throw new Error('Cupom atingiu o limite de usos.');
+  }
+  if (cd.validUntil && cd.validUntil.toDate() < now) {
+    throw new Error('Cupom expirado.');
+  }
+  if (cd.validFrom && cd.validFrom.toDate() > now) {
+    throw new Error('Cupom ainda não é válido.');
+  }
+
+  let amount;
+  if (cd.discountType === 'percentage') {
+    amount = parseFloat((BASE_AMOUNT * (1 - cd.discountValue / 100)).toFixed(2));
+  } else {
+    amount = parseFloat((BASE_AMOUNT - cd.discountValue / 100).toFixed(2));
+  }
+
+  return { amount, couponDoc };
+}
 
 // Create email transporter
 const getEmailTransporter = () => {
@@ -168,46 +216,14 @@ exports.createPayment = functions
       }
 
       const emailLower = email.toLowerCase().trim();
-      const BASE_AMOUNT = 479;
-      let amount = BASE_AMOUNT;
 
-      // Validate coupon if provided
-      if (couponCode && typeof couponCode === 'string') {
-        const snap = await db.collection('coupons')
-          .where('code', '==', couponCode.toUpperCase())
-          .limit(1)
-          .get();
-
-        if (snap.empty) {
-          res.status(400).json({ error: 'Cupom não encontrado.' });
-          return;
-        }
-
-        const cd = snap.docs[0].data();
-        const now = new Date();
-
-        if (!cd.enabled) {
-          res.status(400).json({ error: 'Cupom desabilitado.' });
-          return;
-        }
-        if (cd.maxUses !== null && cd.maxUses !== undefined && (cd.currentUses || 0) >= cd.maxUses) {
-          res.status(400).json({ error: 'Cupom atingiu o limite de usos.' });
-          return;
-        }
-        if (cd.validUntil && cd.validUntil.toDate() < now) {
-          res.status(400).json({ error: 'Cupom expirado.' });
-          return;
-        }
-        if (cd.validFrom && cd.validFrom.toDate() > now) {
-          res.status(400).json({ error: 'Cupom ainda não é válido.' });
-          return;
-        }
-
-        if (cd.discountType === 'percentage') {
-          amount = parseFloat((BASE_AMOUNT * (1 - cd.discountValue / 100)).toFixed(2));
-        } else {
-          amount = parseFloat((BASE_AMOUNT - cd.discountValue / 100).toFixed(2));
-        }
+      // Validate coupon and compute amount
+      let amount;
+      try {
+        ({ amount } = await validateCouponAndComputeAmount(couponCode));
+      } catch (couponErr) {
+        res.status(400).json({ error: couponErr.message });
+        return;
       }
 
       // Upsert lead
@@ -284,6 +300,50 @@ exports.processPayment = functions
 
       console.log('[processPayment] body:', JSON.stringify({ payment_method_id, token: !!token, payer, transaction_amount }));
 
+      // Re-validate coupon server-side and compute authoritative amount
+      let serverAmount, couponDoc;
+      try {
+        ({ amount: serverAmount, couponDoc } = await validateCouponAndComputeAmount(couponCode));
+      } catch (couponErr) {
+        res.status(400).json({ error: couponErr.message });
+        return;
+      }
+
+      // ── FREE ORDER PATH ──────────────────────────────────────────────────────
+      if (serverAmount === 0) {
+        const freeEmail = (payer?.email || email || '').toLowerCase();
+
+        // Double-grant guard
+        const existingPurchase = await db.collection('purchases')
+          .where('email', '==', freeEmail)
+          .limit(1)
+          .get();
+        if (!existingPurchase.empty) {
+          res.status(200).json({ status: 'approved', free: true, alreadyGranted: true });
+          return;
+        }
+
+        await grantAccessAndNotify(freeEmail, name, couponCode, 1, 0);
+
+        if (couponDoc) {
+          await couponDoc.ref.update({
+            currentUses: admin.firestore.FieldValue.increment(1),
+          });
+        }
+
+        res.status(200).json({ status: 'approved', free: true });
+        return;
+      }
+
+      // ── PAID ORDER PATH ──────────────────────────────────────────────────────
+      // Validate that client-submitted amount matches server-computed amount
+      const clientAmount = parseFloat(transaction_amount);
+      if (isNaN(clientAmount) || Math.abs(clientAmount - serverAmount) > 0.01) {
+        console.warn('[processPayment] Amount mismatch — client:', clientAmount, 'server:', serverAmount);
+        res.status(400).json({ error: 'Valor inválido.' });
+        return;
+      }
+
       const client = getMercadoPagoClient();
       const payment = new Payment(client);
 
@@ -297,7 +357,7 @@ exports.processPayment = functions
         last_name: payer?.last_name || name?.split(' ').slice(1).join(' ') || '',
       };
       const paymentData = {
-        transaction_amount: parseFloat(transaction_amount),
+        transaction_amount: serverAmount,
         ...(token && { token }),
         description: 'Realwise - Acesso Completo',
         installments: parseInt(installments) || 1,
@@ -376,7 +436,12 @@ exports.processPayment = functions
         const approvedEmail = (payer?.email || email).toLowerCase();
         await grantAccessAndNotify(approvedEmail, name, couponCode, parseInt(installments) || 1, response.transaction_amount || 0);
 
-        if (couponCode && typeof couponCode === 'string') {
+        if (couponDoc) {
+          await couponDoc.ref.update({
+            currentUses: admin.firestore.FieldValue.increment(1),
+          });
+        } else if (couponCode && typeof couponCode === 'string') {
+          // Fallback: re-query if couponDoc was null (no coupon path should not reach here)
           const couponSnap = await db.collection('coupons')
             .where('code', '==', couponCode.toUpperCase())
             .limit(1)
