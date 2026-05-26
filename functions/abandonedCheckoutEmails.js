@@ -197,20 +197,23 @@ exports.sendAbandonedCheckoutEmail = functions
 
     const sessionRef = db.collection('checkout_sessions').doc(email);
     const leadSnap = await db.collection('leads').doc(email).get();
-    const name = leadSnap.exists ? (leadSnap.data().name || '') : '';
+    const leadData = leadSnap.exists ? leadSnap.data() : {};
+    const name = leadData.name || '';
+    const whatsapp = leadData.whatsapp || '';
 
     const sessionSnap = await sessionRef.get();
     if (!sessionSnap.exists) {
       await sessionRef.set({
         email,
         name,
+        whatsapp,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         stage: stage - 1,
         lastSentAt: null,
       });
     }
 
-    const session = { email, name };
+    const session = { email, name, whatsapp };
     try {
       await sendStageEmail(transporter, from, session, stage);
     } catch (err) {
