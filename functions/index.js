@@ -842,16 +842,6 @@ exports.processImport = importProcessor.processImport;
  */
 exports.onTransactionReviewed = importProcessor.onTransactionReviewed;
 
-// ============================================================
-// STRIPE PAYMENT FUNCTIONS
-// ============================================================
-
-const { createCheckoutSession } = require('./createCheckoutSession');
-exports.createCheckoutSession = createCheckoutSession;
-
-const { stripeWebhook } = require('./stripeWebhook');
-exports.stripeWebhook = stripeWebhook;
-
 
 // ============================================================
 // SEAMLESS LOGIN
@@ -873,57 +863,59 @@ exports.sendAdminEmail = sendAdminEmail;
 const { updateLeadState } = require('./updateLeadState');
 exports.updateLeadState = updateLeadState;
 
-const { createDiscountCheckout } = require('./createDiscountCheckout');
-exports.createDiscountCheckout = createDiscountCheckout;
 
-const { createStandaloneCoupon } = require('./createStandaloneCoupon');
-exports.createStandaloneCoupon = createStandaloneCoupon;
+exports.createDiscountLink = functions
+  .runWith({ secrets: [mpAccessTokenSecret] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+    const callerEmail = context.auth.token.email;
+    const adminDoc = await db.collection('admins').doc(callerEmail).get();
+    if (!adminDoc.exists) throw new functions.https.HttpsError('permission-denied', 'Not an admin');
 
-exports.createDiscountLink = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
-  const callerEmail = context.auth.token.email;
-  const adminDoc = await db.collection('admins').doc(callerEmail).get();
-  if (!adminDoc.exists) throw new functions.https.HttpsError('permission-denied', 'Not an admin');
+    const { email, discountPct } = data;
+    if (!email || typeof discountPct !== 'number' || discountPct < 1 || discountPct > 100) {
+      throw new functions.https.HttpsError('invalid-argument', 'email and discountPct (1-100) required');
+    }
 
-  const { email, discountPct } = data;
-  if (!email || !Number.isInteger(discountPct) || discountPct < 1 || discountPct > 100) {
-    throw new functions.https.HttpsError('invalid-argument', 'email and discountPct (1-100) are required');
-  }
+    const emailLower = email.toLowerCase().trim();
+    const amount = parseFloat((BASE_AMOUNT * (1 - discountPct / 100)).toFixed(2));
 
-  const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-  const code = `${base}${discountPct}`.toUpperCase();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    // Upsert lead so it exists in Firestore for the admin dashboard
+    await db.collection('leads').doc(emailLower).set(
+      { email: emailLower, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
 
-  const existing = await db.collection('coupons')
-    .where('code', '==', code)
-    .limit(1)
-    .get();
+    const mpClient = getMercadoPagoClient();
+    const preference = new Preference(mpClient);
 
-  if (existing.empty) {
-    await db.collection('coupons').add({
-      code,
-      email,
-      discountType: 'percentage',
-      discountValue: discountPct,
-      enabled: true,
-      maxUses: 1,
-      currentUses: 0,
-      usedCount: 0,
-      source: 'admin_discount',
-      issuedAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt,
+    const prefResult = await preference.create({
+      body: {
+        items: [{
+          title: 'Realwise — Acesso Vitalício',
+          quantity: 1,
+          currency_id: 'BRL',
+          unit_price: amount,
+        }],
+        payer: { email: emailLower },
+        external_reference: JSON.stringify({
+          email: emailLower,
+          name: '',
+          couponCode: null,
+          discountPct,
+        }),
+        back_urls: {
+          success: 'https://realwise.com.br/purchase-success',
+          failure: 'https://realwise.com.br/',
+          pending: 'https://realwise.com.br/purchase-success',
+        },
+        auto_return: 'approved',
+        statement_descriptor: 'REALWISE',
+      },
     });
-  } else {
-    await existing.docs[0].ref.update({ enabled: true, maxUses: 1, currentUses: 0, expiresAt });
-  }
 
-  const params = new URLSearchParams({ checkout: '1', email, coupon: code });
-  const url = `https://realwise.com.br/?${params.toString()}`;
-  return { url, couponCode: code };
-});
-
-const { syncCouponToStripe } = require('./syncCouponToStripe');
-exports.syncCouponToStripe = syncCouponToStripe;
+    return { url: prefResult.init_point };
+  });
 
 const { transferClient } = require('./transferClient');
 exports.transferClient = transferClient;
