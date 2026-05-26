@@ -51,6 +51,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const [createPaymentUrl, setCreatePaymentUrl] = useState(CREATE_PAYMENT_URL);
   const [processPaymentUrl, setProcessPaymentUrl] = useState(PROCESS_PAYMENT_URL);
   const [partialLeadUrl, setPartialLeadUrl] = useState(PARTIAL_LEAD_URL);
+  const autoSubmittedRef = useRef(false);
   const savedPartialRef = useRef(false);
   const bricksControllerRef = useRef(null);
   const bricksMountedRef = useRef(false);
@@ -121,13 +122,16 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
     }
   }, [open, prefill]);
 
-  // Auto-submit step 1 when all contact fields arrive pre-filled (e.g. from abandoned cart email)
+  // Auto-submit step 1 when all contact fields are pre-filled and config URL is ready
   useEffect(() => {
-    if (!open || step !== 1) return;
+    if (!open) { autoSubmittedRef.current = false; return; }
+    if (step !== 1 || autoSubmittedRef.current) return;
+    if (!createPaymentUrl) return; // wait for config to load
     const { name, email, whatsapp, coupon } = prefill;
     if (!name || !email || !whatsapp) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
 
+    autoSubmittedRef.current = true;
     landingAnalytics.trackFormSubmitted();
     setLoading(true);
     setError('');
@@ -154,7 +158,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
         setError(err.message || 'Erro inesperado. Tente novamente.');
         setLoading(false);
       });
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, createPaymentUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function destroyBricks() {
     if (bricksControllerRef.current) {
