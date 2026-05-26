@@ -88,7 +88,7 @@ async function sendStageEmail(transporter, from, session, stage) {
   const displayName = name || email.split('@')[0];
 
   if (stage === STAGES.REMINDER_SENT) {
-    const reminderUrl = buildCheckoutUrl({ email, name: name || undefined });
+    const reminderUrl = buildCheckoutUrl({ email, name: name || undefined, whatsapp: session.whatsapp || undefined });
     await transporter.sendMail({
       from: `"Realwise" <${from}>`,
       to: email,
@@ -101,7 +101,7 @@ async function sendStageEmail(transporter, from, session, stage) {
   if (stage === STAGES.COUPON_SENT || stage === STAGES.LAST_CHANCE_SENT) {
     const discountPercent = stage === STAGES.COUPON_SENT ? DISCOUNT_COUPON : DISCOUNT_LAST_CHANCE;
     const { code, expiresAt } = await upsertCoupon(email, discountPercent);
-    const couponUrl = buildCheckoutUrl({ email, name: name || undefined, couponCode: code });
+    const couponUrl = buildCheckoutUrl({ email, name: name || undefined, whatsapp: session.whatsapp || undefined, couponCode: code });
     const subject = stage === STAGES.COUPON_SENT
       ? `🎁 Seu cupom especial: ${code.toUpperCase()} — ${discountPercent}% off`
       : `⏰ Última chance: cupom ${code.toUpperCase()} expira hoje`;

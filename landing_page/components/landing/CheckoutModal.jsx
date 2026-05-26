@@ -109,7 +109,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
       setForm({
         name: prefill.name || '',
         email: prefill.email || '',
-        whatsapp: '',
+        whatsapp: prefill.whatsapp || '',
         coupon: prefill.coupon || '',
       });
       setInstallments(1);
@@ -120,6 +120,41 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
       destroyBricks();
     }
   }, [open, prefill]);
+
+  // Auto-submit step 1 when all contact fields arrive pre-filled (e.g. from abandoned cart email)
+  useEffect(() => {
+    if (!open || step !== 1) return;
+    const { name, email, whatsapp, coupon } = prefill;
+    if (!name || !email || !whatsapp) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+
+    landingAnalytics.trackFormSubmitted();
+    setLoading(true);
+    setError('');
+    fetch(createPaymentUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        whatsapp: whatsapp.trim(),
+        couponCode: coupon?.trim().toUpperCase() || undefined,
+        utmSource: landingAnalytics.getUtmSource(),
+      }),
+    })
+      .then(res => res.json().then(data => ({ res, data })))
+      .then(({ res, data }) => {
+        if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento.');
+        window.__MP_PUBLIC_KEY__ = data.publicKey;
+        setAmount(data.amount);
+        setLoading(false);
+        setStep(2);
+      })
+      .catch(err => {
+        setError(err.message || 'Erro inesperado. Tente novamente.');
+        setLoading(false);
+      });
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function destroyBricks() {
     if (bricksControllerRef.current) {

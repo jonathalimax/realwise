@@ -243,6 +243,16 @@ exports.createPayment = functions
         { merge: true }
       );
 
+      // Track checkout session for abandoned cart recovery
+      db.collection('checkout_sessions').doc(emailLower).set({
+        email: emailLower,
+        name: name ? name.trim() : '',
+        whatsapp: whatsapp ? whatsapp.trim() : '',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        stage: 0,
+        lastSentAt: null,
+      }, { merge: false }).catch(err => console.error('[createPayment] checkout_sessions failed:', err));
+
       // Increment landing_stats
       const today = new Date().toISOString().slice(0, 10);
       const source = (utmSource && typeof utmSource === 'string') ? utmSource : 'direct';
@@ -862,60 +872,6 @@ exports.sendAdminEmail = sendAdminEmail;
 
 const { updateLeadState } = require('./updateLeadState');
 exports.updateLeadState = updateLeadState;
-
-
-exports.createDiscountLink = functions
-  .runWith({ secrets: [mpAccessTokenSecret] })
-  .https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
-    const callerEmail = context.auth.token.email;
-    const adminDoc = await db.collection('admins').doc(callerEmail).get();
-    if (!adminDoc.exists) throw new functions.https.HttpsError('permission-denied', 'Not an admin');
-
-    const { email, discountPct } = data;
-    if (!email || typeof discountPct !== 'number' || discountPct < 1 || discountPct > 100) {
-      throw new functions.https.HttpsError('invalid-argument', 'email and discountPct (1-100) required');
-    }
-
-    const emailLower = email.toLowerCase().trim();
-    const amount = parseFloat((BASE_AMOUNT * (1 - discountPct / 100)).toFixed(2));
-
-    // Upsert lead so it exists in Firestore for the admin dashboard
-    await db.collection('leads').doc(emailLower).set(
-      { email: emailLower, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
-      { merge: true }
-    );
-
-    const mpClient = getMercadoPagoClient();
-    const preference = new Preference(mpClient);
-
-    const prefResult = await preference.create({
-      body: {
-        items: [{
-          title: 'Realwise — Acesso Vitalício',
-          quantity: 1,
-          currency_id: 'BRL',
-          unit_price: amount,
-        }],
-        payer: { email: emailLower },
-        external_reference: JSON.stringify({
-          email: emailLower,
-          name: '',
-          couponCode: null,
-          discountPct,
-        }),
-        back_urls: {
-          success: 'https://realwise.com.br/purchase-success',
-          failure: 'https://realwise.com.br/',
-          pending: 'https://realwise.com.br/purchase-success',
-        },
-        auto_return: 'approved',
-        statement_descriptor: 'REALWISE',
-      },
-    });
-
-    return { url: prefResult.init_point };
-  });
 
 const { transferClient } = require('./transferClient');
 exports.transferClient = transferClient;

@@ -4,7 +4,6 @@ import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/fi
 import { httpsCallable } from 'firebase/functions';
 import { useNavigate } from 'react-router-dom';
 import EmailModal from './EmailModal';
-import DiscountModal from './DiscountModal';
 import ActionsDropdown from './ActionsDropdown';
 
 const STATES = ['pending', 'not_paid', 'paid', 'active', 'cancelled', 'refunded'];
@@ -43,7 +42,6 @@ export default function LeadsDashboard({ db, functions }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [emailTarget, setEmailTarget] = useState(null);
-  const [discountTarget, setDiscountTarget] = useState(null);
   const [updatingState, setUpdatingState] = useState({});
   const [recoveryToast, setRecoveryToast] = useState(null);
   const [loadingActions, setLoadingActions] = useState({});
@@ -280,13 +278,6 @@ export default function LeadsDashboard({ db, functions }) {
 
       {emailTarget && (
         <EmailModal user={emailTarget} functions={functions} onClose={() => setEmailTarget(null)} />
-      )}
-      {discountTarget && (
-        <DiscountModal
-          lead={discountTarget}
-          functions={functions}
-          onClose={() => setDiscountTarget(null)}
-        />
       )}
       {recoveryToast && (
         <div className="fixed bottom-6 right-6 bg-emerald-700 text-white text-sm px-4 py-3 rounded-xl shadow-lg z-50">

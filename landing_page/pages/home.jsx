@@ -25,9 +25,10 @@ export default function Home() {
       const email = params.get('email') || '';
       const coupon = params.get('coupon') || '';
       const name = params.get('name') || '';
+      const whatsapp = params.get('whatsapp') || '';
       setCheckoutOpen(true);
       if (email || coupon || name) {
-        setCheckoutPrefill({ email, coupon, name });
+        setCheckoutPrefill({ email, coupon, name, whatsapp });
       }
     }
   }, []);

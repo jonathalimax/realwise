@@ -9,12 +9,13 @@
  * @param {string} [opts.couponCode]
  * @returns {string}
  */
-function buildCheckoutUrl({ email, name, couponCode } = {}) {
+function buildCheckoutUrl({ email, name, whatsapp, couponCode } = {}) {
   const base = 'https://realwise.com.br';
   const params = new URLSearchParams();
   params.set('checkout', '1');
   if (email) params.set('email', email);
   if (name) params.set('name', name);
+  if (whatsapp) params.set('whatsapp', whatsapp);
   if (couponCode) params.set('coupon', couponCode);
   return `${base}/?${params.toString()}`;
 }
