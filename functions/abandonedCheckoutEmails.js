@@ -49,7 +49,7 @@ async function getTransporter() {
 
 async function upsertCoupon(email, discountPercent) {
   const base = emailToUsername(email);
-  const code = `${base}${discountPercent}`;
+  const code = `${base}${discountPercent}`.toUpperCase();
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + COUPON_TTL_MS);
 
@@ -61,7 +61,7 @@ async function upsertCoupon(email, discountPercent) {
     .get();
 
   if (!existing.empty) {
-    await existing.docs[0].ref.update({ code, issuedAt, expiresAt, usedCount: 0 });
+    await existing.docs[0].ref.update({ code, issuedAt, expiresAt, createdAt: issuedAt, usedCount: 0 });
     return { code, expiresAt };
   }
 
@@ -70,6 +70,7 @@ async function upsertCoupon(email, discountPercent) {
     email,
     issuedAt,
     expiresAt,
+    createdAt: issuedAt,
     discountPercent,
     discountType: 'percentage',
     discountValue: discountPercent,
@@ -210,7 +211,12 @@ exports.sendAbandonedCheckoutEmail = functions
     }
 
     const session = { email, name };
-    await sendStageEmail(transporter, from, session, stage);
+    try {
+      await sendStageEmail(transporter, from, session, stage);
+    } catch (err) {
+      console.error('[abandonedCheckout] sendStageEmail failed:', err);
+      throw new functions.https.HttpsError('internal', `Failed to send email: ${err.message}`);
+    }
     await sessionRef.set({ stage, lastSentAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
 
     return { success: true, email, stage };

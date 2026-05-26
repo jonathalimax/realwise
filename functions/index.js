@@ -879,6 +879,49 @@ exports.createDiscountCheckout = createDiscountCheckout;
 const { createStandaloneCoupon } = require('./createStandaloneCoupon');
 exports.createStandaloneCoupon = createStandaloneCoupon;
 
+exports.createDiscountLink = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  const callerEmail = context.auth.token.email;
+  const adminDoc = await db.collection('admins').doc(callerEmail).get();
+  if (!adminDoc.exists) throw new functions.https.HttpsError('permission-denied', 'Not an admin');
+
+  const { email, discountPct } = data;
+  if (!email || !Number.isInteger(discountPct) || discountPct < 1 || discountPct > 100) {
+    throw new functions.https.HttpsError('invalid-argument', 'email and discountPct (1-100) are required');
+  }
+
+  const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+  const code = `${base}${discountPct}`.toUpperCase();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  const existing = await db.collection('coupons')
+    .where('code', '==', code)
+    .limit(1)
+    .get();
+
+  if (existing.empty) {
+    await db.collection('coupons').add({
+      code,
+      email,
+      discountType: 'percentage',
+      discountValue: discountPct,
+      enabled: true,
+      maxUses: 1,
+      currentUses: 0,
+      usedCount: 0,
+      source: 'admin_discount',
+      issuedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt,
+    });
+  } else {
+    await existing.docs[0].ref.update({ enabled: true, maxUses: 1, currentUses: 0, expiresAt });
+  }
+
+  const params = new URLSearchParams({ checkout: '1', email, coupon: code });
+  const url = `https://realwise.com.br/?${params.toString()}`;
+  return { url, couponCode: code };
+});
+
 const { syncCouponToStripe } = require('./syncCouponToStripe');
 exports.syncCouponToStripe = syncCouponToStripe;
 

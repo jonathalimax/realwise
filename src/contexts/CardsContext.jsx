@@ -157,9 +157,14 @@ export function CardsProvider({ children }) {
 
       const docRef = await addDoc(collection(db, 'userBanks'), newBank);
 
-      // Auto-create bill for credit cards
+      // Auto-create bill for credit cards (only if one doesn't already exist)
       if (newBank.hasCredit) {
-        await createBillForCreditCard(newBank, docRef.id);
+        const existing = await getDocs(
+          query(collection(db, 'bills'), where('linkedBankId', '==', docRef.id))
+        );
+        if (existing.empty) {
+          await createBillForCreditCard(newBank, docRef.id);
+        }
       }
 
       return docRef.id;

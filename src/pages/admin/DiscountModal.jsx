@@ -13,7 +13,7 @@ export default function DiscountModal({ lead, functions, onClose }) {
     setStatus('loading');
     setErrorMsg('');
     try {
-      const fn = httpsCallable(functions, 'createDiscountCheckout');
+      const fn = httpsCallable(functions, 'createDiscountLink');
       const { data } = await fn({ email: lead.email, discountPct: Number(pct) });
       setUrl(data.url);
       setStatus('done');
@@ -38,7 +38,7 @@ export default function DiscountModal({ lead, functions, onClose }) {
         </div>
 
         <p className="text-xs text-gray-400">
-          Generates a one-time Stripe checkout link with the discount applied. Max 1 redemption.
+          Gera um link de checkout com o cupom aplicado. Máximo 1 uso, válido por 7 dias.
         </p>
 
         <div>
