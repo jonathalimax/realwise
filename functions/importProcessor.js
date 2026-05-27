@@ -291,7 +291,7 @@ exports.processImport = functions
     memory: '1GB',
     timeoutSeconds: 540 // 9 minutes max
   })
-  .storage.bucket('moneywise-ad9ec.firebasestorage.app')
+  .storage.bucket(JSON.parse(process.env.FIREBASE_CONFIG || '{}').storageBucket || 'moneywise-ad9ec.firebasestorage.app')
   .object()
   .onFinalize(async (object) => {
     const filePath = object.name;
