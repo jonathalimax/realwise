@@ -9,6 +9,7 @@ const PROCESS_PAYMENT_URL = import.meta.env.VITE_PROCESS_PAYMENT_URL || '';
 const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
 
 const BASE_PRICE = 479;
+const PROMO_PRICE = 239;
 
 const MP_STATUS_MESSAGES = {
   cc_rejected_insufficient_amount:      'Saldo insuficiente. Verifique o limite do seu cartão.',
@@ -47,7 +48,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const [loading, setLoading] = useState(false);
   const [bricksLoading, setBricksLoading] = useState(false);
   const [error, setError] = useState('');
-  const [amount, setAmount] = useState(BASE_PRICE);
+  const [amount, setAmount] = useState(PROMO_PRICE);
   const [createPaymentUrl, setCreatePaymentUrl] = useState(CREATE_PAYMENT_URL);
   const [processPaymentUrl, setProcessPaymentUrl] = useState(PROCESS_PAYMENT_URL);
   const [partialLeadUrl, setPartialLeadUrl] = useState(PARTIAL_LEAD_URL);
@@ -115,7 +116,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
       });
       setInstallments(1);
       setError('');
-      setAmount(BASE_PRICE);
+      setAmount(PROMO_PRICE);
       savedPartialRef.current = false;
     } else {
       destroyBricks();
@@ -407,8 +408,9 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
 
   const inputClass = "w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition";
 
-  const displayAmount = amount ?? BASE_PRICE;
-  const hasCouponDiscount = step === 2 && displayAmount < BASE_PRICE;
+  const displayAmount = amount ?? PROMO_PRICE;
+  const isPromo = displayAmount <= PROMO_PRICE && !form.coupon?.trim();
+  const hasCouponDiscount = step === 2 && displayAmount < PROMO_PRICE;
   const fmt = (v) => `R ${v.toFixed(2).replace('.', ',')}`;
 
   if (!mounted) return null;
@@ -482,12 +484,20 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
                 {hasCouponDiscount ? (
                   <>
                     <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(BASE_PRICE)}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(PROMO_PRICE)}</p>
                       <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(displayAmount)}</p>
                     </div>
                     <span className="text-xs font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">
                       {form.coupon.trim().toUpperCase()}
                     </span>
+                  </>
+                ) : isPromo ? (
+                  <>
+                    <div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(BASE_PRICE)}</p>
+                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(displayAmount)}</p>
+                    </div>
+                    <span className="text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">50% OFF</span>
                   </>
                 ) : (
                   <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-none">{fmt(displayAmount)}</p>

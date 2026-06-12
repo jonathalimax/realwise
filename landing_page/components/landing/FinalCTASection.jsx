@@ -33,7 +33,7 @@ export default function FinalCTASection({ onBuy }) {
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <p className="mt-4 text-sm text-slate-400 dark:text-slate-500">
-            R$ 479 · Pagamento único · Acesso vitalício
+            <span className="line-through text-slate-300 dark:text-slate-600 mr-1">R$ 479</span> R$ 239 · Pagamento único · Acesso vitalício
           </p>
           <p className="mt-2 text-xs text-slate-400 dark:text-slate-600">
             Dúvidas?{' '}

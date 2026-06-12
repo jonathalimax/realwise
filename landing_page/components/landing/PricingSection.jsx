@@ -52,15 +52,23 @@ export default function PricingSection({ onBuy }) {
 
             <div className="p-10 sm:p-12 space-y-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50 self-start">
-                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                    Pagamento único
-                  </span>
+                <div className="flex flex-col gap-2 self-start">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      Pagamento único
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50">
+                    <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                      50% OFF — Oferta por tempo limitado
+                    </span>
+                  </div>
                 </div>
                 <div className="text-left sm:text-right">
+                  <div className="text-sm text-slate-400 dark:text-slate-500 line-through">R$ 479</div>
                   <div className="text-4xl font-bold">em até 12x sem juros</div>
                   <div className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                    ou R$479 à vista
+                    ou R$ 239 à vista
                   </div>
                 </div>
               </div>
@@ -81,7 +89,10 @@ export default function PricingSection({ onBuy }) {
                 </div>
                 <div className="grid grid-cols-[1fr_auto] gap-4 font-semibold text-emerald-600 dark:text-emerald-400">
                   <span>Realwise (sempre)</span>
-                  <span className="text-right">R$ 479</span>
+                  <div className="text-right">
+                    <span className="line-through text-slate-400 dark:text-slate-500 font-normal mr-2">R$ 479</span>
+                    <span>R$ 239</span>
+                  </div>
                 </div>
               </div>
 

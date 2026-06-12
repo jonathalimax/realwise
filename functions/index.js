@@ -17,7 +17,7 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
 
-const BASE_AMOUNT = 479;
+const BASE_AMOUNT = 239;
 const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate, newLeadTemplate } = require('./emailTemplates');
 const axios = require('axios');
 
