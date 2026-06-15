@@ -138,6 +138,7 @@ export default function QRCodeModal({ coupon, onClose }) {
 
   function handleDownload() {
     canvasRef.current.toBlob(blob => {
+      if (!blob) return;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -151,7 +152,7 @@ export default function QRCodeModal({ coupon, onClose }) {
     navigator.clipboard.writeText(promoUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }).catch(() => {});
   }
 
   return (
