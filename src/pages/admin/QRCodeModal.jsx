@@ -125,9 +125,14 @@ export default function QRCodeModal({ coupon, onClose }) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      drawPoster(canvasRef.current, img, coupon);
-      setPreviewUrl(canvasRef.current.toDataURL('image/png'));
-      setLoading(false);
+      try {
+        drawPoster(canvasRef.current, img, coupon);
+        setPreviewUrl(canvasRef.current.toDataURL('image/png'));
+        setLoading(false);
+      } catch {
+        setError('Não foi possível gerar o pôster. Tente novamente.');
+        setLoading(false);
+      }
     };
     img.onerror = () => {
       setError('Não foi possível carregar o QR Code. Verifique sua conexão.');
@@ -137,15 +142,19 @@ export default function QRCodeModal({ coupon, onClose }) {
   }, [coupon, attempt]);
 
   function handleDownload() {
-    canvasRef.current.toBlob(blob => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `qr-${coupon.code}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
+    try {
+      canvasRef.current.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `qr-${coupon.code}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    } catch {
+      // canvas tainted or unavailable — silently ignore
+    }
   }
 
   function handleCopy() {
