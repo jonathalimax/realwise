@@ -22,7 +22,7 @@ const trust = [
   { icon: Database, text: 'Seu Firebase' },
 ];
 
-export default function PricingSection({ onBuy }) {
+export default function PricingSection({ onBuy, couponCode = '' }) {
   return (
     <section data-section="pricing" id="preco" className="py-32 px-6">
       <div className="max-w-3xl mx-auto">
@@ -96,6 +96,11 @@ export default function PricingSection({ onBuy }) {
                 </div>
               </div>
 
+              {couponCode && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-sm font-semibold mb-2">
+                  🎟 Cupom <span className="font-mono tracking-widest">{couponCode}</span> ativo
+                </div>
+              )}
               <Button
                 size="lg"
                 onClick={() => { landingAnalytics.trackCtaClicked('Começar agora', 'pricing'); onBuy(); }}
