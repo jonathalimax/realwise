@@ -97,8 +97,11 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
               </div>
 
               {couponCode && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-sm font-semibold mb-2">
-                  🎟 Cupom <span className="font-mono tracking-widest">{couponCode}</span> ativo
+                <div className="flex justify-center mb-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                    Cupom <span className="font-mono font-bold text-emerald-300 ml-0.5">{couponCode}</span> ativo
+                  </div>
                 </div>
               )}
               <Button

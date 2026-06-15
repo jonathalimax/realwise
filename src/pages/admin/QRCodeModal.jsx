@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Copy, Download } from 'lucide-react';
 
+const SCALE = 2; // retina quality
+
 function formatDiscountLabel(coupon) {
   if (coupon.discountType === 'percentage') return `${coupon.discountValue}% OFF`;
   return `R$ ${(coupon.discountValue / 100).toFixed(2).replace('.', ',')} OFF`;
@@ -8,7 +10,7 @@ function formatDiscountLabel(coupon) {
 
 function buildQrUrl(code) {
   const data = encodeURIComponent(`https://realwise.com.br/promo/${code}`);
-  return `https://api.qrserver.com/v1/create-qr-code/?data=${data}&size=300x300&bgcolor=111827&color=ffffff&qzone=2`;
+  return `https://api.qrserver.com/v1/create-qr-code/?data=${data}&size=600x600&bgcolor=ffffff&color=000000&qzone=1`;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -26,87 +28,121 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.fill();
 }
 
-function drawPoster(canvas, qrImage, coupon) {
+function clipRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.clip();
+}
+
+function drawPoster(canvas, qrImage, logoImage, coupon) {
   const ctx = canvas.getContext('2d');
-  const W = 400;
-  const H = 600;
+  const W = 400 * SCALE;
+  const H = 640 * SCALE;
   canvas.width = W;
   canvas.height = H;
+  canvas.style.width = '400px';
+  canvas.style.height = '640px';
+  ctx.scale(SCALE, SCALE);
+
+  const cW = 400; // logical coords
+  const cH = 640;
 
   // Background gradient
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#111827');
-  bg.addColorStop(1, '#1f2937');
+  const bg = ctx.createLinearGradient(0, 0, 0, cH);
+  bg.addColorStop(0, '#0f172a');
+  bg.addColorStop(1, '#1e293b');
   ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, cW, cH);
 
-  // Logo square
-  const squareSize = 40;
-  const squareX = W / 2 - squareSize / 2;
-  ctx.fillStyle = '#10b981';
-  roundRect(ctx, squareX, 44, squareSize, squareSize, 10);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 22px sans-serif';
+  // ── Logo (circular crop from logo.jpg) ──
+  const logoSize = 72;
+  const logoX = cW / 2 - logoSize / 2;
+  const logoY = 36;
+  ctx.save();
+  clipRoundRect(ctx, logoX, logoY, logoSize, logoSize, 18);
+  ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+  ctx.restore();
+
+  // ── "Controle suas finanças" title ──
   ctx.textAlign = 'center';
-  ctx.fillText('R', W / 2, 73);
-
-  // Wordmark
-  ctx.font = 'bold 20px sans-serif';
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('Realwise', W / 2, 108);
+  ctx.font = 'bold 26px system-ui, sans-serif';
+  ctx.fillText('Controle suas finanças', cW / 2, logoY + logoSize + 32);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '15px system-ui, sans-serif';
+  ctx.fillText('com desconto exclusivo', cW / 2, logoY + logoSize + 54);
 
-  // Discount badge
+  // ── Discount badge ──
   const label = formatDiscountLabel(coupon);
-  const badgeGrad = ctx.createLinearGradient(0, 130, W, 130);
+  const badgeY = logoY + logoSize + 76;
+  const badgeH = 52;
+  ctx.shadowColor = '#10b981';
+  ctx.shadowBlur = 20;
+  const badgeGrad = ctx.createLinearGradient(60, badgeY, cW - 60, badgeY);
   badgeGrad.addColorStop(0, '#059669');
   badgeGrad.addColorStop(1, '#10b981');
-  ctx.shadowColor = '#10b981';
-  ctx.shadowBlur = 16;
   ctx.fillStyle = badgeGrad;
-  roundRect(ctx, 80, 130, 240, 54, 27);
+  roundRect(ctx, 60, badgeY, cW - 120, badgeH, badgeH / 2);
   ctx.shadowBlur = 0;
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 28px sans-serif';
-  ctx.fillText(label, W / 2, 165);
+  ctx.font = 'bold 30px system-ui, sans-serif';
+  ctx.fillText(label, cW / 2, badgeY + 34);
 
-  // Tagline
-  ctx.fillStyle = '#9ca3af';
-  ctx.font = '15px sans-serif';
-  ctx.fillText('Controle suas finanças com', W / 2, 210);
-  ctx.fillText('desconto exclusivo', W / 2, 230);
-
-  // QR white card
-  const qrSize = 180;
-  const qrX = (W - qrSize) / 2;
-  const qrY = 258;
+  // ── QR code (white card) ──
+  const qrSize = 210;
+  const qrCardPad = 14;
+  const qrX = (cW - qrSize) / 2;
+  const qrY = badgeY + badgeH + 28;
+  // white card with subtle shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = 12;
   ctx.fillStyle = '#ffffff';
-  roundRect(ctx, qrX - 12, qrY - 12, qrSize + 24, qrSize + 24, 12);
+  roundRect(ctx, qrX - qrCardPad, qrY - qrCardPad, qrSize + qrCardPad * 2, qrSize + qrCardPad * 2, 16);
+  ctx.shadowBlur = 0;
   ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
 
-  // Coupon code pill
+  // ── Coupon code pill ──
   const code = coupon.code;
-  ctx.font = 'bold 18px monospace';
+  ctx.font = 'bold 20px monospace';
   const textWidth = ctx.measureText(code).width;
-  const pillW = Math.max(textWidth + 40, 160);
-  const pillX = (W - pillW) / 2;
-  ctx.fillStyle = '#1f2937';
-  roundRect(ctx, pillX, 466, pillW, 36, 18);
+  const pillW = Math.max(textWidth + 44, 160);
+  const pillX = (cW - pillW) / 2;
+  const pillY = qrY + qrSize + qrCardPad + 20;
+  const pillH = 40;
+  ctx.fillStyle = '#0f172a';
+  roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect?.(pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.stroke();
   ctx.fillStyle = '#6ee7b7';
-  ctx.fillText(code, W / 2, 490);
+  ctx.font = 'bold 20px monospace';
+  ctx.fillText(code, cW / 2, pillY + 27);
 
-  // Expiry
+  // ── Expiry ──
+  let copyrightY = cH - 20;
   if (coupon.validUntil) {
     const d = coupon.validUntil.toDate?.() || new Date(coupon.validUntil);
-    const formatted = d.toLocaleDateString('pt-BR');
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '13px sans-serif';
-    ctx.fillText(`Válido até ${formatted}`, W / 2, 534);
+    ctx.fillStyle = '#475569';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.fillText(`Válido até ${d.toLocaleDateString('pt-BR')}`, cW / 2, pillY + pillH + 18);
+    copyrightY = cH - 16;
   }
 
-  // Bottom URL hint
-  ctx.fillStyle = '#4b5563';
-  ctx.font = '11px sans-serif';
-  ctx.fillText('realwise.com.br', W / 2, 575);
+  // ── © Realwise footer ──
+  ctx.fillStyle = '#334155';
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.fillText('© Realwise · realwise.com.br', cW / 2, copyrightY);
 }
 
 export default function QRCodeModal({ coupon, onClose }) {
@@ -122,23 +158,37 @@ export default function QRCodeModal({ coupon, onClose }) {
   useEffect(() => {
     setLoading(true);
     setError('');
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
+
+    const qrImg = new Image();
+    qrImg.crossOrigin = 'anonymous';
+
+    const logoImg = new Image();
+    logoImg.src = '/logo.jpg';
+
+    let cancelled = false;
+
+    Promise.all([
+      new Promise((res, rej) => { qrImg.onload = res; qrImg.onerror = rej; }),
+      new Promise((res, rej) => { logoImg.onload = res; logoImg.onerror = rej; }),
+    ]).then(() => {
+      if (cancelled) return;
       try {
-        drawPoster(canvasRef.current, img, coupon);
+        drawPoster(canvasRef.current, qrImg, logoImg, coupon);
         setPreviewUrl(canvasRef.current.toDataURL('image/png'));
         setLoading(false);
       } catch {
         setError('Não foi possível gerar o pôster. Tente novamente.');
         setLoading(false);
       }
-    };
-    img.onerror = () => {
-      setError('Não foi possível carregar o QR Code. Verifique sua conexão.');
+    }).catch(() => {
+      if (cancelled) return;
+      setError('Não foi possível carregar os recursos. Verifique sua conexão.');
       setLoading(false);
-    };
-    img.src = buildQrUrl(coupon.code);
+    });
+
+    qrImg.src = buildQrUrl(coupon.code);
+
+    return () => { cancelled = true; };
   }, [coupon, attempt]);
 
   function handleDownload() {
@@ -153,7 +203,7 @@ export default function QRCodeModal({ coupon, onClose }) {
         URL.revokeObjectURL(url);
       });
     } catch {
-      // canvas tainted or unavailable — silently ignore
+      // canvas tainted or unavailable
     }
   }
 
@@ -166,10 +216,10 @@ export default function QRCodeModal({ coupon, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">QR Code — {coupon.code}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <button onClick={onClose} aria-label="Fechar" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -210,8 +260,8 @@ export default function QRCodeModal({ coupon, onClose }) {
               </span>
               <button
                 onClick={handleCopy}
+                aria-label="Copiar URL"
                 className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 flex-shrink-0"
-                title="Copiar URL"
               >
                 <Copy className="w-4 h-4" />
               </button>

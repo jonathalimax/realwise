@@ -25,8 +25,11 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           </div>
 
           {couponCode && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/30">
-              🎟 Cupom <span className="font-mono tracking-widest">{couponCode}</span> aplicado automaticamente
+            <div className="flex justify-center mb-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                Cupom <span className="font-mono font-bold text-emerald-300 ml-0.5">{couponCode}</span> ativo
+              </div>
             </div>
           )}
 

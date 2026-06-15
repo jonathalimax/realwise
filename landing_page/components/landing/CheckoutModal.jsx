@@ -409,9 +409,9 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const inputClass = "w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition";
 
   const displayAmount = amount ?? PROMO_PRICE;
-  const isPromo = displayAmount <= PROMO_PRICE && !form.coupon?.trim();
   const hasCouponDiscount = step === 2 && displayAmount < PROMO_PRICE;
-  const fmt = (v) => `R ${v.toFixed(2).replace('.', ',')}`;
+  const fmt = (v) => `R$ ${v.toFixed(2).replace('.', ',')}`;
+  const couponLabel = form.coupon?.trim().toUpperCase();
 
   if (!mounted) return null;
 
@@ -484,23 +484,28 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
                 {hasCouponDiscount ? (
                   <>
                     <div>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(BASE_PRICE)}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(PROMO_PRICE)}</p>
                       <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(displayAmount)}</p>
                     </div>
-                    <span className="text-xs font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">
-                      {form.coupon.trim().toUpperCase()}
-                    </span>
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className="text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">50% OFF</span>
+                      <span className="text-xs font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">{couponLabel}</span>
+                    </div>
                   </>
-                ) : isPromo ? (
+                ) : (
                   <>
                     <div>
                       <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(BASE_PRICE)}</p>
-                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(displayAmount)}</p>
+                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(PROMO_PRICE)}</p>
                     </div>
-                    <span className="text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">50% OFF</span>
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className="text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">50% OFF</span>
+                      {couponLabel && (
+                        <span className="text-xs font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">+ {couponLabel}</span>
+                      )}
+                    </div>
                   </>
-                ) : (
-                  <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-none">{fmt(displayAmount)}</p>
                 )}
               </div>
             </div>
