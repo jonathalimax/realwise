@@ -4,7 +4,7 @@ import { ArrowRight, Lock, Smartphone, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
 
-export default function HeroSection({ onBuy }) {
+export default function HeroSection({ onBuy, couponCode = '' }) {
   return (
     <section data-section="hero" className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20" />
@@ -23,6 +23,12 @@ export default function HeroSection({ onBuy }) {
               Pagamento único · Acesso vitalício
             </span>
           </div>
+
+          {couponCode && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/30">
+              🎟 Cupom <span className="font-mono tracking-widest">{couponCode}</span> aplicado automaticamente
+            </div>
+          )}
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
             Clareza sobre o seu dinheiro,
