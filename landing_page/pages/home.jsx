@@ -14,10 +14,12 @@ import { landingAnalytics } from '../landingAnalytics';
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 
-export default function Home() {
+export default function Home({ couponCode = '' }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutSection, setCheckoutSection] = useState('');
-  const [checkoutPrefill, setCheckoutPrefill] = useState({});
+  const [checkoutPrefill, setCheckoutPrefill] = useState(
+    couponCode ? { coupon: couponCode } : {}
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -59,12 +61,12 @@ export default function Home() {
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
       <Header onBuy={() => openCheckout('header')} />
       <div className="pt-20">
-        <HeroSection onBuy={() => openCheckout('hero')} />
+        <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
         <PainPointsSection />
         <FeaturesSection />
         <DataOwnershipSection />
         <WhyRealwiseSection />
-        <PricingSection onBuy={() => openCheckout('pricing')} />
+        <PricingSection onBuy={() => openCheckout('pricing')} couponCode={couponCode} />
         <FAQSection />
         <FinalCTASection onBuy={() => openCheckout('final-cta')} />
         <FooterSection />
