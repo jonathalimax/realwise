@@ -30,7 +30,7 @@ export default function Home({ couponCode = '' }) {
       const whatsapp = params.get('whatsapp') || '';
       setCheckoutOpen(true);
       if (email || coupon || name) {
-        setCheckoutPrefill({ email, coupon, name, whatsapp });
+        setCheckoutPrefill({ email, coupon: coupon || couponCode, name, whatsapp });
       }
     }
   }, []);
