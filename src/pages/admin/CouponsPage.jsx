@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import QRCodeModal from './QRCodeModal';
 import {
   collection, onSnapshot, query, orderBy,
   updateDoc, doc, addDoc, serverTimestamp,
@@ -20,6 +21,7 @@ export default function CouponsPage({ db, functions }) {
   const [sortDir, setSortDir] = useState('desc');
   const [showModal, setShowModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
+  const [qrCoupon, setQrCoupon] = useState(null);
 
   useEffect(() => {
     const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
@@ -158,6 +160,12 @@ export default function CouponsPage({ db, functions }) {
                       >
                         {coupon.enabled ? 'Desabilitar' : 'Habilitar'}
                       </button>
+                      <button
+                        onClick={() => setQrCoupon(coupon)}
+                        className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                      >
+                        Gerar QR
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -181,6 +189,9 @@ export default function CouponsPage({ db, functions }) {
           coupon={editingCoupon}
           onClose={() => { setShowModal(false); setEditingCoupon(null); }}
         />
+      )}
+      {qrCoupon && (
+        <QRCodeModal coupon={qrCoupon} onClose={() => setQrCoupon(null)} />
       )}
     </div>
   );
