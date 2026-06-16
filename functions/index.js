@@ -17,7 +17,6 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const cors = require('cors')({ origin: true });
 const nodemailer = require('nodemailer');
 
-const BASE_AMOUNT = 239;
 const { welcomeTemplate, accessGrantedTemplate, billReminderTemplate, newLeadTemplate } = require('./emailTemplates');
 const axios = require('axios');
 
@@ -36,12 +35,21 @@ const getMercadoPagoClient = () => {
   return new MercadoPagoConfig({ accessToken });
 };
 
+async function getBaseAmount() {
+  const snap = await db.collection('config').doc('pricing').get();
+  const data = snap.data();
+  if (!data || !data.active) return 239; // fallback if doc missing/inactive
+  return data.totalCents / 100;
+}
+
 /**
  * Validate a coupon code and compute the discounted amount server-side.
  * Returns { amount, couponDoc } where couponDoc is the Firestore DocumentSnapshot (or null).
  * Throws an Error with a user-facing message if the coupon is invalid.
  */
 async function validateCouponAndComputeAmount(couponCode) {
+  const BASE_AMOUNT = await getBaseAmount();
+
   if (!couponCode || typeof couponCode !== 'string') {
     return { amount: BASE_AMOUNT, couponDoc: null };
   }
@@ -872,6 +880,9 @@ exports.sendAdminEmail = sendAdminEmail;
 
 const { updateLeadState } = require('./updateLeadState');
 exports.updateLeadState = updateLeadState;
+
+const { updatePricingConfig } = require('./updatePricingConfig');
+exports.updatePricingConfig = updatePricingConfig;
 
 const { transferClient } = require('./transferClient');
 exports.transferClient = transferClient;
