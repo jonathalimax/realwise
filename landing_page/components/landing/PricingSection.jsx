@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, ArrowRight, Lock, Shield, Smartphone, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
+import { db } from '@/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const included = [
   'Dashboard e transações',
@@ -22,7 +24,27 @@ const trust = [
   { icon: Database, text: 'Seu Firebase' },
 ];
 
+const FALLBACK_PRICING = { originalCents: 47988, totalCents: 23880, installments: 12, active: true, campaignLabel: null };
+
+function fmt(cents) {
+  return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+}
+
 export default function PricingSection({ onBuy, couponCode = '' }) {
+  const [pricing, setPricing] = useState(FALLBACK_PRICING);
+
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
+      const data = snap.data();
+      if (data && data.active) setPricing(data);
+    });
+    return () => unsub();
+  }, []);
+
+  const installmentCents = Math.round(pricing.totalCents / pricing.installments);
+  const discountPercent = Math.round((1 - pricing.totalCents / pricing.originalCents) * 100);
+
   return (
     <section data-section="pricing" id="preco" className="py-32 px-6">
       <div className="max-w-3xl mx-auto">
@@ -34,7 +56,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
-            Uma decisão. Para sempre.
+            Seu, pra sempre.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
             Compre uma vez. Use para sempre. Nunca pague novamente.
@@ -60,15 +82,15 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                   </div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50">
                     <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
-                      50% OFF — Oferta por tempo limitado
+                      {discountPercent}% OFF{pricing.campaignLabel ? ` — ${pricing.campaignLabel}` : ' — Oferta por tempo limitado'}
                     </span>
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
-                  <div className="text-sm text-slate-400 dark:text-slate-500 line-through">R$ 479</div>
-                  <div className="text-4xl font-bold">em até 12x sem juros</div>
+                  <div className="text-sm text-slate-400 dark:text-slate-500 line-through">{fmt(pricing.originalCents)}</div>
+                  <div className="text-4xl font-bold">{pricing.installments}x de {fmt(installmentCents)}</div>
                   <div className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                    ou R$ 239 à vista
+                    ou {fmt(pricing.totalCents)} à vista · sem juros
                   </div>
                 </div>
               </div>
@@ -90,8 +112,8 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                 <div className="grid grid-cols-[1fr_auto] gap-4 font-semibold text-violet-600 dark:text-violet-400">
                   <span>Realwise (sempre)</span>
                   <div className="text-right">
-                    <span className="line-through text-slate-400 dark:text-slate-500 font-normal mr-2">R$ 479</span>
-                    <span>R$ 239</span>
+                    <span className="line-through text-slate-400 dark:text-slate-500 font-normal mr-2">{fmt(pricing.originalCents)}</span>
+                    <span>{fmt(pricing.totalCents)}</span>
                   </div>
                 </div>
               </div>
@@ -106,10 +128,10 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
               )}
               <Button
                 size="lg"
-                onClick={() => { landingAnalytics.trackCtaClicked('Começar agora', 'pricing'); onBuy(); }}
+                onClick={() => { landingAnalytics.trackCtaClicked('Quero o meu acesso', 'pricing'); onBuy(); }}
                 className="w-full h-14 px-8 text-base bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Assumir o controle
+                Quero o meu acesso
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
