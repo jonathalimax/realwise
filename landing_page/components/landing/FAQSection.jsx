@@ -45,7 +45,7 @@ function FAQItem({ faq, isOpen, onToggle }) {
         onClick={onToggle}
         className="w-full py-6 flex items-center justify-between text-left group"
       >
-        <span className="font-medium text-base pr-8 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+        <span className="font-medium text-base pr-8 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
           {faq.question}
         </span>
         <ChevronDown className={cn(

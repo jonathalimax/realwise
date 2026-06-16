@@ -70,7 +70,7 @@ export default function FeaturesSection() {
               transition={{ duration: 0.5, delay: ci * 0.1 }}
             >
               <div className="mb-5">
-                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tracking-widest uppercase">
+                <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 tracking-widest uppercase">
                   {cluster.title}
                 </span>
               </div>
@@ -78,10 +78,10 @@ export default function FeaturesSection() {
                 {cluster.features.map((feature) => (
                   <div
                     key={feature.title}
-                    className="p-5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
+                    className="p-5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <feature.icon className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                      <feature.icon className="w-5 h-5 text-violet-500 flex-shrink-0" />
                       <span className="font-semibold text-base text-slate-900 dark:text-white">
                         {feature.title}
                       </span>

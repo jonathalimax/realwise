@@ -7,9 +7,9 @@ import { landingAnalytics } from '../../landingAnalytics';
 export default function HeroSection({ onBuy, couponCode = '' }) {
   return (
     <section data-section="hero" className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20" />
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-200/20 dark:bg-emerald-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-teal-200/20 dark:bg-teal-500/8 rounded-full blur-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-violet-950/20" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-200/20 dark:bg-violet-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-200/20 dark:bg-indigo-500/8 rounded-full blur-3xl" />
 
       <div className="relative z-10 max-w-4xl mx-auto text-center">
         <motion.div
@@ -17,18 +17,18 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+          <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50">
+            <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+            <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
               Pagamento único · Acesso vitalício
             </span>
           </div>
 
           {couponCode && (
             <div className="flex justify-center mb-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                Cupom <span className="font-mono font-bold text-emerald-300 ml-0.5">{couponCode}</span> ativo
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400 text-sm font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
+                Cupom <span className="font-mono font-bold text-violet-300 ml-0.5">{couponCode}</span> ativo
               </div>
             </div>
           )}
@@ -36,7 +36,7 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
             Clareza sobre o seu dinheiro,
             <br />
-            <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">
               sem assinar mais nada.
             </span>
           </h1>
@@ -78,7 +78,7 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           className="mt-4 relative"
         >
           <div className="relative mx-auto max-w-4xl">
-            <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-lg" />
+            <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/20 to-indigo-500/20 rounded-3xl blur-lg" />
             <div className="relative rounded-2xl overflow-hidden">
               <img
                 src="/screenshot-desktop.png"

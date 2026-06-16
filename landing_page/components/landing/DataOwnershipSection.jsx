@@ -45,8 +45,8 @@ export default function DataOwnershipSection() {
           {steps.map((step, index) => (
             <React.Fragment key={step.label}>
               <div className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center">
-                  <step.icon className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-14 h-14 rounded-2xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 flex items-center justify-center">
+                  <step.icon className="w-6 h-6 text-violet-600 dark:text-violet-400" />
                 </div>
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300 max-w-[120px] leading-tight">
                   {step.label}
@@ -71,9 +71,9 @@ export default function DataOwnershipSection() {
           {benefits.map((benefit) => (
             <div
               key={benefit.text}
-              className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
+              className="flex items-center gap-2.5 px-5 py-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800"
             >
-              <benefit.icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <benefit.icon className="w-4 h-4 text-violet-600 dark:text-violet-400 flex-shrink-0" />
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{benefit.text}</span>
             </div>
           ))}

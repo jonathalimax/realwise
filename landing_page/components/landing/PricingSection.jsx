@@ -48,13 +48,13 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           transition={{ duration: 0.7, delay: 0.1 }}
         >
           <div className="relative rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-400 via-violet-400 to-cyan-400" />
 
             <div className="p-10 sm:p-12 space-y-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex flex-col gap-2 self-start">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50">
+                    <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
                       Pagamento único
                     </span>
                   </div>
@@ -76,7 +76,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
               <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
                 {included.map((item) => (
                   <li key={item} className="flex items-center gap-3 text-slate-600 dark:text-slate-300 text-sm">
-                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <Check className="w-4 h-4 text-violet-500 flex-shrink-0" />
                     {item}
                   </li>
                 ))}
@@ -87,7 +87,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                   <span>Assinatura em 30 anos</span>
                   <span className="line-through text-right">R$ 3.600–14.400</span>
                 </div>
-                <div className="grid grid-cols-[1fr_auto] gap-4 font-semibold text-emerald-600 dark:text-emerald-400">
+                <div className="grid grid-cols-[1fr_auto] gap-4 font-semibold text-violet-600 dark:text-violet-400">
                   <span>Realwise (sempre)</span>
                   <div className="text-right">
                     <span className="line-through text-slate-400 dark:text-slate-500 font-normal mr-2">R$ 479</span>
@@ -98,9 +98,9 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
 
               {couponCode && (
                 <div className="flex justify-center mb-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                    Cupom <span className="font-mono font-bold text-emerald-300 ml-0.5">{couponCode}</span> ativo
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400 text-sm font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
+                    Cupom <span className="font-mono font-bold text-violet-300 ml-0.5">{couponCode}</span> ativo
                   </div>
                 </div>
               )}
