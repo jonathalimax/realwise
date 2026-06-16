@@ -3,14 +3,16 @@ import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
 import PainPointsSection from '../components/landing/PainPointsSection';
 import LiveImportDemo from '../components/landing/LiveImportDemo';
-import FeaturesSection from '../components/landing/FeaturesSection';
 import DataOwnershipSection from '../components/landing/DataOwnershipSection';
+import FounderStory from '../components/landing/FounderStory';
+import Testimonials from '../components/landing/Testimonials';
+import FeaturesSection from '../components/landing/FeaturesSection';
 import PricingSection from '../components/landing/PricingSection';
 import GuaranteeSection from '../components/landing/GuaranteeSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
 import FooterSection from '../components/landing/FooterSection';
-import WhyRealwiseSection from '../components/landing/WhyRealwiseSection';
+import WhatsAppFloatingButton from '../components/landing/WhatsAppFloatingButton';
 import CheckoutModal from '../components/landing/CheckoutModal';
 import { landingAnalytics } from '../landingAnalytics';
 
@@ -66,15 +68,17 @@ export default function Home({ couponCode = '' }) {
         <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
         <PainPointsSection />
         <LiveImportDemo />
-        <FeaturesSection />
         <DataOwnershipSection />
-        <WhyRealwiseSection />
+        <FounderStory />
+        <Testimonials />
+        <FeaturesSection />
         <PricingSection onBuy={() => openCheckout('pricing')} couponCode={couponCode} />
         <GuaranteeSection />
         <FAQSection />
         <FinalCTASection onBuy={() => openCheckout('final-cta')} />
         <FooterSection />
       </div>
+      <WhatsAppFloatingButton />
       <CheckoutModal
         open={checkoutOpen}
         section={checkoutSection}
