@@ -100,8 +100,8 @@ export default function PurchaseSuccess() {
           {!isPending
             ? <>Obrigado pela compra! Em breve você receberá um e-mail com as instruções de acesso ao Realwise.</>
             : pendingType === 'card'
-              ? <>Seu pagamento está sendo analisado pelo banco. Assim que aprovado, você receberá um e-mail com o acesso — geralmente em <strong>alguns minutos</strong>. Pode fechar esta página.</>
-              : <>Escaneie o QR code ou copie o código Pix no seu app do banco. Assim que confirmado, você receberá um e-mail com o acesso — geralmente em <strong>poucos minutos</strong>.</>
+              ? <>Seu acesso está sendo configurado e chega no seu e-mail. Qualquer coisa, <a href="https://wa.me/5541992310339" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-600 dark:hover:text-amber-400 transition-colors font-medium">me chama no WhatsApp</a> agora — quem responde sou eu.</>
+              : <>Escaneie o QR code ou copie o código Pix no seu app do banco. Seu acesso está sendo configurado e chega no seu e-mail. Qualquer coisa, <a href="https://wa.me/5541992310339" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-600 dark:hover:text-amber-400 transition-colors font-medium">me chama no WhatsApp</a> agora — quem responde sou eu.</>
           }
         </p>
 
