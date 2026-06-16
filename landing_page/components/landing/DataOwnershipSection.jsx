@@ -9,9 +9,9 @@ const steps = [
 ];
 
 const benefits = [
-  { icon: Lock, text: 'Você controla o acesso' },
-  { icon: Download, text: 'Pode exportar a qualquer momento' },
-  { icon: ShieldCheck, text: 'Seus dados são independentes — sempre' },
+  { icon: Lock, text: 'No seu Google' },
+  { icon: ShieldCheck, text: 'Sem conexão com seu banco' },
+  { icon: Download, text: 'Você leva tudo se quiser sair' },
 ];
 
 export default function DataOwnershipSection() {
@@ -26,12 +26,13 @@ export default function DataOwnershipSection() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Seus dados não passam por nós.
+            Seus dados são seus. Ponto.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            A maioria dos apps guarda seus dados nos servidores deles. Realwise não.
-            Seus dados vivem na sua própria conta Google Firebase — você é o dono,
-            nós somos só a ferramenta.
+            A maioria dos apps de finanças precisa se conectar às suas contas e guardar tudo nos servidores deles. O Realwise faz o contrário: seus dados ficam no seu próprio Google, na sua conta. Nenhum servidor nosso tem acesso. Não vendemos dado, não treinamos IA com o seu dinheiro, não temos como ler nada.
+          </p>
+          <p className="text-base text-slate-500 dark:text-slate-500 max-w-xl mx-auto mt-4">
+            É a privacidade que você já tinha na planilha — agora sem o trabalho da planilha.
           </p>
         </motion.div>
 
