@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
 import PainPointsSection from '../components/landing/PainPointsSection';
+import LiveImportDemo from '../components/landing/LiveImportDemo';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import DataOwnershipSection from '../components/landing/DataOwnershipSection';
 import PricingSection from '../components/landing/PricingSection';
@@ -63,6 +64,7 @@ export default function Home({ couponCode = '' }) {
       <div className="pt-20">
         <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
         <PainPointsSection />
+        <LiveImportDemo />
         <FeaturesSection />
         <DataOwnershipSection />
         <WhyRealwiseSection />
