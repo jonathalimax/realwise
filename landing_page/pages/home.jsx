@@ -6,6 +6,7 @@ import LiveImportDemo from '../components/landing/LiveImportDemo';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import DataOwnershipSection from '../components/landing/DataOwnershipSection';
 import PricingSection from '../components/landing/PricingSection';
+import GuaranteeSection from '../components/landing/GuaranteeSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
 import FooterSection from '../components/landing/FooterSection';
@@ -69,6 +70,7 @@ export default function Home({ couponCode = '' }) {
         <DataOwnershipSection />
         <WhyRealwiseSection />
         <PricingSection onBuy={() => openCheckout('pricing')} couponCode={couponCode} />
+        <GuaranteeSection />
         <FAQSection />
         <FinalCTASection onBuy={() => openCheckout('final-cta')} />
         <FooterSection />
