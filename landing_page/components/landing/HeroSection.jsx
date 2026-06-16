@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Lock, Smartphone, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
+import VideoSection from './VideoSection';
 
 export default function HeroSection({ onBuy, couponCode = '' }) {
   return (
@@ -20,7 +21,7 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50">
             <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
             <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
-              Pagamento único · Acesso vitalício
+              Pagamento único · 30 dias de garantia · Seus dados só seus
             </span>
           </div>
 
@@ -34,27 +35,31 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           )}
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-            Clareza sobre o seu dinheiro,
+            A sua planilha financeira
             <br />
             <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">
-              sem assinar mais nada.
+              que se preenche sozinha.
             </span>
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-2 leading-relaxed">
-            Veja para onde seu dinheiro vai, organize contas e cartões, e pare de depender de planilha — tudo sem mensalidade e sem que ninguém acesse seus dados.
+            Importe seu extrato e veja pra onde vai cada real — sem lançar tudo na mão, sem conectar seu banco a ninguém. Continua 100% seu, no seu Google. Pra sempre.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10 mt-8">
             <Button
               size="lg"
-              onClick={() => { landingAnalytics.trackCtaClicked('Assumir o controle', 'hero'); onBuy(); }}
+              onClick={() => { landingAnalytics.trackCtaClicked('Quero o meu acesso', 'hero'); onBuy(); }}
               className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105"
             >
-              Assumir o controle
+              Quero o meu acesso
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
+
+          <p className="text-sm text-slate-400 dark:text-slate-500 mb-10">
+            Feito no Brasil, por quem cansou de planilha morta e de app que quer ler todas as suas contas.
+          </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400 dark:text-slate-500 mb-16">
             <span className="flex items-center gap-1.5">
@@ -70,6 +75,8 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
             </span>
           </div>
         </motion.div>
+
+        <VideoSection videoUrl={import.meta.env.VITE_FOUNDER_VIDEO_URL} />
 
         <motion.div
           initial={{ opacity: 0, y: 60 }}
