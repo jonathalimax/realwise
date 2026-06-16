@@ -2,10 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const pains = [
-  { title: 'Planilha sem fim', desc: 'Você tenta organizar, mas sempre volta pro Excel.' },
-  { title: 'Mensalidade eterna', desc: 'Paga há anos e nem lembra mais por quê.' },
-  { title: 'Dados nas mãos deles', desc: 'O app sabe tudo. Você não sabe quase nada.' },
-  { title: 'Apps abandonados', desc: 'Cada um que fecha leva seus dados junto.' },
+  { title: 'Você montou uma planilha linda — e abandonou no segundo mês.', desc: 'Aqui você importa o extrato e ela se preenche. Você só olha.' },
+  { title: 'Lançar cada gasto na mão cansa, então em algum momento você para.', desc: 'Categorização automática. O trabalho é do app, não seu.' },
+  { title: 'Os apps grátis querem se conectar a todas as suas contas.', desc: 'O Realwise não pede acesso ao seu banco. Você importa o extrato, e pronto.' },
+  { title: 'No fim do mês some dinheiro e você não sabe pra onde foi.', desc: 'Cada real categorizado, num lugar só, no celular e no computador.' },
 ];
 
 export default function PainPointsSection() {
