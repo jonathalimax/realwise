@@ -77,29 +77,6 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
         </motion.div>
 
         <VideoSection videoUrl={import.meta.env.VITE_FOUNDER_VIDEO_URL} />
-
-        <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-4 relative"
-        >
-          <div className="relative mx-auto max-w-4xl">
-            <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/20 to-indigo-500/20 rounded-3xl blur-lg" />
-            <div className="relative rounded-2xl overflow-hidden">
-              <img
-                src="/screenshot-desktop.png"
-                alt="Dashboard Realwise"
-                className="hidden md:block w-full h-auto"
-              />
-              <img
-                src="/screenshot-mobile.png"
-                alt="Dashboard Realwise mobile"
-                className="md:hidden w-full h-auto"
-              />
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

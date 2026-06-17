@@ -18,19 +18,19 @@ export default function MobileDemo() {
           </p>
         </motion.div>
 
-        {/* 16:9 Video Player Container */}
+        {/* 9:16 Video Player Container (Mobile Portrait) */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="relative rounded-2xl overflow-hidden shadow-2xl"
+          className="flex justify-center"
         >
-          {/* Aspect ratio wrapper (16:9) */}
-          <div className="relative w-full bg-slate-900" style={{ paddingBottom: '56.25%' }}>
+          {/* Aspect ratio wrapper (9:16 vertical) */}
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ width: '360px', height: '640px' }}>
             <video
               src="/demo.mp4"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="w-full h-full object-cover"
               autoPlay
               loop
               muted
