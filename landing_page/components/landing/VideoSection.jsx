@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+
 import { Play } from 'lucide-react';
 
 // Renders nothing until a real video URL is provided via VITE_FOUNDER_VIDEO_URL.

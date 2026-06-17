@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
@@ -14,25 +15,17 @@ export const useLanguage = () => {
   return context;
 };
 
-// Convert CMS format (hero_badge_pt) to translation key format (hero.badge)
-const cmsToTranslationKey = (cmsKey) => {
-  // Remove _pt or _en suffix
-  const key = cmsKey.replace(/_pt$|_en$/, '');
-  // Convert underscores to dots
-  return key.replace(/_/g, '.');
-};
+function getInitialLanguage() {
+  if (typeof window === 'undefined') return 'pt';
+  return localStorage.getItem('language') || 'pt';
+}
 
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState('pt');
+  const [language, setLanguage] = useState(getInitialLanguage);
   const [cmsContent, setCmsContent] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('language');
-    if (saved) {
-      setLanguage(saved);
-    }
-
     // Fetch CMS content
     const fetchCMS = async () => {
       try {

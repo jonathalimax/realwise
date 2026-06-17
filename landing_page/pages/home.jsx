@@ -18,26 +18,29 @@ import { landingAnalytics } from '../landingAnalytics';
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 
-export default function Home({ couponCode = '' }) {
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [checkoutSection, setCheckoutSection] = useState('');
-  const [checkoutPrefill, setCheckoutPrefill] = useState(
-    couponCode ? { coupon: couponCode } : {}
-  );
+function getInitialCheckoutState(couponCode) {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('checkout') === '1') {
+    const email = params.get('email') || '';
+    const coupon = params.get('coupon') || '';
+    const name = params.get('name') || '';
+    const whatsapp = params.get('whatsapp') || '';
+    return {
+      open: true,
+      prefill: email || coupon || name ? { email, coupon: coupon || couponCode, name, whatsapp } : { coupon: couponCode || '' }
+    };
+  }
+  return {
+    open: false,
+    prefill: couponCode ? { coupon: couponCode } : {}
+  };
+}
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('checkout') === '1') {
-      const email = params.get('email') || '';
-      const coupon = params.get('coupon') || '';
-      const name = params.get('name') || '';
-      const whatsapp = params.get('whatsapp') || '';
-      setCheckoutOpen(true);
-      if (email || coupon || name) {
-        setCheckoutPrefill({ email, coupon: coupon || couponCode, name, whatsapp });
-      }
-    }
-  }, []);
+export default function Home({ couponCode = '' }) {
+  const initialCheckout = getInitialCheckoutState(couponCode);
+  const [checkoutOpen, setCheckoutOpen] = useState(initialCheckout.open);
+  const [checkoutSection, setCheckoutSection] = useState('');
+  const [checkoutPrefill] = useState(initialCheckout.prefill);
 
   useEffect(() => {
     if (!GA_MEASUREMENT_ID) return;

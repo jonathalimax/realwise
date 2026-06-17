@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+
 
 // Drop the real photo at public/founder.jpg and switch the placeholder
 // <div> below for an <img src="/founder.jpg" /> once it exists.

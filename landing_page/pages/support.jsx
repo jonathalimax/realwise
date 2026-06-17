@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   MessageCircle, 
@@ -19,7 +18,7 @@ import { LanguageProvider, useLanguage } from '@/components/LanguageToggle';
 import ThemeToggle from '@/components/ThemeToggle';
 
 function SupportContent() {
-  const { t } = useLanguage();
+  useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',

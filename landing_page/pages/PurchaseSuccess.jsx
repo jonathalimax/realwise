@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, Mail, ArrowLeft, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { initializeApp, getApps } from 'firebase/app';
@@ -19,29 +18,33 @@ async function getPixFirestore() {
   return getFirestore(app);
 }
 
+function getInitialPendingState() {
+  const code = sessionStorage.getItem('pix_code') || '';
+  const qr = sessionStorage.getItem('pix_qr_base64') || '';
+  const type = sessionStorage.getItem('pending_type') || 'pix';
+  const isPending = new URLSearchParams(window.location.search).get('pending') === '1';
+
+  if (isPending) {
+    sessionStorage.removeItem('pix_code');
+    sessionStorage.removeItem('pix_qr_base64');
+    sessionStorage.removeItem('pending_type');
+  }
+
+  return { isPending, code, qr, type };
+}
+
 export default function PurchaseSuccess() {
-  const [isPending, setIsPending] = useState(
-    new URLSearchParams(window.location.search).get('pending') === '1'
-  );
-  const [pendingType, setPendingType] = useState('pix'); // 'pix' | 'card'
-  const [pixCode, setPixCode] = useState('');
-  const [pixQr, setPixQr] = useState('');
+  const initialState = getInitialPendingState();
+  const [isPending, setIsPending] = useState(initialState.isPending);
+  const [pendingType] = useState(initialState.type);
+  const [pixCode, setPixCode] = useState(initialState.code);
+  const [pixQr, setPixQr] = useState(initialState.qr);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!isPending) return;
 
-    const code = sessionStorage.getItem('pix_code') || '';
-    const qr = sessionStorage.getItem('pix_qr_base64') || '';
     const docId = sessionStorage.getItem('pix_doc_id') || '';
-    const type = sessionStorage.getItem('pending_type') || 'pix';
-    setPixCode(code);
-    setPixQr(qr);
-    setPendingType(type);
-    sessionStorage.removeItem('pix_code');
-    sessionStorage.removeItem('pix_qr_base64');
-    sessionStorage.removeItem('pending_type');
-
     if (!docId) return;
 
     let unsub = () => {};
@@ -64,7 +67,7 @@ export default function PurchaseSuccess() {
     });
 
     return () => unsub();
-  }, []);
+  }, [isPending]);
 
   function handleCopy() {
     if (!pixCode) return;
@@ -76,10 +79,7 @@ export default function PurchaseSuccess() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white flex items-center justify-center px-6 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      <div
         className="max-w-md w-full text-center"
       >
         <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8 ${isPending ? 'bg-amber-50 dark:bg-amber-950/50' : 'bg-emerald-50 dark:bg-emerald-950/50'}`}>
@@ -167,7 +167,7 @@ export default function PurchaseSuccess() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar ao início
         </Button>
-      </motion.div>
+      </div>
     </div>
   );
 }

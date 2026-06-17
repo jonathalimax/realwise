@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { KeyRound, Cloud, Zap, Download, Lock, ShieldCheck } from 'lucide-react';
 
 const steps = [
@@ -18,11 +17,7 @@ export default function DataOwnershipSection() {
   return (
     <section data-section="data-ownership" className="py-24 px-6">
       <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+        <div
           className="text-center mb-12"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
@@ -34,13 +29,9 @@ export default function DataOwnershipSection() {
           <p className="text-base text-slate-500 dark:text-slate-500 max-w-xl mx-auto mt-4">
             É a privacidade que você já tinha na planilha — agora sem o trabalho da planilha.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+        <div
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
         >
           {steps.map((step, index) => (
@@ -60,13 +51,9 @@ export default function DataOwnershipSection() {
               )}
             </React.Fragment>
           ))}
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+        <div
           className="flex flex-col sm:flex-row items-center justify-center gap-6"
         >
           {benefits.map((benefit) => (
@@ -78,7 +65,7 @@ export default function DataOwnershipSection() {
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{benefit.text}</span>
             </div>
           ))}
-        </motion.div>
+        </div>
 
       </div>
     </section>

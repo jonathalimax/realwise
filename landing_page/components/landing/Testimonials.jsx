@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+
 
 // Never seed this array with invented text — empty means the section
 // doesn't render. Fill only with real, permission-granted testimonials.
