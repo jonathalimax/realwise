@@ -15,9 +15,7 @@ export default function FounderStory() {
           transition={{ duration: 0.6 }}
           className="flex flex-col items-center text-center gap-6"
         >
-          <div className="w-20 h-20 rounded-full bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-800 flex items-center justify-center text-2xl font-bold text-violet-600 dark:text-violet-300">
-            JL
-          </div>
+          <img src="/founder.jpg" alt="Jonatha Lima, founder" className="w-20 h-20 rounded-full object-cover border border-violet-200 dark:border-violet-800" />
 
           <h2 className="text-2xl sm:text-3xl font-bold">
             "Eu construí o Realwise porque eu queria a planilha que se mantivesse sozinha."
