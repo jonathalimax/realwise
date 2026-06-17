@@ -57,7 +57,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
-            Seu, pra sempre.
+            Seu, para sempre.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
             Compre uma vez. Use para sempre. Nunca pague novamente.
