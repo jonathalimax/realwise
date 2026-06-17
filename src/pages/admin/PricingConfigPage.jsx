@@ -14,18 +14,35 @@ export default function PricingConfigPage({ db, functions }) {
 
   useEffect(() => {
     if (!db) return;
-    const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
-      const data = snap.data();
-      const defaults = { originalCents: 47988, totalCents: 23880, installments: 12, active: true, campaignLabel: 'Lançamento' };
-      const pricingData = data || defaults;
-      setForm({
-        originalReais: (pricingData.originalCents / 100).toString(),
-        totalReais: (pricingData.totalCents / 100).toString(),
-        installments: pricingData.installments.toString(),
-        active: pricingData.active,
-        campaignLabel: pricingData.campaignLabel || '',
-      });
-    });
+    const defaults = { originalCents: 47988, totalCents: 23880, installments: 12, active: true, campaignLabel: 'Lançamento' };
+    const unsub = onSnapshot(doc(db, 'config', 'pricing'),
+      (snap) => {
+        const data = snap.data();
+        const pricingData = data || defaults;
+        setForm({
+          originalReais: (pricingData.originalCents / 100).toString(),
+          totalReais: (pricingData.totalCents / 100).toString(),
+          installments: pricingData.installments.toString(),
+          active: pricingData.active,
+          campaignLabel: pricingData.campaignLabel || '',
+        });
+        setError('');
+      },
+      (err) => {
+        if (err.code === 'permission-denied') {
+          setError('Sem permissão. Verifique se as regras do Firestore foram deployadas: firebase deploy --only firestore:rules');
+          setForm({
+            originalReais: (defaults.originalCents / 100).toString(),
+            totalReais: (defaults.totalCents / 100).toString(),
+            installments: defaults.installments.toString(),
+            active: defaults.active,
+            campaignLabel: defaults.campaignLabel,
+          });
+        } else {
+          setError('Erro ao carregar preços: ' + err.message);
+        }
+      }
+    );
     return () => unsub();
   }, [db]);
 
