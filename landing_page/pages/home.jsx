@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
 import PainPointsSection from '../components/landing/PainPointsSection';
-import LiveImportDemo from '../components/landing/LiveImportDemo';
+import MobileDemo from '../components/landing/MobileDemo';
 import DataOwnershipSection from '../components/landing/DataOwnershipSection';
 import FounderStory from '../components/landing/FounderStory';
 import Testimonials from '../components/landing/Testimonials';
@@ -70,7 +70,7 @@ export default function Home({ couponCode = '' }) {
       <div className="pt-20">
         <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
         <PainPointsSection />
-        <LiveImportDemo />
+        <MobileDemo />
         <DataOwnershipSection />
         <FounderStory />
         <Testimonials />
