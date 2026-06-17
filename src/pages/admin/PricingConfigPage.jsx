@@ -13,17 +13,18 @@ export default function PricingConfigPage({ db, functions }) {
   const [savedAt, setSavedAt] = useState(null);
 
   useEffect(() => {
+    if (!db) return;
     const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
       const data = snap.data();
-      if (data) {
-        setForm({
-          originalReais: (data.originalCents / 100).toString(),
-          totalReais: (data.totalCents / 100).toString(),
-          installments: data.installments.toString(),
-          active: data.active,
-          campaignLabel: data.campaignLabel || '',
-        });
-      }
+      const defaults = { originalCents: 47988, totalCents: 23880, installments: 12, active: true, campaignLabel: 'Lançamento' };
+      const pricingData = data || defaults;
+      setForm({
+        originalReais: (pricingData.originalCents / 100).toString(),
+        totalReais: (pricingData.totalCents / 100).toString(),
+        installments: pricingData.installments.toString(),
+        active: pricingData.active,
+        campaignLabel: pricingData.campaignLabel || '',
+      });
     });
     return () => unsub();
   }, [db]);
