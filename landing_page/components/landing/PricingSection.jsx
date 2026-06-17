@@ -8,14 +8,10 @@ import { db } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 const included = [
-  'Dashboard e transações',
-  'Contas a pagar e cartões',
-  'Importação de extrato',
-  'Planejador e orçamento',
-  'Carteira de investimentos',
-  'Dados no seu Firebase',
-  'Suporte vitalício',
-  'Segurança sempre grátis',
+  'Controle completo de transações, contas e cartões',
+  'Importe seu extrato e organize tudo em minutos',
+  'Planejador, orçamento e carteira de investimentos',
+  'Seus dados no seu Firebase — só seus',
 ];
 
 const trust = [
@@ -57,10 +53,10 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
-            Seu, para sempre.
+            Pague uma vez. Sem assinatura.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Compre uma vez. Use para sempre. Nunca pague novamente.
+            Sem mensalidade e sem renovação. Você compra o acesso e ele é seu.
           </p>
         </motion.div>
 
@@ -74,25 +70,21 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-400 via-violet-400 to-cyan-400" />
 
             <div className="p-10 sm:p-12 space-y-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex flex-col gap-2 self-start">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50">
-                    <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
-                      Pagamento único
-                    </span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50">
-                    <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
-                      {discountPercent}% OFF{pricing.campaignLabel ? ` — ${pricing.campaignLabel}` : ' — Oferta por tempo limitado'}
-                    </span>
-                  </div>
+              <div className="text-center space-y-3">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50 text-sm font-medium text-violet-700 dark:text-violet-300">
+                    Pagamento único
+                  </span>
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50 text-sm font-bold text-rose-600 dark:text-rose-400">
+                    {discountPercent}% OFF{pricing.campaignLabel ? ` — ${pricing.campaignLabel}` : ''}
+                  </span>
                 </div>
-                <div className="text-left sm:text-right">
-                  <div className="text-sm text-slate-400 dark:text-slate-500 line-through">{fmt(pricing.originalCents)}</div>
-                  <div className="text-4xl font-bold">{pricing.installments}x de {fmt(installmentCents)}</div>
-                  <div className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                    ou {fmt(pricing.totalCents)} à vista · sem juros
-                  </div>
+                <div className="flex items-baseline justify-center gap-3">
+                  <span className="text-lg text-slate-400 dark:text-slate-500 line-through">{fmt(pricing.originalCents)}</span>
+                  <span className="text-5xl font-bold tracking-tight">{fmt(pricing.totalCents)}</span>
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 text-sm">
+                  à vista, ou em até {pricing.installments}x de {fmt(installmentCents)} sem juros
                 </div>
               </div>
 
@@ -104,20 +96,6 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                   </li>
                 ))}
               </ul>
-
-              <div className="rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-sm space-y-1.5">
-                <div className="grid grid-cols-[1fr_auto] gap-4 text-slate-500 dark:text-slate-400">
-                  <span>Assinatura em 30 anos</span>
-                  <span className="line-through text-right">R$ 3.600–14.400</span>
-                </div>
-                <div className="grid grid-cols-[1fr_auto] gap-4 font-semibold text-violet-600 dark:text-violet-400">
-                  <span>Realwise (sempre)</span>
-                  <div className="text-right">
-                    <span className="line-through text-slate-400 dark:text-slate-500 font-normal mr-2">{fmt(pricing.originalCents)}</span>
-                    <span>{fmt(pricing.totalCents)}</span>
-                  </div>
-                </div>
-              </div>
 
               {couponCode && (
                 <div className="flex justify-center mb-2">
@@ -158,7 +136,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8"
         >
-          Correções de bugs, melhorias e suporte estão incluídos para sempre. Novas funcionalidades são upgrades opcionais — você decide se quer e paga só pelo que usar.
+          Suporte, correções e melhorias incluídos. Novas funcionalidades são upgrades opcionais — você decide se quer.
         </motion.p>
       </div>
     </section>
