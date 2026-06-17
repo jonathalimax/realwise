@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Linkedin } from 'lucide-react';
 
 
 // Drop the real photo at public/founder.jpg and switch the placeholder
@@ -34,12 +33,9 @@ export default function FounderStory() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">— Jonatha Lima, fundador</span>
-            <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors" aria-label="LinkedIn">
-              <Linkedin className="w-4 h-4" />
-            </a>
-          </div>
+          <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+            — Jonatha Lima, fundador
+          </a>
         </motion.div>
       </div>
     </section>
