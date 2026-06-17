@@ -163,8 +163,8 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
 
-  const handleMarkPaid = async (billId) => {
-    await markBillAsPaid(billId);
+  const handleMarkPaid = async (bill) => {
+    await markBillAsPaid(bill.id, new Date().toISOString(), bill.isRecurringInstance ? bill.dueDate : null);
     setConfirmPayBillId(null);
   };
 
@@ -276,7 +276,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
               {language === 'pt' ? 'Marcar como pago?' : 'Mark as paid?'}
             </span>
             <button
-              onClick={(e) => { e.stopPropagation(); handleMarkPaid(bill.id); }}
+              onClick={(e) => { e.stopPropagation(); handleMarkPaid(bill); }}
               className="px-2 sm:px-3 py-1 bg-emerald-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-700 transition"
             >
               {language === 'pt' ? 'Sim' : 'Yes'}

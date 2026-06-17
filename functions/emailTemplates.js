@@ -26,26 +26,43 @@ const SHARED_STYLES = `
     .mw-outer { background-color: #f1f5f9 !important; }
     .mw-card  { background-color: #ffffff !important; }
     @media (prefers-color-scheme: dark) {
-      .mw-outer      { background-color: #0f172a !important; }
-      .mw-card       { background-color: #1e293b !important; }
-      .mw-title      { color: #f1f5f9 !important; }
-      .mw-body-text  { color: #cbd5e1 !important; }
-      .mw-sub        { color: #94a3b8 !important; }
-      .mw-footer     { color: #475569 !important; }
-      .mw-info-box   { background-color: #0f2d20 !important; border-left-color: #10b981 !important; }
-      .mw-info-text  { color: #cbd5e1 !important; }
-      .mw-warn-box   { background-color: #1e2a1a !important; border-left-color: #eab308 !important; }
-      .mw-warn-text  { color: #fef08a !important; }
-      .bill-name     { color: #f1f5f9 !important; }
-      .bill-sub      { color: #94a3b8 !important; }
-      .bill-row td   { border-bottom-color: #334155 !important; }
-      .chip-overdue  { background:#450a0a !important; color:#fca5a5 !important; }
-      .chip-today    { background:#422006 !important; color:#fdba74 !important; }
-      .chip-upcoming { background:#1e3a5f !important; color:#93c5fd !important; }
-      .amount-overdue { color:#fca5a5 !important; }
-      .total-label   { color: #94a3b8 !important; }
-      .total-amount  { color: #10b981 !important; }
+      .mw-outer        { background-color: #0f172a !important; }
+      .mw-card         { background-color: #1e293b !important; }
+      .mw-title        { color: #f1f5f9 !important; }
+      .mw-body-text    { color: #cbd5e1 !important; }
+      .mw-sub          { color: #94a3b8 !important; }
+      .mw-footer       { color: #94a3b8 !important; }
+      .mw-info-box     { background-color: #0f2d20 !important; border-left-color: #10b981 !important; }
+      .mw-info-text    { color: #cbd5e1 !important; }
+      .mw-warn-box     { background-color: #1e2a1a !important; border-left-color: #eab308 !important; }
+      .mw-warn-text    { color: #fef08a !important; }
+      .bill-name       { color: #f1f5f9 !important; }
+      .bill-sub        { color: #94a3b8 !important; }
+      .bill-row td     { border-bottom-color: #334155 !important; background-color: transparent !important; }
+      .chip-overdue    { background:#450a0a !important; color:#fca5a5 !important; }
+      .chip-today      { background:#422006 !important; color:#fdba74 !important; }
+      .chip-upcoming   { background:#1e3a5f !important; color:#93c5fd !important; }
+      .chip-future     { background:#1f2937 !important; color:#9ca3af !important; }
+      .amount-overdue  { color:#fca5a5 !important; }
+      .amount-today    { color:#fdba74 !important; }
+      .amount-soon     { color:#93c5fd !important; }
+      .amount-future   { color:#9ca3af !important; }
+      .total-label     { color: #94a3b8 !important; }
+      .total-amount    { color: #10b981 !important; }
+      .days-overdue    { color:#fca5a5 !important; }
     }
+    /* Gmail dark mode (data-ogsc selector) */
+    [data-ogsc] .mw-outer     { background-color: #0f172a !important; }
+    [data-ogsc] .mw-card      { background-color: #1e293b !important; }
+    [data-ogsc] .mw-title     { color: #f1f5f9 !important; }
+    [data-ogsc] .bill-name    { color: #f1f5f9 !important; }
+    [data-ogsc] .bill-sub     { color: #94a3b8 !important; }
+    [data-ogsc] .chip-overdue { background:#450a0a !important; color:#fca5a5 !important; }
+    [data-ogsc] .chip-today   { background:#422006 !important; color:#fdba74 !important; }
+    [data-ogsc] .chip-upcoming{ background:#1e3a5f !important; color:#93c5fd !important; }
+    [data-ogsc] .amount-overdue { color:#fca5a5 !important; }
+    [data-ogsc] .total-amount { color: #10b981 !important; }
+    [data-ogsc] .days-overdue { color:#fca5a5 !important; }
   </style>
 `;
 
@@ -264,14 +281,15 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
     overdueCount > 0 ? `<span class="chip-overdue" style="background:#fee2e2;color:#dc2626;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;margin-right:6px;display:inline-block;">${overdueCount} ATRASADA${overdueCount > 1 ? 'S' : ''}</span>` : '',
     dueTodayCount > 0 ? `<span class="chip-today" style="background:#fef3c7;color:#d97706;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;margin-right:6px;display:inline-block;">${dueTodayCount} HOJE</span>` : '',
     dueSoonCount > 0 ? `<span class="chip-upcoming" style="background:#dbeafe;color:#2563eb;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;margin-right:6px;display:inline-block;">${dueSoonCount} PRÓXIMA${dueSoonCount > 1 ? 'S' : ''}</span>` : '',
-    upcomingCount > 0 ? `<span style="background:#f3f4f6;color:#6b7280;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;display:inline-block;">${upcomingCount} FUTURA${upcomingCount > 1 ? 'S' : ''}</span>` : '',
+    upcomingCount > 0 ? `<span class="chip-future" style="background:#f3f4f6;color:#6b7280;border-radius:4px;font-size:11px;font-weight:700;padding:3px 10px;display:inline-block;">${upcomingCount} FUTURA${upcomingCount > 1 ? 'S' : ''}</span>` : '',
   ].filter(Boolean).join('');
 
-  const renderRows = (items, dotColor, lightAmountColor, isOverdue) => {
+  const renderRows = (items, dotColor, lightAmountColor, amountClass) => {
     if (!items || items.length === 0) return '';
+    const isOverdue = amountClass === 'overdue';
     return items.map(item => {
       const dateLabel = isOverdue && item.daysOverdue
-        ? `Venceu ${formatDate(item.dueDate)} · <span style="color:#ef4444;">${item.daysOverdue}d atraso</span>`
+        ? `Venceu ${formatDate(item.dueDate)} · <span class="days-overdue" style="color:#ef4444;">${item.daysOverdue}d atraso</span>`
         : `Vence ${formatDate(item.dueDate)}`;
       const markPaidBtn = item.markPaidUrl
         ? `<a href="${item.markPaidUrl}" style="display:inline-block;margin-top:6px;padding:4px 12px;background:#10b981;color:#fff;text-decoration:none;border-radius:4px;font-size:11px;font-weight:700;">✓ Marcar como pago</a>`
@@ -287,7 +305,7 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
             ${markPaidBtn}
           </td>
           <td style="padding:12px 4px 12px 8px;border-bottom:1px solid #e2e8f0;text-align:right;vertical-align:top;white-space:nowrap;">
-            <span class="amount-${isOverdue ? 'overdue' : ''}" style="font-size:13px;font-weight:700;color:${lightAmountColor};">${formatCurrency(billAmt(item))}</span>
+            <span class="amount-${amountClass}" style="font-size:13px;font-weight:700;color:${lightAmountColor};">${formatCurrency(billAmt(item))}</span>
           </td>
         </tr>
       `;
@@ -295,10 +313,10 @@ exports.billReminderTemplate = (name, { overdue, dueToday, dueSoon, upcoming }, 
   };
 
   const allRows = [
-    renderRows(overdue, '#ef4444', '#dc2626', true),
-    renderRows(dueToday, '#f59e0b', '#d97706', false),
-    renderRows(dueSoon || [], '#3b82f6', '#2563eb', false),
-    renderRows(upcoming || [], '#6b7280', '#9ca3af', false),
+    renderRows(overdue, '#ef4444', '#dc2626', 'overdue'),
+    renderRows(dueToday, '#f59e0b', '#d97706', 'today'),
+    renderRows(dueSoon || [], '#3b82f6', '#2563eb', 'soon'),
+    renderRows(upcoming || [], '#6b7280', '#9ca3af', 'future'),
   ].join('');
 
   return `

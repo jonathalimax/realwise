@@ -87,9 +87,27 @@ export const BillsProvider = ({ children }) => {
   };
 
   // Mark bill as paid
-  const markBillAsPaid = async (billId, paidDate = new Date().toISOString()) => {
+  const markBillAsPaid = async (billId, paidDate = new Date().toISOString(), virtualDueDate = null) => {
     try {
       const sourceBill = bills.find(b => b.id === billId);
+
+      // Virtual recurring instance: source bill is already paid for a different month.
+      // Create a new paid document for this specific instance rather than updating the source.
+      if (sourceBill?.status === 'paid' && virtualDueDate) {
+        const { id: _id, paidDate: _paidDate, postponeCount: _pc, nextReminderAt: _nra, ...baseFields } = sourceBill;
+        await addDoc(collection(db, 'bills'), {
+          ...baseFields,
+          dueDate: virtualDueDate,
+          status: 'paid',
+          paidDate,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        return { success: true };
+      }
+
+      // Guard: already paid (double-tap / race condition)
+      if (sourceBill?.status === 'paid') return { success: true };
 
       await updateDoc(doc(db, 'bills', billId), {
         status: 'paid',
@@ -103,18 +121,25 @@ export const BillsProvider = ({ children }) => {
 
         if (shouldCreateNext) {
           const nextDueDate = calculateNextDueDate(sourceBill.dueDate, sourceBill.recurrence);
-          const nextBill = {
-            ...sourceBill,
-            dueDate: nextDueDate,
-            status: 'pending',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          };
 
-          // Remove the id field to let Firestore generate a new one
-          delete nextBill.id;
+          // Deduplication: don't create if a pending bill for this name+dueDate already exists
+          const alreadyExists = bills.some(
+            b => b.id !== billId && b.status === 'pending' && b.name === sourceBill.name && b.dueDate === nextDueDate
+          );
 
-          await addDoc(collection(db, 'bills'), nextBill);
+          if (!alreadyExists) {
+            // Strip per-cycle state fields so the next occurrence starts clean
+            const { id: _id, paidDate: _paidDate, postponeCount: _postponeCount, nextReminderAt: _nextReminderAt, ...baseFields } = sourceBill;
+            const nextBill = {
+              ...baseFields,
+              dueDate: nextDueDate,
+              status: 'pending',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            };
+
+            await addDoc(collection(db, 'bills'), nextBill);
+          }
         }
       }
 

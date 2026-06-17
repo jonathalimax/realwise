@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Realwise — Por que somos diferentes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0f0e;
+      --surface: #131918;
+      --border: #1e2a27;
+      --green: #00e07a;
+      --green-dim: #00e07a22;
+      --green-mid: #00e07a55;
+      --text: #e8f0ed;
+      --muted: #7a9990;
+      --white: #ffffff;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 24px 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 390px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 36px 28px 32px;
+      position: relative;
+      overflow: hidden;
+      animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, var(--green-mid) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: -60px;
+      left: -60px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, #00e07a18 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      animation: fade-up 0.5s 0.1s both;
+    }
+
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      background: var(--green);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-mark svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.3px;
+      line-height: 1;
+    }
+
+    .brand-tagline {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.2px;
+    }
+
+    /* Headline */
+    .headline {
+      margin-bottom: 28px;
+      animation: fade-up 0.5s 0.2s both;
+    }
+
+    .headline h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    .headline h1 span {
+      color: var(--green);
+    }
+
+    /* Differentials */
+    .differentials {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .diff-item {
+      background: #0f1714;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .diff-item:active {
+      transform: scale(0.98);
+    }
+
+    .diff-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--green);
+      border-radius: 3px 0 0 3px;
+    }
+
+    .diff-item:nth-child(1) { animation: fade-up 0.5s 0.3s both; }
+    .diff-item:nth-child(2) { animation: fade-up 0.5s 0.42s both; }
+    .diff-item:nth-child(3) { animation: fade-up 0.5s 0.54s both; }
+
+    .diff-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--green);
+      line-height: 1;
+      flex-shrink: 0;
+      opacity: 0.35;
+      min-width: 28px;
+    }
+
+    .diff-content {
+      flex: 1;
+    }
+
+    .diff-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .diff-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .diff-desc strong {
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    /* Promo banner */
+    .promo {
+      background: var(--green-dim);
+      border: 1px solid var(--green-mid);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+      animation: fade-up 0.5s 0.66s both;
+    }
+
+    .promo-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .promo-label {
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    .promo-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.2;
+    }
+
+    .promo-badge {
+      background: var(--green);
+      color: #0b0f0e;
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      padding: 8px 14px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* CTA */
+    .cta {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: fade-up 0.5s 0.76s both;
+    }
+
+    .cta-btn {
+      display: block;
+      width: 100%;
+      background: var(--green);
+      color: #0b0f0e;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      text-align: center;
+      text-decoration: none;
+      padding: 16px;
+      border-radius: 14px;
+      letter-spacing: 0.2px;
+      transition: opacity 0.15s, transform 0.15s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .cta-btn:active {
+      opacity: 0.85;
+      transform: scale(0.98);
+    }
+
+    .cta-url {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+
+    .cta-url strong {
+      color: var(--green);
+    }
+
+    /* Animations */
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Pulse dot on promo */
+    .pulse-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 1.8s ease-in-out infinite;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <div class="header">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" fill="#0b0f0e" stroke="#0b0f0e" stroke-width="0.5"/>
+          <path d="M12 6l-5 2.8v5.4l5 2.8 5-2.8V8.8L12 6z" fill="#00e07a"/>
+        </svg>
+      </div>
+      <div class="brand">
+        <span class="brand-name">Realwise</span>
+        <span class="brand-tagline">Finanças pessoais inteligentes</span>
+      </div>
+    </div>
+
+    <div class="headline">
+      <h1>Por que somos<br /><span>diferentes?</span></h1>
+    </div>
+
+    <div class="differentials">
+
+      <div class="diff-item">
+        <span class="diff-number">01</span>
+        <div class="diff-content">
+          <div class="diff-title">Pague uma vez. Use pra sempre.</div>
+          <div class="diff-desc">Sem mensalidade, sem renovação automática. <strong>Valor único</strong> — você paga uma vez e o app é seu.</div>
+        </div>
+      </div>
+
+      <div class="diff-item">
+        <span class="diff-number">02</span>
+        <div class="diff-content">
+          <div class="diff-title">Seus dados são só seus.</div>
+          <div class="diff-desc">Seus dados financeiros ficam <strong>só no seu dispositivo</strong> — não armazenamos nada nos nossos servidores.</div>
+        </div>
+      </div>
+
+      <div class="diff-item">
+        <span class="diff-number">03</span>
+        <div class="diff-content">
+          <div class="diff-title">Controle em minutos por dia.</div>
+          <div class="diff-desc">Contas, orçamento, metas e investimentos — <strong>tudo num só lugar</strong>, simples e direto.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="promo">
+      <div class="promo-left">
+        <span class="promo-label"><span class="pulse-dot"></span>Oferta por tempo limitado</span>
+        <span class="promo-text">Metade do preço hoje</span>
+      </div>
+      <span class="promo-badge">50% OFF</span>
+    </div>
+
+    <div class="cta">
+      <a href="https://realwise.com.br" class="cta-btn">Começar agora →</a>
+      <p class="cta-url"><strong>realwise.com.br</strong></p>
+    </div>
+
+  </div>
+</body>
+</html>

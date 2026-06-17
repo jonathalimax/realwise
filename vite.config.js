@@ -2,8 +2,20 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
-import { readFileSync } from 'node:fs'
+import { readFileSync, copyFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
+function copyStaticPages() {
+  return {
+    name: 'copy-static-pages',
+    closeBundle() {
+      copyFileSync(
+        resolve(process.cwd(), 'public/sales-card.html'),
+        resolve(process.cwd(), 'dist/sales-card.html')
+      );
+    },
+  };
+}
 
 function readBuildHash() {
   try {
@@ -25,6 +37,7 @@ export default defineConfig(() => {
   return {
     plugins: [
       react(),
+      copyStaticPages(),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
