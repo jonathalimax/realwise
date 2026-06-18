@@ -35,7 +35,7 @@ export default function MobileDemo() {
               loop
               muted
               playsInline
-              controlsList="nopip"
+              disablePictureInPicture
             />
           </div>
         </motion.div>
