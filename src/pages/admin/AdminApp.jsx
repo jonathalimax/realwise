@@ -14,6 +14,7 @@ const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 const GuidePage = lazy(() => import('./GuidePage'));
 const CouponsPage = lazy(() => import('./CouponsPage'));
 const PricingConfigPage = lazy(() => import('./PricingConfigPage'));
+const TestimonialManagementPage = lazy(() => import('./TestimonialManagementPage'));
 
 let adminDb = null;
 let adminAuth = null;
@@ -96,6 +97,7 @@ export default function AdminApp() {
           <NavLink to="pricing" className={navLinkClass}>Preço</NavLink>
           <NavLink to="transfer" className={navLinkClass}>Transfer</NavLink>
           <NavLink to="guia" className={navLinkClass}>Guia</NavLink>
+          <NavLink to="testimonials" className={navLinkClass}>Testimonials</NavLink>
           <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
           <button
             onClick={() => signOut(adminAuth)}
@@ -112,6 +114,7 @@ export default function AdminApp() {
             <Route path="pricing" element={<PricingConfigPage db={adminDb} functions={adminFunctions} />} />
             <Route path="transfer" element={<TransferScript />} />
             <Route path="guia" element={<GuidePage />} />
+            <Route path="testimonials" element={<TestimonialManagementPage db={adminDb} />} />
             <Route path="onboarding/:runId" element={<OnboardingRun db={adminDb} functions={adminFunctions} />} />
             <Route path="import-issues" element={<ImportIssues db={adminDb} />} />
             <Route path="import-issues/:id" element={<ImportIssueDetail db={adminDb} />} />

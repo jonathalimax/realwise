@@ -139,6 +139,12 @@ service cloud.firestore {
       allow write: if request.auth != null && isAdmin();
     }
 
+    // Testimonials — public read for landing pages, admin-only write
+    match /config/testimonials/reviews/{testimonial=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
     // Access control collection - read for login check, write for authenticated users
     match /access/{docId} {
       allow read: if true;
