@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
 import { db } from '@/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import CouponInput from './CouponInput';
+import { calculatePrice, calculateInstallment, formatPrice } from '../../utils/couponValidator';
 
 const included = [
   'Controle completo de transações, contas e cartões',
@@ -21,7 +23,7 @@ const trust = [
   { icon: Database, text: 'Seu Firebase' },
 ];
 
-const FALLBACK_PRICING = { originalCents: 47988, totalCents: 23880, installments: 12, active: true, campaignLabel: null };
+const FALLBACK_PRICING = { basePriceCents: 23880, installments: 12, activeCouponCode: null };
 
 function fmt(cents) {
   return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
@@ -29,18 +31,40 @@ function fmt(cents) {
 
 export default function PricingSection({ onBuy, couponCode = '' }) {
   const [pricing, setPricing] = useState(FALLBACK_PRICING);
+  const [activeCoupon, setActiveCoupon] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
   useEffect(() => {
     if (!db) return;
     const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
       const data = snap.data();
-      if (data && data.active) setPricing(data);
+      if (data) setPricing(data);
     });
     return () => unsub();
   }, []);
 
-  const installmentCents = Math.round(pricing.totalCents / pricing.installments);
-  const discountPercent = Math.round((1 - pricing.totalCents / pricing.originalCents) * 100);
+  // If couponCode is passed via URL, use it
+  useEffect(() => {
+    if (couponCode && !appliedCoupon) {
+      // Auto-apply coupon from URL
+      setAppliedCoupon({
+        code: couponCode,
+        discountPercent: 0, // Will be calculated on backend during checkout
+      });
+    }
+  }, [couponCode, appliedCoupon]);
+
+  const handleCouponApply = (coupon) => {
+    setAppliedCoupon(coupon);
+  };
+
+  // Calculate final price
+  const finalCents = appliedCoupon
+    ? calculatePrice(pricing.basePriceCents, appliedCoupon.discountPercent)
+    : pricing.basePriceCents;
+
+  const installmentCents = calculateInstallment(finalCents, pricing.installments);
+  const discountPercent = appliedCoupon ? appliedCoupon.discountPercent : 0;
 
   return (
     <section data-section="pricing" id="preco" className="py-32 px-6">
@@ -75,17 +99,26 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                   <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50 text-sm font-medium text-violet-700 dark:text-violet-300">
                     Pagamento único
                   </span>
-                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50 text-sm font-bold text-rose-600 dark:text-rose-400">
-                    {discountPercent}% OFF{pricing.campaignLabel ? ` — ${pricing.campaignLabel}` : ''}
-                  </span>
+                  {appliedCoupon && (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50 text-sm font-bold text-rose-600 dark:text-rose-400">
+                      {discountPercent}% OFF
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-baseline justify-center gap-3">
-                  <span className="text-lg text-slate-400 dark:text-slate-500 line-through">{fmt(pricing.originalCents)}</span>
-                  <span className="text-5xl font-bold tracking-tight">{fmt(pricing.totalCents)}</span>
+                  {appliedCoupon && (
+                    <span className="text-lg text-slate-400 dark:text-slate-500 line-through">{fmt(pricing.basePriceCents)}</span>
+                  )}
+                  <span className="text-5xl font-bold tracking-tight">{fmt(finalCents)}</span>
                 </div>
                 <div className="text-slate-500 dark:text-slate-400 text-sm">
                   à vista, ou em até {pricing.installments}x de {fmt(installmentCents)} sem juros
                 </div>
+              </div>
+
+              {/* Coupon Input */}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                <CouponInput onCouponApply={handleCouponApply} currentCoupon={appliedCoupon} />
               </div>
 
               <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
@@ -97,24 +130,16 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                 ))}
               </ul>
 
-              {couponCode && (
-                <div className="flex justify-center mb-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400 text-sm font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
-                    Cupom <span className="font-mono font-bold text-violet-300 ml-0.5">{couponCode}</span> ativo
-                  </div>
-                </div>
-              )}
               <Button
                 size="lg"
-                onClick={() => { landingAnalytics.trackCtaClicked('Quero o meu acesso', 'pricing'); onBuy(); }}
+                onClick={() => { landingAnalytics.trackCtaClicked('Sim, Quero Acesso', 'pricing'); onBuy(); }}
                 className="w-full h-14 px-8 text-base bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Quero o meu acesso
+                Sim, Quero Acesso
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
-              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2 text-center">
+              <p className="text-xs text-slate-500 dark:text-slate-500 text-center">
                 Próximo passo: checkout seguro com Mercado Pago
               </p>
 
