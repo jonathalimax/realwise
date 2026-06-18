@@ -70,9 +70,9 @@ export default function Home({ couponCode = '' }) {
         <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
         <PainPointsSection />
         <MobileDemo onBuy={() => openCheckout('mobile-demo')} />
+        <FeaturesSection />
         <DataOwnershipSection />
         <FounderStory />
-        <FeaturesSection />
         <PricingSection onBuy={() => openCheckout('pricing')} couponCode={couponCode} />
         <GuaranteeSection />
         <FAQSection />
