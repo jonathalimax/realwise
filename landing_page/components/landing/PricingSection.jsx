@@ -114,6 +114,10 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-2 text-center">
+                Próximo passo: checkout seguro com Mercado Pago
+              </p>
+
               <div className="flex flex-wrap gap-4 justify-center">
                 {trust.map((item) => (
                   <span
