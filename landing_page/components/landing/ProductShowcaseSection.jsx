@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+
 export default function ProductShowcaseSection() {
   return (
     <section className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">

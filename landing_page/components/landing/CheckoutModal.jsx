@@ -3,13 +3,17 @@ import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
 import { ArrowRight, Loader2, Lock, ChevronLeft, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
+import { db } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const CREATE_PAYMENT_URL = import.meta.env.VITE_CREATE_PAYMENT_URL || '';
 const PROCESS_PAYMENT_URL = import.meta.env.VITE_PROCESS_PAYMENT_URL || '';
 const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
 
-const BASE_PRICE = 479;
-const PROMO_PRICE = 239;
+// BASE_PRICE / PROMO_PRICE are seeded from Firestore on mount; these are
+// only the pre-fetch fallback shown for an instant before config/pricing loads.
+const FALLBACK_BASE_PRICE = 479;
+const FALLBACK_PROMO_PRICE = 239;
 
 const MP_STATUS_MESSAGES = {
   cc_rejected_insufficient_amount:      'Saldo insuficiente. Verifique o limite do seu cartão.',
@@ -48,7 +52,9 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const [loading, setLoading] = useState(false);
   const [bricksLoading, setBricksLoading] = useState(false);
   const [error, setError] = useState('');
-  const [amount, setAmount] = useState(PROMO_PRICE);
+  const [amount, setAmount] = useState(FALLBACK_PROMO_PRICE);
+  const [basePrice, setBasePrice] = useState(FALLBACK_BASE_PRICE);
+  const [promoPrice, setPromoPrice] = useState(FALLBACK_PROMO_PRICE);
   const [createPaymentUrl, setCreatePaymentUrl] = useState(CREATE_PAYMENT_URL);
   const [processPaymentUrl, setProcessPaymentUrl] = useState(PROCESS_PAYMENT_URL);
   const [partialLeadUrl, setPartialLeadUrl] = useState(PARTIAL_LEAD_URL);
@@ -106,6 +112,17 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   }, []);
 
   useEffect(() => {
+    if (!db) return;
+    getDoc(doc(db, 'config', 'pricing')).then((snap) => {
+      const data = snap.data();
+      if (data && data.active) {
+        setBasePrice(data.originalCents / 100);
+        setPromoPrice(data.totalCents / 100);
+      }
+    }).catch(() => { /* keep fallback */ });
+  }, []);
+
+  useEffect(() => {
     if (open) {
       setStep(1);
       setForm({
@@ -116,12 +133,12 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
       });
       setInstallments(1);
       setError('');
-      setAmount(PROMO_PRICE);
+      setAmount(promoPrice);
       savedPartialRef.current = false;
     } else {
       destroyBricks();
     }
-  }, [open, prefill]);
+  }, [open, prefill, promoPrice]);
 
   // Auto-submit step 1 when all contact fields are pre-filled and config URL is ready
   useEffect(() => {
@@ -159,7 +176,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
         setError(err.message || 'Erro inesperado. Tente novamente.');
         setLoading(false);
       });
-  }, [open, createPaymentUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, createPaymentUrl, basePrice, promoPrice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function destroyBricks() {
     if (bricksControllerRef.current) {
@@ -361,10 +378,10 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
 
   const handleStep1Submit = async (e) => {
     e.preventDefault();
-    const { name, email, whatsapp } = form;
+    const { email } = form;
 
-    if (!name.trim() || !email.trim() || !whatsapp.trim()) {
-      setError('Preencha todos os campos.');
+    if (!email.trim()) {
+      setError('Preencha o e-mail.');
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -381,9 +398,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name.trim(),
           email: email.trim().toLowerCase(),
-          whatsapp: whatsapp.trim(),
           couponCode: form.coupon.trim().toUpperCase() || undefined,
           utmSource: landingAnalytics.getUtmSource(),
         }),
@@ -408,8 +423,8 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
 
   const inputClass = "w-full h-11 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition";
 
-  const displayAmount = amount ?? PROMO_PRICE;
-  const hasCouponDiscount = step === 2 && displayAmount < PROMO_PRICE;
+  const displayAmount = amount ?? promoPrice;
+  const hasCouponDiscount = step === 2 && displayAmount < promoPrice;
   const fmt = (v) => `R$ ${v.toFixed(2).replace('.', ',')}`;
   const couponLabel = form.coupon?.trim().toUpperCase();
 
@@ -484,8 +499,8 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
                 {hasCouponDiscount ? (
                   <>
                     <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(BASE_PRICE)}</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(PROMO_PRICE)}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(basePrice)}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(promoPrice)}</p>
                       <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(displayAmount)}</p>
                     </div>
                     <div className="flex flex-col gap-1 items-start">
@@ -496,8 +511,8 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
                 ) : (
                   <>
                     <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(BASE_PRICE)}</p>
-                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(PROMO_PRICE)}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(basePrice)}</p>
+                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(promoPrice)}</p>
                     </div>
                     <div className="flex flex-col gap-1 items-start">
                       <span className="text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">50% OFF</span>
@@ -513,16 +528,8 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
             {step === 1 && (
               <form onSubmit={handleStep1Submit} className="px-6 pt-4 pb-5 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nome completo</label>
-                  <input type="text" name="name" value={form.name} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="Seu nome" disabled={loading} className={inputClass} />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">E-mail</label>
                   <input type="email" name="email" value={form.email} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="voce@exemplo.com" disabled={loading} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">WhatsApp</label>
-                  <input type="tel" name="whatsapp" value={form.whatsapp} onChange={handleChange} onFocus={handleFocus} onBlur={handleBlur} placeholder="(11) 99999-9999" disabled={loading} className={inputClass} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">

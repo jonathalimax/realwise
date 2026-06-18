@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
 
+/* eslint-disable react-refresh/only-export-components */
 const LanguageContext = createContext();
 
 export const useLanguage = () => {
@@ -12,15 +13,13 @@ export const useLanguage = () => {
   return context;
 };
 
-export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState('en');
+function getInitialLanguage() {
+  if (typeof window === 'undefined') return 'en';
+  return localStorage.getItem('language') || 'en';
+}
 
-  useEffect(() => {
-    const saved = localStorage.getItem('language');
-    if (saved) {
-      setLanguage(saved);
-    }
-  }, []);
+export function LanguageProvider({ children }) {
+  const [language, setLanguage] = useState(getInitialLanguage);
 
   const toggleLanguage = () => {
     const newLang = language === 'en' ? 'pt' : 'en';
@@ -51,7 +50,6 @@ export function LanguageToggle() {
   );
 }
 
-// Translations object
 export const translations = {
   en: {
     // Hero

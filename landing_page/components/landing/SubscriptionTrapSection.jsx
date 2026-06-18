@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+
 export default function SubscriptionTrapSection() {
   return (
     <section className="py-24 px-6">

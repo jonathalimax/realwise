@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+
 const pains = [
-  { title: 'Planilha sem fim', desc: 'Você tenta organizar, mas sempre volta pro Excel.' },
-  { title: 'Mensalidade eterna', desc: 'Paga há anos e nem lembra mais por quê.' },
-  { title: 'Dados nas mãos deles', desc: 'O app sabe tudo. Você não sabe quase nada.' },
-  { title: 'Apps abandonados', desc: 'Cada um que fecha leva seus dados junto.' },
+  { title: 'Você montou uma planilha linda — e abandonou no segundo mês.', desc: 'Importe. Ela se preenche.' },
+  { title: 'Lançar cada gasto na mão cansa, então em algum momento você para.', desc: 'Tudo automático. Zero digitação.' },
+  { title: 'Os apps grátis querem se conectar a todas as suas contas.', desc: 'Sem acesso ao banco.' },
+  { title: 'No fim do mês some dinheiro e você não sabe pra onde foi.', desc: 'Cada real num lugar só.' },
 ];
 
 export default function PainPointsSection() {

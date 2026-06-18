@@ -1,18 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+
 import { Check, ArrowRight, Lock, Shield, Smartphone, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
+import { db } from '@/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import CouponInput from './CouponInput';
+import { calculatePrice, calculateInstallment, formatPrice } from '../../utils/couponValidator';
 
 const included = [
-  'Dashboard e transações',
-  'Contas a pagar e cartões',
-  'Importação de extrato',
-  'Planejador e orçamento',
-  'Carteira de investimentos',
-  'Dados no seu Firebase',
-  'Suporte vitalício',
-  'Segurança sempre grátis',
+  'Controle completo de transações, contas e cartões',
+  'Importe seu extrato e organize tudo em minutos',
+  'Planejador, orçamento e carteira de investimentos',
+  'Seus dados no seu Firebase — só seus',
 ];
 
 const trust = [
@@ -22,7 +23,49 @@ const trust = [
   { icon: Database, text: 'Seu Firebase' },
 ];
 
+const FALLBACK_PRICING = { basePriceCents: 23880, installments: 12, activeCouponCode: null };
+
+function fmt(cents) {
+  return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+}
+
 export default function PricingSection({ onBuy, couponCode = '' }) {
+  const [pricing, setPricing] = useState(FALLBACK_PRICING);
+  const [activeCoupon, setActiveCoupon] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
+      const data = snap.data();
+      if (data) setPricing(data);
+    });
+    return () => unsub();
+  }, []);
+
+  // If couponCode is passed via URL, use it
+  useEffect(() => {
+    if (couponCode && !appliedCoupon) {
+      // Auto-apply coupon from URL
+      setAppliedCoupon({
+        code: couponCode,
+        discountPercent: 0, // Will be calculated on backend during checkout
+      });
+    }
+  }, [couponCode, appliedCoupon]);
+
+  const handleCouponApply = (coupon) => {
+    setAppliedCoupon(coupon);
+  };
+
+  // Calculate final price
+  const finalCents = appliedCoupon
+    ? calculatePrice(pricing.basePriceCents, appliedCoupon.discountPercent)
+    : pricing.basePriceCents;
+
+  const installmentCents = calculateInstallment(finalCents, pricing.installments);
+  const discountPercent = appliedCoupon ? appliedCoupon.discountPercent : 0;
+
   return (
     <section data-section="pricing" id="preco" className="py-32 px-6">
       <div className="max-w-3xl mx-auto">
@@ -34,10 +77,10 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
-            Uma decisão. Para sempre.
+            Pague uma vez. Sem assinatura.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Compre uma vez. Use para sempre. Nunca pague novamente.
+            Sem mensalidade e sem renovação. Você compra o acesso e ele é seu.
           </p>
         </motion.div>
 
@@ -48,70 +91,57 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           transition={{ duration: 0.7, delay: 0.1 }}
         >
           <div className="relative rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-400 via-violet-400 to-cyan-400" />
 
             <div className="p-10 sm:p-12 space-y-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex flex-col gap-2 self-start">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                      Pagamento único
+              <div className="text-center space-y-3">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50 text-sm font-medium text-violet-700 dark:text-violet-300">
+                    Pagamento único
+                  </span>
+                  {appliedCoupon && (
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50 text-sm font-bold text-rose-600 dark:text-rose-400">
+                      {discountPercent}% OFF
                     </span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50">
-                    <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
-                      50% OFF — Oferta por tempo limitado
-                    </span>
-                  </div>
+                  )}
                 </div>
-                <div className="text-left sm:text-right">
-                  <div className="text-sm text-slate-400 dark:text-slate-500 line-through">R$ 479</div>
-                  <div className="text-4xl font-bold">em até 12x sem juros</div>
-                  <div className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                    ou R$ 239 à vista
-                  </div>
+                <div className="flex items-baseline justify-center gap-3">
+                  {appliedCoupon && (
+                    <span className="text-lg text-slate-400 dark:text-slate-500 line-through">{fmt(pricing.basePriceCents)}</span>
+                  )}
+                  <span className="text-5xl font-bold tracking-tight">{fmt(finalCents)}</span>
                 </div>
+                <div className="text-slate-500 dark:text-slate-400 text-sm">
+                  à vista, ou em até {pricing.installments}x de {fmt(installmentCents)} sem juros
+                </div>
+              </div>
+
+              {/* Coupon Input */}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                <CouponInput onCouponApply={handleCouponApply} currentCoupon={appliedCoupon} />
               </div>
 
               <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
                 {included.map((item) => (
                   <li key={item} className="flex items-center gap-3 text-slate-600 dark:text-slate-300 text-sm">
-                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <Check className="w-4 h-4 text-violet-500 flex-shrink-0" />
                     {item}
                   </li>
                 ))}
               </ul>
 
-              <div className="rounded-xl p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-sm space-y-1.5">
-                <div className="grid grid-cols-[1fr_auto] gap-4 text-slate-500 dark:text-slate-400">
-                  <span>Assinatura em 30 anos</span>
-                  <span className="line-through text-right">R$ 3.600–14.400</span>
-                </div>
-                <div className="grid grid-cols-[1fr_auto] gap-4 font-semibold text-emerald-600 dark:text-emerald-400">
-                  <span>Realwise (sempre)</span>
-                  <div className="text-right">
-                    <span className="line-through text-slate-400 dark:text-slate-500 font-normal mr-2">R$ 479</span>
-                    <span>R$ 239</span>
-                  </div>
-                </div>
-              </div>
-
-              {couponCode && (
-                <div className="flex justify-center mb-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                    Cupom <span className="font-mono font-bold text-emerald-300 ml-0.5">{couponCode}</span> ativo
-                  </div>
-                </div>
-              )}
               <Button
                 size="lg"
-                onClick={() => { landingAnalytics.trackCtaClicked('Começar agora', 'pricing'); onBuy(); }}
+                onClick={() => { landingAnalytics.trackCtaClicked('Sim, Quero Acesso', 'pricing'); onBuy(); }}
                 className="w-full h-14 px-8 text-base bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Assumir o controle
+                Sim, Quero Acesso
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
+
+              <p className="text-xs text-slate-500 dark:text-slate-500 text-center">
+                Próximo passo: checkout seguro com Mercado Pago
+              </p>
 
               <div className="flex flex-wrap gap-4 justify-center">
                 {trust.map((item) => (
@@ -135,7 +165,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8"
         >
-          Correções de bugs, melhorias e suporte estão incluídos para sempre. Novas funcionalidades são upgrades opcionais — você decide se quer e paga só pelo que usar.
+          Suporte, correções e melhorias incluídos. Novas funcionalidades são upgrades opcionais — você decide se quer.
         </motion.p>
       </div>
     </section>

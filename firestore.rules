@@ -121,8 +121,26 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.email == 'jonathalimax@gmail.com';
     }
 
+    // Pricing configuration - public read (for display), admin-only write
+    match /config/pricing {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
     // Coupons collection - public read (for validation), admin-only write
+    match /config/coupons/{coupon=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Legacy coupons collection (deprecated but keeping for backward compatibility)
     match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Testimonials — public read for landing pages, admin-only write
+    match /config/testimonials/reviews/{testimonial=**} {
       allow read: if true;
       allow write: if request.auth != null && isAdmin();
     }

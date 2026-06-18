@@ -36,6 +36,10 @@ const faqs = [
     question: 'Diferença para Mobills, YNAB, Organizze?',
     answer: 'Eles são assinatura — você paga enquanto usa. Realwise é compra única — você é dono. Seus dados ficam com você, não com eles. Em 30 anos, você gastaria R$3.600–14.400 com eles e R$479 conosco. Uma vez.',
   },
+  {
+    question: 'E se eu não gostar?',
+    answer: '30 dias de garantia incondicional. Devolvo seu dinheiro, sem perguntar o porquê. O risco é meu, não seu.',
+  },
 ];
 
 function FAQItem({ faq, isOpen, onToggle }) {
@@ -45,7 +49,7 @@ function FAQItem({ faq, isOpen, onToggle }) {
         onClick={onToggle}
         className="w-full py-6 flex items-center justify-between text-left group"
       >
-        <span className="font-medium text-base pr-8 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+        <span className="font-medium text-base pr-8 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
           {faq.question}
         </span>
         <ChevronDown className={cn(
@@ -78,23 +82,15 @@ export default function FAQSection() {
   return (
     <section id="faq" className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
       <div className="max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+        <div
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl font-bold">
             Perguntas frequentes.
           </h2>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+        <div
           className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 px-8"
         >
           {faqs.map((faq, index) => (
@@ -105,7 +101,7 @@ export default function FAQSection() {
               onToggle={() => setOpenIndex(openIndex === index ? null : index)}
             />
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
