@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
+import { db } from '@/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { calculatePrice, formatPrice } from '../../utils/couponValidator';
+
+const FALLBACK_PRICING = { basePriceCents: 23880, installments: 12, activeCouponCode: null };
 
 export default function FinalCTASection({ onBuy }) {
+  const [pricing, setPricing] = useState(FALLBACK_PRICING);
+
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
+      const data = snap.data();
+      if (data) setPricing(data);
+    });
+    return () => unsub();
+  }, []);
+
+  // For display: show original price as 2x the sale price (like before)
+  const displayOriginalCents = Math.round(pricing.basePriceCents * 2);
+  const displayFinalCents = pricing.basePriceCents;
+
   return (
     <section data-section="final-cta" className="py-32 px-6">
       <div className="max-w-3xl mx-auto text-center">
@@ -34,7 +53,7 @@ export default function FinalCTASection({ onBuy }) {
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <p className="mt-4 text-sm text-slate-400 dark:text-slate-500">
-            <span className="line-through text-slate-300 dark:text-slate-600 mr-1">R$ 479</span> R$ 239 · Pagamento único · Acesso vitalício
+            <span className="line-through text-slate-300 dark:text-slate-600 mr-1">{formatPrice(displayOriginalCents)}</span> {formatPrice(displayFinalCents)} · Pagamento único · Acesso vitalício
           </p>
           <p className="mt-2 text-xs text-slate-400 dark:text-slate-600">
             30 dias de garantia incondicional · Dúvidas?{' '}
