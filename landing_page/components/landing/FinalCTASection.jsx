@@ -27,17 +27,17 @@ export default function FinalCTASection({ onBuy }) {
           </p>
           <Button
             size="lg"
-            onClick={() => { landingAnalytics.trackCtaClicked('Quero o meu acesso', 'final-cta'); onBuy(); }}
+            onClick={() => { landingAnalytics.trackCtaClicked('Comprar Agora', 'final-cta'); onBuy(); }}
             className="h-14 px-10 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105"
           >
-            Quero o meu acesso
+            Comprar Agora
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <p className="mt-4 text-sm text-slate-400 dark:text-slate-500">
             <span className="line-through text-slate-300 dark:text-slate-600 mr-1">R$ 479</span> R$ 239 · Pagamento único · Acesso vitalício
           </p>
           <p className="mt-2 text-xs text-slate-400 dark:text-slate-600">
-            Dúvidas?{' '}
+            30 dias de garantia incondicional · Dúvidas?{' '}
             <a
               href="https://wa.me/5541992310339"
               target="_blank"
@@ -46,7 +46,6 @@ export default function FinalCTASection({ onBuy }) {
             >
               Me chama no WhatsApp
             </a>
-            .
           </p>
         </motion.div>
       </div>
