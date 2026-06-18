@@ -23,13 +23,10 @@ export default function FounderStory() {
 
           <div className="text-left text-slate-600 dark:text-slate-400 leading-relaxed space-y-4">
             <p>
-              Sou Jonatha, desenvolvedor. Como muita gente, eu já montei planilha de gastos cheia de aba e fórmula — e larguei, porque manter aquilo vivo é exaustivo. Experimentei apps, mas todos queriam se conectar às minhas contas e guardar tudo do lado deles. Eu não queria entregar isso.
+              Sou Jonatha, desenvolvedor. Como muita gente, montei planilha cheia de fórmula e larguei, porque mantê-la viva é exaustivo — e os apps que testei queriam se conectar às minhas contas e guardar tudo do lado deles. Então fiz o Realwise com uma regra simples: você importa seu extrato, o app organiza, e os dados ficam no seu Google, só seus.
             </p>
             <p>
-              Então fiz o Realwise com uma regra simples: você importa seu extrato, o app organiza, e os dados ficam no seu Google — só seus. Sem conexão com banco, sem servidor meu lendo nada. A leveza de um app, com a privacidade de uma planilha.
-            </p>
-            <p>
-              Não tenho investidor pra agradar nem meta de reter você à força. Tenho o compromisso de te entregar a ferramenta que eu queria ter.
+              Não tenho investidor pra agradar nem meta de te reter à força. Tenho o compromisso de te entregar a ferramenta que eu queria ter.
             </p>
           </div>
 

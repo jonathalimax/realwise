@@ -24,10 +24,7 @@ export default function DataOwnershipSection() {
             Seus dados são seus. Ponto.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            A maioria dos apps de finanças precisa se conectar às suas contas e guardar tudo nos servidores deles. O Realwise faz o contrário: seus dados ficam no seu próprio Google, na sua conta. Nenhum servidor nosso tem acesso. Não vendemos dado, não treinamos IA com o seu dinheiro, não temos como ler nada.
-          </p>
-          <p className="text-base text-slate-500 dark:text-slate-500 max-w-xl mx-auto mt-4">
-            É a privacidade que você já tinha na planilha — agora sem o trabalho da planilha.
+            A maioria dos apps de finanças se conecta às suas contas e guarda tudo nos servidores deles — o Realwise faz o contrário: seus dados ficam no seu próprio Google, e nenhum servidor nosso tem acesso. Não vendemos dado, não treinamos IA com o seu dinheiro, não temos como ler nada. É a privacidade da planilha, sem o trabalho dela.
           </p>
         </div>
 

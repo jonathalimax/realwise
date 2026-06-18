@@ -43,7 +43,7 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-2 leading-relaxed">
-            Importe seu extrato e veja pra onde vai cada real — sem lançar tudo na mão, sem conectar seu banco a ninguém. Continua 100% seu, no seu Google. Pra sempre.
+            Importe seu extrato e veja pra onde vai cada real — automático e 100% seu, no seu Google.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10 mt-8">

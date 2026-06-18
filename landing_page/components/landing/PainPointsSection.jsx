@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 
 
 const pains = [
-  { title: 'Você montou uma planilha linda — e abandonou no segundo mês.', desc: 'Aqui você importa o extrato e ela se preenche. Você só olha.' },
-  { title: 'Lançar cada gasto na mão cansa, então em algum momento você para.', desc: 'Categorização automática. O trabalho é do app, não seu.' },
-  { title: 'Os apps grátis querem se conectar a todas as suas contas.', desc: 'O Realwise não pede acesso ao seu banco. Você importa o extrato, e pronto.' },
-  { title: 'No fim do mês some dinheiro e você não sabe pra onde foi.', desc: 'Cada real categorizado, num lugar só, no celular e no computador.' },
+  { title: 'Você montou uma planilha linda — e abandonou no segundo mês.', desc: 'Aqui você importa o extrato e ela se preenche sozinha.' },
+  { title: 'Lançar cada gasto na mão cansa, então em algum momento você para.', desc: 'Categorização automática. O trabalho é do app.' },
+  { title: 'Os apps grátis querem se conectar a todas as suas contas.', desc: 'O Realwise não pede acesso ao seu banco. Você só importa o extrato.' },
+  { title: 'No fim do mês some dinheiro e você não sabe pra onde foi.', desc: 'Cada real categorizado, num lugar só, em qualquer tela.' },
 ];
 
 export default function PainPointsSection() {
