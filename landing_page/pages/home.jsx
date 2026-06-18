@@ -69,7 +69,7 @@ export default function Home({ couponCode = '' }) {
       <div className="pt-20">
         <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
         <PainPointsSection />
-        <MobileDemo />
+        <MobileDemo onBuy={() => openCheckout('mobile-demo')} />
         <DataOwnershipSection />
         <FounderStory />
         <FeaturesSection />
