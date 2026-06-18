@@ -5,6 +5,7 @@ import PainPointsSection from '../components/landing/PainPointsSection';
 import MobileDemo from '../components/landing/MobileDemo';
 import DataOwnershipSection from '../components/landing/DataOwnershipSection';
 import FounderStory from '../components/landing/FounderStory';
+import Testimonials from '../components/landing/Testimonials';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import PricingSection from '../components/landing/PricingSection';
 import GuaranteeSection from '../components/landing/GuaranteeSection';
@@ -73,6 +74,7 @@ export default function Home({ couponCode = '' }) {
         <FeaturesSection />
         <DataOwnershipSection />
         <FounderStory />
+        <Testimonials />
         <PricingSection onBuy={() => openCheckout('pricing')} couponCode={couponCode} />
         <GuaranteeSection />
         <FAQSection />
