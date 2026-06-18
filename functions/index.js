@@ -24,6 +24,15 @@ const axios = require('axios');
 const importProcessor = require('./importProcessor');
 const { runB3Sync } = require('./b3Sync');
 
+// Coupon manager functions
+const {
+  setCoupon,
+  activateCoupon,
+  deactivateAllCoupons,
+  listCoupons,
+  deleteCoupon,
+} = require('./couponManager');
+
 const db = admin.firestore();
 
 // Initialize Mercado Pago with access token from Secret Manager
@@ -941,3 +950,12 @@ exports.onNewLead = functions.firestore
 // ============================================================
 const savePartialLeadModule = require('./savePartialLead');
 exports.savePartialLead = savePartialLeadModule.savePartialLead;
+
+// ============================================================
+// COUPON MANAGER
+// ============================================================
+exports.setCoupon = setCoupon;
+exports.activateCoupon = activateCoupon;
+exports.deactivateAllCoupons = deactivateAllCoupons;
+exports.listCoupons = listCoupons;
+exports.deleteCoupon = deleteCoupon;
