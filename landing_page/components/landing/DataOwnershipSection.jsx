@@ -8,7 +8,7 @@ const steps = [
 ];
 
 const benefits = [
-  { icon: Download, text: 'Você leva tudo se quiser sair' },
+  { icon: Download, text: 'Seus dados, seu controle total.' },
 ];
 
 export default function DataOwnershipSection() {
