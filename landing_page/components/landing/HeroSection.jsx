@@ -55,6 +55,9 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
               Quero o meu acesso
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
+              Acesso vitalício · Sem assinatura · 30 dias de garantia
+            </p>
           </div>
 
           <p className="text-sm text-slate-400 dark:text-slate-500 mb-10">
