@@ -53,50 +53,77 @@ async function getBaseAmount() {
 
 /**
  * Validate a coupon code and compute the discounted amount server-side.
- * Returns { amount, couponDoc } where couponDoc is the Firestore DocumentSnapshot (or null).
- * Throws an Error with a user-facing message if the coupon is invalid.
+ * Prevents frontend tampering by validating on every checkout.
+ *
+ * @param {string} couponCode - Optional coupon code to validate
+ * @returns {Promise<{ basePriceCents: number, discountPercent: number, finalPriceCents: number }>}
+ * @throws {functions.https.HttpsError} if coupon is invalid or expired
  */
 async function validateCouponAndComputeAmount(couponCode) {
-  const BASE_AMOUNT = await getBaseAmount();
+  // Fetch base price from single source of truth: Firestore config/pricing
+  const pricingSnap = await db.collection('config').doc('pricing').get();
+  const pricingData = pricingSnap.data();
 
-  if (!couponCode || typeof couponCode !== 'string') {
-    return { amount: BASE_AMOUNT, couponDoc: null };
+  if (!pricingData || !pricingData.basePriceCents) {
+    throw new functions.https.HttpsError(
+      'internal',
+      'Preço base não configurado. Contacte suporte.'
+    );
   }
 
-  const snap = await db.collection('coupons')
-    .where('code', '==', couponCode.toUpperCase())
-    .limit(1)
-    .get();
+  const basePriceCents = pricingData.basePriceCents;
 
-  if (snap.empty) {
-    throw new Error('Cupom não encontrado.');
-  }
-
-  const couponDoc = snap.docs[0];
-  const cd = couponDoc.data();
-  const now = new Date();
-
-  if (!cd.enabled) {
-    throw new Error('Cupom desabilitado.');
-  }
-  if (cd.maxUses !== null && cd.maxUses !== undefined && (cd.currentUses || 0) >= cd.maxUses) {
-    throw new Error('Cupom atingiu o limite de usos.');
-  }
-  if (cd.validUntil && cd.validUntil.toDate() < now) {
-    throw new Error('Cupom expirado.');
-  }
-  if (cd.validFrom && cd.validFrom.toDate() > now) {
-    throw new Error('Cupom ainda não é válido.');
+  // If no coupon code, return base price with no discount
+  if (!couponCode || typeof couponCode !== 'string' || couponCode.trim() === '') {
+    return {
+      basePriceCents,
+      discountPercent: 0,
+      finalPriceCents: basePriceCents,
+    };
   }
 
-  let amount;
-  if (cd.discountType === 'percentage') {
-    amount = parseFloat((BASE_AMOUNT * (1 - cd.discountValue / 100)).toFixed(2));
-  } else {
-    amount = parseFloat((BASE_AMOUNT - cd.discountValue / 100).toFixed(2));
+  // Validate coupon: fetch from config/coupons/codes/{code}
+  const couponRef = db.collection('config').doc('coupons').collection('codes').doc(couponCode.trim());
+  const couponSnap = await couponRef.get();
+
+  if (!couponSnap.exists) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Coupon code is invalid or expired'
+    );
   }
 
-  return { amount, couponDoc };
+  const couponData = couponSnap.data();
+  const now = Date.now();
+
+  // Check if coupon is active
+  if (couponData.active !== true) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Coupon code is invalid or expired'
+    );
+  }
+
+  // Check if coupon is expired
+  if (couponData.expiresAt) {
+    const expiresAtTime = couponData.expiresAt.toMillis ? couponData.expiresAt.toMillis() : couponData.expiresAt;
+    if (now >= expiresAtTime) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Coupon code is invalid or expired'
+      );
+    }
+  }
+
+  // Compute final price: basePriceCents * (1 - discountPercent / 100)
+  const discountPercent = couponData.discountPercent || 0;
+  const finalPriceCents = Math.round(basePriceCents * (1 - discountPercent / 100));
+
+  return {
+    basePriceCents,
+    discountPercent,
+    finalPriceCents,
+  };
 }
 
 // Create email transporter
@@ -234,14 +261,20 @@ exports.createPayment = functions
 
       const emailLower = email.toLowerCase().trim();
 
-      // Validate coupon and compute amount
-      let amount;
+      // Validate coupon and compute amount (server-side security gate)
+      let basePriceCents, discountPercent, finalPriceCents;
       try {
-        ({ amount } = await validateCouponAndComputeAmount(couponCode));
+        ({ basePriceCents, discountPercent, finalPriceCents } = await validateCouponAndComputeAmount(couponCode));
       } catch (couponErr) {
-        res.status(400).json({ error: couponErr.message });
+        // Return user-facing error message (already set by validateCouponAndComputeAmount)
+        res.status(couponErr.code === 'invalid-argument' ? 400 : 500).json({
+          error: couponErr.message
+        });
         return;
       }
+
+      // Convert cents to dollars for Mercado Pago (expects decimal amount)
+      const amount = finalPriceCents / 100;
 
       // Upsert lead
       const leadRef = db.collection('leads').doc(emailLower);
@@ -327,14 +360,20 @@ exports.processPayment = functions
 
       console.log('[processPayment] body:', JSON.stringify({ payment_method_id, token: !!token, payer, transaction_amount }));
 
-      // Re-validate coupon server-side and compute authoritative amount
-      let serverAmount, couponDoc;
+      // Re-validate coupon server-side and compute authoritative amount (security gate)
+      let basePriceCents, discountPercent, finalPriceCents;
       try {
-        ({ amount: serverAmount, couponDoc } = await validateCouponAndComputeAmount(couponCode));
+        ({ basePriceCents, discountPercent, finalPriceCents } = await validateCouponAndComputeAmount(couponCode));
       } catch (couponErr) {
-        res.status(400).json({ error: couponErr.message });
+        // Return user-facing error message
+        res.status(couponErr.code === 'invalid-argument' ? 400 : 500).json({
+          error: couponErr.message
+        });
         return;
       }
+
+      // Convert cents to dollars for Mercado Pago (expects decimal amount)
+      const serverAmount = finalPriceCents / 100;
 
       // ── FREE ORDER PATH ──────────────────────────────────────────────────────
       if (serverAmount === 0) {
@@ -352,10 +391,12 @@ exports.processPayment = functions
 
         await grantAccessAndNotify(freeEmail, name, couponCode, 1, 0);
 
-        if (couponDoc) {
-          await couponDoc.ref.update({
-            currentUses: admin.firestore.FieldValue.increment(1),
-          });
+        // Increment coupon usage count if coupon was applied
+        if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
+          const couponRef = db.collection('config').doc('coupons').collection('codes').doc(couponCode.trim());
+          await couponRef.update({
+            usageCount: admin.firestore.FieldValue.increment(1),
+          }).catch(err => console.warn('[processPayment] Failed to increment coupon usage:', err));
         }
 
         res.status(200).json({ status: 'approved', free: true });
@@ -463,21 +504,12 @@ exports.processPayment = functions
         const approvedEmail = (payer?.email || email).toLowerCase();
         await grantAccessAndNotify(approvedEmail, name, couponCode, parseInt(installments) || 1, response.transaction_amount || 0);
 
-        if (couponDoc) {
-          await couponDoc.ref.update({
-            currentUses: admin.firestore.FieldValue.increment(1),
-          });
-        } else if (couponCode && typeof couponCode === 'string') {
-          // Fallback: re-query if couponDoc was null (no coupon path should not reach here)
-          const couponSnap = await db.collection('coupons')
-            .where('code', '==', couponCode.toUpperCase())
-            .limit(1)
-            .get();
-          if (!couponSnap.empty) {
-            await couponSnap.docs[0].ref.update({
-              currentUses: admin.firestore.FieldValue.increment(1),
-            });
-          }
+        // Increment coupon usage count if coupon was applied
+        if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
+          const couponRef = db.collection('config').doc('coupons').collection('codes').doc(couponCode.trim());
+          await couponRef.update({
+            usageCount: admin.firestore.FieldValue.increment(1),
+          }).catch(err => console.warn('[processPayment] Failed to increment coupon usage:', err));
         }
       }
 
