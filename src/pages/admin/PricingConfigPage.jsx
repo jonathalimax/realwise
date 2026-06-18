@@ -14,17 +14,14 @@ export default function PricingConfigPage({ db, functions }) {
 
   useEffect(() => {
     if (!db) return;
-    const defaults = { originalCents: 47988, totalCents: 23880, installments: 12, active: true, campaignLabel: 'Lançamento' };
+    const defaults = { basePriceCents: 23880, installments: 12 };
     const unsub = onSnapshot(doc(db, 'config', 'pricing'),
       (snap) => {
         const data = snap.data();
         const pricingData = data || defaults;
         setForm({
-          originalReais: (pricingData.originalCents / 100).toString(),
-          totalReais: (pricingData.totalCents / 100).toString(),
+          basePriceReais: (pricingData.basePriceCents / 100).toString(),
           installments: pricingData.installments.toString(),
-          active: pricingData.active,
-          campaignLabel: pricingData.campaignLabel || '',
         });
         setError('');
       },
@@ -32,11 +29,8 @@ export default function PricingConfigPage({ db, functions }) {
         if (err.code === 'permission-denied') {
           setError('Sem permissão. Verifique se as regras do Firestore foram deployadas: firebase deploy --only firestore:rules');
           setForm({
-            originalReais: (defaults.originalCents / 100).toString(),
-            totalReais: (defaults.totalCents / 100).toString(),
+            basePriceReais: (defaults.basePriceCents / 100).toString(),
             installments: defaults.installments.toString(),
-            active: defaults.active,
-            campaignLabel: defaults.campaignLabel,
           });
         } else {
           setError('Erro ao carregar preços: ' + err.message);
@@ -50,15 +44,11 @@ export default function PricingConfigPage({ db, functions }) {
     setSaving(true);
     setError('');
     try {
-      const originalCents = Math.round(parseFloat(form.originalReais.replace(',', '.')) * 100);
-      const totalCents = Math.round(parseFloat(form.totalReais.replace(',', '.')) * 100);
+      const basePriceCents = Math.round(parseFloat(form.basePriceReais.replace(',', '.')) * 100);
       const installments = parseInt(form.installments, 10);
       await httpsCallable(functions, 'updatePricingConfig')({
-        originalCents,
-        totalCents,
+        basePriceCents,
         installments,
-        active: form.active,
-        campaignLabel: form.campaignLabel,
       });
       setSavedAt(new Date());
     } catch (err) {
@@ -70,42 +60,21 @@ export default function PricingConfigPage({ db, functions }) {
 
   if (!form) return <div className="p-6 text-gray-400">Carregando...</div>;
 
-  const totalCents = Math.round(parseFloat(form.totalReais.replace(',', '.') || '0') * 100);
-  const originalCents = Math.round(parseFloat(form.originalReais.replace(',', '.') || '0') * 100);
+  const basePriceCents = Math.round(parseFloat(form.basePriceReais.replace(',', '.') || '0') * 100);
   const installments = parseInt(form.installments, 10) || 1;
-  const installmentCents = Math.round(totalCents / installments);
-  const discountPercent = originalCents > 0 ? Math.round((1 - totalCents / originalCents) * 100) : 0;
+  const installmentCents = Math.round(basePriceCents / installments);
 
   return (
     <div className="p-6 max-w-xl">
       <h1 className="text-lg font-bold text-white mb-4">Preço da Landing</h1>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm text-gray-300">
-          <input
-            type="checkbox"
-            checked={form.active}
-            onChange={(e) => setForm({ ...form, active: e.target.checked })}
-          />
-          Promoção ativa
-        </label>
-
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Preço original (R$)</label>
+          <label className="block text-xs text-gray-500 mb-1">Preço Base (R$)</label>
           <input
             type="text"
-            value={form.originalReais}
-            onChange={(e) => setForm({ ...form, originalReais: e.target.value })}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Preço final (R$)</label>
-          <input
-            type="text"
-            value={form.totalReais}
-            onChange={(e) => setForm({ ...form, totalReais: e.target.value })}
+            value={form.basePriceReais}
+            onChange={(e) => setForm({ ...form, basePriceReais: e.target.value })}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
           />
         </div>
@@ -119,27 +88,12 @@ export default function PricingConfigPage({ db, functions }) {
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
           />
         </div>
-
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Rótulo da campanha (opcional)</label>
-          <input
-            type="text"
-            value={form.campaignLabel}
-            onChange={(e) => setForm({ ...form, campaignLabel: e.target.value })}
-            placeholder="Lançamento"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
-          />
-        </div>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-4">
         <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Prévia</p>
         <p className="text-white font-bold text-xl">{installments}x de {brl(installmentCents)}</p>
-        <p className="text-gray-400 text-sm">ou {brl(totalCents)} à vista</p>
-        <p className="text-gray-500 text-xs mt-1">
-          <span className="line-through">{brl(originalCents)}</span> · {discountPercent}% OFF
-          {form.campaignLabel && ` · ${form.campaignLabel}`}
-        </p>
+        <p className="text-gray-400 text-sm">ou {brl(basePriceCents)} à vista</p>
       </div>
 
       {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
