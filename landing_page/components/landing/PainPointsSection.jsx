@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 
 
 const pains = [
-  { title: 'Você montou uma planilha linda — e abandonou no segundo mês.', desc: 'Aqui você importa o extrato e ela se preenche sozinha.' },
-  { title: 'Lançar cada gasto na mão cansa, então em algum momento você para.', desc: 'Categorização automática. O trabalho é do app.' },
-  { title: 'Os apps grátis querem se conectar a todas as suas contas.', desc: 'O Realwise não pede acesso ao seu banco. Você só importa o extrato.' },
-  { title: 'No fim do mês some dinheiro e você não sabe pra onde foi.', desc: 'Cada real categorizado, num lugar só, em qualquer tela.' },
+  { title: 'Você montou uma planilha linda — e abandonou no segundo mês.', desc: 'Importe. Ela se preenche.' },
+  { title: 'Lançar cada gasto na mão cansa, então em algum momento você para.', desc: 'Tudo automático. Zero digitação.' },
+  { title: 'Os apps grátis querem se conectar a todas as suas contas.', desc: 'Sem acesso ao banco.' },
+  { title: 'No fim do mês some dinheiro e você não sabe pra onde foi.', desc: 'Cada real num lugar só.' },
 ];
 
 export default function PainPointsSection() {

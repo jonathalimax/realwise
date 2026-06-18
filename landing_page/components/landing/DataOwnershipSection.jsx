@@ -1,5 +1,5 @@
 import React from 'react';
-import { KeyRound, Cloud, Zap, Download, Lock, ShieldCheck } from 'lucide-react';
+import { KeyRound, Cloud, Zap, Download } from 'lucide-react';
 
 const steps = [
   { icon: KeyRound, label: 'Você conecta o Google' },
@@ -8,8 +8,6 @@ const steps = [
 ];
 
 const benefits = [
-  { icon: Lock, text: 'No seu Google' },
-  { icon: ShieldCheck, text: 'Sem conexão com seu banco' },
   { icon: Download, text: 'Você leva tudo se quiser sair' },
 ];
 

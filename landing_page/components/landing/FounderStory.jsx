@@ -26,7 +26,7 @@ export default function FounderStory() {
               Sou Jonatha, desenvolvedor. Como muita gente, montei planilha cheia de fórmula e larguei, porque mantê-la viva é exaustivo — e os apps que testei queriam se conectar às minhas contas e guardar tudo do lado deles. Então fiz o Realwise com uma regra simples: você importa seu extrato, o app organiza, e os dados ficam no seu Google, só seus.
             </p>
             <p>
-              Não tenho investidor pra agradar nem meta de te reter à força. Tenho o compromisso de te entregar a ferramenta que eu queria ter.
+              Não tenho investidor pra agradar nem meta de te reter à força. Tenho o compromisso de te entregar a ferramenta que eu queria ter — e nenhuma IA lendo ou analisando seus gastos.
             </p>
           </div>
 
