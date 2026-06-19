@@ -39,14 +39,14 @@ export default function FinalCTASection({ onBuy }) {
           transition={{ duration: 0.7 }}
         >
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-            Pare de alugar.
+            Pare de gastar horas.
             <br />
             <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">
-              Comece a possuir.
+              Comece a viver tranquilo.
             </span>
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-10 max-w-md mx-auto">
-            Compre uma vez. Use para sempre.
+            Uma única compra. Controle automático. Seu sossego.
           </p>
           <Button
             size="lg"
