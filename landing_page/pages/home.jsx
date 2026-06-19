@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
-import PainPointsSection from '../components/landing/PainPointsSection';
 import MobileDemo from '../components/landing/MobileDemo';
-import DataOwnershipSection from '../components/landing/DataOwnershipSection';
 import FounderStory from '../components/landing/FounderStory';
 import Testimonials from '../components/landing/Testimonials';
 import FeaturesSection from '../components/landing/FeaturesSection';
@@ -69,10 +67,8 @@ export default function Home({ couponCode = '' }) {
       <Header onBuy={() => openCheckout('header')} />
       <div className="pt-20">
         <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
-        <PainPointsSection />
         <MobileDemo onBuy={() => openCheckout('mobile-demo')} />
         <FeaturesSection />
-        <DataOwnershipSection />
         <FounderStory />
         <Testimonials />
         <PricingSection onBuy={() => openCheckout('pricing')} couponCode={couponCode} />

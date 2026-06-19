@@ -21,9 +21,13 @@ export default function FinalCTASection({ onBuy }) {
     return () => unsub();
   }, []);
 
-  // For display: show original price as 2x the sale price (like before)
-  const displayOriginalCents = Math.round(pricing.basePriceCents * 2);
-  const displayFinalCents = pricing.basePriceCents;
+  // Calculate installment price
+  const INSTALLMENTS = 12;
+  const installmentCents = Math.round(pricing.basePriceCents / INSTALLMENTS);
+
+  function fmt(cents) {
+    return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+  }
 
   return (
     <section data-section="final-cta" className="py-32 px-6">
@@ -42,7 +46,7 @@ export default function FinalCTASection({ onBuy }) {
             </span>
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-10 max-w-md mx-auto">
-            Compre uma vez. Use para sempre. Seus dados, seu controle.
+            Compre uma vez. Use para sempre.
           </p>
           <Button
             size="lg"
@@ -53,18 +57,7 @@ export default function FinalCTASection({ onBuy }) {
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <p className="mt-4 text-sm text-slate-400 dark:text-slate-500">
-            <span className="line-through text-slate-300 dark:text-slate-600 mr-1">{formatPrice(displayOriginalCents)}</span> {formatPrice(displayFinalCents)} · Pagamento único · Acesso vitalício
-          </p>
-          <p className="mt-2 text-xs text-slate-400 dark:text-slate-600">
-            30 dias de garantia incondicional · Dúvidas?{' '}
-            <a
-              href="https://wa.me/5541992310339"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
-            >
-              Me chama no WhatsApp
-            </a>
+            {INSTALLMENTS}x de {fmt(installmentCents)} · Acesso vitalício · 30 dias de garantia
           </p>
         </motion.div>
       </div>

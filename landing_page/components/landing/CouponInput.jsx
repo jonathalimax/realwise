@@ -68,7 +68,7 @@ export default function CouponInput({ onCouponApply, currentCoupon }) {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-2"
     >
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           value={couponCode}
@@ -78,21 +78,21 @@ export default function CouponInput({ onCouponApply, currentCoupon }) {
             setSuccess('');
           }}
           onKeyPress={(e) => e.key === 'Enter' && handleApply()}
-          placeholder="Have a coupon? Enter the code..."
+          placeholder="Tem um cupom?"
           className="flex-1 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
         <button
           onClick={handleApply}
           disabled={loading || !couponCode.trim()}
-          className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors flex items-center gap-2"
+          className="sm:flex-shrink-0 px-6 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Applying...</span>
+              <span className="hidden sm:inline">Aplicando...</span>
             </>
           ) : (
-            'Apply'
+            'Aplicar'
           )}
         </button>
       </div>

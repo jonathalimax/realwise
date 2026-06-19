@@ -16,11 +16,12 @@ import {
 
 const clusters = [
   {
-    title: 'Privacidade',
+    title: 'Controle',
     features: [
-      { icon: Shield, title: 'Dados no seu Google', desc: 'Ficam na sua conta. Não nos nossos servidores.' },
-      { icon: EyeOff, title: 'Sem Open Banking', desc: 'Importe CSV ou PDF. Sem ler sua conta direto.' },
-      { icon: Database, title: 'Zero rastreamento', desc: 'Nunca vendemos ou usamos seus dados.' },
+      { icon: FileText, title: 'Contas e alertas', desc: 'Sem juros por esquecimento.' },
+      { icon: CreditCard, title: 'Cartões de crédito', desc: 'Saiba quando cada fatura vence.' },
+      { icon: PiggyBank, title: 'Planejador de renda', desc: 'Bruto, deduções, líquido real.' },
+      { icon: PieChart, title: 'Orçamento e metas', desc: 'Distribua a renda por categoria.' },
     ],
   },
   {
@@ -32,12 +33,11 @@ const clusters = [
     ],
   },
   {
-    title: 'Controle',
+    title: 'Privacidade',
     features: [
-      { icon: FileText, title: 'Contas e alertas', desc: 'Sem juros por esquecimento.' },
-      { icon: CreditCard, title: 'Cartões de crédito', desc: 'Saiba quando cada fatura vence.' },
-      { icon: PiggyBank, title: 'Planejador de renda', desc: 'Bruto, deduções, líquido real.' },
-      { icon: PieChart, title: 'Orçamento e metas', desc: 'Distribua a renda por categoria.' },
+      { icon: Shield, title: 'Dados no seu Google', desc: 'Ficam na sua conta. Não nos nossos servidores.' },
+      { icon: EyeOff, title: 'Sem IA para rastreamento', desc: 'Nenhum IA vê seus dados ou aprende com eles.' },
+      { icon: Database, title: 'Zero coleta de dados', desc: 'Nunca vendemos ou usamos seus dados.' },
     ],
   },
 ];

@@ -428,6 +428,10 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const fmt = (v) => `R$ ${v.toFixed(2).replace('.', ',')}`;
   const couponLabel = form.coupon?.trim().toUpperCase();
 
+  // Calculate installment price (default 12x)
+  const INSTALLMENTS = 12;
+  const installmentAmount = displayAmount / INSTALLMENTS;
+
   if (!mounted) return null;
 
   return (
@@ -495,33 +499,10 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
           <div className="flex-1 overflow-y-auto">
             {/* Price badge */}
             <div className="px-6 pt-4">
-              <div className="rounded-2xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/50 px-5 py-3 flex items-center gap-3">
-                {hasCouponDiscount ? (
-                  <>
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(basePrice)}</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(promoPrice)}</p>
-                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(displayAmount)}</p>
-                    </div>
-                    <div className="flex flex-col gap-1 items-start">
-                      <span className="text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">50% OFF</span>
-                      <span className="text-xs font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">{couponLabel}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-through leading-none">{fmt(basePrice)}</p>
-                      <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(promoPrice)}</p>
-                    </div>
-                    <div className="flex flex-col gap-1 items-start">
-                      <span className="text-xs font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">50% OFF</span>
-                      {couponLabel && (
-                        <span className="text-xs font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">+ {couponLabel}</span>
-                      )}
-                    </div>
-                  </>
-                )}
+              <div className="rounded-2xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/50 px-5 py-3 text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">{INSTALLMENTS}x de</p>
+                <p className="text-3xl font-extrabold text-violet-700 dark:text-violet-300 leading-tight">{fmt(installmentAmount)}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">sem juros</p>
               </div>
             </div>
             {/* Step 1 — Contact fields */}

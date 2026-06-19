@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Lock, Smartphone, Monitor } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
 import VideoSection from './VideoSection';
@@ -18,13 +18,6 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50">
-            <span className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
-            <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
-              Pagamento único · 30 dias de garantia · Seus dados só seus
-            </span>
-          </div>
-
           {couponCode && (
             <div className="flex justify-center mb-4">
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400 text-sm font-medium">
@@ -42,41 +35,18 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-2 leading-relaxed">
-            Importe seu extrato e veja pra onde vai cada real — automático e 100% seu, no seu Google.
+          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8 leading-relaxed">
+            Importe seu extrato e veja pra onde vai cada real — automático e 100% seu.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-10 mt-8">
-            <Button
-              size="lg"
-              onClick={() => { landingAnalytics.trackCtaClicked('Quero o meu acesso', 'hero'); onBuy(); }}
-              className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105"
-            >
-              Quero o meu acesso
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
-              Acesso vitalício · Sem assinatura · 30 dias de garantia
-            </p>
-          </div>
-
-          <p className="text-sm text-slate-400 dark:text-slate-500 mb-10">
-            Feito no Brasil, por quem cansou de planilha morta e de app que quer ler todas as suas contas.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400 dark:text-slate-500 mb-16">
-            <span className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" /> Pagamento único
-            </span>
-            <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
-            <span className="flex items-center gap-1.5">
-              <Monitor className="w-3.5 h-3.5" /> Desktop
-            </span>
-            <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
-            <span className="flex items-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5" /> Mobile
-            </span>
-          </div>
+          <Button
+            size="lg"
+            onClick={() => { landingAnalytics.trackCtaClicked('Quero o meu acesso', 'hero'); onBuy(); }}
+            className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105 mb-16"
+          >
+            Quero o meu acesso
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
         </motion.div>
 
         <VideoSection videoUrl={import.meta.env.VITE_FOUNDER_VIDEO_URL} />

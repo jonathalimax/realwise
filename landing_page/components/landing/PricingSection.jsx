@@ -10,10 +10,11 @@ import CouponInput from './CouponInput';
 import { calculatePrice, calculateInstallment, formatPrice } from '../../utils/couponValidator';
 
 const included = [
-  'Controle completo de transações, contas e cartões',
-  'Importe seu extrato e organize tudo em minutos',
-  'Planejador, orçamento e carteira de investimentos',
-  'Seus dados no seu Firebase — só seus',
+  'Acesso vitalício',
+  'Suporte sempre que precisar',
+  'Melhorias e correções gratuitas',
+  'Base de dados 100% sua',
+  '30 dias de garantia de arrependimento',
 ];
 
 const trust = [
@@ -105,14 +106,16 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                     </span>
                   )}
                 </div>
-                <div className="flex items-baseline justify-center gap-3">
-                  {appliedCoupon && (
-                    <span className="text-lg text-slate-400 dark:text-slate-500 line-through">{fmt(pricing.basePriceCents)}</span>
-                  )}
-                  <span className="text-5xl font-bold tracking-tight">{fmt(finalCents)}</span>
-                </div>
-                <div className="text-slate-500 dark:text-slate-400 text-sm">
-                  à vista, ou em até {pricing.installments}x de {fmt(installmentCents)} sem juros
+                <div className="text-center space-y-2">
+                  <div className="text-lg text-slate-500 dark:text-slate-400">
+                    {pricing.installments}x de
+                  </div>
+                  <div className="text-5xl font-bold tracking-tight">
+                    {fmt(installmentCents)}
+                  </div>
+                  <div className="text-sm text-slate-400 dark:text-slate-500">
+                    sem juros
+                  </div>
                 </div>
               </div>
 
@@ -138,10 +141,6 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                 Sim, Quero Acesso
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-
-              <p className="text-xs text-slate-500 dark:text-slate-500 text-center">
-                Próximo passo: checkout seguro com Mercado Pago
-              </p>
 
               <div className="flex flex-wrap gap-4 justify-center">
                 {trust.map((item) => (

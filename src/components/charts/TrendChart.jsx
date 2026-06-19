@@ -130,12 +130,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
   }, [hasData, selectedMonth]);
 
   if (!hasData) {
-    return (
-      <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-        <p className="font-medium">{t('charts.noData')}</p>
-        <p className="text-sm mt-1">{t('charts.addTransactionsToSee')}</p>
-      </div>
-    );
+    return null;
   }
 
   // Format compact currency for Y-axis (e.g., "1k", "10k")

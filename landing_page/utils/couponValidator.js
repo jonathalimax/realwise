@@ -3,7 +3,7 @@ import { doc, getDoc } from 'firebase/firestore';
 
 export async function validateCoupon(couponCode) {
   if (!couponCode || couponCode.trim() === '') {
-    return { valid: false, error: 'Coupon code cannot be empty' };
+    return { valid: false, error: 'Digite o cupom para continuar' };
   }
 
   try {
@@ -12,19 +12,19 @@ export async function validateCoupon(couponCode) {
     const couponSnap = await getDoc(couponRef);
 
     if (!couponSnap.exists()) {
-      return { valid: false, error: 'Coupon not found' };
+      return { valid: false, error: 'Esse cupom não existe ou é inválido' };
     }
 
     const coupon = couponSnap.data();
 
     // Check if active
     if (!coupon.active) {
-      return { valid: false, error: 'This coupon is not active' };
+      return { valid: false, error: 'Esse cupom não está disponível no momento' };
     }
 
     // Check if expired
     if (coupon.expiresAt && new Date(coupon.expiresAt.toDate()) < new Date()) {
-      return { valid: false, error: 'This coupon has expired' };
+      return { valid: false, error: 'Esse cupom expirou' };
     }
 
     return {
@@ -34,7 +34,7 @@ export async function validateCoupon(couponCode) {
       description: coupon.description,
     };
   } catch (err) {
-    return { valid: false, error: 'Error validating coupon' };
+    return { valid: false, error: 'Não conseguimos validar o cupom. Tente novamente.' };
   }
 }
 
