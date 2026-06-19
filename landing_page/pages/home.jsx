@@ -63,7 +63,7 @@ export default function Home({ couponCode = '' }) {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white overflow-x-hidden">
       <Header onBuy={() => openCheckout('header')} />
       <div className="pt-20">
         <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />

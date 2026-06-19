@@ -8,7 +8,7 @@ import VideoSection from './VideoSection';
 export default function HeroSection({ onBuy, couponCode = '' }) {
   return (
     <section data-section="hero" className="relative min-h-screen flex items-center justify-center px-6 py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-violet-950/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-violet-900/30" />
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-200/20 dark:bg-violet-500/10 rounded-full blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-200/20 dark:bg-indigo-500/8 rounded-full blur-3xl" />
 
