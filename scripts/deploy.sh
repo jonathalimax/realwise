@@ -57,6 +57,7 @@ if [[ "$TARGET" == "all" || "$TARGET" == "hosting" ]]; then
     LINES+=("  Rules:     firestore.rules")
   else
     LINES+=("  Hosting:   realwise-dev")
+    LINES+=("  Rules:     firestore.rules")
   fi
 fi
 
@@ -113,8 +114,8 @@ if [[ "$TARGET" == "all" || "$TARGET" == "hosting" ]]; then
     echo "🚀  Deploying hosting + rules to prod..."
     firebase deploy --only hosting:mymoneywise,firestore:rules
   else
-    echo "🚀  Deploying hosting to dev..."
-    firebase deploy --only hosting:realwise-dev --project realwise-dev
+    echo "🚀  Deploying hosting + rules to dev..."
+    firebase deploy --only hosting:realwise-dev,firestore:rules --project realwise-dev
   fi
   echo ""
 fi
