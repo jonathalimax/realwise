@@ -80,7 +80,7 @@ export default function FooterSection() {
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
               <span>
                 {t('footer.made')}{' '}
-                <a href="https://www.arealsolutions.com.br/" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700 dark:hover:text-slate-300">Real Solutions</a>
+                <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700 dark:hover:text-slate-300">Jonatha Lima</a>
                 {' '}· © 2026
               </span>
             </div>

@@ -59,7 +59,7 @@ export default function FooterSection() {
         </div>
 
         <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 dark:text-slate-600">
-          <span>© 2026 Realwise. Feito com ❤️ pela <a href="https://www.arealsolutions.com.br/" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-900 dark:hover:text-white transition-colors">Real Solutions</a>.</span>
+          <span>© 2026 Realwise. Feito com ❤️ por <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-900 dark:hover:text-white transition-colors">Jonatha Lima</a>.</span>
           <div className="flex items-center gap-4">
             <a href="/privacidade" className="hover:text-slate-900 dark:hover:text-white transition-colors">
               Política de Privacidade

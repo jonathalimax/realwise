@@ -196,8 +196,8 @@ export default function SharedLogin() {
         </div>
 
         <p className="text-sm text-gray-500">
-          Realwise — feito com ❤️ pela{' '}
-          <a href="https://www.arealsolutions.com.br/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Real Solutions</a>
+          Realwise — feito com ❤️ por{' '}
+          <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Jonatha Lima</a>
         </p>
       </div>
 

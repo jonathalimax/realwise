@@ -127,7 +127,7 @@ export default function Auth() {
 
         <p className="text-sm text-gray-500">
           {t('auth.madeWithCare')}{' '}
-          <a href="https://www.arealsolutions.com.br/" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Real Solutions</a>
+          <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Jonatha Lima</a>
         </p>
       </div>
 
