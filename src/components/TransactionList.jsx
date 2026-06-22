@@ -84,6 +84,23 @@ export default function TransactionList({
     trans.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const groupedByDate = filteredTransactions.reduce((groups, transaction) => {
+    const raw = new Date(transaction.date);
+    const dateKey = `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}-${String(raw.getDate()).padStart(2, '0')}`;
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(transaction);
+    return groups;
+  }, {});
+
+  const dateGroups = Object.entries(groupedByDate)
+    .sort(([a], [b]) => sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a))
+    .map(([dateKey, items]) => {
+      const [year, month, day] = dateKey.split('-').map(Number);
+      const dateObj = new Date(year, month - 1, day);
+      const dateLabel = dateObj.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+      return { dateKey, dateLabel, items };
+    });
+
   const toggleSelection = (id) => {
     setSelectedIds(prev => {
       const newSet = new Set(prev);
@@ -196,77 +213,103 @@ export default function TransactionList({
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{searchTerm ? t('transactionList.tryDifferentSearch') : t('transactionList.emptySubtitle')}</p>
           </div>
         ) : (
-          filteredTransactions.map((transaction) => {
-            const userBank = findUserBank(transaction.bankId);
-            const bankInfo = userBank ? getBankInfo(userBank.bankId) : getBankInfo(transaction.bankId);
-            const isSaving = savingId === transaction.id;
+          dateGroups.map(({ dateKey, dateLabel, items }) => (
+            <div key={dateKey} className="space-y-1">
+              {/* Date header */}
+              {!compact && (
+                <div className="flex items-center gap-2 px-1 py-1">
+                  <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                    {dateLabel}
+                  </span>
+                  <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700" />
+                </div>
+              )}
+              {items.map((transaction) => {
+                const userBank = findUserBank(transaction.bankId);
+                const bankInfo = userBank ? getBankInfo(userBank.bankId) : getBankInfo(transaction.bankId);
+                const isSaving = savingId === transaction.id;
 
-            return (
-              <div
-                key={transaction.id}
-                ref={transaction.id === highlightId ? highlightRef : null}
-                onClick={() => canWrite && setEditingTransaction(transaction)}
-                className={`group rounded-2xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
-                  ${transaction.id === highlightId
-                    ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
-                    : selectedIds.has(transaction.id)
-                      ? 'bg-violet-50 dark:bg-violet-900/10'
-                      : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                  }
-                  ${compact ? 'p-2' : 'p-3'}`}
-              >
-                <div className="flex items-center gap-3">
-                  {!compact && canWrite && !hideBulkEdit && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
-                      className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
-                        ${selectedIds.has(transaction.id)
-                          ? 'bg-violet-600 border-violet-600'
-                          : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
-                        }`}
-                    >
-                      {selectedIds.has(transaction.id) && (
-                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                  )}
-
-                  <div className={`hidden sm:flex w-10 h-10 rounded-full items-center justify-center flex-shrink-0 text-lg
-                    ${transaction.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}>
-                    {getCategoryIcon(transaction.category, transaction.type)}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 leading-snug">
-                          {transaction.description?.replace(/\s*\(\d+\/\d+\)\s*$/, '')}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5 min-w-0">
-                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">
-                            {new Date(transaction.date).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
-                          </span>
-                          <span className="text-slate-300 dark:text-slate-600 text-[10px]">•</span>
-
-                          {/* Native Category Selector Styled as Badge */}
-                          {/* Grid mirror trick: hidden span sizes the container to content width;
-                              select stretches to fill it — the only cross-browser way to shrink
-                              a <select> to its selected text without JavaScript measurement. */}
-                          <div
-                            className={`relative inline-grid text-[11px] font-bold rounded-full ${
-                              transaction.category === 'Sem categoria' || !transaction.category
-                                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-                                : transaction.type === 'income'
-                                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                                  : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                return (
+                  <div
+                    key={transaction.id}
+                    ref={transaction.id === highlightId ? highlightRef : null}
+                    onClick={() => canWrite && setEditingTransaction(transaction)}
+                    className={`group rounded-2xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
+                      ${transaction.id === highlightId
+                        ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                        : selectedIds.has(transaction.id)
+                          ? 'bg-violet-50 dark:bg-violet-900/10'
+                          : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                      }
+                      ${compact ? 'p-2' : 'p-3'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {!compact && canWrite && !hideBulkEdit && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
+                          className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
+                            ${selectedIds.has(transaction.id)
+                              ? 'bg-violet-600 border-violet-600'
+                              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
                             }`}
+                        >
+                          {selectedIds.has(transaction.id) && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+
+                      <div className={`hidden sm:flex w-10 h-10 rounded-full items-center justify-center flex-shrink-0 text-lg
+                        ${transaction.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}`}>
+                        {getCategoryIcon(transaction.category, transaction.type)}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {/* Top row: description + amount */}
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 leading-snug">
+                            {transaction.description?.replace(/\s*\(\d+\/\d+\)\s*$/, '')}
+                          </p>
+                          <div className="text-right flex-shrink-0">
+                            <p className={`font-bold text-sm ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                              {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                            </p>
+                            {transaction.isInstallment && (
+                              <p className="text-[11px] font-bold text-violet-400 dark:text-violet-400 mt-0.5 tabular-nums">
+                                {transaction.installmentCurrent} de {transaction.installmentTotal}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bottom row: bank icon (left) + category badge (right) */}
+                        <div className="flex items-center justify-between mt-1 gap-2">
+                          <div className="flex items-center gap-1.5">
+                            {transaction.bankId && (
+                              <span className="text-xs" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
+                                {bankInfo?.icon || '🏦'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Category badge — matches ImportModal style, right-aligned below amount */}
+                          <div
+                            className="relative inline-grid text-[10px] font-bold rounded-full"
                             onClick={e => e.stopPropagation()}
                           >
-                            {/* Mirror span — invisible, drives width. Both children share grid cell 1/1. */}
-                            <span className="invisible pl-2 pr-5 py-0.5 whitespace-nowrap pointer-events-none" aria-hidden="true"
-                              style={{ gridArea: '1/1' }}>
+                            <span
+                              className={`invisible pl-2 pr-5 py-0.5 whitespace-nowrap pointer-events-none uppercase tracking-tight rounded-full ${
+                                transaction.category === 'Sem categoria' || !transaction.category
+                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+                                  : transaction.type === 'income'
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                              }`}
+                              style={{ gridArea: '1/1' }}
+                              aria-hidden="true"
+                            >
                               {transaction.category || (language === 'pt' ? 'Categorizar' : 'Categorize')}
                             </span>
                             <select
@@ -274,7 +317,13 @@ export default function TransactionList({
                               disabled={!canWrite || isSaving}
                               onChange={(e) => handleQuickCategoryChange(transaction, e.target.value)}
                               style={{ gridArea: '1/1' }}
-                              className={`appearance-none w-full pl-2 pr-5 py-0.5 bg-transparent font-bold tracking-tight transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 focus:rounded-full ${isSaving ? 'opacity-50' : ''}`}
+                              className={`appearance-none w-full pl-2 pr-5 py-0.5 bg-transparent font-bold tracking-tight uppercase text-[10px] transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 focus:rounded-full rounded-full ${
+                                transaction.category === 'Sem categoria' || !transaction.category
+                                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
+                                  : transaction.type === 'income'
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
+                              } ${isSaving ? 'opacity-50' : ''}`}
                             >
                               {(() => {
                                 const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
@@ -293,31 +342,14 @@ export default function TransactionList({
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
                             </svg>
                           </div>
-
-                          {transaction.bankId && (
-                            <span className="text-xs" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
-                              {bankInfo?.icon || '🏦'}
-                            </span>
-                          )}
                         </div>
-                      </div>
-
-                      <div className="text-right flex-shrink-0">
-                        <p className={`font-bold text-sm ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                        </p>
-                        {transaction.isInstallment && (
-                          <p className="text-[11px] font-bold text-violet-400 dark:text-violet-400 mt-0.5 tabular-nums">
-                            {transaction.installmentCurrent} de {transaction.installmentTotal}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })
+                );
+              })}
+            </div>
+          ))
         )}
       </div>
 
