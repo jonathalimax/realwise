@@ -197,7 +197,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
               <button
                 key={item.label}
                 onClick={() => goToCategory(item.label)}
-                className={`w-full group text-left ${!item.hasSpending ? 'opacity-40' : ''}`}
+                className={`w-full group text-left ${isDimmed ? 'opacity-40' : ''}`}
               >
                 <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 group-hover:bg-gray-100 dark:group-hover:bg-gray-700/70 transition-all duration-200">
                   <div
