@@ -345,7 +345,6 @@ export default function ExpensesPage() {
             <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full" /></div>}>
               <ExpensesChartsView
                 transactions={filteredTransactions}
-                formatCurrency={formatCurrency}
                 language={language}
                 onCategoryClick={(cat) => {
                   handleSetCategoryFilter(cat);
