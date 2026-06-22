@@ -42,9 +42,9 @@
 - Consumes: `transactions` prop (unchanged), new optional `type` prop (`'expense' | 'income'`, default `'expense'`)
 - Produces: `<SpendingChart type="income" ... />` renders income category breakdown
 
-- [ ] **Step 1: Add `type` prop with default and update the category totals filter**
+- [ ] **Step 1: Add `type` prop with default, update the `useSettings` destructure, and update the category totals filter**
 
-In `src/components/charts/SpendingChart.jsx`, change the component signature and the `categoryTotals` reduce:
+In `src/components/charts/SpendingChart.jsx`, change the component signature AND the `useSettings` destructure (line 45 currently omits `language`):
 
 ```jsx
 // Before (line 44):
@@ -52,6 +52,14 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
 
 // After:
 export default function SpendingChart({ transactions, onCategoryClick, selectedMonth, type = 'expense' }) {
+```
+
+```jsx
+// Before (line 45):
+const { formatCurrency, t, categories } = useSettings();
+
+// After — add `language` (required by the empty-state fix in Step 3):
+const { formatCurrency, t, categories, language } = useSettings();
 ```
 
 Then update the category totals (line 87–92):
