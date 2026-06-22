@@ -6,7 +6,7 @@ import { doc, updateDoc, writeBatch, query, collection, where, getDocs } from 'f
 import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
-import { useInvestments, INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
+import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
 import { buildUpdatedMetadata } from '../utils/transactionMetadata';
 import { deleteTransactionWithLinks } from '../services/linkedRecordDeletion';
@@ -36,13 +36,11 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
   // Investment-specific fields
   const [expectedReturn, setExpectedReturn] = useState(0);
-  const [returnType, setReturnType] = useState('annual');
   const [maturityDate, setMaturityDate] = useState('');
   const [ticker, setTicker] = useState('');
   const [platform, setPlatform] = useState('');
   const [coinName, setCoinName] = useState('');
   const [fundName, setFundName] = useState('');
-  const [propertyDescription, setPropertyDescription] = useState('');
 
   const { categories, t, language } = useSettings();
   const { goals } = useGoals();
@@ -90,24 +88,20 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         const linkedInvestment = investments.find(inv => inv.id === transaction.investmentId);
         if (linkedInvestment) {
           setExpectedReturn((linkedInvestment.expectedReturn || 0) * 100); // Convert to percentage
-          setReturnType(linkedInvestment.returnType || 'annual');
           setMaturityDate(linkedInvestment.maturityDate || '');
           setTicker(linkedInvestment.ticker || '');
           setPlatform(linkedInvestment.platform || '');
           setCoinName(linkedInvestment.coinName || '');
           setFundName(linkedInvestment.fundName || '');
-          setPropertyDescription(linkedInvestment.propertyDescription || '');
         }
       } else {
         // Reset investment fields
         setExpectedReturn(0);
-        setReturnType('annual');
         setMaturityDate('');
         setTicker('');
         setPlatform('');
         setCoinName('');
         setFundName('');
-        setPropertyDescription('');
       }
     }
   }, [transaction, investments, findUserBank]);
@@ -165,7 +159,6 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
           case 'fixed_income':
             return {
               expectedReturn: parseFloat(expectedReturn) / 100 || 0,
-              returnType: returnType || 'annual',
               maturityDate: maturityDate || null,
             };
           case 'stocks':
@@ -176,8 +169,6 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
             return { fundName: fundName || '', platform: platform || '' };
           case 'fii':
             return { ticker: ticker || '', platform: platform || '' };
-          case 'real_estate':
-            return { propertyDescription: propertyDescription || '' };
           default:
             return {};
         }
@@ -213,9 +204,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
           platform: extraFields.platform ?? platform ?? null,
           coinName: extraFields.coinName ?? coinName ?? null,
           fundName: extraFields.fundName ?? fundName ?? null,
-          propertyDescription: extraFields.propertyDescription ?? propertyDescription ?? null,
           expectedReturn: extraFields.expectedReturn ?? (expectedReturn ? parseFloat(expectedReturn) : null),
-          returnType: extraFields.returnType ?? returnType ?? null,
           maturityDate: extraFields.maturityDate ?? (maturityDate || null),
         });
         onClose();
@@ -232,7 +221,6 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
           initialAmount: parseFloat(amount),
           currentAmount: parseFloat(amount),
           expectedReturn: extraFields.expectedReturn ?? (parseFloat(expectedReturn) / 100 || 0),
-          returnType: extraFields.returnType ?? returnType,
           purchaseDate: transactionDate,
           maturityDate: extraFields.maturityDate ?? (maturityDate || null),
           goalId: selectedGoalId || null,
@@ -511,40 +499,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         {/* fixed_income fields */}
                         {investmentType === 'fixed_income' && (
                           <>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                  {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
-                                </label>
-                                <PercentInput
-                                  value={expectedReturn ?? 0}
-                                  onChange={(val) => setExpectedReturn(val)}
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                  {language === 'pt' ? 'Tipo de Retorno' : 'Return Type'}
-                                </label>
-                                <select
-                                  value={returnType}
-                                  onChange={(e) => setReturnType(e.target.value)}
-                                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                    text-gray-900 dark:text-white
-                                    focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                    transition-all duration-200 appearance-none cursor-pointer pr-10"
-                                  style={{
-                                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                                    backgroundPosition: 'right 12px center',
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundSize: '20px'
-                                  }}
-                                >
-                                  <option value={RETURN_TYPES.cdi}>CDI</option>
-                                  <option value={RETURN_TYPES.annual}>{language === 'pt' ? 'Anual' : 'Annual'}</option>
-                                  <option value={RETURN_TYPES.monthly}>{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
-                                  <option value={RETURN_TYPES.total}>Total</option>
-                                </select>
-                              </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
+                              </label>
+                              <PercentInput
+                                value={expectedReturn ?? 0}
+                                onChange={(val) => setExpectedReturn(val)}
+                              />
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -720,24 +682,6 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           </>
                         )}
 
-                        {/* real_estate fields */}
-                        {investmentType === 'real_estate' && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              {language === 'pt' ? 'Descrição do Imóvel' : 'Property Description'}
-                            </label>
-                            <input
-                              type="text"
-                              value={propertyDescription}
-                              onChange={(e) => setPropertyDescription(e.target.value)}
-                              placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
-                                focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                transition-all duration-200"
-                            />
-                          </div>
-                        )}
                       </div>
                     </>
                   )}
