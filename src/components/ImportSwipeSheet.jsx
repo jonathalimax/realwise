@@ -15,7 +15,6 @@ export default function ImportSwipeSheet({
 }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(ONBOARDING_KEY));
-  const touchStartX = useRef(null);
   const handleTouchStartY = useRef(null);
   const { categories, formatCurrency, language } = useSettings();
   const { goals } = useGoals();
@@ -30,19 +29,6 @@ export default function ImportSwipeSheet({
   const goTo = (index) => {
     if (index < 0 || index >= transactions.length) return;
     setCurrentIndex(index);
-  };
-
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e) => {
-    if (touchStartX.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(delta) < 50) return;
-    if (delta < 0) goTo(currentIndex + 1);
-    else goTo(currentIndex - 1);
   };
 
   const handleDragStart = (e) => {
@@ -90,8 +76,6 @@ export default function ImportSwipeSheet({
       <div
         className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl"
         style={{ height: '90svh' }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
       >
         {/* Drag handle — touch here to drag down and dismiss */}
         <div
@@ -102,16 +86,8 @@ export default function ImportSwipeSheet({
           <div className="w-9 h-1 rounded-full bg-gray-300 dark:bg-gray-500" />
         </div>
 
-        {/* Navigation header */}
+        {/* Progress header */}
         <div className="flex items-center gap-2.5 px-4 pt-1 pb-1">
-          <button
-            onClick={() => goTo(currentIndex - 1)}
-            disabled={currentIndex === 0}
-            className="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xl font-black disabled:opacity-30 active:scale-95 transition-all text-gray-900 dark:text-white"
-          >
-            ‹
-          </button>
-
           <div className="flex-1 flex flex-col items-center gap-1">
             <div className="w-full h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
@@ -133,14 +109,6 @@ export default function ImportSwipeSheet({
                 : `${currentIndex + 1} de ${transactions.length}`}
             </span>
           </div>
-
-          <button
-            onClick={() => goTo(currentIndex + 1)}
-            disabled={isLast}
-            className="w-9 h-9 rounded-xl border border-gray-200 dark:border-gray-600 flex items-center justify-center text-xl font-black disabled:opacity-30 active:scale-95 transition-all text-gray-900 dark:text-white"
-          >
-            ›
-          </button>
 
           {/* Close button — always visible as fallback */}
           <button
@@ -529,17 +497,32 @@ export default function ImportSwipeSheet({
           </div>
         </div>
 
-        {/* Footer — only shown on the last card */}
-        {isLast && (
-          <div className="flex-shrink-0 px-4 py-4 border-t border-gray-100 dark:border-gray-700">
+        {/* Bottom navigation — always visible, large tap targets */}
+        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            onClick={() => goTo(currentIndex - 1)}
+            disabled={currentIndex === 0}
+            className="flex-shrink-0 w-14 h-14 rounded-2xl border border-gray-200 dark:border-gray-600 flex items-center justify-center text-3xl font-black disabled:opacity-30 active:scale-95 transition-all text-gray-900 dark:text-white"
+            aria-label={label('Voltar', 'Back')}
+          >
+            ‹
+          </button>
+          {isLast ? (
             <button
               onClick={onClose}
-              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-xl shadow-emerald-600/20"
+              className="flex-1 h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all shadow-xl shadow-emerald-600/20"
             >
-              {label('Fechar', 'Close')}
+              {label('Concluir', 'Finish')}
             </button>
-          </div>
-        )}
+          ) : (
+            <button
+              onClick={() => goTo(currentIndex + 1)}
+              className="flex-1 h-14 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all"
+            >
+              {label('Próximo', 'Next')} ›
+            </button>
+          )}
+        </div>
       </div>
     </>
   );
