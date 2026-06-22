@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
-import { getActiveVersion } from './carteira/walletVersion';
+import { getActiveVersionOrLatest } from './carteira/walletVersion';
 
 /**
  * Lightweight hook that reads wallet sublayers from the Firestore planner doc.
@@ -34,7 +34,7 @@ export default function usePlannerGoals() {
           if (walletVersions.length > 0) {
             // Use the most recent wallet version to get all sublayers
             const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-            const activeVersion = getActiveVersion(walletVersions, currentMonth);
+            const activeVersion = getActiveVersionOrLatest(walletVersions, currentMonth);
 
             if (activeVersion) {
               const sublayers = (activeVersion.layers ?? []).flatMap(layer =>

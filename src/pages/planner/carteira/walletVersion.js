@@ -17,6 +17,22 @@ export function getActiveVersion(walletVersions, month) {
 }
 
 /**
+ * Like getActiveVersion, but falls back to the most recent version when none
+ * applies to `month` (e.g. a plan whose only version starts in a future month).
+ * Returns null only when there are no versions at all.
+ * @param {Array} walletVersions
+ * @param {string} month - 'YYYY-MM'
+ * @returns {object|null}
+ */
+export function getActiveVersionOrLatest(walletVersions, month) {
+  if (!walletVersions?.length) return null;
+  const active = getActiveVersion(walletVersions, month);
+  if (active) return active;
+  const sorted = [...walletVersions].sort((a, b) => a.from.localeCompare(b.from));
+  return sorted[sorted.length - 1];
+}
+
+/**
  * Applies patchFn(layers) for the given month, creating a new version
  * snapshot if the active version predates the month.
  * @param {Array} walletVersions
