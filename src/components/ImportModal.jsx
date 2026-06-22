@@ -121,9 +121,31 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
           </div>
         </div>
 
-        {/* Category row */}
-        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight ${
+        {/* Second row: dupe/AI badges left, category badge right under value */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {trans.isDuplicate && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                trans.isAiDuplicate
+                  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                  : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+              }`}>
+                {trans.isAiDuplicate && '🤖 '}
+                {language === 'pt' ? 'DUPLICADA' : 'DUPLICATE'}
+              </span>
+            )}
+            {trans._isGroup && (
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                {trans.installmentTotal}x
+              </span>
+            )}
+            {trans.aiCategorized && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded">
+                🤖 AI
+              </span>
+            )}
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tight flex-shrink-0 ${
             isUncategorized
               ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
               : trans.type === 'income'
@@ -132,26 +154,6 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
           }`}>
             {trans.category || (language === 'pt' ? 'Sem categoria' : 'Uncategorized')}
           </span>
-          {trans.isDuplicate && (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-              trans.isAiDuplicate
-                ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
-                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-            }`}>
-              {trans.isAiDuplicate && '🤖 '}
-              {language === 'pt' ? 'DUPLICADA' : 'DUPLICATE'}
-            </span>
-          )}
-          {trans._isGroup && (
-            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
-              {trans.installmentTotal}x
-            </span>
-          )}
-          {trans.aiCategorized && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded">
-              🤖 AI
-            </span>
-          )}
         </div>
       </div>
     </div>
