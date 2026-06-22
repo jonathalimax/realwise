@@ -204,6 +204,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const { formatCurrency, categories, t, language, geminiApiKey } = useSettings();
   const { userBanks, getBankInfo, getBankDisplayName } = useCards();
   const { goals } = useGoals();
+  const { addInvestment } = useInvestments();
   const { ownerId } = useAccess();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -348,7 +349,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     try {
       const toImport = transactions.filter(t => t.selected);
       for (const t of toImport) {
-        await addDoc(collection(db, 'transactions'), {
+        const isInvestment = t.category === 'Investimentos' || t.category === 'Investments';
+        const txRef = await addDoc(collection(db, 'transactions'), {
           userId: auth.currentUser.uid,
           type: t.type,
           description: t.description,
@@ -380,6 +382,28 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           maturityDate: t.maturityDate || null,
           metadata: t.metadata || null
         });
+
+        if (isInvestment && !t.ignored) {
+          // createTransaction:false — the transaction already exists above; just link to it.
+          await addInvestment({
+            name: t.ticker || t.fundName || t.coinName || t.description,
+            type: t.investmentType || 'fixed_income',
+            bank: t.platform || selectedBankId || '',
+            initialAmount: t.amount,
+            currentAmount: t.amount,
+            expectedReturn: t.expectedReturn != null ? parseFloat(t.expectedReturn) / 100 : 0,
+            returnType: t.returnType || 'annual',
+            purchaseDate: t.date ? t.date.split('T')[0] : undefined,
+            maturityDate: t.maturityDate || null,
+            goalId: t.goalId || null,
+            plannerGoalId: t.plannerGoalId || null,
+            ticker: t.ticker || null,
+            platform: t.platform || null,
+            coinName: t.coinName || null,
+            fundName: t.fundName || null,
+            transactionId: txRef.id,
+          }, false);
+        }
       }
       setStep('done');
     } catch (err) {
