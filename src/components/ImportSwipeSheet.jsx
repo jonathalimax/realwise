@@ -5,6 +5,7 @@ import { useGoals } from '../contexts/GoalsContext';
 import { INVESTMENT_TYPES, RETURN_TYPES } from '../contexts/InvestmentContext';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
 import ImportOnboardingOverlay, { ONBOARDING_KEY } from './ImportOnboardingOverlay';
+import { statusFromFlags, flagsForStatus } from './import/importStatus';
 
 export default function ImportSwipeSheet({
   transactions,
@@ -451,47 +452,48 @@ export default function ImportSwipeSheet({
               </div>
             )}
 
-            {/* Include toggle */}
-            <div className="flex items-center justify-between px-3.5 py-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <span className="text-sm font-bold text-gray-900 dark:text-white">
-                {label('Incluir na importação', 'Include in import')}
-              </span>
-              <button
-                onClick={() => patch('selected', !trans.selected)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${
-                  trans.selected ? 'bg-gray-900 dark:bg-white' : 'bg-gray-200 dark:bg-gray-600'
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white dark:bg-gray-800 shadow transition-transform ${
-                    trans.selected ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Ignored toggle */}
-            <div className="flex items-center justify-between px-3.5 py-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">
-                  {label('Ignorar transação', 'Ignore transaction')}
-                </span>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {label('Não entra nos totais', 'Excluded from totals')}
-                </p>
-              </div>
-              <button
-                onClick={() => patch('ignored', !trans.ignored)}
-                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-                  trans.ignored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                    trans.ignored ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
+            {/* Import status — single control replacing the include/ignore toggles */}
+            <div>
+              {(() => {
+                const status = statusFromFlags({ selected: trans.selected, ignored: trans.ignored });
+                const setStatus = (next) => {
+                  const flags = flagsForStatus(next);
+                  patch('selected', flags.selected);
+                  patch('ignored', flags.ignored);
+                };
+                const options = [
+                  { value: 'import', label: label('Importar', 'Import') },
+                  { value: 'importIgnore', label: label('Importar e ignorar', 'Import & ignore') },
+                  { value: 'skip', label: label('Não importar', "Don't import") },
+                ];
+                return (
+                  <>
+                    <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5 overflow-hidden">
+                      {options.map(({ value, label: lbl }) => (
+                        <button
+                          key={value}
+                          onClick={() => setStatus(value)}
+                          className={`flex-1 px-1 py-2.5 text-[11px] font-black rounded-[10px] transition-all leading-tight ${
+                            status === value
+                              ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Fixed-height clarifier row — reserved always so layout never shifts */}
+                    <div className="h-4 mt-1">
+                      {status === 'importIgnore' && (
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium text-center">
+                          {label('Não aparece nos totais', 'Not counted in totals')}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
           </div>
