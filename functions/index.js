@@ -48,7 +48,9 @@ async function getBaseAmount() {
   const snap = await db.collection('config').doc('pricing').get();
   const data = snap.data();
   if (!data || !data.active) return 239; // fallback if doc missing/inactive
-  return data.totalCents / 100;
+  // Support both new (basePriceCents) and old (totalCents) schema
+  const pricingCents = data.basePriceCents || data.totalCents;
+  return pricingCents / 100;
 }
 
 /**
@@ -64,14 +66,22 @@ async function validateCouponAndComputeAmount(couponCode) {
   const pricingSnap = await db.collection('config').doc('pricing').get();
   const pricingData = pricingSnap.data();
 
-  if (!pricingData || !pricingData.basePriceCents) {
+  if (!pricingData) {
     throw new functions.https.HttpsError(
       'internal',
       'Preço base não configurado. Contacte suporte.'
     );
   }
 
-  const basePriceCents = pricingData.basePriceCents;
+  // Support both new (basePriceCents) and old (totalCents) schema for backward compatibility
+  const basePriceCents = pricingData.basePriceCents || pricingData.totalCents;
+
+  if (!basePriceCents) {
+    throw new functions.https.HttpsError(
+      'internal',
+      'Preço base não configurado. Contacte suporte.'
+    );
+  }
 
   // If no coupon code, return base price with no discount
   if (!couponCode || typeof couponCode !== 'string' || couponCode.trim() === '') {

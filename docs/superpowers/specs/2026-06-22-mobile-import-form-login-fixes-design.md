@@ -62,9 +62,13 @@ Files: `ImportSwipeSheet.jsx`, `src/index.css`, `ImportOnboardingOverlay.jsx`
    `selected` + `ignored` toggles (`:486-527`) with one segmented control,
    pt-BR labels:
    - **Importar** → `selected:true, ignored:false`
-   - **Importar sem somar** → `selected:true, ignored:true`
+   - **Importar e ignorar** → `selected:true, ignored:true`
    - **Não importar** → `selected:false`
-   Helper line: *"'sem somar' = fica salva, mas não entra nos totais"*.
+   The clarifier *"Não aparece nos totais"* for the middle option must be shown
+   **without taking much space and without changing the layout height**. The
+   control reserves a **fixed-height helper row** below it (always present, even
+   when empty) that displays *"Não aparece nos totais"* only while **Importar e
+   ignorar** is selected — so selecting it never shifts the surrounding layout.
    Underlying `selected`/`ignored` fields unchanged → `ImportModal` commit logic
    untouched.
 5. **Tutorial:** update `ImportOnboardingOverlay` copy/pointers (pt-BR) to
