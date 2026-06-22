@@ -188,6 +188,48 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
       {/* Category Breakdown - 2-column grid below chart */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {legendData.map((item) => {
+          const isDimmed = !item.hasSpending && !item.hasLimit;
+          const color = COLORS[legendData.indexOf(item) % COLORS.length];
+
+          if (type === 'income') {
+            // Income: icon + name + value + % of total. No budget bars.
+            return (
+              <button
+                key={item.label}
+                onClick={() => goToCategory(item.label)}
+                className={`w-full group text-left ${!item.hasSpending ? 'opacity-40' : ''}`}
+              >
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 group-hover:bg-gray-100 dark:group-hover:bg-gray-700/70 transition-all duration-200">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${color.light}20, ${color.main}30)`,
+                      border: `1px solid ${color.main}30`,
+                    }}
+                  >
+                    {getIcon(item.label)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                        {item.label}
+                      </span>
+                      <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums ml-2 shrink-0">
+                        {formatCurrency(item.value)}
+                      </span>
+                    </div>
+                    {item.hasSpending && total > 0 && (
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                        {((item.value / total) * 100).toFixed(0)}% {language === 'pt' ? 'do total' : 'of total'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          }
+
+          // Expense: full budget/limit rendering (unchanged)
           const hasLimit = item.hasLimit;
           const hasSpending = item.hasSpending;
           const pct = hasLimit
@@ -196,8 +238,6 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
           const isOver = hasLimit && pct > 100;
           const barWidth = Math.min(pct, 100);
           const remaining = item.limit - item.value;
-          const isDimmed = !hasSpending && !hasLimit;
-          const color = COLORS[legendData.indexOf(item) % COLORS.length];
 
           return (
             <button
