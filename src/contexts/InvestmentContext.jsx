@@ -370,6 +370,11 @@ export function InvestmentProvider({ children }) {
         maturityDate: investmentData.maturityDate || null,
         goalId: investmentData.goalId || null,
         plannerGoalId: investmentData.plannerGoalId || null,
+        ticker: investmentData.ticker || null,
+        platform: investmentData.platform || null,
+        coinName: investmentData.coinName || null,
+        fundName: investmentData.fundName || null,
+        transactionId: investmentData.transactionId || null,
         notes: investmentData.notes || '',
         createdAt: serverTimestamp(),
       };
