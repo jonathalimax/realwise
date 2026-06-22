@@ -144,7 +144,7 @@ export default function SharedLogin() {
       const apiKey = auth.app.options.apiKey;
       const authDomain = auth.app.options.authDomain;
       const protocol = authDomain.includes('localhost') ? 'http' : 'https';
-      const popupUrl = `${protocol}://${authDomain}/__/auth/handler?apiKey=${apiKey}`;
+      const popupUrl = `${protocol}://${authDomain}/__/auth/handler?apiKey=${apiKey}&prompt=select_account`;
 
       const popup = window.open(popupUrl, 'firebase-auth-popup', 'width=500,height=600,left=400,top=100');
 
