@@ -45,7 +45,7 @@ export default function IncomeChartsView({ transactions, formatCurrency, languag
 
       {/* Income breakdown chart */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700">
-        <SpendingChart transactions={transactions} onCategoryClick={onCategoryClick} />
+        <SpendingChart transactions={transactions} onCategoryClick={onCategoryClick} type="income" />
       </div>
     </div>
   );

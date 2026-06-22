@@ -41,8 +41,8 @@ const CATEGORY_ICONS = {
   'Other': '📦', 'Diversos': '📦',
 };
 
-export default function SpendingChart({ transactions, onCategoryClick, selectedMonth }) {
-  const { formatCurrency, t, categories } = useSettings();
+export default function SpendingChart({ transactions, onCategoryClick, selectedMonth, type = 'expense' }) {
+  const { formatCurrency, t, categories, language } = useSettings();
   const { getTemplateBudget } = useBudget();
   const { state: plannerStateData } = usePlannerState();
   const { selectedMonth: contextMonth } = useMonth();
@@ -85,7 +85,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
 
   // Group expenses by category (excluding ignored transactions)
   const categoryTotals = transactions
-    .filter(t => t.type === 'expense' && !t.ignored)
+    .filter(t => t.type === type && !t.ignored)
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
       return acc;
@@ -95,7 +95,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
 
   // All categories: union of enabled list + any from actual spending
   const allCats = Array.from(new Set([
-    ...(categories?.expense ?? []),
+    ...(categories?.[type] ?? []),
     ...Object.keys(categoryTotals),
   ]));
 
@@ -130,8 +130,16 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
         <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
           <span className="text-2xl">📊</span>
         </div>
-        <p className="font-medium text-gray-500 dark:text-gray-400">{t('charts.noExpenses')}</p>
-        <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">{t('charts.addExpenseToSee')}</p>
+        <p className="font-medium text-gray-500 dark:text-gray-400">
+          {type === 'income'
+            ? (language === 'pt' ? 'Sem entradas para exibir.' : 'No income to display.')
+            : t('charts.noExpenses')}
+        </p>
+        <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">
+          {type === 'income'
+            ? (language === 'pt' ? 'Adicione uma entrada para ver o gráfico.' : 'Add income to see the chart.')
+            : t('charts.addExpenseToSee')}
+        </p>
       </div>
     );
   }
