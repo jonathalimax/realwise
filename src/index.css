@@ -82,6 +82,19 @@ input[type="number"] {
   color-scheme: dark;
 }
 
+/* Prevent iOS Safari date/time inputs from overflowing their flex container.
+   These inputs have an intrinsic min-width that ignores width:100%, which makes
+   forms scroll horizontally on mobile. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+
 /* Hide all scrollbars globally — scroll still works, bar is invisible */
 ::-webkit-scrollbar {
   display: none;
