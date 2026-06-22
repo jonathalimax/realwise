@@ -276,15 +276,10 @@ export default function TransactionList({
                             <p className={`font-bold text-sm ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                               {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                             </p>
-                            {transaction.isInstallment && (
-                              <p className="text-[11px] font-bold text-violet-400 dark:text-violet-400 mt-0.5 tabular-nums">
-                                {transaction.installmentCurrent} de {transaction.installmentTotal}
-                              </p>
-                            )}
                           </div>
                         </div>
 
-                        {/* Bottom row: bank icon (left) + category badge (right) */}
+                        {/* Bottom row: bank + installment (left) · category badge (right) */}
                         <div className="flex items-center justify-between mt-1 gap-2">
                           <div className="flex items-center gap-1.5">
                             {transaction.bankId && (
@@ -292,15 +287,20 @@ export default function TransactionList({
                                 {bankInfo?.icon || '🏦'}
                               </span>
                             )}
+                            {transaction.isInstallment && (
+                              <span className="text-[10px] font-bold text-violet-500 dark:text-violet-400 tabular-nums">
+                                {transaction.installmentCurrent}/{transaction.installmentTotal}
+                              </span>
+                            )}
                           </div>
 
-                          {/* Category badge — matches ImportModal style, right-aligned below amount */}
+                          {/* Category badge — max-w caps it so it never stretches on short names */}
                           <div
-                            className="relative inline-grid text-[10px] font-bold rounded-full"
+                            className="relative inline-grid text-[10px] font-bold rounded-full max-w-[8rem]"
                             onClick={e => e.stopPropagation()}
                           >
                             <span
-                              className={`invisible pl-2 pr-5 py-0.5 whitespace-nowrap pointer-events-none uppercase tracking-tight rounded-full ${
+                              className={`invisible pl-2 pr-5 py-0.5 whitespace-nowrap pointer-events-none uppercase tracking-tight rounded-full truncate ${
                                 transaction.category === 'Sem categoria' || !transaction.category
                                   ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                                   : transaction.type === 'income'
