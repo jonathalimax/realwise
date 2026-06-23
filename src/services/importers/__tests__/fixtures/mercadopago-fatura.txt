@@ -1,6 +1,0 @@
-Fatura Mercado Pago Vence em 15/05/2026
-Data Descrição Valor Parcela
-03/04/2026 IFOOD 35,00
-05/04/2026 UBER TRIP 18,90
-10/04/2026 NETFLIX 39,90
-12/04/2026 AMAZON BR 199,90 1/3
