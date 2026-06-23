@@ -1,0 +1,18 @@
+{
+  "clientName": "Realwise",
+  "firebase": {
+    "apiKey": "AIzaSyA-e5lmotlWWR4L1y7saUDXce3aN1thJcs",
+    "authDomain": "moneywise-jonathalimax.firebaseapp.com",
+    "projectId": "moneywise-jonathalimax",
+    "storageBucket": "moneywise-jonathalimax.firebasestorage.app",
+    "messagingSenderId": "874459425635",
+    "appId": "1:874459425635:web:35ee0fa2ea62f2f90ac156"
+  },
+  "features": {
+    "investments": true,
+    "goals": false,
+    "b3Sync": false,
+    "whatsapp": false,
+    "salaryBreakdown": true
+  }
+}

@@ -1,0 +1,15 @@
+ Extrato Conta Corrente 
+Conta ;000000000
+Período ;05/02/2026 a 05/05/2026
+Saldo ;3,19
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+04/05/2026;Pagamento efetuado;Pagamento Fatura - USUARIO TESTE;-374,95;3,19
+01/05/2026;Pix recebido;Usuario Teste;373,78;378,14
+12/04/2026;Cashback;INTER PRE 15GB MENSAL;3,00;4,36
+02/04/2026;Pagamento efetuado;Pagamento Fatura - USUARIO TESTE;-374,95;1,36
+01/04/2026;Pix recebido;Usuario Teste;370,00;376,31
+12/03/2026;Cashback;INTER PRE 15GB MENSAL;3,00;6,31
+02/03/2026;Pix recebido;Usuario Teste;651,40;3,31
+02/03/2026;Pagamento efetuado;Pagamento Fatura - USUARIO TESTE;-651,40;-648,09
+09/02/2026;Cashback;INTER PRE 15GB MENSAL;3,00;3,31

@@ -1,0 +1,19 @@
+{
+  "clientName": "Realwise",
+  "checkoutUrl": "https://us-central1-moneywise-ad9ec.cloudfunctions.net/createCheckoutSession",
+  "firebase": {
+    "apiKey": "AIzaSyDqSsb3LqJi9NJdo3VOuEkBX-vIzLzWIxE",
+    "authDomain": "realwise.com.br",
+    "projectId": "moneywise-ad9ec",
+    "storageBucket": "moneywise-ad9ec.firebasestorage.app",
+    "messagingSenderId": "111194799118",
+    "appId": "1:111194799118:web:5d45ee9a03b54f0b36105f"
+  },
+  "features": {
+    "investments": true,
+    "b3Sync": false,
+    "whatsapp": false,
+    "goals": false,
+    "salaryBreakdown": true
+  }
+}

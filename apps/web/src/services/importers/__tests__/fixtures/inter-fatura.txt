@@ -1,0 +1,13 @@
+Despesas da fatura
+
+CARTÃO 2306****2436
+Data Movimentação Beneficiário Valor
+02 de abr. 2026 PAGTO DEBITO AUTOMATICO - + R$ 374,95
+Total CARTÃO 2306****2436 R$ 0,00
+
+CARTÃO 2306****6511
+Data Movimentação Beneficiário Valor
+01 de nov. 2025 CP PARC SHOPPING INTER (Parcela 06 de 10) - R$ 283,90
+12 de dez. 2025 MULTI (Parcela 05 de 18) - R$ 61,05
+12 de abr. 2026 RCGA UNIC INTERCEL - R$ 30,00
+Total CARTÃO 2306****6511 R$ 374,95
