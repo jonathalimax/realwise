@@ -60,3 +60,9 @@ test-whatsapp.sh
 
 # Local git worktrees
 .worktrees/
+
+# monorepo
+apps/*/dist
+apps/*/node_modules
+packages/*/dist
+packages/*/node_modules
