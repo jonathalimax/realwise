@@ -6,6 +6,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import * as cookieParser from 'cookie-parser';
 dotenv.config();
 
 async function bootstrap() {
@@ -15,7 +16,11 @@ async function bootstrap() {
   await migrationClient.end();
 
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  app.use(cookieParser());
+  app.enableCors({
+    origin: process.env.FRONTEND_BASE_URL ?? true,
+    credentials: true,
+  });
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
   console.log(`API running on port ${port}`);
