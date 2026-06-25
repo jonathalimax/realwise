@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2021",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "./**/*.ts",
+    "../../apps/api/src/db/**/*.ts"
+  ]
+}
