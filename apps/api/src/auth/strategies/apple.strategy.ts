@@ -31,16 +31,15 @@ export class AppleSignInStrategy extends PassportStrategy(AppleStrategy, 'apple'
     profile: Record<string, unknown> & { name?: { firstName?: string; lastName?: string } },
     done: (err: Error | null, user?: AppleProfile) => void,
   ): Promise<void> {
-    const appleId: string = idToken?.sub ?? profile?.id;
+    const appleId = (idToken?.sub ?? profile?.id) as string | undefined;
     if (!appleId) {
       done(new Error('No sub in Apple id_token'), undefined);
       return;
     }
 
-    const email: string | null =
-      idToken?.email ?? profile?.email ?? null;
-    const firstName: string | null = profile?.name?.firstName ?? null;
-    const lastName: string | null = profile?.name?.lastName ?? null;
+    const email = (idToken?.email ?? profile?.email ?? null) as string | null;
+    const firstName = (profile?.name?.firstName ?? null) as string | null;
+    const lastName = (profile?.name?.lastName ?? null) as string | null;
     const name =
       firstName || lastName
         ? [firstName, lastName].filter(Boolean).join(' ')
