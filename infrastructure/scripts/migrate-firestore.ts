@@ -1,8 +1,9 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as dotenv from 'dotenv';
-import { initializeApp, cert, getApps, deleteApp } from 'firebase-admin/app';
+import { initializeApp, cert, getApps, deleteApp, App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 
@@ -81,7 +82,7 @@ async function upsertRow<T extends Record<string, unknown>>(
   table: any,
   row: T,
   conflictTarget: string[],
-) {
+): Promise<string | null> {
   summary[collectionName].attempted++;
   try {
     const result = await db
@@ -90,46 +91,72 @@ async function upsertRow<T extends Record<string, unknown>>(
       .onConflictDoUpdate({
         target: conflictTarget.map((c) => (table as any)[c]),
         set: row as any,
-      });
-    if ((result as any).rowCount === 0) {
+      })
+      .returning({ id: table.id });
+    if (result.length === 0) {
       summary[collectionName].updated++;
     } else {
       summary[collectionName].inserted++;
     }
+    return result[0]?.id ?? null;
   } catch (err) {
     summary[collectionName].errors++;
     console.warn(`  WARN [${collectionName}] doc error:`, (err as Error).message);
+    return null;
   }
 }
 
 // ─── Tenant migration ────────────────────────────────────────────────────────
 
-async function migrateTenant(clientId: string, db_: ReturnType<typeof getFirestore>) {
+async function migrateTenant(clientId: string, db_: ReturnType<typeof getFirestore>, app: App) {
   console.log(`\n→ Migrating tenant: ${clientId}`);
 
-  // 1. Users — keyed by firebase uid (doc id)
+  // 1. Users — seeded from Firebase Auth (no Firestore users collection in this app)
   initStats('users');
-  const userDocs = await db_.collection('users').get();
-  const userIdMap: Record<string, string> = {};
+  const auth_ = getAuth(app);
+  const userIdMap: Record<string, string> = {};  // firebaseUid → pgUUID
+  const emailToUserIdMap: Record<string, string> = {};  // email → pgUUID
 
-  for (const doc of userDocs.docs) {
-    const row = transformUser(doc.id, doc.data(), clientId);
-    try {
-      const inserted = await sql`
-        INSERT INTO users ${sql(row as any)}
-        ON CONFLICT (client_id, email) DO UPDATE SET
-          firebase_uid = EXCLUDED.firebase_uid,
-          name = EXCLUDED.name,
-          updated_at = now()
-        RETURNING id, firebase_uid
-      `;
-      userIdMap[doc.id] = inserted[0].id;
-      summary['users'].attempted++;
-      summary['users'].inserted++;
-    } catch (err) {
-      summary['users'].attempted++;
-      summary['users'].errors++;
-      console.warn(`  WARN [users] ${doc.id}:`, (err as Error).message);
+  let nextPageToken: string | undefined;
+  do {
+    const listResult = await auth_.listUsers(1000, nextPageToken);
+    for (const authUser of listResult.users) {
+      if (!authUser.email) { summary['users'].attempted++; summary['users'].errors++; continue; }
+      const row = transformUser(authUser.uid, { email: authUser.email, name: authUser.displayName ?? null }, clientId);
+      // Sanitize: replace any undefined values with null to avoid postgres-js UNDEFINED_VALUE errors
+      const safeRow = Object.fromEntries(Object.entries(row).map(([k, v]) => [k, v === undefined ? null : v])) as typeof row;
+      try {
+        const inserted = await db
+          .insert(users)
+          .values(safeRow as any)
+          .onConflictDoUpdate({
+            target: [users.clientId, users.email],
+            set: { firebaseUid: safeRow.firebaseUid, name: safeRow.name },
+          })
+          .returning({ id: users.id, firebaseUid: users.firebaseUid });
+        userIdMap[authUser.uid] = inserted[0].id;
+        emailToUserIdMap[authUser.email] = inserted[0].id;
+        summary['users'].attempted++;
+        summary['users'].inserted++;
+      } catch (err) {
+        summary['users'].attempted++;
+        summary['users'].errors++;
+        console.warn(`  WARN [users] ${authUser.uid}:`, (err as Error).message);
+      }
+    }
+    nextPageToken = listResult.pageToken;
+  } while (nextPageToken);
+
+  // Alias custom-auth UIDs (no email, no provider) to the primary email user.
+  // The UID named after the clientId is a legacy dev account; its data belongs to the
+  // email user whose address starts with the clientId (e.g. jonathalimax@gmail.com).
+  if (!userIdMap[clientId]) {
+    const primaryPgId =
+      emailToUserIdMap[`${clientId}@gmail.com`] ??
+      Object.values(emailToUserIdMap).find((_, i) => i === 0);
+    if (primaryPgId) {
+      userIdMap[clientId] = primaryPgId;
+      console.log(`  INFO aliased custom UID '${clientId}' → PG user ${primaryPgId}`);
     }
   }
 
@@ -140,47 +167,68 @@ async function migrateTenant(clientId: string, db_: ReturnType<typeof getFiresto
 
   // 2. Accounts (userBanks)
   initStats('accounts');
+  const accountIdMap: Record<string, string> = {};
   const accountDocs = await db_.collection('userBanks').get();
   for (const doc of accountDocs.docs) {
     const userId = resolveUserId(doc.data());
     if (!userId) { summary['accounts'].errors++; continue; }
-    await upsertRow('accounts', accounts, transformAccount(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    const id = await upsertRow('accounts', accounts, transformAccount(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    if (id) accountIdMap[doc.id] = id;
   }
 
   // 3. Categories
   initStats('categories');
+  const categoryIdMap: Record<string, string> = {};
   const catDocs = await db_.collection('categories').get();
   for (const doc of catDocs.docs) {
     const userId = resolveUserId(doc.data());
     if (!userId) { summary['categories'].errors++; continue; }
-    await upsertRow('categories', categories, transformCategory(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    const id = await upsertRow('categories', categories, transformCategory(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    if (id) categoryIdMap[doc.id] = id;
   }
 
-  // 4. Transactions
+  // 4. Transactions — resolve FK references to PG UUIDs
   initStats('transactions');
   const txDocs = await db_.collection('transactions').get();
   for (const doc of txDocs.docs) {
     const userId = resolveUserId(doc.data());
     if (!userId) { summary['transactions'].errors++; continue; }
-    await upsertRow('transactions', transactions, transformTransaction(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    const data = doc.data();
+    const row = transformTransaction(doc.id, data, clientId, userId);
+    // Resolve Firestore doc IDs → PG UUIDs; fall back to null if not found
+    const resolvedRow = {
+      ...row,
+      categoryId: (row.categoryId && categoryIdMap[row.categoryId]) ? categoryIdMap[row.categoryId] : null,
+      accountId: (row.accountId && accountIdMap[row.accountId]) ? accountIdMap[row.accountId] : null,
+    };
+    await upsertRow('transactions', transactions, resolvedRow, ['firebaseDocId']);
   }
 
-  // 5. Bills
+  // 5. Bills — resolve categoryId FK
   initStats('bills');
+  const billIdMap: Record<string, string> = {};
   const billDocs = await db_.collection('bills').get();
   for (const doc of billDocs.docs) {
     const userId = resolveUserId(doc.data());
     if (!userId) { summary['bills'].errors++; continue; }
-    await upsertRow('bills', bills, transformBill(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    const row = transformBill(doc.id, doc.data(), clientId, userId);
+    const resolvedRow = {
+      ...row,
+      categoryId: (row.categoryId && categoryIdMap[row.categoryId]) ? categoryIdMap[row.categoryId] : null,
+    };
+    const id = await upsertRow('bills', bills, resolvedRow, ['firebaseDocId']);
+    if (id) billIdMap[doc.id] = id;
   }
 
-  // 6. Bill reminders
+  // 6. Bill reminders — resolve billId FK
   initStats('bill_reminders');
   const reminderDocs = await db_.collection('bill_reminders').get();
   for (const doc of reminderDocs.docs) {
     const userId = resolveUserId(doc.data());
     if (!userId) { summary['bill_reminders'].errors++; continue; }
-    await upsertRow('bill_reminders', billReminders, transformBillReminder(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    const row = transformBillReminder(doc.id, doc.data(), clientId, userId);
+    const resolvedRow = { ...row, billId: (row.billId && billIdMap[row.billId]) ? billIdMap[row.billId] : null };
+    await upsertRow('bill_reminders', billReminders, resolvedRow, ['firebaseDocId']);
   }
 
   // 7. Reminder logs (merged into bill_reminders with sent: true)
@@ -188,7 +236,10 @@ async function migrateTenant(clientId: string, db_: ReturnType<typeof getFiresto
   for (const doc of reminderLogs.docs) {
     const userId = resolveUserId(doc.data());
     if (!userId) { summary['bill_reminders'].errors++; continue; }
-    await upsertRow('bill_reminders', billReminders, transformReminderLog(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
+    const logRow = transformReminderLog(doc.id, doc.data(), clientId, userId);
+    const resolvedBillId = logRow.billId ? billIdMap[logRow.billId] : null;
+    if (!resolvedBillId) continue; // orphaned log — bill was deleted/replaced; skip silently
+    await upsertRow('bill_reminders', billReminders, { ...logRow, billId: resolvedBillId }, ['firebaseDocId']);
   }
 
   // 8. Budgets
@@ -218,29 +269,29 @@ async function migrateTenant(clientId: string, db_: ReturnType<typeof getFiresto
     await upsertRow('investments', investments, transformInvestment(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
   }
 
-  // 11. Planner (single doc per user)
+  // 11. Planner — doc ID is the Firebase UID (not a userId field inside the document)
   initStats('planner');
   const plannerDocs = await db_.collection('planner').get();
   for (const doc of plannerDocs.docs) {
-    const userId = resolveUserId(doc.data());
+    const userId = userIdMap[doc.id] ?? '';
     if (!userId) { summary['planner'].errors++; continue; }
     await upsertRow('planner', planner, transformPlanner(doc.data(), clientId, userId), ['clientId', 'userId']);
   }
 
-  // 12. Settings (single doc per user)
+  // 12. Settings — doc ID is the Firebase UID
   initStats('settings');
   const settingsDocs = await db_.collection('settings').get();
   for (const doc of settingsDocs.docs) {
-    const userId = resolveUserId(doc.data());
+    const userId = userIdMap[doc.id] ?? '';
     if (!userId) { summary['settings'].errors++; continue; }
     await upsertRow('settings', settings, transformSettings(doc.data(), clientId, userId), ['clientId', 'userId']);
   }
 
-  // 13. Categorization rules
+  // 13. Categorization rules — doc ID pattern: {userId}_{ruleId}; userId field may also exist
   initStats('categorization_rules');
   const ruleDocs = await db_.collection('userCategorizationRules').get();
   for (const doc of ruleDocs.docs) {
-    const userId = resolveUserId(doc.data());
+    const userId = resolveUserId(doc.data()) || userIdMap[doc.id] || '';
     if (!userId) { summary['categorization_rules'].errors++; continue; }
     await upsertRow('categorization_rules', categorizationRules, transformCategorizationRule(doc.id, doc.data(), clientId, userId), ['firebaseDocId']);
   }
@@ -315,7 +366,7 @@ async function main() {
     if (clientId === 'admin') {
       await migrateAdmin(firestore);
     } else {
-      await migrateTenant(clientId, firestore);
+      await migrateTenant(clientId, firestore, app);
     }
 
     await deleteApp(app);

@@ -11,7 +11,7 @@
     "test:watch": "jest --watch",
     "migrate:generate": "drizzle-kit generate",
     "migrate:run": "drizzle-kit migrate",
-    "migrate:firestore": "ts-node --project ../../infrastructure/scripts/tsconfig.json ../../infrastructure/scripts/migrate-firestore.ts"
+    "migrate:firestore": "NODE_PATH=./node_modules ts-node --transpile-only --project ../../infrastructure/scripts/tsconfig.json ../../infrastructure/scripts/migrate-firestore.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.0",

@@ -12,6 +12,23 @@ function toNumericString(val: any): string | null {
   return String(val);
 }
 
+const INVESTMENT_TYPE_MAP: Record<string, string> = {
+  stocks: 'stock', stock: 'stock',
+  fii: 'fii', fiis: 'fii',
+  etf: 'etf', etfs: 'etf',
+  fixed: 'fixed', fixed_income: 'fixed', renda_fixa: 'fixed',
+  crypto: 'crypto',
+};
+function mapInvestmentType(val: string): string {
+  if (!val) return 'other';
+  return INVESTMENT_TYPE_MAP[val.toLowerCase()] ?? 'other';
+}
+
+function toStrOrNull(val: any): string | null {
+  if (val === undefined || val === null || val === '') return null;
+  return String(val);
+}
+
 export function transformUser(docId: string, data: Row, clientId: string) {
   return {
     clientId,
@@ -23,14 +40,15 @@ export function transformUser(docId: string, data: Row, clientId: string) {
 }
 
 export function transformAccount(docId: string, data: Row, clientId: string, userId: string) {
+  const type = data.hasCredit ? 'credit' : (toStrOrNull(data.type) ?? 'checking');
   return {
     clientId,
     userId,
     firebaseDocId: docId,
-    name: data.name as string,
-    type: (data.type as string) ?? null,
-    color: (data.color as string) ?? null,
-    icon: (data.icon as string) ?? null,
+    name: toStrOrNull(data.cardName) ?? toStrOrNull(data.customBankName) ?? toStrOrNull(data.bankId) ?? 'Unknown',
+    type: type as 'checking' | 'savings' | 'credit' | 'investment' | 'wallet',
+    color: toStrOrNull(data.color),
+    icon: toStrOrNull(data.icon) ?? toStrOrNull(data.bankId),
     balance: toNumericString(data.balance),
   };
 }
@@ -56,9 +74,9 @@ export function transformTransaction(docId: string, data: Row, clientId: string,
     type: data.type as string,
     description: (data.description as string) ?? null,
     date: data.date ? String(data.date).slice(0, 10) : null,
-    categoryId: (data.categoryId as string) ?? null,
-    accountId: (data.bankId as string) ?? (data.accountId as string) ?? null,
-    importId: (data.importId as string) ?? null,
+    categoryId: toStrOrNull(data.categoryId),
+    accountId: toStrOrNull(data.bankId) ?? toStrOrNull(data.accountId),
+    importId: toStrOrNull(data.importId),
   };
 }
 
@@ -68,11 +86,11 @@ export function transformBill(docId: string, data: Row, clientId: string, userId
     userId,
     firebaseDocId: docId,
     name: data.name as string,
-    amount: toNumericString(data.amount)!,
+    amount: toNumericString(data.amount) ?? '0',
     dueDate: data.dueDate ? String(data.dueDate).slice(0, 10) : null,
-    status: (data.status as string) ?? 'pending',
-    recurrence: (data.recurrence as string) ?? null,
-    categoryId: (data.categoryId as string) ?? null,
+    status: toStrOrNull(data.status) ?? 'pending',
+    recurrence: toStrOrNull(data.recurrence),
+    categoryId: toStrOrNull(data.categoryId),
   };
 }
 
@@ -131,7 +149,7 @@ export function transformInvestment(docId: string, data: Row, clientId: string, 
     firebaseDocId: docId,
     ticker: (data.ticker as string) ?? null,
     name: data.name as string,
-    type: (data.type as string) ?? 'other',
+    type: mapInvestmentType(data.type as string),
     quantity: toNumericString(data.quantity),
     avgPrice: toNumericString(data.avgPrice),
     currentPrice: toNumericString(data.currentPrice),
@@ -170,8 +188,8 @@ export function transformCategorizationRule(
     clientId,
     userId,
     firebaseDocId: docId,
-    keyword: data.keyword as string,
-    categoryId: (data.categoryId as string) ?? null,
+    keyword: toStrOrNull(data.pattern) ?? toStrOrNull(data.keyword) ?? '',
+    categoryId: null, // Firestore stores category name (string), not a FK doc ID
   };
 }
 

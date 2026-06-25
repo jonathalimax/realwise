@@ -47,10 +47,10 @@ describe('transformUser', () => {
 describe('transformAccount', () => {
   it('maps Firestore userBanks doc to accounts row', () => {
     const result = transformAccount('doc-id-1', {
-      name: 'Nubank',
-      type: 'credit',
+      cardName: 'Nubank',
+      bankId: 'nubank',
+      hasCredit: true,
       color: '#820AD1',
-      icon: 'credit-card',
       balance: 1500.5,
     }, CLIENT, USER_UUID);
     expect(result).toEqual({
@@ -60,7 +60,7 @@ describe('transformAccount', () => {
       name: 'Nubank',
       type: 'credit',
       color: '#820AD1',
-      icon: 'credit-card',
+      icon: 'nubank',
       balance: '1500.5',
     });
   });
