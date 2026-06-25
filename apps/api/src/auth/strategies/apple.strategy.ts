@@ -27,9 +27,9 @@ export class AppleSignInStrategy extends PassportStrategy(AppleStrategy, 'apple'
   async validate(
     _accessToken: string,
     _refreshToken: string,
-    idToken: any,
-    profile: any,
-    done: (err: any, user?: AppleProfile) => void,
+    idToken: Record<string, unknown>,
+    profile: Record<string, unknown> & { name?: { firstName?: string; lastName?: string } },
+    done: (err: Error | null, user?: AppleProfile) => void,
   ): Promise<void> {
     const appleId: string = idToken?.sub ?? profile?.id;
     if (!appleId) {

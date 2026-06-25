@@ -11,6 +11,7 @@ type User = typeof users.$inferSelect;
 @Injectable()
 export class AuthService {
   constructor(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Inject(DRIZZLE) private readonly db: any,
     private readonly jwtService: JwtService,
   ) {}

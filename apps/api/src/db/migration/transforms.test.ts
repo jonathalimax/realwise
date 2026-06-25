@@ -2,22 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   transformUser,
   transformAccount,
-  transformCategory,
-  transformTransaction,
-  transformBill,
   transformBillReminder,
   transformReminderLog,
-  transformBudget,
-  transformGoal,
-  transformInvestment,
-  transformPlanner,
-  transformSettings,
-  transformCategorizationRule,
-  transformImport,
   transformLead,
-  transformPurchase,
-  transformCoupon,
-  transformImportIssue,
 } from './transforms';
 
 const CLIENT = 'jonathalimax';

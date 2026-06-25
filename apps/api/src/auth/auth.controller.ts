@@ -100,12 +100,12 @@ export class AuthController {
     @Next() next: NextFunction,
   ): Promise<void> {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
-    passport.authenticate('google', { session: false }, async (err: any, profile: GoogleProfile) => {
+    passport.authenticate('google', { session: false }, async (err: unknown, profile: GoogleProfile) => {
       if (err || !profile) {
         return res.redirect(`${frontend}/login?error=oauth`);
       }
       try {
-        const cookieNonce = (req.cookies as any)?.oauth_state;
+        const cookieNonce = (req.cookies as Record<string, string>)?.oauth_state;
         const { clientId } = verifyState(state, cookieNonce);
         res.clearCookie('oauth_state', { path: '/' });
         const user = await this.authService.findOrCreateUser({
@@ -148,13 +148,13 @@ export class AuthController {
     @Next() next: NextFunction,
   ): Promise<void> {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
-    passport.authenticate('apple', { session: false }, async (err: any, profile: AppleProfile) => {
+    passport.authenticate('apple', { session: false }, async (err: unknown, profile: AppleProfile) => {
       if (err || !profile) {
         return res.redirect(`${frontend}/login?error=oauth`);
       }
       try {
-        const state = (req.body as any)?.state ?? '';
-        const cookieNonce = (req.cookies as any)?.oauth_state;
+        const state = (req.body as Record<string, string>)?.state ?? '';
+        const cookieNonce = (req.cookies as Record<string, string>)?.oauth_state;
         const { clientId } = verifyState(state, cookieNonce);
         res.clearCookie('oauth_state', { path: '/' });
 
@@ -184,10 +184,11 @@ export class AuthController {
   @Public()
   @Post('refresh')
   async refresh(@Req() req: Request, @Res() res: Response): Promise<void> {
-    const token: string | undefined = (req.cookies as any)?.refresh_token;
+    const token: string | undefined = (req.cookies as Record<string, string>)?.refresh_token;
     if (!token) throw new UnauthorizedException();
 
-    let sub = (req as any).user?.sub;
+    const reqWithUser = req as Request & { user?: JwtPayload };
+    let sub = reqWithUser.user?.sub;
     if (!sub) {
       const parts = token.split('.');
       if (parts.length !== 3) throw new UnauthorizedException();

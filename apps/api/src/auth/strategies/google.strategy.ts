@@ -23,7 +23,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     _accessToken: string,
     _refreshToken: string,
     profile: Profile,
-    done: (err: any, user?: GoogleProfile) => void,
+    done: (err: Error | null, user?: GoogleProfile) => void,
   ): Promise<void> {
     const email = profile.emails?.[0]?.value;
     if (!email) {

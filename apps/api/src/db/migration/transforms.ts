@@ -1,13 +1,15 @@
 type Row = Record<string, unknown>;
 
-function toDate(val: any): Date | null {
+function toDate(val: unknown): Date | null {
   if (!val) return null;
-  if (typeof val.toDate === 'function') return val.toDate() as Date;
+  if (typeof val === 'object' && val !== null && 'toDate' in val && typeof (val as { toDate: unknown }).toDate === 'function') {
+    return (val as { toDate: () => Date }).toDate();
+  }
   if (val instanceof Date) return val;
   return new Date(val as string);
 }
 
-function toNumericString(val: any): string | null {
+function toNumericString(val: unknown): string | null {
   if (val === undefined || val === null) return null;
   return String(val);
 }
@@ -24,7 +26,7 @@ function mapInvestmentType(val: string): string {
   return INVESTMENT_TYPE_MAP[val.toLowerCase()] ?? 'other';
 }
 
-function toStrOrNull(val: any): string | null {
+function toStrOrNull(val: unknown): string | null {
   if (val === undefined || val === null || val === '') return null;
   return String(val);
 }
