@@ -12,6 +12,7 @@ on:
     paths:
       - 'apps/web/**'
       - 'packages/types/**'
+      - '.github/workflows/web.yml'
 
 jobs:
   validate:
