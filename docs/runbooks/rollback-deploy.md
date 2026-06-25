@@ -16,16 +16,27 @@ Coolify re-runs that deployment with the same image tag it used previously.
 
 ## Option C — Manual image override (fastest for API)
 
-If you need a specific commit's image:
+If you need a specific commit's image without waiting for GitHub Actions:
 
+1. Find the SHA tag you want — check **GitHub → Packages → realwise-api** for available `sha-XXXXXXX` tags
+
+2. SSH into the VPS:
 ```bash
-# SSH into VPS
 ssh root@62.238.45.195
+```
 
-# Find the SHA tag you want from GHCR (check GitHub Packages UI)
-# Tell Coolify to use it — or run directly:
+3. Pull the target image and retag it as `latest`:
+```bash
 docker pull ghcr.io/jonathalima/realwise-api:sha-abc1234
 docker tag ghcr.io/jonathalima/realwise-api:sha-abc1234 ghcr.io/jonathalima/realwise-api:latest
 ```
 
-Then trigger Coolify redeploy from UI.
+4. Verify the tag is applied:
+```bash
+docker images | grep realwise-api
+```
+
+5. Trigger Coolify redeploy via the UI:
+   - Open Coolify → select **realwise-api** (production)
+   - Click **Deploy** (or **Redeploy**) — Coolify will pull `latest` and start the new container
+   - Monitor the deployment log until the container is healthy
