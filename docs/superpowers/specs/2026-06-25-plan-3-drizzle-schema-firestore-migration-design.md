@@ -54,15 +54,18 @@ apps/api/src/db/
 │   ├── purchases.ts
 │   ├── coupons.ts
 │   └── import-issues.ts
-├── migrations/                   ← drizzle-kit generated SQL files (committed)
-└── drizzle.config.ts             ← drizzle-kit config pointing at src/db/schema/
+└── migrations/                   ← drizzle-kit generated SQL files (committed)
+
+apps/api/
+└── drizzle.config.ts             ← drizzle-kit config at project root (not inside src/)
 
 infrastructure/
+├── scripts/
+│   └── migrate-firestore.ts      ← standalone ts-node migration script
 ├── migration/
 │   ├── clients.json              ← maps clientId → credential path
-│   ├── credentials/              ← .gitignored, holds service account JSONs
-│   │   └── .gitkeep
-│   └── migrate-firestore.ts      ← standalone ts-node migration script
+│   └── credentials/              ← .gitignored, holds service account JSONs
+│       └── .gitkeep
 ```
 
 ### Modified files
@@ -134,6 +137,7 @@ UNIQUE constraint on `(client_id, email)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | FK → users.id |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `name` | varchar NOT NULL | |
 | `color` | varchar | |
 | `icon` | varchar | |
@@ -147,7 +151,7 @@ UNIQUE constraint on `(client_id, email)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | FK → users.id |
-| `firebase_doc_id` | varchar | idempotency key |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `amount` | numeric(12,2) NOT NULL | |
 | `type` | `transaction_type` enum | `income \| expense` |
 | `description` | varchar | |
@@ -164,7 +168,7 @@ UNIQUE constraint on `(client_id, email)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | FK → users.id |
-| `firebase_doc_id` | varchar | idempotency key |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `name` | varchar NOT NULL | |
 | `amount` | numeric(12,2) NOT NULL | |
 | `due_date` | date NOT NULL | |
@@ -181,11 +185,12 @@ UNIQUE constraint on `(client_id, email)`.
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | |
 | `bill_id` | uuid NOT NULL | FK → bills.id |
-| `firebase_doc_id` | varchar | |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `remind_at` | timestamptz NOT NULL | |
 | `sent` | boolean DEFAULT false | |
 | `sent_via` | varchar | `email \| push` |
 | `created_at` | timestamptz | |
+| `updated_at` | timestamptz | intentionally present — reminder may be rescheduled |
 
 #### `budgets`
 | Column | Type | Notes |
@@ -193,7 +198,7 @@ UNIQUE constraint on `(client_id, email)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | |
-| `firebase_doc_id` | varchar | |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `name` | varchar NOT NULL | |
 | `amount` | numeric(12,2) NOT NULL | |
 | `period` | `budget_period` enum | `monthly \| weekly \| yearly` |
@@ -207,7 +212,7 @@ UNIQUE constraint on `(client_id, email)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | |
-| `firebase_doc_id` | varchar | |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `name` | varchar NOT NULL | |
 | `target_amount` | numeric(12,2) NOT NULL | |
 | `current_amount` | numeric(12,2) DEFAULT 0 | |
@@ -221,10 +226,10 @@ UNIQUE constraint on `(client_id, email)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | |
-| `firebase_doc_id` | varchar | |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `ticker` | varchar | B3 ticker, nullable for manual |
 | `name` | varchar NOT NULL | |
-| `type` | varchar NOT NULL | `stock \| fii \| etf \| fixed \| crypto \| other` |
+| `type` | `investment_type` enum | `stock \| fii \| etf \| fixed \| crypto \| other` |
 | `quantity` | numeric(18,8) | |
 | `avg_price` | numeric(12,2) | |
 | `current_price` | numeric(12,2) | |
@@ -271,7 +276,7 @@ UNIQUE on `(client_id, user_id)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | |
-| `firebase_doc_id` | varchar | |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `keyword` | varchar NOT NULL | |
 | `category_id` | uuid | FK → categories.id |
 | `created_at` | timestamptz | |
@@ -282,7 +287,7 @@ UNIQUE on `(client_id, user_id)`.
 | `id` | uuid PK | |
 | `client_id` | varchar NOT NULL | |
 | `user_id` | uuid NOT NULL | |
-| `firebase_doc_id` | varchar | |
+| `firebase_doc_id` | varchar UNIQUE nullable | idempotency key — null for rows created after migration |
 | `bank` | varchar | detected bank name |
 | `status` | `import_status` enum | `pending \| processing \| review \| complete \| failed` |
 | `row_count` | integer | |
@@ -303,27 +308,95 @@ UNIQUE on `(client_id, user_id)`.
 
 #### Admin tables (no `client_id`)
 
-**`leads`**, **`purchases`**, **`coupons`**, **`import_issues`** — migrated from the central admin Firebase project. Schema mirrors existing Firestore document shape, stored as typed columns where stable, jsonb for flexible fields. All have `firebase_doc_id varchar` for idempotency.
+Migrated from the central admin Firebase project. No `client_id` — these are cross-client by nature, accessed only by `role: admin` users.
+
+**`leads`**
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid PK | |
+| `firebase_doc_id` | varchar UNIQUE nullable | |
+| `email` | varchar NOT NULL | |
+| `name` | varchar | |
+| `plan` | varchar | selected plan slug |
+| `status` | varchar | `new \| contacted \| converted \| lost` |
+| `metadata` | jsonb | any additional Firestore fields |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+**`purchases`**
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid PK | |
+| `firebase_doc_id` | varchar UNIQUE nullable | |
+| `client_id` | varchar NOT NULL | which tenant this purchase belongs to |
+| `email` | varchar NOT NULL | |
+| `plan` | varchar | |
+| `amount` | numeric(12,2) | |
+| `status` | varchar | `pending \| paid \| failed \| refunded` |
+| `payment_provider` | varchar | `mercadopago \| stripe` |
+| `provider_payment_id` | varchar | external ID from payment provider |
+| `metadata` | jsonb | |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+**`coupons`**
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid PK | |
+| `firebase_doc_id` | varchar UNIQUE nullable | |
+| `code` | varchar UNIQUE NOT NULL | |
+| `discount_type` | varchar | `percent \| fixed` |
+| `discount_value` | numeric(12,2) | |
+| `max_uses` | integer | nullable = unlimited |
+| `use_count` | integer DEFAULT 0 | |
+| `expires_at` | timestamptz | nullable |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
+
+**`import_issues`**
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid PK | |
+| `firebase_doc_id` | varchar UNIQUE nullable | |
+| `client_id` | varchar NOT NULL | which tenant reported the issue |
+| `user_id` | uuid | nullable — may be reported anonymously |
+| `import_id` | uuid | nullable — FK to imports if known |
+| `description` | text | |
+| `status` | varchar | `open \| resolved` |
+| `metadata` | jsonb | |
+| `created_at` | timestamptz | |
+| `updated_at` | timestamptz | |
 
 ---
 
 ## Migration Auto-Run on Container Start
 
-`apps/api/src/main.ts` runs `migrate(db, { migrationsFolder: './migrations' })` (drizzle-kit's programmatic API) before `NestFactory.create`. This means every deploy automatically applies pending SQL migration files — no manual step.
+`apps/api/src/main.ts` runs `migrate(db, { migrationsFolder: path.join(__dirname, 'db/migrations') })` (drizzle-kit's programmatic API) before `NestFactory.create`. Using `__dirname` (resolves to `dist/` at runtime) ensures the path is correct inside the Docker container regardless of `process.cwd()`.
 
-`drizzle.config.ts` points `out` to `apps/api/src/db/migrations/` and `schema` to `apps/api/src/db/schema/index.ts`. Migration files are committed to git.
+`apps/api/drizzle.config.ts` (at the package root, not inside `src/`) points `out` to `src/db/migrations/` and `schema` to `src/db/schema/index.ts`. The `src/db/migrations/` SQL files compile into `dist/db/migrations/` during `nest build`, which is where `__dirname`-based path resolves at runtime. Migration files are committed to git.
 
 ---
 
 ## Firestore Migration Script
 
-**Location:** `infrastructure/migration/migrate-firestore.ts`
-**Runtime:** `ts-node` (added as dev dep to monorepo root or `apps/api`)
+**Location:** `infrastructure/scripts/migrate-firestore.ts` (consistent with `infrastructure/scripts/` convention from the infra design spec)
+**Runtime:** `ts-node` (added as dev dep to `apps/api`)
 **Invocation:**
 ```bash
 pnpm --filter @realwise/api migrate:firestore
 pnpm --filter @realwise/api migrate:firestore -- --client jonathalimax   # single client
 ```
+
+### Required environment variables
+
+The script reads from a `.env` file at `infrastructure/migration/.env` (gitignored) or from the environment directly:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string — e.g. `postgres://user:pass@localhost:5432/realwise` |
+| `DATABASE_SSL` | `true` to enable SSL (required for production, optional for local staging) |
+
+Run against staging DB first. Never run directly against production without a pre-migration backup.
 
 ### Client config (`infrastructure/migration/clients.json`)
 ```json
@@ -357,7 +430,7 @@ pnpm --filter @realwise/api migrate:firestore -- --client jonathalimax   # singl
 | Table | Conflict target |
 |-------|----------------|
 | `users` | `(client_id, email)` |
-| `accounts`, `transactions`, `bills`, `budgets`, `goals`, `investments`, `imports`, `categorization_rules`, `bill_reminders` | `(client_id, firebase_doc_id)` |
+| `accounts`, `categories`, `transactions`, `bills`, `budgets`, `goals`, `investments`, `imports`, `categorization_rules`, `bill_reminders` | `(client_id, firebase_doc_id)` |
 | `planner`, `settings` | `(client_id, user_id)` |
 | `leads`, `purchases`, `coupons`, `import_issues` | `firebase_doc_id` |
 
@@ -368,7 +441,9 @@ Per-document try/catch. A malformed document logs a warning with its doc ID and 
 ### Collections migrated
 
 **Tenant project (jonathalimax):**
-`users`, `userBanks` → `accounts`, `transactions`, `bills`, `bill_reminders`, `budgets`, `goals`, `investments`, `planner`, `settings`, `userCategorizationRules` → `categorization_rules`, `imports`, `reminder_logs` (inserted into `bill_reminders` with `sent: true`)
+`users`, `userBanks` → `accounts`, `transactions`, `bills`, `bill_reminders`, `budgets`, `goals`, `investments`, `planner`, `settings`, `userCategorizationRules` → `categorization_rules`, `imports`, `reminder_logs` → `bill_reminders` with `sent: true`
+
+> **Note on `reminder_logs`:** Firestore uses two separate collections — `bill_reminders` (scheduling helpers) and `reminder_logs` (sent audit records). Both are merged into the single `bill_reminders` PostgreSQL table. Records from `reminder_logs` are inserted with `sent: true` so the scheduler skips them (`WHERE sent = false`). This is a deliberate consolidation — the audit information is preserved via the `sent`, `sent_via`, and `created_at` columns.
 
 **Admin project:**
 `leads`, `purchases`, `coupons`, `importIssues` → `import_issues`
