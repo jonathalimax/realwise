@@ -15,10 +15,13 @@ async function bootstrap() {
   await migrate(db, { migrationsFolder: path.join(__dirname, 'db/migrations') });
   await migrationClient.end();
 
+  const allowedOrigin = process.env.FRONTEND_BASE_URL;
+  if (!allowedOrigin) throw new Error('FRONTEND_BASE_URL must be set');
+
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
   app.enableCors({
-    origin: process.env.FRONTEND_BASE_URL ?? true,
+    origin: allowedOrigin,
     credentials: true,
   });
   const port = process.env.PORT ?? 3001;

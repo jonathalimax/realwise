@@ -7,8 +7,10 @@ import {
   Next,
   Query,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import * as crypto from 'crypto';
 import * as passport from 'passport';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
@@ -17,23 +19,57 @@ import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { GoogleProfile } from './strategies/google.strategy';
 import { AppleProfile } from './strategies/apple.strategy';
 
-function encodeState(clientId: string): string {
-  return Buffer.from(JSON.stringify({ clientId })).toString('base64url');
+function hmacSign(data: string): string {
+  const secret = process.env.JWT_SECRET ?? 'dev-secret';
+  return crypto.createHmac('sha256', secret).update(data).digest('base64url');
 }
 
-function decodeState(state: string): { clientId: string } {
-  return JSON.parse(Buffer.from(state, 'base64url').toString());
+function buildState(clientId: string, nonce: string): string {
+  const payload = JSON.stringify({ clientId, nonce });
+  const sig = hmacSign(payload);
+  return Buffer.from(JSON.stringify({ payload, sig })).toString('base64url');
+}
+
+function verifyState(state: string, cookieNonce: string): { clientId: string } {
+  let parsed: { payload: string; sig: string };
+  try {
+    parsed = JSON.parse(Buffer.from(state, 'base64url').toString());
+  } catch {
+    throw new BadRequestException('Invalid state');
+  }
+  const expected = hmacSign(parsed.payload);
+  if (!crypto.timingSafeEqual(Buffer.from(parsed.sig), Buffer.from(expected))) {
+    throw new BadRequestException('State signature invalid');
+  }
+  const { clientId, nonce } = JSON.parse(parsed.payload);
+  if (!nonce || nonce !== cookieNonce) {
+    throw new BadRequestException('State nonce mismatch');
+  }
+  return { clientId };
 }
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  private get isProd(): boolean {
+    return process.env.NODE_ENV === 'production';
+  }
+
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
-    const isProd = process.env.NODE_ENV === 'production';
-    const base = { httpOnly: true, secure: isProd, sameSite: 'lax' as const, path: '/' };
+    const base = { httpOnly: true, secure: this.isProd, sameSite: 'lax' as const, path: '/' };
     res.cookie('access_token', accessToken, { ...base, maxAge: 15 * 60 * 1000 });
     res.cookie('refresh_token', refreshToken, { ...base, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  }
+
+  private setNonceCookie(res: Response, nonce: string): void {
+    res.cookie('oauth_state', nonce, {
+      httpOnly: true,
+      secure: this.isProd,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 10 * 60 * 1000, // 10 minutes — enough for OAuth round trip
+    });
   }
 
   // ─── Google ──────────────────────────────────────────────────────────────────
@@ -46,9 +82,11 @@ export class AuthController {
     @Res() res: Response,
     @Next() next: NextFunction,
   ): void {
+    const nonce = crypto.randomBytes(32).toString('base64url');
+    this.setNonceCookie(res, nonce);
     passport.authenticate('google', {
       scope: ['email', 'profile'],
-      state: encodeState(clientId),
+      state: buildState(clientId, nonce),
       session: false,
     })(req, res, next);
   }
@@ -61,14 +99,15 @@ export class AuthController {
     @Res() res: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
+    const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
     passport.authenticate('google', { session: false }, async (err: any, profile: GoogleProfile) => {
       if (err || !profile) {
-        return res.redirect(
-          `${process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173'}/login?error=oauth`,
-        );
+        return res.redirect(`${frontend}/login?error=oauth`);
       }
       try {
-        const { clientId } = decodeState(state ?? encodeState('app'));
+        const cookieNonce = (req.cookies as any)?.oauth_state;
+        const { clientId } = verifyState(state, cookieNonce);
+        res.clearCookie('oauth_state', { path: '/' });
         const user = await this.authService.findOrCreateUser({
           email: profile.email,
           clientId,
@@ -76,9 +115,9 @@ export class AuthController {
         });
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
-        res.redirect(`${process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173'}/${clientId}/dashboard`);
+        res.redirect(`${frontend}/${clientId}/dashboard`);
       } catch {
-        res.redirect(`${process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173'}/login?error=server`);
+        res.redirect(`${frontend}/login?error=server`);
       }
     })(req, res, next);
   }
@@ -93,8 +132,10 @@ export class AuthController {
     @Res() res: Response,
     @Next() next: NextFunction,
   ): void {
+    const nonce = crypto.randomBytes(32).toString('base64url');
+    this.setNonceCookie(res, nonce);
     passport.authenticate('apple', {
-      state: encodeState(clientId),
+      state: buildState(clientId, nonce),
       session: false,
     })(req, res, next);
   }
@@ -106,15 +147,16 @@ export class AuthController {
     @Res() res: Response,
     @Next() next: NextFunction,
   ): Promise<void> {
+    const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
     passport.authenticate('apple', { session: false }, async (err: any, profile: AppleProfile) => {
       if (err || !profile) {
-        return res.redirect(
-          `${process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173'}/login?error=oauth`,
-        );
+        return res.redirect(`${frontend}/login?error=oauth`);
       }
       try {
         const state = (req.body as any)?.state ?? '';
-        const { clientId } = decodeState(state || encodeState('app'));
+        const cookieNonce = (req.cookies as any)?.oauth_state;
+        const { clientId } = verifyState(state, cookieNonce);
+        res.clearCookie('oauth_state', { path: '/' });
 
         if (!profile.email) {
           // Subsequent Apple logins — no email; look up by appleId
@@ -130,9 +172,9 @@ export class AuthController {
 
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
-        res.redirect(`${process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173'}/${clientId}/dashboard`);
+        res.redirect(`${frontend}/${clientId}/dashboard`);
       } catch {
-        res.redirect(`${process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173'}/login?error=server`);
+        res.redirect(`${frontend}/login?error=server`);
       }
     })(req, res, next);
   }
