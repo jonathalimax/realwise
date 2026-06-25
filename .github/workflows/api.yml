@@ -67,7 +67,7 @@ jobs:
             echo "is_production=false" >> $GITHUB_OUTPUT
           fi
           echo "sha_tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "image=ghcr.io/jonathalima/realwise-api" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/jonathalimax/realwise-api" >> $GITHUB_OUTPUT
 
       - name: Backup PostgreSQL (production only)
         if: steps.meta.outputs.is_production == 'true'

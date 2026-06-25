@@ -62,7 +62,7 @@ jobs:
             echo "coolify_uuid=${{ secrets.COOLIFY_WEB_STAGING_UUID }}" >> $GITHUB_OUTPUT
           fi
           echo "sha_tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "image=ghcr.io/jonathalima/realwise-web" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/jonathalimax/realwise-web" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
