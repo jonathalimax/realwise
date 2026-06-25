@@ -11,6 +11,7 @@ export const users = pgTable(
     firebaseUid: varchar('firebase_uid').unique(),
     appleId: varchar('apple_id').unique(),
     role: userRoleEnum('role').default('user').notNull(),
+    refreshTokenHash: varchar('refresh_token_hash'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
