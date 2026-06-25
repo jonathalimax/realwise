@@ -1,0 +1,87 @@
+name: Web
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'packages/types/**'
+      - '.github/workflows/web.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'packages/types/**'
+
+jobs:
+  validate:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        run: corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter @realwise/web lint
+
+      - name: Build
+        run: pnpm --filter @realwise/web build
+
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "env_tag=latest" >> $GITHUB_OUTPUT
+            echo "coolify_uuid=${{ secrets.COOLIFY_WEB_PROD_UUID }}" >> $GITHUB_OUTPUT
+          else
+            echo "env_tag=staging" >> $GITHUB_OUTPUT
+            echo "coolify_uuid=${{ secrets.COOLIFY_WEB_STAGING_UUID }}" >> $GITHUB_OUTPUT
+          fi
+          echo "sha_tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/jonathalima/realwise-web" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.env_tag }}
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
+
+      - name: Trigger Coolify deploy
+        run: |
+          curl -s -f -X POST \
+            "${{ secrets.COOLIFY_BASE_URL }}/api/v1/deploy?uuid=${{ steps.meta.outputs.coolify_uuid }}&force=false" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            -H "Content-Type: application/json"
