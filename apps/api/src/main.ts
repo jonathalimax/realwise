@@ -6,7 +6,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 dotenv.config();
 
 async function bootstrap() {
