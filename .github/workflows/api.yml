@@ -76,7 +76,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          script: /root/infrastructure/scripts/backup-postgres.sh
+          script: /root/infrastructure/scripts/backup-postgres.sh || true  # non-fatal until Plan 3 sets DATABASE_URL
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
