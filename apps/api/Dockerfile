@@ -13,6 +13,7 @@ WORKDIR /app
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules ./node_modules
 ENV PORT=3001
 EXPOSE 3001
 CMD ["node", "dist/main"]
