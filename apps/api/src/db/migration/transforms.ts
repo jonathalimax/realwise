@@ -69,7 +69,7 @@ export function transformBill(docId: string, data: Row, clientId: string, userId
     firebaseDocId: docId,
     name: data.name as string,
     amount: toNumericString(data.amount)!,
-    dueDate: String(data.dueDate).slice(0, 10),
+    dueDate: data.dueDate ? String(data.dueDate).slice(0, 10) : null,
     status: (data.status as string) ?? 'pending',
     recurrence: (data.recurrence as string) ?? null,
     categoryId: (data.categoryId as string) ?? null,

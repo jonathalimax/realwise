@@ -5,7 +5,6 @@ import { initializeApp, cert, getApps, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
 dotenv.config({ path: path.resolve(__dirname, '../migration/.env') });
 
