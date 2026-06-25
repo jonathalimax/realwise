@@ -1,0 +1,13 @@
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "assets": [
+      {
+        "include": "db/migrations/**/*.sql",
+        "outDir": "./dist"
+      }
+    ],
+    "watchAssets": true
+  }
+}
