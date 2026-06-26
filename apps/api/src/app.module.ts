@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { HealthModule } from './health/health.module';
 import { DrizzleModule } from './db/drizzle.module';
 import { AuthModule } from './auth/auth.module';
@@ -14,9 +15,11 @@ import { InvestmentsModule } from './investments/investments.module';
 import { PlannerModule } from './planner/planner.module';
 import { UserSettingsModule } from './user-settings/user-settings.module';
 import { ImportsModule } from './imports/imports.module';
+import { BillRemindersModule } from './bill-reminders/bill-reminders.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     DrizzleModule,
     HealthModule,
     AuthModule,
@@ -30,6 +33,7 @@ import { ImportsModule } from './imports/imports.module';
     PlannerModule,
     UserSettingsModule,
     ImportsModule,
+    BillRemindersModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
