@@ -1,4 +1,5 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import path from 'path';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -34,7 +35,9 @@ export class StorageService {
   }
 
   buildKey(clientId: string, userId: string, importId: string, fileName: string): string {
-    return `${clientId}/${userId}/${importId}/${fileName}`;
+    const safeName = path.basename(fileName).replace(/[^A-Za-z0-9._-]/g, '_');
+    if (!safeName || safeName === '.' || safeName === '..') throw new BadRequestException('Invalid file name');
+    return `${clientId}/${userId}/${importId}/${safeName}`;
   }
 
   async getPresignedUploadUrl(key: string, mimeType: string): Promise<string> {

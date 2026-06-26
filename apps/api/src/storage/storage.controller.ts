@@ -12,6 +12,13 @@ class RequestUploadDto {
   @IsOptional() @IsString() importId?: string;
 }
 
+class ConfirmUploadDto {
+  @IsString() importId: string;
+  @IsString() fileName: string;
+  @IsOptional() @IsString() mimeType?: string;
+  @IsOptional() @IsNumber() sizeBytes?: number;
+}
+
 @Controller('storage')
 export class StorageController {
   constructor(private readonly service: StorageService) {}
@@ -25,15 +32,13 @@ export class StorageController {
   }
 
   @Post('confirm')
-  async confirmUpload(
-    @Body() dto: { key: string; importId?: string; mimeType?: string; sizeBytes?: number },
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async confirmUpload(@Body() dto: ConfirmUploadDto, @CurrentUser() user: JwtPayload) {
+    const key = this.service.buildKey(user.clientId, user.sub, dto.importId, dto.fileName);
     return this.service.recordAttachment({
       clientId: user.clientId,
       userId: user.sub,
       importId: dto.importId,
-      objectKey: dto.key,
+      objectKey: key,
       mimeType: dto.mimeType,
       sizeBytes: dto.sizeBytes,
     });
