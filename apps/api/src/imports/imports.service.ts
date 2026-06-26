@@ -1,7 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
+import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { eq, and, inArray } from 'drizzle-orm';
 import { DRIZZLE } from '../db/drizzle.module';
-import { imports, transactions } from '../db/schema';
+import { imports, transactions, categories, accounts } from '../db/schema';
 import { BankParserService, ParsedTransaction } from './bank-parser.service';
 
 type Import = typeof imports.$inferSelect;
@@ -41,6 +41,30 @@ export class ImportsService {
     clientId: string,
     userId: string,
   ): Promise<void> {
+    const existingImport = await this.db
+      .select()
+      .from(imports)
+      .where(and(eq(imports.id, importId), eq(imports.clientId, clientId), eq(imports.userId, userId)));
+    if (existingImport.length === 0) throw new NotFoundException('Import not found');
+
+    const catIds = [...new Set(txs.map((t) => t.categoryId).filter(Boolean))] as string[];
+    if (catIds.length > 0) {
+      const owned = await this.db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(and(inArray(categories.id, catIds), eq(categories.clientId, clientId), eq(categories.userId, userId)));
+      if (owned.length !== catIds.length) throw new ForbiddenException('Invalid categoryId');
+    }
+
+    const accIds = [...new Set(txs.map((t) => t.accountId).filter(Boolean))] as string[];
+    if (accIds.length > 0) {
+      const owned = await this.db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(inArray(accounts.id, accIds), eq(accounts.clientId, clientId), eq(accounts.userId, userId)));
+      if (owned.length !== accIds.length) throw new ForbiddenException('Invalid accountId');
+    }
+
     if (txs.length > 0) {
       await this.db.insert(transactions).values(
         txs.map((t) => ({
