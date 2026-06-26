@@ -1,5 +1,5 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { AdminGuard } from './admin.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 const makeCtx = (role: string) =>
   ({

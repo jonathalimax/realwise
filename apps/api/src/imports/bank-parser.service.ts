@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { parse as parseCsv } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 
@@ -27,7 +27,7 @@ export class BankParserService {
       const ws = wb.Sheets[wb.SheetNames[0]];
       rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
     } else {
-      throw new Error('Unsupported file format. Use CSV or XLSX.');
+      throw new BadRequestException('Unsupported file format. Use CSV or XLSX.');
     }
 
     if (rows.length === 0) return { bank: 'generic', transactions: [] };

@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
-import { AdminGuard } from './admin.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 

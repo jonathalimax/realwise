@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, Param } from '@nestjs/common';
 import { StorageService } from './storage.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsUUID } from 'class-validator';
 import { v4 as uuidv4 } from 'uuid';
 
 class RequestUploadDto {
@@ -13,7 +13,7 @@ class RequestUploadDto {
 }
 
 class ConfirmUploadDto {
-  @IsString() importId: string;
+  @IsOptional() @IsUUID() importId?: string;
   @IsString() fileName: string;
   @IsOptional() @IsString() mimeType?: string;
   @IsOptional() @IsNumber() sizeBytes?: number;
@@ -33,11 +33,12 @@ export class StorageController {
 
   @Post('confirm')
   async confirmUpload(@Body() dto: ConfirmUploadDto, @CurrentUser() user: JwtPayload) {
-    const key = this.service.buildKey(user.clientId, user.sub, dto.importId, dto.fileName);
+    const importId = dto.importId ?? uuidv4();
+    const key = this.service.buildKey(user.clientId, user.sub, importId, dto.fileName);
     return this.service.recordAttachment({
       clientId: user.clientId,
       userId: user.sub,
-      importId: dto.importId,
+      importId: dto.importId ?? null,
       objectKey: key,
       mimeType: dto.mimeType,
       sizeBytes: dto.sizeBytes,
