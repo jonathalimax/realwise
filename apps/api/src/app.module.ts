@@ -13,6 +13,7 @@ import { GoalsModule } from './goals/goals.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { PlannerModule } from './planner/planner.module';
 import { UserSettingsModule } from './user-settings/user-settings.module';
+import { ImportsModule } from './imports/imports.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UserSettingsModule } from './user-settings/user-settings.module';
     InvestmentsModule,
     PlannerModule,
     UserSettingsModule,
+    ImportsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
