@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, gte, lte, inArray } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { bills, users, billReminders } from '../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -27,7 +29,7 @@ export class BillRemindersService {
   private readonly logger = new Logger(BillRemindersService.name);
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: any,
+    @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
   ) {}
 
