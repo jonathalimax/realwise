@@ -18,7 +18,12 @@ import { AppleSignInStrategy } from './strategies/apple.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, AppleSignInStrategy],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    GoogleStrategy,
+    ...(process.env.APPLE_CLIENT_ID ? [AppleSignInStrategy] : []),
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}
