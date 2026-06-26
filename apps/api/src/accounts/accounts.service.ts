@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { accounts } from '../db/schema';
 import { CreateAccountDto, UpdateAccountDto } from './dto/create-account.dto';
 
@@ -8,7 +10,7 @@ type Account = typeof accounts.$inferSelect;
 
 @Injectable()
 export class AccountsService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) {}
+  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   findAll(clientId: string, userId: string): Promise<Account[]> {
     return this.db

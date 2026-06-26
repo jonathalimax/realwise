@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { settings } from '../db/schema';
 import { UpsertUserSettingsDto } from './dto/upsert-user-settings.dto';
 
@@ -8,7 +10,7 @@ type Settings = typeof settings.$inferSelect;
 
 @Injectable()
 export class UserSettingsService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) {}
+  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   async get(clientId: string, userId: string): Promise<Settings | null> {
     const rows = await this.db

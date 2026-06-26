@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { planner } from '../db/schema';
 import { UpsertPlannerDto } from './dto/upsert-planner.dto';
 
@@ -8,7 +10,7 @@ type Planner = typeof planner.$inferSelect;
 
 @Injectable()
 export class PlannerService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) {}
+  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   async get(clientId: string, userId: string): Promise<Planner | null> {
     const rows = await this.db

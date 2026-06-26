@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { budgets } from '../db/schema';
 import { CreateBudgetDto, UpdateBudgetDto } from './dto/create-budget.dto';
 
@@ -8,7 +10,7 @@ type Budget = typeof budgets.$inferSelect;
 
 @Injectable()
 export class BudgetsService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) {}
+  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   findAll(clientId: string, userId: string): Promise<Budget[]> {
     return this.db.select().from(budgets).where(and(eq(budgets.clientId, clientId), eq(budgets.userId, userId)));

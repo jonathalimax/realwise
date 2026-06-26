@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq, gte, lte, sql } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { transactions } from '../db/schema';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsDto } from './dto/list-transactions.dto';
@@ -9,7 +11,7 @@ type Transaction = typeof transactions.$inferSelect;
 
 @Injectable()
 export class TransactionsService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) {}
+  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   findAll(clientId: string, userId: string, filters: ListTransactionsDto): Promise<Transaction[]> {
     const conditions = [eq(transactions.clientId, clientId), eq(transactions.userId, userId)];
@@ -22,7 +24,7 @@ export class TransactionsService {
       conditions.push(gte(transactions.date, start));
       conditions.push(lte(transactions.date, end));
     }
-    if (filters.type) conditions.push(eq(transactions.type, filters.type as any));
+    if (filters.type) conditions.push(eq(transactions.type, filters.type as 'income' | 'expense'));
     if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
     if (filters.accountId) conditions.push(eq(transactions.accountId, filters.accountId));
 

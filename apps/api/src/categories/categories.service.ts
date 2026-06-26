@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { categories } from '../db/schema';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/create-category.dto';
 
@@ -8,7 +10,7 @@ type Category = typeof categories.$inferSelect;
 
 @Injectable()
 export class CategoriesService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) {}
+  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   findAll(clientId: string, userId: string): Promise<Category[]> {
     return this.db
