@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { MailerModule } from '@nestjs-modules/mailer';
+
 import { HealthModule } from './health/health.module';
 import { DrizzleModule } from './db/drizzle.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+
+// Business modules (Plan 5)
 import { AccountsModule } from './accounts/accounts.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TransactionsModule } from './transactions/transactions.module';
@@ -14,15 +19,39 @@ import { GoalsModule } from './goals/goals.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { PlannerModule } from './planner/planner.module';
 import { UserSettingsModule } from './user-settings/user-settings.module';
+
+// Feature parity modules (Plan 6)
+import { StorageModule } from './storage/storage.module';
 import { ImportsModule } from './imports/imports.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { B3SyncModule } from './b3-sync/b3-sync.module';
 import { BillRemindersModule } from './bill-reminders/bill-reminders.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    MailerModule.forRootAsync({
+      useFactory: () => ({
+        transport: {
+          host: process.env.EMAIL_HOST,
+          port: Number(process.env.EMAIL_PORT ?? 587),
+          secure: Number(process.env.EMAIL_PORT) === 465,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD,
+          },
+        },
+        defaults: {
+          from: process.env.EMAIL_FROM ?? 'noreply@realwise.com.br',
+        },
+      }),
+    }),
     DrizzleModule,
     HealthModule,
     AuthModule,
+    // Plan 5
     AccountsModule,
     CategoriesModule,
     TransactionsModule,
@@ -32,8 +61,13 @@ import { BillRemindersModule } from './bill-reminders/bill-reminders.module';
     InvestmentsModule,
     PlannerModule,
     UserSettingsModule,
+    // Plan 6
+    StorageModule,
     ImportsModule,
+    NotificationsModule,
+    B3SyncModule,
     BillRemindersModule,
+    AdminModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
