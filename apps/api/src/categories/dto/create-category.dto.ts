@@ -7,7 +7,7 @@ export class CreateCategoryDto {
 
   @IsOptional()
   @IsIn(['income', 'expense'])
-  type?: string;
+  type?: 'income' | 'expense';
 
   @IsOptional()
   @IsString()

@@ -10,7 +10,7 @@ export class CreateBudgetDto {
 
   @IsOptional()
   @IsIn(['monthly', 'weekly', 'yearly'])
-  period?: string;
+  period?: 'monthly' | 'weekly' | 'yearly';
 
   @IsOptional()
   @IsUUID()

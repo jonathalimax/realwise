@@ -13,11 +13,11 @@ export class CreateBillDto {
 
   @IsOptional()
   @IsIn(['pending', 'paid', 'overdue'])
-  status?: string;
+  status?: 'pending' | 'paid' | 'overdue';
 
   @IsOptional()
   @IsIn(['monthly', 'weekly', 'yearly'])
-  recurrence?: string;
+  recurrence?: 'monthly' | 'weekly' | 'yearly';
 
   @IsOptional()
   @IsUUID()

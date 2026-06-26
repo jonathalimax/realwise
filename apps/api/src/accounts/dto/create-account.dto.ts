@@ -7,7 +7,7 @@ export class CreateAccountDto {
 
   @IsOptional()
   @IsIn(['checking', 'savings', 'credit', 'investment', 'wallet'])
-  type?: string;
+  type?: 'checking' | 'savings' | 'credit' | 'investment' | 'wallet';
 
   @IsOptional()
   @IsString()

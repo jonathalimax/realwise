@@ -6,7 +6,7 @@ export class CreateTransactionDto {
   amount: string;
 
   @IsIn(['income', 'expense'])
-  type: string;
+  type: 'income' | 'expense';
 
   @IsDateString()
   date: string;

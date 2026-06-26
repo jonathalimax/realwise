@@ -6,7 +6,7 @@ export class CreateInvestmentDto {
   name: string;
 
   @IsIn(['stock', 'fii', 'etf', 'fixed', 'crypto', 'other'])
-  type: string;
+  type: 'stock' | 'fii' | 'etf' | 'fixed' | 'crypto' | 'other';
 
   @IsOptional()
   @IsString()

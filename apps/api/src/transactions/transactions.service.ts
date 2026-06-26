@@ -24,7 +24,7 @@ export class TransactionsService {
       conditions.push(gte(transactions.date, start));
       conditions.push(lte(transactions.date, end));
     }
-    if (filters.type) conditions.push(eq(transactions.type, filters.type as 'income' | 'expense'));
+    if (filters.type) conditions.push(eq(transactions.type, filters.type));
     if (filters.categoryId) conditions.push(eq(transactions.categoryId, filters.categoryId));
     if (filters.accountId) conditions.push(eq(transactions.accountId, filters.accountId));
 

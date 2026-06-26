@@ -7,7 +7,7 @@ export class ListTransactionsDto {
 
   @IsOptional()
   @IsIn(['income', 'expense'])
-  type?: string;
+  type?: 'income' | 'expense';
 
   @IsOptional()
   @IsUUID()
