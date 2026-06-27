@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { eq, and, inArray } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { imports, transactions, categories, accounts } from '../db/schema';
 import { BankParserService, ParsedTransaction } from './bank-parser.service';
 
@@ -14,7 +16,7 @@ interface ConfirmTransaction extends ParsedTransaction {
 @Injectable()
 export class ImportsService {
   constructor(
-    @Inject(DRIZZLE) private readonly db: any,
+    @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly parser: BankParserService,
   ) {}
 

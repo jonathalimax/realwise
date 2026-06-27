@@ -4,7 +4,9 @@ import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { attachments } from '../db/schema';
 
 type Attachment = typeof attachments.$inferSelect;
@@ -15,7 +17,7 @@ export class StorageService {
   private readonly bucket: string;
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: any,
+    @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly config: ConfigService,
   ) {
     const endpoint = this.config.get<string>('MINIO_ENDPOINT')!;

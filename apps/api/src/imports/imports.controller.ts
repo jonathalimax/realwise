@@ -30,6 +30,6 @@ export class ImportsController {
     @Body() dto: ConfirmImportDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.service.confirm(importId, dto.transactions as any, user.clientId, user.sub);
+    return this.service.confirm(importId, dto.transactions, user.clientId, user.sub);
   }
 }

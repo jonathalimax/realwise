@@ -8,9 +8,6 @@ const today = new Date().toISOString().slice(0, 10);
 const mockBills = [
   { id: 'bill-1', userId: 'user-1', clientId: 'c1', name: 'Rent', amount: '1500.00', dueDate: today, status: 'pending' },
 ];
-const mockUsers = [
-  { id: 'user-1', email: 'user@example.com', clientId: 'c1' },
-];
 
 const mockDb = {
   select: jest.fn().mockReturnThis(),
@@ -41,23 +38,23 @@ describe('BillRemindersService', () => {
   it('groupBillsForUser categorises overdue bill correctly', () => {
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 3);
-    const overdueBill = { id: 'b1', name: 'Rent', amount: '1500', dueDate: pastDate.toISOString().slice(0, 10) };
-    const groups = service.groupBillsForUser([overdueBill as any]);
+    const overdueBill = { id: 'b1', name: 'Rent', amount: '1500', dueDate: pastDate.toISOString().slice(0, 10), status: 'pending', userId: 'user-1', clientId: 'c1' };
+    const groups = service.groupBillsForUser([overdueBill]);
     expect(groups.overdue).toHaveLength(1);
     expect(groups.overdue[0].daysOverdue).toBeGreaterThan(0);
   });
 
   it('groupBillsForUser categorises dueToday bill correctly', () => {
-    const bill = { id: 'b2', name: 'Netflix', amount: '39.90', dueDate: today };
-    const groups = service.groupBillsForUser([bill as any]);
+    const bill = { id: 'b2', name: 'Netflix', amount: '39.90', dueDate: today, status: 'pending', userId: 'user-1', clientId: 'c1' };
+    const groups = service.groupBillsForUser([bill]);
     expect(groups.dueToday).toHaveLength(1);
   });
 
   it('groupBillsForUser categorises dueSoon bill correctly', () => {
     const soon = new Date();
     soon.setDate(soon.getDate() + 2);
-    const bill = { id: 'b3', name: 'Gym', amount: '100', dueDate: soon.toISOString().slice(0, 10) };
-    const groups = service.groupBillsForUser([bill as any]);
+    const bill = { id: 'b3', name: 'Gym', amount: '100', dueDate: soon.toISOString().slice(0, 10), status: 'pending', userId: 'user-1', clientId: 'c1' };
+    const groups = service.groupBillsForUser([bill]);
     expect(groups.dueSoon).toHaveLength(1);
   });
 });

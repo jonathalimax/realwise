@@ -1,13 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { leads, purchases, coupons, importIssues } from '../db/schema';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 
 @Injectable()
 export class AdminService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) {}
+  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
   listLeads(): Promise<(typeof leads.$inferSelect)[]> {
     return this.db.select().from(leads).orderBy(desc(leads.createdAt));
@@ -30,7 +32,11 @@ export class AdminService {
   }
 
   async createCoupon(dto: CreateCouponDto): Promise<typeof coupons.$inferSelect> {
-    const rows = await this.db.insert(coupons).values(dto).returning();
+    const insert: typeof coupons.$inferInsert = {
+      ...dto,
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
+    };
+    const rows = await this.db.insert(coupons).values(insert).returning();
     return rows[0];
   }
 

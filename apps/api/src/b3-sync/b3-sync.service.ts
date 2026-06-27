@@ -2,8 +2,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { and, eq, inArray } from 'drizzle-orm';
 import axios from 'axios';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { investments } from '../db/schema';
+
+type Investment = typeof investments.$inferSelect;
 
 const BRAPI_BASE = 'https://brapi.dev/api';
 
@@ -12,7 +16,7 @@ export class B3SyncService {
   private readonly logger = new Logger(B3SyncService.name);
 
   constructor(
-    @Inject(DRIZZLE) private readonly db: any,
+    @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly config: ConfigService,
   ) {}
 
@@ -28,10 +32,10 @@ export class B3SyncService {
         ),
       );
 
-    const b3Investments = rows.filter((i: any) => i.ticker);
+    const b3Investments = (rows as Investment[]).filter((i) => i.ticker);
     if (b3Investments.length === 0) return { updated: 0 };
 
-    const tickers = [...new Set<string>(b3Investments.map((i: any) => i.ticker as string))];
+    const tickers = [...new Set<string>(b3Investments.map((i) => i.ticker as string))];
     const prices = await this.fetchPrices(tickers);
 
     let updated = 0;
