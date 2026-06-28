@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useMonth } from '@/contexts/MonthContext';
 import { computeNetSalary } from './rendaCalc.js';
+import { plannerResource } from '@/lib/api/resources/planner';
 
 export function countWeekdays(year, month) {
   let count = 0;
@@ -374,16 +373,15 @@ export default function usePlannerState() {
     }
   }, [accessLoading, ownerId]);
 
-  // ── Load from Firestore on mount ──────────────────────────────────────────
+  // ── Load the planner state on mount ───────────────────────────────────────
   useEffect(() => {
     if (!ownerId) return;
-    const plannerRef = doc(db, 'planner', ownerId);
-    getDoc(plannerRef)
-      .then(snap => {
-        if (snap.exists()) {
-          setState(migrateState(snap.data()));
+    plannerResource.get()
+      .then((data) => {
+        const saved = data?.state || data || {};
+        if (saved && Object.keys(saved).length > 0) {
+          setState(migrateState(saved));
         } else {
-          // If no doc exists, run migration on default state to get first version
           setState(migrateState({}));
         }
         hasLoadedRef.current = true;
@@ -395,13 +393,12 @@ export default function usePlannerState() {
       });
   }, [ownerId]);
 
-  // ── Debounced save to Firestore on every state change ─────────────────────
+  // ── Debounced save to API on every state change ───────────────────────────
   useEffect(() => {
     if (!ownerId || !hasLoadedRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      const plannerRef = doc(db, 'planner', ownerId);
-      setDoc(plannerRef, state).catch(() => {});
+      plannerResource.update({ state }).catch(() => {});
     }, 800);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);

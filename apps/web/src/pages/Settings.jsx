@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAccess } from '../contexts/AccessContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { auth } from '../firebase';
-import { deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import PageHeader from '../components/PageHeader';
+import { getSettingsProfile } from './settingsProfile';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { currentUser } = useAccess();
   const {
     language,
     billReminders,
@@ -17,30 +18,10 @@ export default function SettingsPage() {
     t
   } = useSettings();
 
-  const [currentUser, setCurrentUser] = useState(auth.currentUser);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false);
-
-  useEffect(() => {
-    return onAuthStateChanged(auth, setCurrentUser);
-  }, []);
+  const profile = useMemo(() => getSettingsProfile(currentUser), [currentUser]);
 
   const handleSignOut = async () => {
     await logoutAndRedirect();
-  };
-
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'DELETE') return;
-    setDeletingAccount(true);
-    try {
-      await deleteUser(auth.currentUser);
-    } catch (err) {
-      console.error('Error deleting account:', err);
-      setDeletingAccount(false);
-      setShowDeleteConfirm(false);
-      setDeleteConfirmText('');
-    }
   };
 
   return (
@@ -53,17 +34,17 @@ export default function SettingsPage() {
             {/* Profile */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center flex-shrink-0">
-                {currentUser?.photoURL ? (
-                  <img src={currentUser.photoURL} alt="" className="w-16 h-16 object-cover" />
+                {profile.photoUrl ? (
+                  <img src={profile.photoUrl} alt="" className="w-16 h-16 object-cover" />
                 ) : (
                   <span className="text-2xl font-bold text-violet-600 dark:text-violet-300">
-                    {currentUser?.displayName?.charAt(0)?.toUpperCase() || currentUser?.email?.charAt(0)?.toUpperCase() || '?'}
+                    {profile.initial}
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 dark:text-white truncate">{currentUser?.displayName || currentUser?.email?.split('@')[0] || '—'}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{currentUser?.email}</p>
+                <p className="font-bold text-gray-900 dark:text-white truncate">{profile.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{profile.email}</p>
               </div>
             </div>
 
@@ -161,8 +142,8 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* Logout + Delete */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:items-start">
+            {/* Logout */}
+            <div className="grid grid-cols-1 gap-4 sm:items-start">
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <button
                   onClick={handleSignOut}
@@ -173,53 +154,6 @@ export default function SettingsPage() {
                   </svg>
                   {language === 'pt' ? 'Sair da conta' : 'Sign out'}
                 </button>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-rose-200 dark:border-rose-800 overflow-hidden">
-                {!showDeleteConfirm ? (
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="w-full flex items-center gap-3 px-5 py-4 text-left text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    {language === 'pt' ? 'Excluir conta' : 'Delete account'}
-                  </button>
-                ) : (
-                  <div className="px-5 py-4 space-y-3">
-                    <p className="text-sm font-bold text-rose-600 dark:text-rose-400">
-                      {language === 'pt' ? 'Tem certeza? Esta ação é irreversível.' : 'Are you sure? This action is irreversible.'}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {language === 'pt' ? 'Digite DELETE para confirmar:' : 'Type DELETE to confirm:'}
-                    </p>
-                    <input
-                      type="text"
-                      value={deleteConfirmText}
-                      onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      placeholder="DELETE"
-                      className="w-full px-3 py-2 text-sm border border-rose-300 dark:border-rose-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleDeleteAccount}
-                        disabled={deleteConfirmText !== 'DELETE' || deletingAccount}
-                        className="flex-1 py-2 text-sm font-medium rounded-lg bg-rose-600 text-white disabled:opacity-40 hover:bg-rose-700 transition-colors"
-                      >
-                        {deletingAccount
-                          ? (language === 'pt' ? 'Excluindo...' : 'Deleting...')
-                          : (language === 'pt' ? 'Confirmar exclusão' : 'Confirm delete')}
-                      </button>
-                      <button
-                        onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
-                        className="flex-1 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        {language === 'pt' ? 'Cancelar' : 'Cancel'}
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
         </div>

@@ -30,6 +30,19 @@ function buildState(clientId: string, nonce: string): string {
   return Buffer.from(JSON.stringify({ payload, sig })).toString('base64url');
 }
 
+export function resolveClientIdForLogin(clientId: string | undefined, email: string | null | undefined): string {
+  if (clientId && clientId.trim()) {
+    return clientId.trim();
+  }
+
+  const localPart = email?.split('@')[0]?.trim();
+  if (localPart) {
+    return localPart;
+  }
+
+  throw new BadRequestException('Unable to resolve clientId for login');
+}
+
 function verifyState(state: string, cookieNonce: string): { clientId: string } {
   let parsed: { payload: string; sig: string };
   try {
@@ -77,7 +90,7 @@ export class AuthController {
   @Public()
   @Get('google')
   googleAuth(
-    @Query('clientId') clientId: string = 'app',
+    @Query('clientId') clientId = '',
     @Req() req: Request,
     @Res() res: Response,
     @Next() next: NextFunction,
@@ -107,15 +120,16 @@ export class AuthController {
       try {
         const cookieNonce = (req.cookies as Record<string, string>)?.oauth_state;
         const { clientId } = verifyState(state, cookieNonce);
+        const resolvedClientId = resolveClientIdForLogin(clientId, profile.email);
         res.clearCookie('oauth_state', { path: '/' });
         const user = await this.authService.findOrCreateUser({
           email: profile.email,
-          clientId,
+          clientId: resolvedClientId,
           name: profile.name,
         });
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
-        res.redirect(`${frontend}/${clientId}/dashboard`);
+        res.redirect(`${frontend}/${resolvedClientId}/dashboard`);
       } catch {
         res.redirect(`${frontend}/login?error=server`);
       }
@@ -127,7 +141,7 @@ export class AuthController {
   @Public()
   @Get('apple')
   appleAuth(
-    @Query('clientId') clientId: string = 'app',
+    @Query('clientId') clientId = '',
     @Req() req: Request,
     @Res() res: Response,
     @Next() next: NextFunction,
@@ -156,6 +170,7 @@ export class AuthController {
         const state = (req.body as Record<string, string>)?.state ?? '';
         const cookieNonce = (req.cookies as Record<string, string>)?.oauth_state;
         const { clientId } = verifyState(state, cookieNonce);
+        const resolvedClientId = resolveClientIdForLogin(clientId, profile.email);
         res.clearCookie('oauth_state', { path: '/' });
 
         if (!profile.email) {
@@ -165,14 +180,14 @@ export class AuthController {
 
         const user = await this.authService.findOrCreateUser({
           email: profile.email,
-          clientId,
+          clientId: resolvedClientId,
           name: profile.name,
           appleId: profile.appleId,
         });
 
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
-        res.redirect(`${frontend}/${clientId}/dashboard`);
+        res.redirect(`${frontend}/${resolvedClientId}/dashboard`);
       } catch {
         res.redirect(`${frontend}/login?error=server`);
       }
@@ -209,8 +224,17 @@ export class AuthController {
   // ─── Me ──────────────────────────────────────────────────────────────────────
 
   @Get('me')
-  me(@CurrentUser() user: JwtPayload): JwtPayload {
-    return user;
+  async me(@CurrentUser() user: JwtPayload) {
+    const currentUser = await this.authService.findById(user.sub);
+    return {
+      sub: user.sub,
+      uid: user.sub,
+      clientId: user.clientId,
+      role: user.role,
+      email: currentUser?.email ?? null,
+      name: currentUser?.name ?? null,
+      displayName: currentUser?.name ?? null,
+    };
   }
 
   // ─── Logout ──────────────────────────────────────────────────────────────────

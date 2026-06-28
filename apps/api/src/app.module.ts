@@ -19,6 +19,7 @@ import { GoalsModule } from './goals/goals.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { PlannerModule } from './planner/planner.module';
 import { UserSettingsModule } from './user-settings/user-settings.module';
+import { CategorizationRulesModule } from './categorization-rules/categorization-rules.module';
 
 // Feature parity modules (Plan 6)
 import { StorageModule } from './storage/storage.module';
@@ -61,6 +62,7 @@ import { AdminModule } from './admin/admin.module';
     InvestmentsModule,
     PlannerModule,
     UserSettingsModule,
+    CategorizationRulesModule,
     // Plan 6
     StorageModule,
     ImportsModule,

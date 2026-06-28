@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { db } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards } from '../contexts/CardsContext';
+import { transactionsResource } from '../lib/api/resources/transactions';
 
 export default function EditTransactionsModal({ isOpen, onClose, transactions, onSuccess }) {
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -36,8 +35,7 @@ export default function EditTransactionsModal({ isOpen, onClose, transactions, o
       }
 
       for (const transaction of transactions) {
-        const docRef = doc(db, 'transactions', transaction.id);
-        await updateDoc(docRef, updates);
+        await transactionsResource.update(transaction.id, updates);
       }
 
       onSuccess?.();

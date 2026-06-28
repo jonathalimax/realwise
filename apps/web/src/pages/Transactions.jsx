@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageHelp from '@/components/ui/PageHelp';
-import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
+import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
 import { XMarkIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 
@@ -17,8 +16,7 @@ export default function TransactionsPage() {
   const { selectedMonth, setSelectedMonth } = useMonth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [transactions, setTransactions] = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { transactions } = useTransactions({}, { enabled: Boolean(ownerId) });
 
   // Get highlight ID from URL params
   const highlightId = searchParams.get('highlight');
@@ -45,25 +43,6 @@ export default function TransactionsPage() {
   const [showUncategorized, setShowUncategorized] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  useEffect(() => {
-    if (!auth.currentUser || !ownerId) return;
-
-    const q = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTransactions(data);
-    });
-
-    return () => unsubscribe();
-  }, [refreshKey, ownerId]);
 
   const availableMonths = useMemo(() => {
     const months = new Set();
@@ -188,7 +167,7 @@ export default function TransactionsPage() {
     showUncategorized
   ].filter(Boolean).length;
 
-  const triggerRefresh = () => setRefreshKey(prev => prev + 1);
+  const triggerRefresh = () => {};
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">

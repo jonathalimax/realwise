@@ -10,4 +10,7 @@ export class UpsertPlannerDto {
 
   @IsOptional()
   allocations?: Record<string, unknown>;
+
+  @IsOptional()
+  state?: Record<string, unknown>;
 }

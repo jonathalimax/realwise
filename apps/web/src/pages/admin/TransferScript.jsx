@@ -1,8 +1,6 @@
 // src/pages/admin/TransferScript.jsx
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { adminDb, adminFunctions } from './AdminApp';
+import { adminResource } from '../../lib/api/resources/admin';
 
 const CLIENTS = [
   { id: 'jonathalimax',         projectId: 'realwise-jonathalimax' },
@@ -22,13 +20,19 @@ export default function TransferScript() {
 
   // Load active/paid leads
   useEffect(() => {
-    if (!adminDb) return;
-    const q = query(collection(adminDb, 'leads'), where('state', 'in', ['active', 'paid']));
-    return onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setLeads(docs);
-      if (docs.length > 0 && !selectedLead) setSelectedLead(docs[0]);
-    });
+    let active = true;
+    adminResource.listLeads()
+      .then((rows) => {
+        if (!active) return;
+        const docs = rows.filter((lead) => ['active', 'paid'].includes(lead.state || lead.status));
+        setLeads(docs);
+        if (docs.length > 0 && !selectedLead) setSelectedLead(docs[0]);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLeads([]);
+      });
+    return () => { active = false; };
   }, []);
 
   const clientEmail = selectedLead?.email ?? '';
@@ -57,8 +61,7 @@ export default function TransferScript() {
     setRunStatus('running');
     setRunResult(null);
     try {
-      const fn = httpsCallable(adminFunctions, 'transferClient');
-      const { data } = await fn({
+      const data = await adminResource.transferClient({
         clientId: selectedClient.id,
         clientEmail,
         billingAccount: billingAccount || null,

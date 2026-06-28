@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { collection, getDocs, query, where } from 'firebase/firestore';
 import { CDI_ANNUAL_RATE, useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
-import { db } from '../firebase';
+import { transactionsResource } from '../lib/api/resources/transactions';
 import { deleteInvestmentWithLinks } from '../services/linkedRecordDeletion';
 import CurrencyInput from '../components/ui/CurrencyInput';
 import PercentInput from '../components/ui/PercentInput';
@@ -144,8 +143,10 @@ export default function InvestmentForm() {
         pushUnique({ id: inv.transactionId });
       }
 
-      const snapshot = await getDocs(query(collection(db, 'transactions'), where('investmentId', '==', id)));
-      snapshot.docs.forEach((item) => pushUnique({ id: item.id, ...item.data() }));
+      const rows = await transactionsResource.list();
+      rows
+        .filter((item) => item.investmentId === id)
+        .forEach((item) => pushUnique(item));
       setLinkedTransactions(matches);
     };
 

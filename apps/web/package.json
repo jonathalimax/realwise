@@ -21,7 +21,6 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@realwise/types": "workspace:*",
     "autoprefixer": "^10.4.23",
-    "firebase": "^12.7.0",
     "framer-motion": "^12.23.26",
     "i18next": "^25.7.4",
     "lottie-react": "^2.4.1",

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, query, where, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { adminResource } from '../../lib/api/resources/admin';
 
-export default function TestimonialManagementPage({ db }) {
+export default function TestimonialManagementPage() {
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,21 +14,16 @@ export default function TestimonialManagementPage({ db }) {
   });
 
   const loadTestimonials = useCallback(async () => {
-    if (!db) return;
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'config', 'testimonials', 'reviews'),
-        where('active', '==', true)
-      );
-      const snapshot = await getDocs(q);
-      setTestimonials(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      const rows = await adminResource.listTestimonials();
+      setTestimonials(rows);
     } catch (err) {
       setError('Failed to load testimonials: ' + err.message);
     } finally {
       setLoading(false);
     }
-  }, [db]);
+  }, []);
 
   useEffect(() => {
     loadTestimonials();
@@ -42,14 +37,7 @@ export default function TestimonialManagementPage({ db }) {
 
     try {
       setError('');
-      await addDoc(
-        collection(db, 'config', 'testimonials', 'reviews'),
-        {
-          ...newTestimonial,
-          active: true,
-          createdAt: new Date(),
-        }
-      );
+      await adminResource.createTestimonial(newTestimonial);
       setNewTestimonial({ name: '', role: '', text: '', avatar: '👤', rating: 5 });
       await loadTestimonials();
     } catch (err) {
@@ -61,7 +49,7 @@ export default function TestimonialManagementPage({ db }) {
     if (window.confirm('Delete this testimonial?')) {
       try {
         setError('');
-        await deleteDoc(doc(db, 'config', 'testimonials', 'reviews', id));
+        await adminResource.removeTestimonial(id);
         await loadTestimonials();
       } catch (err) {
         setError('Failed to delete: ' + err.message);

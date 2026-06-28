@@ -1,19 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  getDoc,
-  serverTimestamp
-} from 'firebase/firestore';
 import { useAccess } from './AccessContext';
+import { requireOwnerId } from '../lib/auth/ownerSession';
+import { goalsResource } from '../lib/api/resources/goals';
 
 const GoalsContext = createContext();
 
@@ -58,57 +46,39 @@ export function GoalsProvider({ children }) {
     }
 
     setLoading(true);
-    const q = query(
-      collection(db, 'goals'),
-      where('userId', '==', ownerId) // Use ownerId instead of userId
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const goalsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        // Sort by createdAt
+    goalsResource.list()
+      .then((rows) => {
+        const goalsData = Array.isArray(rows) ? rows : [];
         goalsData.sort((a, b) => {
-          const dateA = a.createdAt?.toDate?.() || new Date(0);
-          const dateB = b.createdAt?.toDate?.() || new Date(0);
+          const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+          const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
           return dateB - dateA;
         });
         setGoals(goalsData);
         setLoading(false);
-      },
-      (err) => {
+      })
+      .catch((err) => {
         console.error('Goals query error:', err);
         setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+      });
   }, [ownerId]); // Use ownerId instead of userId
 
   const addGoal = async (goalData) => {
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
-      return null;
-    }
-
     try {
+      requireOwnerId(ownerId);
       const newGoal = {
-        userId: auth.currentUser.uid,
         name: goalData.name,
-        targetAmount: goalData.targetAmount,
-        currentAmount: 0,
+        targetAmount: String(goalData.targetAmount),
+        currentAmount: '0',
         icon: goalData.icon || 'other',
         color: goalData.color || 'blue',
         deadline: goalData.deadline || null,
         description: goalData.description || '',
-        createdAt: serverTimestamp(),
         completed: false
       };
-      const docRef = await addDoc(collection(db, 'goals'), newGoal);
-      return docRef.id;
+      const created = await goalsResource.create(newGoal);
+      setGoals((prev) => [created, ...prev]);
+      return created.id;
     } catch (error) {
       console.error('Error adding goal:', error);
       return null;
@@ -117,8 +87,13 @@ export function GoalsProvider({ children }) {
 
   const updateGoal = async (goalId, updates) => {
     try {
-      const goalRef = doc(db, 'goals', goalId);
-      await updateDoc(goalRef, updates);
+      const payload = {
+        ...updates,
+        ...(updates.targetAmount !== undefined ? { targetAmount: String(updates.targetAmount) } : {}),
+        ...(updates.currentAmount !== undefined ? { currentAmount: String(updates.currentAmount) } : {}),
+      };
+      const updated = await goalsResource.update(goalId, payload);
+      setGoals((prev) => prev.map((goal) => (goal.id === goalId ? updated : goal)));
       return true;
     } catch (error) {
       console.error('Error updating goal:', error);
@@ -128,7 +103,8 @@ export function GoalsProvider({ children }) {
 
   const deleteGoal = async (goalId) => {
     try {
-      await deleteDoc(doc(db, 'goals', goalId));
+      await goalsResource.remove(goalId);
+      setGoals((prev) => prev.filter((goal) => goal.id !== goalId));
       return true;
     } catch (error) {
       console.error('Error deleting goal:', error);
@@ -138,17 +114,15 @@ export function GoalsProvider({ children }) {
 
   const addAmountToGoal = async (goalId, amount) => {
     try {
-      // Fetch current goal directly from Firestore to avoid stale state
-      const goalDoc = await getDoc(doc(db, 'goals', goalId));
-      if (!goalDoc.exists()) {
-        console.error('[GoalsContext] Goal not found in Firestore:', goalId);
+      const goal = goals.find((item) => item.id === goalId) || await goalsResource.get(goalId);
+      if (!goal) {
+        console.error('[GoalsContext] Goal not found:', goalId);
         return false;
       }
 
-      const goal = { id: goalDoc.id, ...goalDoc.data() };
-      const previousAmount = goal.currentAmount || 0;
+      const previousAmount = Number(goal.currentAmount || 0);
       const newAmount = previousAmount + amount;
-      const completed = newAmount >= goal.targetAmount;
+      const completed = newAmount >= Number(goal.targetAmount || 0);
 
       const result = await updateGoal(goalId, {
         currentAmount: newAmount,

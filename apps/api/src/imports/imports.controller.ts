@@ -5,6 +5,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ImportsService } from './imports.service';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
+import { ReportImportIssueDto } from './dto/report-import-issue.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
@@ -31,5 +32,13 @@ export class ImportsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.confirm(importId, dto.transactions, user.clientId, user.sub);
+  }
+
+  @Post('report-issue')
+  reportIssue(
+    @Body() dto: ReportImportIssueDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.reportIssue(dto, user.clientId, user.sub);
   }
 }

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import PageHelp from '@/components/ui/PageHelp';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { analytics } from '../services/analyticsService';
-import { auth } from '../firebase';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import { AdjustmentsHorizontalIcon, MagnifyingGlassIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -150,6 +150,7 @@ export default function InvestmentsPage() {
     calculateProjectedValue,
   } = useInvestments();
   const { formatCurrency, t, language } = useSettings();
+  const { currentUser } = useAccess();
   const { getBankInfo } = useCards();
   const { state, update, poupancaValue, isLoading: plannerLoading } = usePlannerState();
 
@@ -159,9 +160,9 @@ export default function InvestmentsPage() {
 
   useEffect(() => {
     if (!loading && investments.length === 0) {
-      analytics.emptyStateVisited(auth.currentUser?.uid, { tab: 'investments' });
+      analytics.emptyStateVisited(currentUser?.uid ?? null, { tab: 'investments' });
     }
-  }, [loading, investments.length]);
+  }, [currentUser?.uid, loading, investments.length]);
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);

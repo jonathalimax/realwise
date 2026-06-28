@@ -1,14 +1,11 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
-import { db, auth, storage } from '../firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { ref, uploadBytes } from 'firebase/storage';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { parseFile, BANK_OPTIONS, detectBankFromFile, BANK_LABELS } from '../services/importers';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useGoals } from '../contexts/GoalsContext';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
+import { transactionsResource } from '../lib/api/resources/transactions';
 import { generateTransactionHash } from '../services/installments';
 import { detectDuplicatesWithAI } from '../services/aiCategorizationService';
 import { analytics } from '../services/analyticsService';
@@ -20,6 +17,7 @@ import ImportIssueReport from './ImportIssueReport';
 import ImportSwipeSheet from './ImportSwipeSheet';
 import PageHeader from './PageHeader';
 import { groupByDate } from '../utils/groupByDate';
+import { requireOwnerId } from '../lib/auth/ownerSession';
 
 function ModalWrapper({ embedded, isMobile, children }) {
   if (embedded) {
@@ -223,7 +221,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   };
 
   useEffect(() => {
-    if (isOpen && (ownerId || auth.currentUser?.uid)) {
+    if (isOpen && ownerId) {
       loadExistingHashes();
     }
   }, [isOpen, ownerId]);
@@ -243,15 +241,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
 
   const loadExistingHashes = async () => {
     try {
-      const userId = ownerId || auth.currentUser?.uid;
-      if (!userId) return;
-
-      const q = query(collection(db, 'transactions'), where('userId', '==', userId));
-      const snapshot = await getDocs(q);
+      requireOwnerId(ownerId);
+      const rows = await transactionsResource.list();
       const hashes = new Set();
 
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
+      rows.forEach((data) => {
         if (data.dedupHash) hashes.add(data.dedupHash);
         else if (data.hash) hashes.add(data.hash);
       });
@@ -290,7 +284,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     setLoading(true);
     setError('');
     try {
-      const userId = ownerId || auth.currentUser?.uid;
+      const userId = requireOwnerId(ownerId);
       const aiOptions = geminiApiKey ? { apiKey: geminiApiKey, categories } : {};
       if (pdfPassword) aiOptions.pdfPassword = pdfPassword;
       aiOptions.clientConfig = clientConfig;
@@ -349,16 +343,16 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const handleImport = async () => {
     setImporting(true);
     try {
+      const userId = requireOwnerId(ownerId);
       const toImport = transactions.filter(t => t.selected);
       for (const t of toImport) {
         const isInvestment = t.category === 'Investimentos' || t.category === 'Investments';
-        const txRef = await addDoc(collection(db, 'transactions'), {
-          userId: auth.currentUser.uid,
+        const tx = await transactionsResource.create({
+          userId,
           type: t.type,
           description: t.description,
           amount: t.amount,
           category: t.category,
-          createdAt: serverTimestamp(),
           date: t.date,
           imported: true,
           hash: t.hash,
@@ -403,7 +397,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
             platform: t.platform || null,
             coinName: t.coinName || null,
             fundName: t.fundName || null,
-            transactionId: txRef.id,
+            transactionId: tx?.id,
           }, false);
         }
       }

@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useCards } from '@/contexts/CardsContext';
+import useTransactions from '@/hooks/useTransactions';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatBRL } from './usePlannerState';
 import SpendingChart from '@/components/charts/SpendingChart';
@@ -35,6 +34,7 @@ export default function GastosTab({
   poupancaValue,
 }) {
   const { ownerId } = useAccess();
+  const { transactions: allTx, loading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const { categories } = useSettings();
   const { getPaymentMonthKey } = useCards();
   const {
@@ -48,19 +48,6 @@ export default function GastosTab({
   } = useBudget();
 
   const [activeTab, setActiveTab] = useState('tracking');
-  const [allTx, setAllTx] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!ownerId) return;
-    const q = query(collection(db, 'transactions'), where('userId', '==', ownerId));
-    const unsub = onSnapshot(q, snap => {
-      setAllTx(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
-  }, [ownerId]);
-
   const monthTx = useMemo(() => allTx.filter(tx => {
     if (tx.type !== 'expense' || tx.ignored) return false;
     const key = getPaymentMonthKey(tx.date, tx.bankId, tx.paymentMethod);

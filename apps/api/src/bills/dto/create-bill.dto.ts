@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { IsString, IsOptional, IsIn, IsDateString, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsDateString, IsUUID, IsBoolean, IsInt, Min } from 'class-validator';
 
 export class CreateBillDto {
   @IsString()
@@ -22,6 +22,54 @@ export class CreateBillDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsDateString()
+  recurrenceEndDate?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  notificationEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  notificationDaysBefore?: number;
+
+  @IsOptional()
+  @IsString()
+  linkedBankId?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  paidDate?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  postponeCount?: number;
+
+  @IsOptional()
+  @IsDateString()
+  nextReminderAt?: string | null;
 }
 
 export class UpdateBillDto extends PartialType(CreateBillDto) {}
+
+export class MarkBillPaidDto {
+  @IsOptional()
+  @IsDateString()
+  paidDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  virtualDueDate?: string;
+}

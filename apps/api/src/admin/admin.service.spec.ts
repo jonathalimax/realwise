@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { AdminService } from './admin.service';
 import { DRIZZLE } from '../db/drizzle.module';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const mockLead = { id: 'lead-1', email: 'test@example.com', name: 'Test', plan: 'basic', status: 'new', metadata: null, createdAt: new Date(), updatedAt: new Date(), firebaseDocId: null };
 const mockCoupon = { id: 'coup-1', code: 'SAVE20', discountType: 'percent', discountValue: '20', maxUses: 100, useCount: 0, expiresAt: null, createdAt: new Date(), updatedAt: new Date(), firebaseDocId: null };
@@ -23,7 +24,11 @@ describe('AdminService', () => {
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
-      providers: [AdminService, { provide: DRIZZLE, useValue: mockDb }],
+      providers: [
+        AdminService,
+        { provide: DRIZZLE, useValue: mockDb },
+        { provide: NotificationsService, useValue: { sendAdminEmail: jest.fn(), sendAbandonedCheckoutEmail: jest.fn() } },
+      ],
     }).compile();
     service = module.get(AdminService);
     jest.clearAllMocks();

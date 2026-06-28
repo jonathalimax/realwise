@@ -1,25 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
-import { db } from '@/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { calculatePrice, formatPrice } from '../../utils/couponValidator';
 
 const FALLBACK_PRICING = { basePriceCents: 23880, installments: 12, activeCouponCode: null };
 
 export default function FinalCTASection({ onBuy }) {
-  const [pricing, setPricing] = useState(FALLBACK_PRICING);
-
-  useEffect(() => {
-    if (!db) return;
-    const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
-      const data = snap.data();
-      if (data) setPricing(data);
-    });
-    return () => unsub();
-  }, []);
+  const [pricing] = useState(FALLBACK_PRICING);
 
   // Calculate installment price
   const INSTALLMENTS = 12;

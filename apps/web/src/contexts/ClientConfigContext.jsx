@@ -1,10 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { initializeFirebase } from '../firebase';
 import { extractClientId, fetchClientConfig } from '../config/clientConfig';
 import { devMark } from '../lib/devMarker';
 import { ClientConfigError } from '../components/ClientConfigError';
-import { getApps } from 'firebase/app';
-import { getAuth, signOut } from 'firebase/auth';
 
 const ClientConfigContext = createContext(null);
 
@@ -42,12 +39,6 @@ export function ClientConfigProvider({ children }) {
 
   const handleGoToLogin = useCallback(async () => {
     localStorage.removeItem('rw_last_client');
-    try {
-      // Sign out the shared Firebase session so SharedLogin doesn't
-      // auto-redirect back to this broken client.
-      const sharedApp = getApps().find(a => a.name === 'shared');
-      if (sharedApp) await signOut(getAuth(sharedApp));
-    } catch { /* ignore signOut errors */ }
     window.location.href = '/login';
   }, []);
 
@@ -59,25 +50,17 @@ export function ClientConfigProvider({ children }) {
     async function load() {
       try {
         devMark('ClientConfig: load() start');
-        // In DEV, fetch /clients/app.json (same as SharedLogin) instead of
-        // reading .env.development. This guarantees the projectId matches the
-        // 'shared' Firebase app already initialized by SharedLogin, so we
-        // reuse its Auth instance and stay signed in.
         let cfg;
-        let appName;
         if (import.meta.env.DEV) {
           const clientEnv = import.meta.env.VITE_CLIENT_ENV || 'app';
           cfg = await fetchClientConfig(clientEnv, controller.signal);
-          appName = 'shared';
         } else {
           const clientId = extractClientId(window.location.hostname)
             || window.location.pathname.split('/').filter(Boolean)[0];
           if (!clientId) return;
           cfg = await fetchClientConfig(clientId, controller.signal);
-          appName = clientId;
         }
-        await initializeFirebase(cfg.firebase, appName);
-        devMark('ClientConfig: initialized');
+        devMark('ClientConfig: loaded');
         if (isMounted.current) {
           setConfig(cfg);
           setStatus('ready');

@@ -10,6 +10,7 @@ export const planner = pgTable(
     salaryGross: numeric('salary_gross', { precision: 12, scale: 2 }),
     deductions: jsonb('deductions'),
     allocations: jsonb('allocations'),
+    state: jsonb('state'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

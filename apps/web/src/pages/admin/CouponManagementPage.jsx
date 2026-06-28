@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { httpsCallable } from 'firebase/functions';
+import { couponsResource } from '../../lib/api/resources/coupons';
 
-export default function CouponManagementPage({ functions }) {
+export default function CouponManagementPage() {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -10,14 +10,14 @@ export default function CouponManagementPage({ functions }) {
   const loadCoupons = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await httpsCallable(functions, 'listCoupons')({});
-      setCoupons(result.data.coupons || []);
+      const rows = await couponsResource.list();
+      setCoupons(rows);
     } catch (err) {
       setError('Failed to load coupons: ' + err.message);
     } finally {
       setLoading(false);
     }
-  }, [functions]);
+  }, []);
 
   useEffect(() => {
     loadCoupons();
@@ -31,49 +31,56 @@ export default function CouponManagementPage({ functions }) {
 
     try {
       setError('');
-      await httpsCallable(functions, 'setCoupon')({
+      await couponsResource.create({
         code: newCoupon.code.toUpperCase(),
-        discountPercent: parseInt(newCoupon.discountPercent, 10),
-        description: newCoupon.description,
+        discountType: 'percentage',
+        discountValue: parseInt(newCoupon.discountPercent, 10),
+        enabled: true,
       });
       setNewCoupon({ code: '', discountPercent: '', description: '' });
       await loadCoupons();
     } catch (err) {
       setError('Failed to create coupon: ' + err.message);
     }
-  }, [newCoupon, functions, loadCoupons]);
+  }, [newCoupon, loadCoupons]);
 
   const handleActivateCoupon = useCallback(async (code) => {
     try {
       setError('');
-      await httpsCallable(functions, 'activateCoupon')({ code });
+      const coupon = coupons.find((item) => item.code === code);
+      if (coupon?.id) {
+        await couponsResource.update(coupon.id, { enabled: true });
+      }
       await loadCoupons();
     } catch (err) {
       setError('Failed to activate coupon: ' + err.message);
     }
-  }, [functions, loadCoupons]);
+  }, [coupons, loadCoupons]);
 
   const handleDeactivateAll = useCallback(async () => {
     try {
       setError('');
-      await httpsCallable(functions, 'deactivateAllCoupons')({});
+      await Promise.all(coupons.map((coupon) => couponsResource.update(coupon.id, { enabled: false })));
       await loadCoupons();
     } catch (err) {
       setError('Failed to deactivate: ' + err.message);
     }
-  }, [functions, loadCoupons]);
+  }, [coupons, loadCoupons]);
 
   const handleDeleteCoupon = useCallback(async (code) => {
     if (window.confirm(`Delete coupon ${code}?`)) {
       try {
         setError('');
-        await httpsCallable(functions, 'deleteCoupon')({ code });
+        const coupon = coupons.find((item) => item.code === code);
+        if (coupon?.id) {
+          await couponsResource.remove(coupon.id);
+        }
         await loadCoupons();
       } catch (err) {
         setError('Failed to delete coupon: ' + err.message);
       }
     }
-  }, [functions, loadCoupons]);
+  }, [coupons, loadCoupons]);
 
   return (
     <div className="p-6 max-w-2xl">
@@ -127,7 +134,7 @@ export default function CouponManagementPage({ functions }) {
       <div className="space-y-2">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-white">Active Coupons</h2>
-          {coupons.some((c) => c.active) && (
+          {coupons.some((c) => c.enabled) && (
             <button
               onClick={handleDeactivateAll}
               className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
@@ -145,7 +152,7 @@ export default function CouponManagementPage({ functions }) {
               <div
                 key={coupon.code}
                 className={`p-4 rounded-lg border ${
-                  coupon.active
+                  coupon.enabled
                     ? 'bg-gray-800 border-violet-700'
                     : 'bg-gray-900 border-gray-700'
                 }`}
@@ -154,8 +161,8 @@ export default function CouponManagementPage({ functions }) {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-white">{coupon.code}</span>
-                      <span className="text-sm font-bold text-rose-400">{coupon.discountPercent}% OFF</span>
-                      {coupon.active && (
+                      <span className="text-sm font-bold text-rose-400">{coupon.discountValue}% OFF</span>
+                      {coupon.enabled && (
                         <span className="text-xs bg-emerald-600 text-white px-2 py-1 rounded">ACTIVE</span>
                       )}
                     </div>
@@ -164,7 +171,7 @@ export default function CouponManagementPage({ functions }) {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    {!coupon.active && (
+                    {!coupon.enabled && (
                       <button
                         onClick={() => handleActivateCoupon(coupon.code)}
                         className="text-xs bg-violet-600 hover:bg-violet-700 text-white px-3 py-1 rounded"

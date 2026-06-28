@@ -12,6 +12,15 @@ type Budget = typeof budgets.$inferSelect;
 export class BudgetsService {
   constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
+  private mapBudgetDto(dto: CreateBudgetDto | UpdateBudgetDto) {
+    return {
+      ...dto,
+      amount: dto.amount !== undefined ? String(dto.amount) : undefined,
+      totalBudget: dto.totalBudget !== undefined ? String(dto.totalBudget) : undefined,
+      categoryBudgets: dto.categoryBudgets ?? undefined,
+    };
+  }
+
   findAll(clientId: string, userId: string): Promise<Budget[]> {
     return this.db.select().from(budgets).where(and(eq(budgets.clientId, clientId), eq(budgets.userId, userId)));
   }
@@ -26,7 +35,7 @@ export class BudgetsService {
   }
 
   async create(dto: CreateBudgetDto, clientId: string, userId: string): Promise<Budget> {
-    const rows = await this.db.insert(budgets).values({ ...dto, clientId, userId }).returning();
+    const rows = await this.db.insert(budgets).values({ ...this.mapBudgetDto(dto), clientId, userId }).returning();
     return rows[0];
   }
 
@@ -34,7 +43,7 @@ export class BudgetsService {
     await this.findOne(id, clientId, userId);
     const rows = await this.db
       .update(budgets)
-      .set({ ...dto, updatedAt: new Date() })
+      .set({ ...this.mapBudgetDto(dto), updatedAt: new Date() })
       .where(and(eq(budgets.id, id), eq(budgets.clientId, clientId), eq(budgets.userId, userId)))
       .returning();
     return rows[0];

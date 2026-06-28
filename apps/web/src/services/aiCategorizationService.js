@@ -8,8 +8,6 @@
  * - No cost, no credit card required
  */
 
-import { db } from '../firebase';
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { analytics } from './analyticsService';
 
 // Gemini API configuration
@@ -26,6 +24,10 @@ function getTodayKey() {
   return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 }
 
+function getQuotaStorageKey(userId) {
+  return `ai_quota_${userId}`;
+}
+
 /**
  * Check if we still have free quota available
  * @param {string} userId - User ID
@@ -35,17 +37,14 @@ export async function checkAIQuota(userId) {
   if (!userId) return { available: false, used: 0, remaining: 0 };
 
   try {
-    const quotaRef = doc(db, 'aiQuota', userId);
-    const quotaDoc = await getDoc(quotaRef);
-
-    if (!quotaDoc.exists()) {
+    const raw = localStorage.getItem(getQuotaStorageKey(userId));
+    if (!raw) {
       return { available: true, used: 0, remaining: DAILY_FREE_LIMIT };
     }
 
-    const data = quotaDoc.data();
+    const data = JSON.parse(raw);
     const todayKey = getTodayKey();
 
-    // Reset if it's a new day
     if (data.date !== todayKey) {
       return { available: true, used: 0, remaining: DAILY_FREE_LIMIT };
     }
@@ -72,24 +71,22 @@ async function incrementUsage(userId) {
   if (!userId) return;
 
   try {
-    const quotaRef = doc(db, 'aiQuota', userId);
     const todayKey = getTodayKey();
-    const quotaDoc = await getDoc(quotaRef);
+    const raw = localStorage.getItem(getQuotaStorageKey(userId));
+    const current = raw ? JSON.parse(raw) : null;
 
-    if (!quotaDoc.exists() || quotaDoc.data().date !== todayKey) {
-      // New day or first time - reset counter
-      await setDoc(quotaRef, {
-        userId,
+    if (!current || current.date !== todayKey) {
+      localStorage.setItem(getQuotaStorageKey(userId), JSON.stringify({
         date: todayKey,
         count: 1,
-        updatedAt: serverTimestamp()
-      });
+        updatedAt: new Date().toISOString(),
+      }));
     } else {
-      // Same day - increment
-      await updateDoc(quotaRef, {
-        count: increment(1),
-        updatedAt: serverTimestamp()
-      });
+      localStorage.setItem(getQuotaStorageKey(userId), JSON.stringify({
+        date: todayKey,
+        count: (current.count || 0) + 1,
+        updatedAt: new Date().toISOString(),
+      }));
     }
   } catch (error) {
     console.error('Error incrementing AI usage:', error);

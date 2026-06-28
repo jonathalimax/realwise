@@ -1,9 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
-import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
 
 const LanguageContext = createContext();
 
@@ -22,24 +20,6 @@ function getInitialLanguage() {
 
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState(getInitialLanguage);
-  const [cmsContent, setCmsContent] = useState({});
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Fetch CMS content
-    const fetchCMS = async () => {
-      try {
-        const contentDoc = await getDoc(doc(db, 'cms', 'content'));
-        if (contentDoc.exists()) {
-          setCmsContent(contentDoc.data());
-        }
-      } catch (error) {
-        console.error('Error fetching CMS content:', error);
-      }
-      setLoading(false);
-    };
-    fetchCMS();
-  }, []);
 
   const toggleLanguage = () => {
     const newLang = language === 'en' ? 'pt' : 'en';
@@ -47,22 +27,13 @@ export function LanguageProvider({ children }) {
     localStorage.setItem('language', newLang);
   };
 
-  // Translation function that checks CMS first, then falls back to static translations
+  // Static translation lookup for the marketing site.
   const t = (key) => {
-    // Convert key format: hero.badge -> hero_badge
-    const cmsKey = key.replace(/\./g, '_') + '_' + language;
-
-    // Check CMS content first
-    if (cmsContent[cmsKey] && cmsContent[cmsKey].trim() !== '') {
-      return cmsContent[cmsKey];
-    }
-
-    // Fall back to static translations
     return translations[language]?.[key] || key;
   };
 
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, t, loading }}>
+    <LanguageContext.Provider value={{ language, toggleLanguage, t, loading: false }}>
       {children}
     </LanguageContext.Provider>
   );

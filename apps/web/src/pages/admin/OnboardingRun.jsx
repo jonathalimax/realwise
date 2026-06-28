@@ -1,11 +1,7 @@
 // src/pages/admin/OnboardingRun.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import {
-  doc, onSnapshot, collection,
-  query, orderBy
-} from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { adminResource } from '../../lib/api/resources/admin';
 
 const LEVEL_STYLE = {
   info:    { line: 'text-gray-300', msg: 'text-gray-200' },
@@ -21,7 +17,7 @@ const STATUS_BADGE = {
   failed:  'bg-red-900 text-red-300',
 };
 
-export default function OnboardingRun({ db, functions }) {
+export default function OnboardingRun() {
   const { runId } = useParams();
   const location = useLocation();
   const email = location.state?.email || new URLSearchParams(location.search).get('email') || '';
@@ -33,22 +29,30 @@ export default function OnboardingRun({ db, functions }) {
   const [copied, setCopied] = useState(false);
   const terminalRef = useRef(null);
 
-  // Run doc is created by the Cloud Function — client only reads
-
   useEffect(() => {
     if (!runId) return;
-    return onSnapshot(doc(db, 'onboardingRuns', runId), snap => {
-      if (snap.exists()) setRunStatus(snap.data().status || 'queued');
-    });
-  }, [db, runId]);
-
-  useEffect(() => {
-    if (!runId) return;
-    return onSnapshot(
-      query(collection(db, 'onboardingRuns', runId, 'logs'), orderBy('ts', 'asc')),
-      snap => setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
-  }, [db, runId]);
+    let active = true;
+    const load = async () => {
+      try {
+        const [run, runLogs] = await Promise.all([
+          adminResource.getOnboardingRun(runId),
+          adminResource.listOnboardingRunLogs(runId),
+        ]);
+        if (!active) return;
+        if (run?.status) setRunStatus(run.status);
+        setLogs(runLogs || []);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message);
+      }
+    };
+    load();
+    const interval = setInterval(load, 2500);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [runId]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -61,7 +65,7 @@ export default function OnboardingRun({ db, functions }) {
     setStarting(true);
     setError('');
     try {
-      await httpsCallable(functions, 'onboardUser')({ email, runId });
+      await adminResource.startOnboardingRun({ email, runId });
     } catch (err) {
       setError(err.message);
     } finally {

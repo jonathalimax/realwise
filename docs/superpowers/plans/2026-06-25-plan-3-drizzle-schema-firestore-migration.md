@@ -1772,7 +1772,7 @@ git commit -m "feat: add Firestore → PostgreSQL migration script"
 
 This task verifies the complete migration pipeline against real data.
 
-- [ ] **Step 1: Copy service account credentials**
+- [x] **Step 1: Copy service account credentials**
 
 Place the jonathalimax Firebase service account JSON at:
 ```
@@ -1786,7 +1786,7 @@ infrastructure/migration/credentials/admin.json
 
 These files are gitignored. Download them from Firebase Console → Project Settings → Service Accounts → Generate New Private Key.
 
-- [ ] **Step 2: Create infrastructure/migration/.env**
+- [x] **Step 2: Create infrastructure/migration/.env**
 
 ```bash
 DATABASE_URL=postgres://postgres:dev@localhost:5432/realwise
@@ -1795,7 +1795,7 @@ DATABASE_SSL=false
 
 Point at your **staging** DB first. Never run against production without a backup.
 
-- [ ] **Step 3: Run the full migration**
+- [x] **Step 3: Run the full migration**
 
 ```bash
 pnpm --filter @realwise/api migrate:firestore
@@ -1803,7 +1803,7 @@ pnpm --filter @realwise/api migrate:firestore
 
 Expected: summary table printed with 0 errors. All collection rows show non-zero `attempted` counts.
 
-- [ ] **Step 4: Verify idempotency — run again**
+- [x] **Step 4: Verify idempotency — run again**
 
 ```bash
 pnpm --filter @realwise/api migrate:firestore
@@ -1811,7 +1811,7 @@ pnpm --filter @realwise/api migrate:firestore
 
 Expected: all `inserted` counts are 0 (all rows already exist, only updates). 0 errors.
 
-- [ ] **Step 5: Run the unit tests one final time**
+- [x] **Step 5: Run the unit tests one final time**
 
 ```bash
 npx vitest run apps/api/src/
@@ -1819,7 +1819,7 @@ npx vitest run apps/api/src/
 
 Expected: all tests pass.
 
-- [ ] **Step 6: Final commit**
+- [x] **Step 6: Final commit**
 
 ```bash
 git add infrastructure/migration/.env.example

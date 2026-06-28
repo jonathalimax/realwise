@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useCards } from '@/contexts/CardsContext';
+import { plannerResource } from '@/lib/api/resources/planner';
+import { transactionsResource } from '@/lib/api/resources/transactions';
 
 /**
  * Builds the onboarding profile by reading live app state.
@@ -19,20 +19,13 @@ export function useOnboardingProfile() {
   useEffect(() => {
     if (!ownerId) return;
 
-    const txQuery = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId),
-      limit(1),
-    );
-
     Promise.all([
-      getDocs(txQuery),
-      getDocs(query(collection(db, 'planner'), where('__name__', '==', ownerId))),
+      transactionsResource.list({ limit: 1 }),
+      plannerResource.get(),
     ])
-      .then(([txSnap, plannerSnap]) => {
-        setHasTransaction(!txSnap.empty);
-        const plannerData = plannerSnap.docs[0]?.data();
-        setHasRenda((plannerData?.salarioBruto ?? 0) > 0);
+      .then(([transactions, plannerData]) => {
+        setHasTransaction(Array.isArray(transactions) && transactions.length > 0);
+        setHasRenda((plannerData?.salaryGross ?? plannerData?.salarioBruto ?? 0) > 0);
       })
       .catch(() => {});
   }, [ownerId]);

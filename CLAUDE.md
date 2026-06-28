@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Realwise** is a multi-client personal finance SaaS PWA built with React 19, Vite, and Tailwind CSS v4. One codebase and one Firebase Hosting deployment (`realwise.com.br`) serves many clients — each with their own isolated Firebase project (Auth + Firestore) and per-client feature flags.
+**Realwise** is a multi-client personal finance SaaS app built with React 19, Vite, Tailwind CSS v4, and a NestJS API. The browser apps talk to the API with cookie auth; Firebase browser bootstrap is no longer the active architecture.
 
 - URL pattern: `realwise.com.br/{clientId}/dashboard` (path-based routing — no subdomains)
 - Client config is fetched at runtime from `public/clients/{clientId}.json`
-- Firebase is initialized lazily (not at module load time)
+- `apps/web` is the customer app, `apps/admin` is the standalone admin SPA, and `apps/api` serves both
 
 ## Commands
 
@@ -20,14 +20,6 @@ npm run preview  # Preview production build
 npx vitest run src/  # Run unit tests (pure functions only)
 ```
 
-### Firebase Functions (in `/functions`)
-
-```bash
-cd functions && npm install
-firebase deploy --only functions    # Deploy cloud functions
-firebase functions:config:set ...   # Set config values
-```
-
 ### Local tenant testing
 
 - Dev server runs at `http://localhost:5173` (uses Vite env vars — no real tenant)
@@ -37,24 +29,24 @@ firebase functions:config:set ...   # Set config values
 
 1. Create their Firebase project
 2. Copy `public/clients/_template.json` → `public/clients/{clientId}.json`
-3. Fill in Firebase credentials and enable desired feature flags
-4. Deploy: `firebase deploy --only hosting`
+3. Fill in client config and enable desired feature flags
+4. Deploy the apps/API with the repo's current deployment workflow
 
 ## Architecture
 
-See **README.md** for an end-to-end diagram (browser → hosting → per-client Firebase → Cloud Functions → Stripe/Mercado Pago/email).
+See **README.md** for the current architecture overview.
 
 ### Multi-Client Routing
 
 - `src/config/clientConfig.js` — `extractClientId(hostname)` for subdomains (`jonathalimax.realwise.com.br` → `jonathalimax`); pathname fallback uses first segment (`/jonathalimax/dashboard`)
-- `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json`, calls `initializeFirebase()`, renders spinner until ready. In **DEV**, loads `app` client config so Firebase matches SharedLogin
-- `src/firebase.js` — exports live bindings (`auth`, `db`, `storage`, `functions`) initialized by `ClientConfigContext`
+- `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json` and loads client config
+- `src/firebase.js` — removed
 - `src/App.jsx` — sets `BrowserRouter basename="/{clientId}"` so all internal routes resolve correctly
 
 ### Backend split
 
-- **Tenant data** lives in **each client’s Firebase project** (Auth + Firestore + Storage).
-- **Cloud Functions** (`functions/index.js`) are usually deployed to a **central** project: Stripe/Mercado Pago, import processor, B3 sync, admin, `getCustomToken`, etc. Optional **`functions/clientIndex.js`** deploy path (`scripts/deploy-client-functions.sh`) exposes only `scheduledBillReminders` to a client project without coupling unrelated secrets.
+- Tenant data lives behind the API and shared database/storage services.
+- Firebase runtime functions and browser SDK bootstrapping have been retired from the active app path.
 
 ### Feature Flags
 
@@ -74,7 +66,7 @@ Usage: `const hasX = useFeature('x')` from `ClientConfigContext`.
 
 | Service | Used for |
 |---------|-----------|
-| Firebase Auth / Firestore / Storage | Core app |
+| API cookies / database / object storage | Core app |
 | SMTP (secrets `EMAIL_*`) | Bill reminders, purchase/admin/import emails |
 | Stripe (`createCheckoutSession`, `stripeWebhook`, `createDiscountCheckout`) | Checkout, webhook, admin discount links |
 | Mercado Pago (`createPayment`, `processPayment`, `mercadoPagoWebhook`) | Alt. payment path; `functions.config().mercadopago` |
@@ -157,10 +149,7 @@ Vitest in `node` environment — only pure functions (no Firebase, no React). Te
 Frontend (`.env`) — only used in dev. Production uses runtime config from `public/clients/{id}.json`.
 - `VITE_FIREBASE_*` — Firebase configuration (dev only)
 
-Functions — secrets & config:
-- `EMAIL_USER` / `EMAIL_PASSWORD` / `EMAIL_HOST` / `EMAIL_PORT` — SMTP (Umbler defaults). Bill reminder links use the **recipient** email local-part as `clientId` in URLs where applicable.
-- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` — Stripe (`defineSecret` in discount/checkout modules; legacy `functions.config().stripe` may exist in older deploys)
-- `mercadopago.access_token`, `mercadopago.public_key` — Mercado Pago (`functions.config().mercadopago`)
+Backend runtime env vars live in the API service. Check `apps/api/.env` and the Nest modules for the current contract.
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands

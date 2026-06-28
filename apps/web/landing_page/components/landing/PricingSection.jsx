@@ -4,10 +4,8 @@ import { motion } from 'framer-motion';
 import { Check, ArrowRight, Lock, Shield, Smartphone, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
-import { db } from '@/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 import CouponInput from './CouponInput';
-import { calculatePrice, calculateInstallment, formatPrice } from '../../utils/couponValidator';
+import { calculatePrice, calculateInstallment } from '../../utils/couponValidator';
 
 const included = [
   'Acesso vitalício',
@@ -31,18 +29,8 @@ function fmt(cents) {
 }
 
 export default function PricingSection({ onBuy, couponCode = '' }) {
-  const [pricing, setPricing] = useState(FALLBACK_PRICING);
-  const [activeCoupon, setActiveCoupon] = useState(null);
+  const [pricing] = useState(FALLBACK_PRICING);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
-
-  useEffect(() => {
-    if (!db) return;
-    const unsub = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
-      const data = snap.data();
-      if (data) setPricing(data);
-    });
-    return () => unsub();
-  }, []);
 
   // If couponCode is passed via URL, use it
   useEffect(() => {

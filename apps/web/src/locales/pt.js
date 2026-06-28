@@ -104,7 +104,7 @@ export default {
     noResults: 'Nenhuma transação encontrada',
     tryDifferentSearch: 'Tente um termo de busca diferente',
     errorLoading: 'Erro ao carregar transações',
-    errorHint: 'Se você vir um erro de índice do Firestore, clique no link no console para criar o índice necessário.',
+    errorHint: 'Se você vir um erro de índice do banco de dados, clique no link no console para criar o índice necessário.',
   },
 
   // Charts

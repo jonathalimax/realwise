@@ -1,6 +1,6 @@
 // src/pages/admin/EmailModal.jsx
 import { useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
+import { adminResource } from '../../lib/api/resources/admin';
 
 const TEMPLATES = [
   { id: 'welcome', label: 'Bem-vindo', fields: ['name'] },
@@ -8,7 +8,7 @@ const TEMPLATES = [
   { id: 'accept_migration', label: 'Aceite da Migração', fields: ['name', 'migrationUrl'] },
 ];
 
-export default function EmailModal({ user, functions, onClose }) {
+export default function EmailModal({ user, onClose }) {
   const [template, setTemplate] = useState(TEMPLATES[0].id);
   const [fields, setFields] = useState({ name: user?.name || '', loginUrl: '', migrationUrl: '' });
   const [status, setStatus] = useState('idle'); // idle | sending | sent | error
@@ -20,8 +20,7 @@ export default function EmailModal({ user, functions, onClose }) {
     setStatus('sending');
     setErrorMsg('');
     try {
-      const sendAdminEmail = httpsCallable(functions, 'sendAdminEmail');
-      await sendAdminEmail({ to: user.email, template, fields });
+      await adminResource.sendAdminEmail({ to: user.email, template, fields });
       setStatus('sent');
     } catch (err) {
       setErrorMsg(err.message);

@@ -122,4 +122,28 @@ describe('AuthService', () => {
       expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({ refreshTokenHash: null }));
     });
   });
+
+  describe('findById', () => {
+    it('returns the matching user when present', async () => {
+      mockDb.select.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([fakeUser]),
+        }),
+      });
+
+      const result = await service.findById(fakeUser.id);
+      expect(result).toEqual(fakeUser);
+    });
+
+    it('returns null when the user does not exist', async () => {
+      mockDb.select.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([]),
+        }),
+      });
+
+      const result = await service.findById(fakeUser.id);
+      expect(result).toBeNull();
+    });
+  });
 });

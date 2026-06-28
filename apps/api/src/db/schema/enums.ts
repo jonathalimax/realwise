@@ -33,4 +33,8 @@ export const investmentTypeEnum = pgEnum('investment_type', [
   'fixed',
   'crypto',
   'other',
+  'fixed_income',
+  'stocks',
+  'funds',
+  'real_estate',
 ]);

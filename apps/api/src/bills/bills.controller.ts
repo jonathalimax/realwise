@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { BillsService } from './bills.service';
-import { CreateBillDto, UpdateBillDto } from './dto/create-bill.dto';
+import { CreateBillDto, UpdateBillDto, MarkBillPaidDto } from './dto/create-bill.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
@@ -29,8 +29,8 @@ export class BillsController {
   }
 
   @Patch(':id/mark-paid')
-  markPaid(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.service.markPaid(id, user.clientId, user.sub);
+  markPaid(@Param('id') id: string, @Body() dto: MarkBillPaidDto, @CurrentUser() user: JwtPayload) {
+    return this.service.markPaid(id, dto, user.clientId, user.sub);
   }
 
   @Delete(':id')

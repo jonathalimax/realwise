@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, numeric, timestamp, boolean, integer } from 'drizzle-orm/pg-core';
 import { accountTypeEnum } from './enums';
 import { users } from './users';
 
@@ -9,6 +9,12 @@ export const accounts = pgTable('accounts', {
   firebaseDocId: varchar('firebase_doc_id').unique(),
   name: varchar('name').notNull(),
   type: accountTypeEnum('type'),
+  bankId: varchar('bank_id'),
+  cardName: varchar('card_name'),
+  customBankName: varchar('custom_bank_name'),
+  hasCredit: boolean('has_credit').default(false),
+  closingDay: integer('closing_day'),
+  paymentDay: integer('payment_day'),
   color: varchar('color'),
   icon: varchar('icon'),
   balance: numeric('balance', { precision: 12, scale: 2 }).default('0'),

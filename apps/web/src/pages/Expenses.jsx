@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
+import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
 import TransactionModal from '../components/TransactionModal';
 import PageHeader from '../components/PageHeader';
@@ -17,9 +16,8 @@ export default function ExpensesPage() {
   const { ownerId, canWrite } = useAccess();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
   const { selectedMonth } = useMonth();
+  const { transactions } = useTransactions({ type: 'expense' }, { enabled: Boolean(ownerId) });
 
-  const [transactions, setTransactions] = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState(() => sessionStorage.getItem('expenses_viewMode') ?? 'payment');
   const [selectedBankFilter, setSelectedBankFilter] = useState(() => sessionStorage.getItem('expenses_bankFilter') ?? 'all');
   const [selectedPaymentMethodFilter, setSelectedPaymentMethodFilter] = useState(() => sessionStorage.getItem('expenses_paymentMethodFilter') ?? 'all');
@@ -39,27 +37,6 @@ export default function ExpensesPage() {
   const handleSetSortOrder = (v) => { sessionStorage.setItem('expenses_sortOrder', v); setSortOrder(v); };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  useEffect(() => {
-    if (!auth.currentUser || !ownerId) return;
-
-    const q = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId),
-      where('type', '==', 'expense')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTransactions(data);
-    });
-
-    return () => unsubscribe();
-  }, [refreshKey, ownerId]);
-
 
   const monthlyTransactions = useMemo(() => {
     if (!selectedMonth) return transactions;
@@ -148,7 +125,7 @@ export default function ExpensesPage() {
     selectedCategoryFilter !== 'all'
   ].filter(Boolean).length;
 
-  const triggerRefresh = () => setRefreshKey(prev => prev + 1);
+  const triggerRefresh = () => {};
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat(locale, {

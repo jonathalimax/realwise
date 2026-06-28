@@ -104,7 +104,7 @@ export default {
     noResults: 'No transactions found',
     tryDifferentSearch: 'Try a different search term',
     errorLoading: 'Error loading transactions',
-    errorHint: 'If you see a Firestore index error, click the link in the console to create the required index.',
+    errorHint: 'If you see a database index error, click the link in the console to create the required index.',
   },
 
   // Charts

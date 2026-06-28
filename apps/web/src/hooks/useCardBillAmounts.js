@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
+import {
+  subscribeTransactionsChanged,
+  transactionsResource,
+} from '../lib/api/resources/transactions';
 
 /**
  * Computes invoice totals for credit card bills by summing credit transactions
@@ -54,73 +56,48 @@ export default function useCardBillAmounts(bills, selectedMonth) {
   useEffect(() => {
     if (!ownerId || !selectedMonth || allBankIds.length === 0) {
       setAmounts(new Map());
-      batchResultsRef.current = new Map();
       return;
     }
 
-    // Firestore 'in' queries support max 30 values — batch if needed
-    const batches = [];
-    for (let i = 0; i < allBankIds.length; i += 30) {
-      batches.push(allBankIds.slice(i, i + 30));
-    }
+    let active = true;
 
-    batchResultsRef.current = new Map();
+    const load = async () => {
+      try {
+        const txs = await transactionsResource.list({ type: 'expense' });
+        if (!active) return;
 
-    const unsubscribes = batches.map((batch, batchIndex) => {
-      const q = query(
-        collection(db, 'transactions'),
-        where('userId', '==', ownerId),
-        where('bankId', 'in', batch),
-        where('type', '==', 'expense')
-      );
-
-      return onSnapshot(q, (snapshot) => {
-        const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Keep credit-only transactions (undefined paymentMethod = legacy credit)
-        const creditTxs = txs.filter(
-          tx => !tx.paymentMethod || tx.paymentMethod === 'credit'
+        const filtered = txs.filter(
+          (tx) => allBankIds.includes(tx.bankId) && (!tx.paymentMethod || tx.paymentMethod === 'credit')
         );
 
-        // Sum per (resolved doc ID, paymentMonthKey)
         const sumByBankMonth = new Map();
-        for (const tx of creditTxs) {
-          // Normalize tx.bankId to doc ID so key matches bill.linkedBankId
+        for (const tx of filtered) {
           const docId = docIdByAnyBankId.get(tx.bankId) ?? tx.bankId;
           const monthKey = getPaymentMonthKey(tx.date, docId, tx.paymentMethod);
           const key = `${docId}::${monthKey}`;
           sumByBankMonth.set(key, (sumByBankMonth.get(key) ?? 0) + Math.abs(tx.amount));
         }
 
-        // Store this batch's results and merge all batches to avoid overwrite
-        batchResultsRef.current.set(batchIndex, sumByBankMonth);
-
-        const merged = new Map();
-        for (const batchSum of batchResultsRef.current.values()) {
-          for (const [key, value] of batchSum) {
-            merged.set(key, (merged.get(key) ?? 0) + value);
-          }
-        }
-
         setAmounts(() => {
           const next = new Map();
           for (const bill of cardBillsRef.current) {
             const key = `${bill.linkedBankId}::${selectedMonth}`;
-            next.set(bill.id, merged.get(key) ?? 0);
+            next.set(bill.id, sumByBankMonth.get(key) ?? 0);
           }
           return next;
         });
-      }, (err) => console.error('useCardBillAmounts snapshot error:', err));
-    });
+      } catch (err) {
+        console.error('useCardBillAmounts load error:', err);
+      }
+    };
+
+    load();
+    const unsubscribe = subscribeTransactionsChanged(load);
 
     return () => {
-      unsubscribes.forEach(unsub => unsub());
-      batchResultsRef.current = new Map();
+      active = false;
+      unsubscribe();
     };
-    // allBankIdsKey is a stable string representation of allBankIds (array identity is unstable).
-    // getPaymentMonthKey is intentionally included: it closes over userBanks via findUserBank,
-    // so changes to card closing/payment days will re-run the subscription.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerId, selectedMonth, allBankIdsKey, getPaymentMonthKey]);
 
   return amounts;

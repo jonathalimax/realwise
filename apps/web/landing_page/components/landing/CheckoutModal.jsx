@@ -3,15 +3,12 @@ import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
 import { ArrowRight, Loader2, Lock, ChevronLeft, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
-import { db } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 
 const CREATE_PAYMENT_URL = import.meta.env.VITE_CREATE_PAYMENT_URL || '';
 const PROCESS_PAYMENT_URL = import.meta.env.VITE_PROCESS_PAYMENT_URL || '';
 const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
 
-// BASE_PRICE / PROMO_PRICE are seeded from Firestore on mount; these are
-// only the pre-fetch fallback shown for an instant before config/pricing loads.
+// BASE_PRICE / PROMO_PRICE are local fallbacks used when remote config is unavailable.
 const FALLBACK_BASE_PRICE = 479;
 const FALLBACK_PROMO_PRICE = 239;
 
@@ -53,8 +50,8 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const [bricksLoading, setBricksLoading] = useState(false);
   const [error, setError] = useState('');
   const [amount, setAmount] = useState(FALLBACK_PROMO_PRICE);
-  const [basePrice, setBasePrice] = useState(FALLBACK_BASE_PRICE);
-  const [promoPrice, setPromoPrice] = useState(FALLBACK_PROMO_PRICE);
+  const basePrice = FALLBACK_BASE_PRICE;
+  const promoPrice = FALLBACK_PROMO_PRICE;
   const [createPaymentUrl, setCreatePaymentUrl] = useState(CREATE_PAYMENT_URL);
   const [processPaymentUrl, setProcessPaymentUrl] = useState(PROCESS_PAYMENT_URL);
   const [partialLeadUrl, setPartialLeadUrl] = useState(PARTIAL_LEAD_URL);
@@ -109,17 +106,6 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
       } catch { /* fallback to env vars */ }
     };
     loadConfig();
-  }, []);
-
-  useEffect(() => {
-    if (!db) return;
-    getDoc(doc(db, 'config', 'pricing')).then((snap) => {
-      const data = snap.data();
-      if (data && data.active) {
-        setBasePrice(data.originalCents / 100);
-        setPromoPrice(data.totalCents / 100);
-      }
-    }).catch(() => { /* keep fallback */ });
   }, []);
 
   useEffect(() => {

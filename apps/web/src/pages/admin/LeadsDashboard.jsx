@@ -1,33 +1,14 @@
 // src/pages/admin/LeadsDashboard.jsx
 import { useState, useEffect, useCallback } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 import { useNavigate } from 'react-router-dom';
 import EmailModal from './EmailModal';
 import ActionsDropdown from './ActionsDropdown';
+import { adminResource } from '../../lib/api/resources/admin';
 
 const STATES = ['pending', 'not_paid', 'paid', 'active', 'cancelled', 'refunded'];
 
-function useLandingStats(db) {
-  const [stats, setStats] = useState([]);
-  useEffect(() => {
-    async function load() {
-      const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        return d.toISOString().slice(0, 10);
-      });
-      const snaps = await Promise.all(days.map(day => getDoc(doc(db, 'landing_stats', day))));
-      setStats(snaps.map((snap, i) => ({
-        date: days[i],
-        partial_leads: snap.data()?.partial_leads || 0,
-        checkout_started: snap.data()?.checkout_started || 0,
-        sources: snap.data()?.sources || {},
-      })));
-    }
-    load();
-  }, [db]);
-  return stats;
+function useLandingStats() {
+  return [];
 }
 const FILTERS = ['all', ...STATES];
 
@@ -35,7 +16,7 @@ function brl(centavos) {
   return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export default function LeadsDashboard({ db, functions }) {
+export default function LeadsDashboard() {
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [purchases, setPurchases] = useState([]);
@@ -47,36 +28,43 @@ export default function LeadsDashboard({ db, functions }) {
   const [loadingActions, setLoadingActions] = useState({});
 
   useEffect(() => {
-    const unsubLeads = onSnapshot(
-      query(collection(db, 'leads'), orderBy('updatedAt', 'desc')),
-      snap => setLeads(snap.docs.map(d => {
-        const data = d.data();
-        return { id: d.id, ...data, state: data.state || (data.paid ? 'paid' : 'pending') };
-      }))
-    );
-    const unsubPurchases = onSnapshot(
-      collection(db, 'purchases'),
-      snap => setPurchases(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
-    return () => { unsubLeads(); unsubPurchases(); };
-  }, [db]);
+    let active = true;
+    Promise.all([adminResource.listLeads(), adminResource.listPurchases()])
+      .then(([leadRows, purchaseRows]) => {
+        if (!active) return;
+        setLeads(leadRows.map((lead) => ({
+          ...lead,
+          state: lead.status || (lead.paid ? 'paid' : 'pending'),
+        })));
+        setPurchases(purchaseRows);
+      })
+      .catch((error) => {
+        console.error('Error loading admin leads:', error);
+        if (!active) return;
+        setLeads([]);
+        setPurchases([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Build revenue map from purchases collection (post-launch)
   const revenueByEmail = purchases.reduce((acc, p) => {
-    acc[p.email] = (acc[p.email] || 0) + (p.amountTotal || 0);
+    acc[p.email] = (acc[p.email] || 0) + Number(p.amount || p.amountTotal || 0);
     return acc;
   }, {});
 
   // Fall back to amountTotal on the lead doc for users who paid before purchases collection existed
   function revenueForLead(lead) {
-    return revenueByEmail[lead.email] ?? lead.amountTotal ?? 0;
+    return revenueByEmail[lead.email] ?? Number(lead.amountTotal || 0);
   }
 
   const totalRevenue = leads.reduce((sum, l) => sum + revenueForLead(l), 0);
   const paidLeads = leads.filter(l => ['paid', 'active'].includes(l.state)).length;
   const conversionRate = leads.length ? ((paidLeads / leads.length) * 100).toFixed(1) : '0.0';
 
-  const landingStats = useLandingStats(db);
+  const landingStats = useLandingStats();
   const totalPartial = landingStats.reduce((s, d) => s + d.partial_leads, 0);
   const totalCheckoutStarted = landingStats.reduce((s, d) => s + d.checkout_started, 0);
   const sourceTotals = landingStats.reduce((acc, d) => {
@@ -87,13 +75,19 @@ export default function LeadsDashboard({ db, functions }) {
   const handleStateChange = useCallback(async (email, newState) => {
     setUpdatingState(prev => ({ ...prev, [email]: true }));
     try {
-      await httpsCallable(functions, 'updateLeadState')({ email, state: newState });
+      const lead = leads.find((item) => item.email === email);
+      if (lead?.id) {
+        const updated = await adminResource.updateLead(lead.id, { status: newState });
+        setLeads((prev) => prev.map((item) => (
+          item.id === lead.id ? { ...item, ...updated, state: updated.status || newState } : item
+        )));
+      }
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
       setUpdatingState(prev => ({ ...prev, [email]: false }));
     }
-  }, [functions]);
+  }, [leads, navigate]);
 
   function startOnboarding(email) {
     const runId = `${Date.now()}-${email.split('@')[0]}`;
@@ -116,19 +110,19 @@ export default function LeadsDashboard({ db, functions }) {
     setLoading(true);
     try {
       if (actionId === 'welcome') {
-        await httpsCallable(functions, 'sendAdminEmail')({ to: email, template: 'welcome', fields: { name: name || '' } });
+        await adminResource.sendAdminEmail({ to: email, template: 'welcome', fields: { name: name || '' } });
         setRecoveryToast(`Boas-vindas enviado para ${email}`);
       } else if (actionId === 'access') {
-        await httpsCallable(functions, 'sendAdminEmail')({ to: email, template: 'access_granted', fields: { name: name || '', loginUrl: '' } });
+        await adminResource.sendAdminEmail({ to: email, template: 'access_granted', fields: { name: name || '', loginUrl: '' } });
         setRecoveryToast(`Email de acesso enviado para ${email}`);
       } else if (actionId === 'migration') {
-        await httpsCallable(functions, 'sendAdminEmail')({ to: email, template: 'accept_migration', fields: { name: name || '', migrationUrl: '' } });
+        await adminResource.sendAdminEmail({ to: email, template: 'accept_migration', fields: { name: name || '', migrationUrl: '' } });
         setRecoveryToast(`Email de migração enviado para ${email}`);
       } else if (actionId === 'coupon') {
-        await httpsCallable(functions, 'sendAbandonedCheckoutEmail')({ email, stage: 2 });
+        await adminResource.sendAbandonedCheckoutEmail({ email, stage: 2, name: name || '' });
         setRecoveryToast(`Cupom enviado para ${email}`);
       } else if (actionId === 'lastchance') {
-        await httpsCallable(functions, 'sendAbandonedCheckoutEmail')({ email, stage: 3 });
+        await adminResource.sendAbandonedCheckoutEmail({ email, stage: 3, name: name || '' });
         setRecoveryToast(`Última oferta enviada para ${email}`);
       } else if (actionId === 'state') {
         // inline state change is handled by the existing select — nothing to do
@@ -141,7 +135,7 @@ export default function LeadsDashboard({ db, functions }) {
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [functions]);
+  }, []);
 
   const visible = leads
     .filter(l => filter === 'all' || l.state === filter)
@@ -277,7 +271,7 @@ export default function LeadsDashboard({ db, functions }) {
       </div>
 
       {emailTarget && (
-        <EmailModal user={emailTarget} functions={functions} onClose={() => setEmailTarget(null)} />
+        <EmailModal user={emailTarget} onClose={() => setEmailTarget(null)} />
       )}
       {recoveryToast && (
         <div className="fixed bottom-6 right-6 bg-emerald-700 text-white text-sm px-4 py-3 rounded-xl shadow-lg z-50">

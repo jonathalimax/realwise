@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { useSettings } from '../contexts/SettingsContext';
+import { transactionsResource } from '../lib/api/resources/transactions';
 import EditSingleTransactionModal from '../components/EditSingleTransactionModal';
 
 export default function TransactionEditPage() {
@@ -20,12 +19,12 @@ export default function TransactionEditPage() {
 
     const fetchTransaction = async () => {
       try {
-        const snapshot = await getDoc(doc(db, 'transactions', id));
-        if (!snapshot.exists()) {
+        const row = await transactionsResource.get(id);
+        if (!row) {
           navigate(-1);
           return;
         }
-        setTransaction({ id: snapshot.id, ...snapshot.data() });
+        setTransaction(row);
       } catch (error) {
         console.error('Error fetching transaction:', error);
         navigate(-1);
