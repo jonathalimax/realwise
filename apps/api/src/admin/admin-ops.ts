@@ -1,8 +1,78 @@
 import * as admin from 'firebase-admin';
+import type { firestore as FirestoreTypes } from 'firebase-admin';
 import { google } from 'googleapis';
 import { createHash, randomBytes } from 'node:crypto';
 import { gzip } from 'node:zlib';
 import { promisify } from 'node:util';
+
+type AuthClientLike = {
+  getAccessToken(): Promise<string | { token?: string | null } | null>;
+  request<T = unknown>(config: {
+    url: string;
+    method?: string;
+    headers?: Record<string, string>;
+    params?: Record<string, string>;
+    data?: unknown;
+  }): Promise<{ data: T }>;
+};
+
+type IamBinding = {
+  role?: string;
+  members?: string[];
+};
+
+type IamPolicy = {
+  bindings?: IamBinding[];
+};
+
+type HostingReleaseList = {
+  releases?: Array<{ version?: { name?: string } }>;
+};
+
+type HostingFilesList = {
+  files?: Array<{ path?: string; hash?: string }>;
+  nextPageToken?: string;
+};
+
+type HostingVersion = {
+  name?: string;
+  config?: Record<string, unknown>;
+};
+
+type PopulateFilesResponse = {
+  uploadRequiredHashes?: string[];
+  uploadUrl?: string;
+};
+
+type FirebaseWebAppOperation = {
+  appId?: string;
+};
+
+type FirebaseWebAppConfig = {
+  apiKey?: string;
+  authDomain?: string;
+  projectId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  appId?: string;
+};
+
+function toErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function getErrorStatus(err: unknown) {
+  if (typeof err === 'object' && err !== null && 'status' in err) {
+    const status = (err as { status?: unknown }).status;
+    return typeof status === 'number' ? status : undefined;
+  }
+  return undefined;
+}
+
+function normalizeAccessToken(token: string | { token?: string | null } | null) {
+  if (typeof token === 'string') return token;
+  return token?.token ?? null;
+}
 
 let firebaseAppInitialized = false;
 
@@ -29,37 +99,43 @@ async function log(runId: string, step: number, message: string, level: 'info' |
   });
 }
 
-async function runStep(runId: string, runRef: any, stepNum: number, description: string, fn: () => Promise<string | void>) {
+async function runStep(
+  runId: string,
+  runRef: Pick<FirestoreTypes.DocumentReference, 'update'>,
+  stepNum: number,
+  description: string,
+  fn: () => Promise<string | void>,
+) {
   await log(runId, stepNum, `Starting: ${description}`);
   try {
     const result = await fn();
     await log(runId, stepNum, result || `Done: ${description}`, 'success');
     return true;
-  } catch (err: any) {
-    const fullMsg = `FAILED: ${description} — ${err?.message || String(err)}`;
+  } catch (err: unknown) {
+    const fullMsg = `FAILED: ${description} — ${toErrorMessage(err)}`;
     await log(runId, stepNum, fullMsg, 'error');
     await runRef.update({ status: 'failed', error: fullMsg });
     return false;
   }
 }
 
-async function getAuthClient() {
+async function getAuthClient(): Promise<AuthClientLike> {
   const auth = new google.auth.GoogleAuth({
     scopes: [
       'https://www.googleapis.com/auth/cloud-platform',
       'https://www.googleapis.com/auth/firebase',
     ],
   });
-  return auth.getClient();
+  return (await auth.getClient()) as AuthClientLike;
 }
 
-async function deployFileToHosting(authClient: any, siteId: string, filePath: string, content: string) {
+async function deployFileToHosting(authClient: AuthClientLike, siteId: string, filePath: string, content: string) {
   const base = 'https://firebasehosting.googleapis.com/v1beta1';
-  const token = (await authClient.getAccessToken()).token;
+  const token = normalizeAccessToken(await authClient.getAccessToken());
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const releasesRes = await fetch(`${base}/sites/${siteId}/releases?pageSize=1`, { headers });
-  const releasesData = await releasesRes.json();
+  const releasesData = (await releasesRes.json()) as HostingReleaseList;
   const currentVersionName = releasesData.releases?.[0]?.version?.name;
 
   const existingFiles: Record<string, string> = {};
@@ -69,15 +145,17 @@ async function deployFileToHosting(authClient: any, siteId: string, filePath: st
     do {
       const url = `${base}/${currentVersionName}/files?pageSize=1000${pageToken ? `&pageToken=${pageToken}` : ''}`;
       const filesRes = await fetch(url, { headers });
-      const filesData = await filesRes.json();
+      const filesData = (await filesRes.json()) as HostingFilesList;
       for (const f of filesData.files || []) {
-        existingFiles[f.path] = f.hash;
+        if (f.path && f.hash) {
+          existingFiles[f.path] = f.hash;
+        }
       }
       pageToken = filesData.nextPageToken;
     } while (pageToken);
 
     const versionRes = await fetch(`${base}/${currentVersionName}`, { headers });
-    const versionData = await versionRes.json();
+    const versionData = (await versionRes.json()) as HostingVersion;
     if (versionData.config) previousConfig = versionData.config;
   }
 
@@ -90,7 +168,7 @@ async function deployFileToHosting(authClient: any, siteId: string, filePath: st
     headers,
     body: JSON.stringify({ config: previousConfig }),
   });
-  const versionData = await versionRes.json();
+  const versionData = (await versionRes.json()) as HostingVersion;
   const versionName = versionData.name;
   const fileHashes = { ...existingFiles, [filePath]: hash };
   const populateRes = await fetch(`${base}/${versionName}:populateFiles`, {
@@ -98,11 +176,11 @@ async function deployFileToHosting(authClient: any, siteId: string, filePath: st
     headers,
     body: JSON.stringify({ files: fileHashes }),
   });
-  const populateData = await populateRes.json();
+  const populateData = (await populateRes.json()) as PopulateFilesResponse;
   const uploadRequiredHashes = new Set(populateData.uploadRequiredHashes || []);
 
   if (uploadRequiredHashes.has(hash)) {
-    const uploadToken = (await authClient.getAccessToken()).token;
+    const uploadToken = normalizeAccessToken(await authClient.getAccessToken());
     const uploadBaseUrl = populateData.uploadUrl;
     await fetch(`${uploadBaseUrl}/${hash}`, {
       method: 'POST',
@@ -164,7 +242,7 @@ export async function startOnboardingRun(
 
       await runRef.set({ status: 'running', startedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
       const authClient = await getAuthClient();
-      google.options({ auth: authClient as any });
+      google.options({ auth: authClient as never });
 
       const resourceManager = google.cloudresourcemanager('v1');
       const serviceUsage = google.serviceusage('v1');
@@ -175,8 +253,8 @@ export async function startOnboardingRun(
       if (!(await runStep(runId, runRef, 1, `Create GCP project ${projectId}`, async () => {
         try {
           await resourceManager.projects.create({ requestBody: { projectId, name: `Realwise ${username}` } });
-        } catch (err: any) {
-          if (!String(err?.message || '').includes('already exists')) throw err;
+        } catch (err: unknown) {
+          if (!toErrorMessage(err).includes('already exists')) throw err;
         }
         for (let i = 0; i < 20; i++) {
           const { data: p } = await resourceManager.projects.get({ projectId });
@@ -191,8 +269,8 @@ export async function startOnboardingRun(
         await billing.projects.updateBillingInfo({
           name: `projects/${projectId}`,
           requestBody: { billingAccountName: `billingAccounts/${BILLING_ACCOUNT_ID}` },
-        }).catch((err: any) => {
-          if (!String(err?.message || '').includes('Precondition')) throw err;
+        }).catch((err: unknown) => {
+          if (!toErrorMessage(err).includes('Precondition')) throw err;
         });
         return 'Billing account linked';
       }))) return;
@@ -206,22 +284,22 @@ export async function startOnboardingRun(
             const { data: opData } = await firebaseApi.operations.get({ name: op.data.name });
             done = opData.done;
           }
-        } catch (err: any) {
-          if (!String(err?.message || '').includes('already')) throw err;
+        } catch (err: unknown) {
+          if (!toErrorMessage(err).includes('already')) throw err;
         }
         return 'Firebase added to project';
       }))) return;
 
       if (!(await runStep(runId, runRef, 4, 'Enable APIs & initialize Firebase services', async () => {
         for (const api of ['firestore.googleapis.com', 'identitytoolkit.googleapis.com']) {
-          let lastErr: any = null;
+          let lastErr: unknown = null;
           for (let attempt = 0; attempt < 6; attempt++) {
             try {
               await serviceUsage.services.enable({ name: `projects/${projectId}/services/${api}`, requestBody: {} });
               lastErr = null;
               break;
-            } catch (err: any) {
-              if (String(err?.message || '').includes('billing')) {
+            } catch (err: unknown) {
+              if (toErrorMessage(err).includes('billing')) {
                 lastErr = err;
                 await sleep(20000);
               } else {
@@ -240,9 +318,9 @@ export async function startOnboardingRun(
             headers: { 'x-goog-user-project': projectId },
             data: {},
           });
-        } catch (err: any) {
-          if (!(err.status === 409 || String(err?.message || '').includes('already'))) {
-            console.warn('[onboarding] Auth init warning:', err?.message);
+        } catch (err: unknown) {
+          if (!(getErrorStatus(err) === 409 || toErrorMessage(err).includes('already'))) {
+            console.warn('[onboarding] Auth init warning:', toErrorMessage(err));
           }
         }
         try {
@@ -257,35 +335,45 @@ export async function startOnboardingRun(
             const { data: opData } = await firestoreApi.projects.databases.operations.get({ name: dbOp.data.name });
             done = opData.done;
           }
-        } catch (err: any) {
-          if (!String(err?.message || '').includes('already exists')) throw err;
+        } catch (err: unknown) {
+          if (!toErrorMessage(err).includes('already exists')) throw err;
         }
         return 'APIs enabled, Firestore created, Auth initialized';
       }))) return;
 
-      let sdkConfig: any;
+      let sdkConfig: FirebaseWebAppConfig;
       if (!(await runStep(runId, runRef, 5, 'Create Firebase web app & fetch SDK config', async () => {
-        const fetchSdkConfig = async (appId: string) => {
+        const fetchSdkConfig = async (appId: string): Promise<FirebaseWebAppConfig> => {
           const { data } = await firebaseApi.projects.webApps.getConfig({
             name: `projects/${projectId}/webApps/${appId}/config`,
           });
-          return { apiKey: data.apiKey, authDomain: data.authDomain, projectId: data.projectId, storageBucket: data.storageBucket, messagingSenderId: data.messagingSenderId, appId: data.appId };
+          return {
+            apiKey: data.apiKey ?? undefined,
+            authDomain: data.authDomain ?? undefined,
+            projectId: data.projectId ?? undefined,
+            storageBucket: data.storageBucket ?? undefined,
+            messagingSenderId: data.messagingSenderId ?? undefined,
+            appId: data.appId ?? undefined,
+          };
         };
         try {
           const createOp = await firebaseApi.projects.webApps.create({ parent: `projects/${projectId}`, requestBody: { displayName: `Realwise ${username}` } });
-          let appData: any;
+          let appData: FirebaseWebAppOperation | null = null;
           let done = false;
           while (!done) {
             await sleep(3000);
             const { data: opData } = await firebaseApi.operations.get({ name: createOp.data.name });
             done = opData.done;
-            if (done) appData = opData.response;
+            if (done) appData = (opData.response as FirebaseWebAppOperation | undefined) ?? null;
           }
+          if (!appData?.appId) throw new Error('Missing Firebase web app id');
           sdkConfig = await fetchSdkConfig(appData.appId);
-        } catch (err: any) {
-          if (String(err?.message || '').includes('already')) {
+        } catch (err: unknown) {
+          if (toErrorMessage(err).includes('already')) {
             const { data } = await firebaseApi.projects.webApps.list({ parent: `projects/${projectId}` });
-            sdkConfig = await fetchSdkConfig(data.apps[0].appId);
+            const firstApp = data.apps?.[0]?.appId;
+            if (!firstApp) throw new Error('No Firebase web apps found');
+            sdkConfig = await fetchSdkConfig(firstApp);
           } else throw err;
         }
         return `Web app created, SDK config fetched (appId: ${sdkConfig.appId})`;
@@ -299,22 +387,22 @@ export async function startOnboardingRun(
             name: `projects/${projectId}`,
             requestBody: { accountId: saId, serviceAccount: { displayName: 'Realwise Admin' } },
           });
-        } catch (err: any) {
-          if (!String(err?.message || '').includes('already exists')) throw err;
+        } catch (err: unknown) {
+          if (!toErrorMessage(err).includes('already exists')) throw err;
         }
         await sleep(10000);
         const crm = google.cloudresourcemanager('v1');
         const { data: policy } = await crm.projects.getIamPolicy({ resource: projectId, requestBody: {} });
         policy.bindings = policy.bindings || [];
         const member = `serviceAccount:${saEmail}`;
-        const binding = policy.bindings.find((b: any) => b.role === 'roles/firebase.admin');
+        const binding = policy.bindings.find((b) => b.role === 'roles/firebase.admin');
         if (binding) { if (!binding.members.includes(member)) binding.members.push(member); }
         else policy.bindings.push({ role: 'roles/firebase.admin', members: [member] });
         await crm.projects.setIamPolicy({ resource: projectId, requestBody: { policy } });
         return `Service account ${saEmail} created with roles/firebase.admin`;
       }))) return;
 
-      let serviceAccountJson: any;
+      let serviceAccountJson: Record<string, unknown>;
       if (!(await runStep(runId, runRef, 7, 'Generate service account key', async () => {
         const { data: keyData } = await iam.projects.serviceAccounts.keys.create({
           name: `projects/${projectId}/serviceAccounts/${saEmail}`,
@@ -336,8 +424,8 @@ export async function startOnboardingRun(
               data: { localId: username, email, password: tempPassword, displayName: username, emailVerified: false, disabled: false },
             });
             break;
-          } catch (err: any) {
-            const msg = String(err?.message || '');
+          } catch (err: unknown) {
+            const msg = toErrorMessage(err);
             if (msg.includes('EMAIL_EXISTS') || msg.includes('email-already-exists') || msg.includes('DUPLICATE_LOCAL_ID')) break;
             if (attempt < 20) await sleep(10000);
             else throw err;
@@ -347,7 +435,7 @@ export async function startOnboardingRun(
       }))) return;
 
       if (!(await runStep(runId, runRef, 9, 'Seed Firestore access list & deploy rules', async () => {
-        const seedToken = (await authClient.getAccessToken()).token;
+        const seedToken = normalizeAccessToken(await authClient.getAccessToken());
         const firestoreBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
         const seedRes = await fetch(`${firestoreBase}/access/allowed_emails`, {
           method: 'PATCH',
@@ -365,7 +453,7 @@ service cloud.firestore {
     match /{document=**} { allow read, write: if request.auth != null; }
   }
 }`;
-        const accessToken = (await authClient.getAccessToken()).token;
+        const accessToken = normalizeAccessToken(await authClient.getAccessToken());
         const rulesetRes = await fetch(`https://firebaserules.googleapis.com/v1/projects/${projectId}/rulesets`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -395,8 +483,8 @@ service cloud.firestore {
               data: { authorizedDomains: [...existing, 'realwise.com.br'] },
             });
           }
-        } catch (err: any) {
-          console.warn('[onboarding] Auth domain warning:', err?.message);
+        } catch (err: unknown) {
+          console.warn('[onboarding] Auth domain warning:', toErrorMessage(err));
         }
 
         return 'Firestore seeded, rules deployed, realwise.com.br authorized';
@@ -420,7 +508,7 @@ service cloud.firestore {
         const clientMember = `user:${email.toLowerCase().trim()}`;
         const clientRoles = ['roles/firebase.admin', 'roles/viewer'];
         for (const role of clientRoles) {
-          const binding = policy.bindings.find((b: any) => b.role === role);
+          const binding = policy.bindings.find((b) => b.role === role);
           if (binding) {
             if (!binding.members.includes(clientMember)) binding.members.push(clientMember);
           } else {
@@ -430,7 +518,7 @@ service cloud.firestore {
 
         const operatorMember = `user:${OPERATOR_EMAIL}`;
         for (const role of OPERATOR_ROLES) {
-          const binding = policy.bindings.find((b: any) => b.role === role);
+          const binding = policy.bindings.find((b) => b.role === role);
           if (binding) {
             if (!binding.members.includes(operatorMember)) binding.members.push(operatorMember);
           } else {
@@ -450,8 +538,8 @@ service cloud.firestore {
         await opts.sendAccessEmail(username, loginUrl);
       }
       return { success: true, projectId, username, loginUrl };
-    } catch (err: any) {
-      const message = err?.message || String(err);
+    } catch (err: unknown) {
+      const message = toErrorMessage(err);
       await runRef.update({ status: 'failed', error: message });
       throw err;
     }
@@ -494,16 +582,16 @@ export async function transferClient(dto: {
 
   const policyRes = await fetch(`https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}:getIamPolicy`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${(await authClient.getAccessToken()).token}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${normalizeAccessToken(await authClient.getAccessToken())}`, 'Content-Type': 'application/json' },
     body: '{}',
   });
   if (!policyRes.ok) throw new Error(`getIamPolicy failed: ${await policyRes.text()}`);
-  const policy = await policyRes.json();
+  const policy = (await policyRes.json()) as IamPolicy;
 
   if (dto.billingAccount) {
     const billingRes = await fetch(`https://cloudbilling.googleapis.com/v1/projects/${projectId}/billingInfo`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${(await authClient.getAccessToken()).token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${normalizeAccessToken(await authClient.getAccessToken())}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ billingAccountName: `billingAccounts/${dto.billingAccount}` }),
     });
     if (!billingRes.ok) {
@@ -512,7 +600,7 @@ export async function transferClient(dto: {
     }
   }
 
-  const ownerBinding = policy.bindings?.find((b: any) => b.role === 'roles/owner');
+  const ownerBinding = policy.bindings?.find((b) => b.role === 'roles/owner');
   const member = `user:${emailLower}`;
   if (ownerBinding) {
     if (!ownerBinding.members.includes(member)) ownerBinding.members.push(member);
@@ -525,12 +613,12 @@ export async function transferClient(dto: {
     for (const binding of policy.bindings || []) {
       binding.members = binding.members.filter((m: string) => m !== selfMember);
     }
-    policy.bindings = policy.bindings.filter((b: any) => b.members.length > 0);
+    policy.bindings = policy.bindings.filter((b) => (b.members?.length ?? 0) > 0);
   }
 
   const setRes = await fetch(`https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}:setIamPolicy`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${(await authClient.getAccessToken()).token}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${normalizeAccessToken(await authClient.getAccessToken())}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ policy }),
   });
   const setBody = await setRes.json();

@@ -181,8 +181,8 @@ export class AdminService {
       sendAccessEmail: async (name, loginUrl) => {
         await this.notifications.sendAdminEmail(dto.email, 'access_granted', { name, loginUrl });
       },
-    }).catch((err: any) => {
-      console.error('[admin] onboarding run failed:', err?.message || err);
+    }).catch((err: unknown) => {
+      console.error('[admin] onboarding run failed:', err instanceof Error ? err.message : String(err));
     });
     return { started: true, runId: dto.runId };
   }

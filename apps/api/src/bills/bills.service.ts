@@ -115,7 +115,8 @@ export class BillsService {
     const virtualDueDate = this.normalizeDateOnly(dto?.virtualDueDate);
 
     if (sourceBill.status === 'paid' && virtualDueDate) {
-      const { id: _id, ...baseBill } = sourceBill;
+      const baseBill = { ...sourceBill };
+      delete (baseBill as { id?: string }).id;
       const rows = await this.db
         .insert(bills)
         .values({
@@ -157,7 +158,8 @@ export class BillsService {
           ));
 
         if (existingRows.length === 0) {
-          const { id: _id, ...baseBill } = sourceBill;
+          const baseBill = { ...sourceBill };
+          delete (baseBill as { id?: string }).id;
           await this.db.insert(bills).values({
             ...baseBill,
             firebaseDocId: null,
