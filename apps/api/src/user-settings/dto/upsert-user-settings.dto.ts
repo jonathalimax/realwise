@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsArray, IsObject } from 'class-validator';
 
 export class UpsertUserSettingsDto {
   @IsOptional()
@@ -16,4 +16,30 @@ export class UpsertUserSettingsDto {
   @IsOptional()
   @IsBoolean()
   billReminders?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  tutorialCompleted?: boolean;
+
+  @IsOptional()
+  @IsString()
+  geminiApiKey?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  expenseCategories?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  incomeCategories?: string[];
+
+  @IsOptional()
+  @IsObject()
+  categoryRuleMapping?: Record<string, string>;
+
+  @IsOptional()
+  @IsObject()
+  rulePercentages?: Record<string, number>;
 }

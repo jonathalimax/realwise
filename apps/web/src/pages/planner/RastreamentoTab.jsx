@@ -1,27 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useCards } from '@/contexts/CardsContext';
+import useTransactions from '@/hooks/useTransactions';
 import SpendingChart from '@/components/charts/SpendingChart';
 
 export default function RastreamentoTab({ selectedMonth }) {
   const { ownerId } = useAccess();
+  const { transactions: allTx, loading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const { getPaymentMonthKey } = useCards();
   const navigate = useNavigate();
-  const [allTx, setAllTx] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!ownerId) return;
-    const q = query(collection(db, 'transactions'), where('userId', '==', ownerId));
-    const unsub = onSnapshot(q, snap => {
-      setAllTx(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
-  }, [ownerId]);
 
   const monthTx = useMemo(() => allTx.filter(tx => {
     if (tx.type !== 'expense' || tx.ignored) return false;

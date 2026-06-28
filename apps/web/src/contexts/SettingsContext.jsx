@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { db, auth } from '../firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { LANGUAGES, DEFAULT_LANGUAGE, getTranslation } from '../locales';
 import { useAccess } from './AccessContext';
+import { settingsResource, normalizeSettings } from '../lib/api/resources/settings';
 
 const SettingsContext = createContext();
 
@@ -137,46 +136,47 @@ export function SettingsProvider({ children }) {
   }, [darkMode]);
 
   useEffect(() => {
-    if (!auth.currentUser || !ownerId) {
+    if (!ownerId) {
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    const settingsRef = doc(db, 'settings', ownerId); // Use ownerId instead of currentUser.uid
-
-    const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const userLang = data.language || DEFAULT_LANGUAGE;
-        const defaultCats = getDefaultCategories(userLang);
-        setCurrency(data.currency || 'BRL');
-        setLanguage(userLang);
+    settingsResource.get()
+      .then((data) => {
+        const normalized = normalizeSettings(data);
+        setCurrency(normalized.currency);
+        setLanguage(normalized.language);
+        setDarkMode(normalized.darkMode);
         setCategories({
-          expense: data.expenseCategories || defaultCats.expense,
-          income: data.incomeCategories || defaultCats.income
+          expense: normalized.expenseCategories,
+          income: normalized.incomeCategories,
         });
-        // Tutorial: false means show tutorial, undefined means first user (show tutorial)
-        setTutorialCompletedState(data.tutorialCompleted === true);
-        // Load Gemini API key if set
-        setGeminiApiKey(data.geminiApiKey || '');
-        setBillRemindersState(data.billReminders !== false);
-      } else {
-        // No settings doc = first time user, show tutorial
-        setTutorialCompletedState(false);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [ownerId]); // Use ownerId instead of currentUser.uid
+        setTutorialCompletedState(normalized.tutorialCompleted);
+        setGeminiApiKey(normalized.geminiApiKey);
+        setBillRemindersState(normalized.billReminders);
+      })
+      .catch((error) => {
+        console.error('Error loading settings:', error);
+        const normalized = normalizeSettings(null);
+        setCurrency(normalized.currency);
+        setLanguage(normalized.language);
+        setCategories({
+          expense: normalized.expenseCategories,
+          income: normalized.incomeCategories,
+        });
+        setTutorialCompletedState(normalized.tutorialCompleted);
+        setGeminiApiKey(normalized.geminiApiKey);
+        setBillRemindersState(normalized.billReminders);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [ownerId]);
 
   const updateCurrency = async (newCurrency) => {
     setCurrency(newCurrency);
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { currency: newCurrency }, { merge: true });
-    }
+    await settingsResource.update({ currency: newCurrency });
   };
 
   const updateLanguage = async (newLanguage) => {
@@ -189,14 +189,11 @@ export function SettingsProvider({ children }) {
     const translatedCategories = translateCategories(categories, oldLanguage, newLanguage);
     setCategories(translatedCategories);
 
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, {
-        language: newLanguage,
-        expenseCategories: translatedCategories.expense,
-        incomeCategories: translatedCategories.income
-      }, { merge: true });
-    }
+    await settingsResource.update({
+      language: newLanguage,
+      expenseCategories: translatedCategories.expense,
+      incomeCategories: translatedCategories.income,
+    });
   };
 
   const toggleDarkMode = () => {
@@ -205,26 +202,17 @@ export function SettingsProvider({ children }) {
 
   const setTutorialCompleted = async (completed = true) => {
     setTutorialCompletedState(completed);
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { tutorialCompleted: completed }, { merge: true });
-    }
+    await settingsResource.update({ tutorialCompleted: completed });
   };
 
   const updateBillReminders = async (enabled) => {
     setBillRemindersState(enabled);
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { billReminders: enabled }, { merge: true });
-    }
+    await settingsResource.update({ billReminders: enabled });
   };
 
   const updateGeminiApiKey = async (apiKey) => {
     setGeminiApiKey(apiKey);
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { geminiApiKey: apiKey }, { merge: true });
-    }
+    await settingsResource.update({ geminiApiKey: apiKey });
   };
 
   // Translation function
@@ -246,11 +234,8 @@ export function SettingsProvider({ children }) {
       [type]: newCategories
     }));
 
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      const field = type === 'expense' ? 'expenseCategories' : 'incomeCategories';
-      await setDoc(settingsRef, { [field]: newCategories }, { merge: true });
-    }
+    const field = type === 'expense' ? 'expenseCategories' : 'incomeCategories';
+    await settingsResource.update({ [field]: newCategories });
 
     return true;
   };
@@ -263,11 +248,8 @@ export function SettingsProvider({ children }) {
       [type]: newCategories
     }));
 
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      const field = type === 'expense' ? 'expenseCategories' : 'incomeCategories';
-      await setDoc(settingsRef, { [field]: newCategories }, { merge: true });
-    }
+    const field = type === 'expense' ? 'expenseCategories' : 'incomeCategories';
+    await settingsResource.update({ [field]: newCategories });
   };
 
   const toggleCategory = async (type, categoryName) => {
@@ -289,11 +271,8 @@ export function SettingsProvider({ children }) {
       [type]: newCategories
     }));
 
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      const field = type === 'expense' ? 'expenseCategories' : 'incomeCategories';
-      await setDoc(settingsRef, { [field]: newCategories }, { merge: true });
-    }
+    const field = type === 'expense' ? 'expenseCategories' : 'incomeCategories';
+    await settingsResource.update({ [field]: newCategories });
   };
 
   const formatCurrency = (amount) => {

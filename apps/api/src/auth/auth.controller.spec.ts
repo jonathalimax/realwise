@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { AuthController } from './auth.controller';
+import { AuthController, resolveClientIdForLogin } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
@@ -24,6 +24,7 @@ const mockAuthService = {
     accessToken: 'access-jwt',
     refreshToken: 'refresh-jwt',
   }),
+  findById: jest.fn(),
   validateRefreshToken: jest.fn(),
   logout: jest.fn(),
 };
@@ -88,10 +89,19 @@ describe('AuthController', () => {
   });
 
   describe('me', () => {
-    it('returns current user payload', () => {
+    it('returns the enriched current user payload', async () => {
       const payload = { sub: fakeUser.id, clientId: 'jonathalimax', role: 'user' as const };
-      const result = controller.me(payload);
-      expect(result).toEqual(payload);
+      mockAuthService.findById.mockResolvedValue(fakeUser);
+      const result = await controller.me(payload);
+      expect(result).toEqual({
+        sub: fakeUser.id,
+        uid: fakeUser.id,
+        clientId: 'jonathalimax',
+        role: 'user',
+        email: fakeUser.email,
+        name: fakeUser.name,
+        displayName: fakeUser.name,
+      });
     });
   });
 
@@ -104,5 +114,19 @@ describe('AuthController', () => {
       expect(res.clearCookie).toHaveBeenCalledTimes(2);
       expect(res.json).toHaveBeenCalledWith({ ok: true });
     });
+  });
+});
+
+describe('resolveClientIdForLogin', () => {
+  it('returns the explicit clientId when provided', () => {
+    expect(resolveClientIdForLogin('custom-client', 'person@example.com')).toBe('custom-client');
+  });
+
+  it('derives the clientId from the email local-part when clientId is missing', () => {
+    expect(resolveClientIdForLogin(undefined, 'jonathalimax@gmail.com')).toBe('jonathalimax');
+  });
+
+  it('throws when no clientId can be resolved', () => {
+    expect(() => resolveClientIdForLogin(undefined, '')).toThrow('Unable to resolve clientId for login');
   });
 });

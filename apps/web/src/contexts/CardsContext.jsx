@@ -1,19 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  getDocs,
-  serverTimestamp
-} from 'firebase/firestore';
 import { useAccess } from './AccessContext';
+import { billsResource, notifyBillsChanged } from '../lib/api/resources/bills';
+import { accountsResource } from '../lib/api/resources/accounts';
 
 const CardsContext = createContext();
 
@@ -55,7 +43,6 @@ export function CardsProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const { ownerId } = useAccess();
 
-  // Listen for user banks when ownerId is available
   useEffect(() => {
     if (!ownerId) {
       setUserBanks([]);
@@ -64,40 +51,26 @@ export function CardsProvider({ children }) {
     }
 
     setLoading(true);
-
-    const q = query(
-      collection(db, 'userBanks'),
-      where('userId', '==', ownerId) // Use ownerId instead of userId
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const banksData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        // Sort by createdAt
-        banksData.sort((a, b) => {
-          const dateA = a.createdAt?.toDate?.() || new Date(0);
-          const dateB = b.createdAt?.toDate?.() || new Date(0);
-          return dateA - dateB; // Oldest first
+    accountsResource.list()
+      .then((banksData) => {
+        const sorted = [...banksData].sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0);
+          const dateB = new Date(b.createdAt || 0);
+          return dateA - dateB;
         });
-        setUserBanks(banksData);
+        setUserBanks(sorted);
         setLoading(false);
-      },
-      (err) => {
-        console.error('UserBanks query error:', err);
+      })
+      .catch((err) => {
+        console.error('Accounts query error:', err);
+        setUserBanks([]);
         setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [ownerId]); // Use ownerId instead of userId
+      });
+  }, [ownerId]);
 
   // Helper function to create a bill for a credit card
   const createBillForCreditCard = async (bankData, bankDocId) => {
-    if (!auth.currentUser || !bankData.hasCredit) return null;
+    if (!bankData.hasCredit) return null;
 
     try {
       const bankInfo = getBankInfo(bankData.bankId);
@@ -114,23 +87,22 @@ export function CardsProvider({ children }) {
       }
 
       const billData = {
-        userId: auth.currentUser.uid,
         name: `Fatura ${cardDisplayName}`,
         description: `Fatura do cartão de crédito ${cardDisplayName}`,
+        amount: '0',
         category: 'credit_card',
-        dueDate: dueDate.toISOString().split('T')[0],
+        dueDate: dueDate.toISOString(),
         recurrence: 'monthly',
-        repeatForever: true,
-        repeatUntil: null,
-        notifyDaysBefore: 3,
+        recurrenceEndDate: null,
+        notificationEnabled: true,
+        notificationDaysBefore: 3,
         status: 'pending',
         linkedBankId: bankDocId, // Link to the bank/card
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
       };
 
-      const billRef = await addDoc(collection(db, 'bills'), billData);
-      return billRef.id;
+      const bill = await billsResource.create(billData);
+      notifyBillsChanged();
+      return bill.id;
     } catch (error) {
       console.error('Error creating bill for credit card:', error);
       return null;
@@ -138,31 +110,29 @@ export function CardsProvider({ children }) {
   };
 
   const addBank = async (bankData) => {
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
-      return null;
-    }
-
     try {
       const newBank = {
-        userId: auth.currentUser.uid,
+        name: bankData.cardName
+          || (bankData.bankId === 'other' ? (bankData.customBankName || 'Other') : getBankInfo(bankData.bankId).name),
+        type: bankData.hasCredit ? 'credit' : 'checking',
         bankId: bankData.bankId,
         cardName: bankData.cardName,
         customBankName: bankData.bankId === 'other' ? (bankData.customBankName || null) : null,
         hasCredit: bankData.hasCredit || false,
         closingDay: bankData.hasCredit ? (bankData.closingDay || 10) : null,
         paymentDay: bankData.hasCredit ? (bankData.paymentDay || 15) : null,
-        createdAt: serverTimestamp()
+        balance: '0',
       };
 
-      const docRef = await addDoc(collection(db, 'userBanks'), newBank);
+      const created = await accountsResource.create(newBank);
+      const docRef = { id: created.id };
+      setUserBanks((prev) => [...prev, { ...created }]);
 
       // Auto-create bill for credit cards (only if one doesn't already exist)
       if (newBank.hasCredit) {
-        const existing = await getDocs(
-          query(collection(db, 'bills'), where('linkedBankId', '==', docRef.id))
-        );
-        if (existing.empty) {
+        const existingBills = await billsResource.list();
+        const linkedBills = existingBills.filter((bill) => bill.linkedBankId === docRef.id);
+        if (linkedBills.length === 0) {
           await createBillForCreditCard(newBank, docRef.id);
         }
       }
@@ -175,39 +145,36 @@ export function CardsProvider({ children }) {
   };
 
   const updateBank = async (docId, updates) => {
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
-      return false;
-    }
-
     try {
-      // Get the current bank data to compare changes
       const currentBank = getUserBankById(docId);
 
       // Update the bank
-      const bankRef = doc(db, 'userBanks', docId);
-      await updateDoc(bankRef, {
+      const nextBank = {
         ...updates,
+        name: updates.cardName
+          || (updates.bankId === 'other'
+            ? (updates.customBankName || currentBank?.customBankName || 'Other')
+            : getBankInfo(updates.bankId || currentBank?.bankId).name),
+        type: updates.hasCredit ? 'credit' : (currentBank?.type || 'checking'),
         cardName: updates.cardName || null,
         customBankName: updates.bankId === 'other' ? (updates.customBankName || null) : null,
-      });
+      };
+      const updated = await accountsResource.update(docId, nextBank);
+      setUserBanks((prev) => prev.map((bank) => (bank.id === docId ? updated : bank)));
 
       // Handle linked bill sync
       // Find any bill linked to this bank
-      const billsQuery = query(
-        collection(db, 'bills'),
-        where('userId', '==', auth.currentUser.uid),
-        where('linkedBankId', '==', docId)
-      );
-      const billsSnapshot = await getDocs(billsQuery);
+      const existingBills = await billsResource.list();
+      const linkedBills = existingBills.filter((bill) => bill.linkedBankId === docId);
 
       // Check if credit was disabled
       if (updates.hasCredit === false) {
         // Delete linked bill if credit was disabled
-        for (const billDoc of billsSnapshot.docs) {
-          await deleteDoc(doc(db, 'bills', billDoc.id));
+        for (const bill of linkedBills) {
+          await billsResource.remove(bill.id);
         }
-      } else if (updates.hasCredit === true && billsSnapshot.empty) {
+        notifyBillsChanged();
+      } else if (updates.hasCredit === true && linkedBills.length === 0) {
         // Create bill if credit was enabled and no bill exists
         const bankData = {
           bankId: updates.bankId || currentBank?.bankId,
@@ -216,10 +183,9 @@ export function CardsProvider({ children }) {
           paymentDay: updates.paymentDay || currentBank?.paymentDay || 15
         };
         await createBillForCreditCard(bankData, docId);
-      } else if (billsSnapshot.size > 0 && (currentBank?.hasCredit || updates.hasCredit !== false)) {
+      } else if (linkedBills.length > 0 && (currentBank?.hasCredit || updates.hasCredit !== false)) {
         // Update existing bill if card name or payment day changed
-        const billDoc = billsSnapshot.docs[0];
-        const billData = billDoc.data();
+        const linkedBill = linkedBills[0];
         const billUpdates = {};
 
         // Check if card name changed
@@ -252,9 +218,8 @@ export function CardsProvider({ children }) {
 
         // Apply updates if there are any
         if (Object.keys(billUpdates).length > 0) {
-          billUpdates.updatedAt = serverTimestamp();
-          const billRef = doc(db, 'bills', billDoc.id);
-          await updateDoc(billRef, billUpdates);
+          await billsResource.update(linkedBill.id, billUpdates);
+          notifyBillsChanged();
         }
       }
 
@@ -266,27 +231,19 @@ export function CardsProvider({ children }) {
   };
 
   const deleteBank = async (docId) => {
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
-      return false;
-    }
-
     try {
-      // Find and delete any linked bill before deleting the bank
-      const billsQuery = query(
-        collection(db, 'bills'),
-        where('userId', '==', auth.currentUser.uid),
-        where('linkedBankId', '==', docId)
-      );
-      const billsSnapshot = await getDocs(billsQuery);
+      const existingBills = await billsResource.list();
+      const linkedBills = existingBills.filter((bill) => bill.linkedBankId === docId);
 
       // Delete all linked bills
-      for (const billDoc of billsSnapshot.docs) {
-        await deleteDoc(doc(db, 'bills', billDoc.id));
+      for (const bill of linkedBills) {
+        await billsResource.remove(bill.id);
       }
+      if (linkedBills.length > 0) notifyBillsChanged();
 
       // Delete the bank
-      await deleteDoc(doc(db, 'userBanks', docId));
+      await accountsResource.remove(docId);
+      setUserBanks((prev) => prev.filter((bank) => bank.id !== docId));
       return true;
     } catch (error) {
       console.error('Error deleting bank:', error);
@@ -448,21 +405,12 @@ export function CardsProvider({ children }) {
    * Returns the number of bills created
    */
   const createBillsForExistingCreditCards = async () => {
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
-      return { success: false, error: 'No authenticated user', created: 0 };
-    }
-
     try {
       // Get all existing bills to check for linked cards
-      const billsQuery = query(
-        collection(db, 'bills'),
-        where('userId', '==', auth.currentUser.uid)
-      );
-      const billsSnapshot = await getDocs(billsQuery);
+      const billsSnapshot = await billsResource.list();
       const existingLinkedBankIds = new Set(
-        billsSnapshot.docs
-          .map(doc => doc.data().linkedBankId)
+        billsSnapshot
+          .map((bill) => bill.linkedBankId)
           .filter(id => id)
       );
 

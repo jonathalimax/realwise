@@ -1,22 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, Clock, Mail, ArrowLeft, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
-
-const DEV_HOSTNAMES = new Set(['realwise-dev.web.app', 'realwise-dev.firebaseapp.com']);
-const CLIENT_CONFIG_URL = DEV_HOSTNAMES.has(window.location.hostname)
-  ? '/clients/app.dev.json'
-  : '/clients/app.json';
-
-async function getPixFirestore() {
-  const existing = getApps().find(a => a.name === 'pix-listener');
-  if (existing) return getFirestore(existing);
-  const res = await fetch(CLIENT_CONFIG_URL);
-  const config = await res.json();
-  const app = initializeApp(config.firebase, 'pix-listener');
-  return getFirestore(app);
-}
 
 function getInitialPendingState() {
   const code = sessionStorage.getItem('pix_code') || '';
@@ -40,34 +24,6 @@ export default function PurchaseSuccess() {
   const [pixCode, setPixCode] = useState(initialState.code);
   const [pixQr, setPixQr] = useState(initialState.qr);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!isPending) return;
-
-    const docId = sessionStorage.getItem('pix_doc_id') || '';
-    if (!docId) return;
-
-    let unsub = () => {};
-    // Listen for the webhook updating pending_payments/{docId}.status → 'approved'
-    getPixFirestore().then((db) => {
-      unsub = onSnapshot(
-        doc(db, 'pending_payments', docId),
-        (snap) => {
-          if (snap.exists() && snap.data().status === 'approved') {
-            unsub();
-            sessionStorage.removeItem('pix_email');
-            sessionStorage.removeItem('pix_doc_id');
-            setIsPending(false);
-            setPixCode('');
-            setPixQr('');
-          }
-        },
-        () => { /* permission error — silently ignore */ }
-      );
-    });
-
-    return () => unsub();
-  }, [isPending]);
 
   function handleCopy() {
     if (!pixCode) return;

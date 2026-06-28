@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSearchParams } from 'react-router-dom';
-import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useBudget } from '@/contexts/BudgetContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useCards } from '@/contexts/CardsContext';
+import useTransactions from '@/hooks/useTransactions';
 import { NumericFormat } from 'react-number-format';
 import { Badge } from '@/components/ui/badge';
 import { formatBRL } from './usePlannerState';
@@ -53,21 +52,11 @@ export default function AllocationTab({ onGoToRenda,
   setInnerTab,
 }) {
   const { ownerId } = useAccess();
+  const { transactions: allTx } = useTransactions({}, { enabled: Boolean(ownerId) });
   const { categories } = useSettings();
   const { calculateCategorySpending, getCategoryRule, setCategoryRule } = useBudget();
   const { getPaymentMonthKey } = useCards();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const [allTx, setAllTx] = useState([]);
-
-  useEffect(() => {
-    if (!ownerId) return;
-    const q = query(collection(db, 'transactions'), where('userId', '==', ownerId));
-    const unsub = onSnapshot(q, snap => {
-      setAllTx(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-    return unsub;
-  }, [ownerId]);
 
   const monthTx = useMemo(() => allTx.filter(tx => {
     if (tx.type !== 'expense' || tx.ignored) return false;

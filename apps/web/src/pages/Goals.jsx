@@ -4,9 +4,8 @@ import PageHelp from '@/components/ui/PageHelp';
 import { useGoals, GOAL_ICONS, GOAL_COLORS } from '../contexts/GoalsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../firebase';
 import { useAccess } from '../contexts/AccessContext';
+import useTransactions from '../hooks/useTransactions';
 import CurrencyInput from '../components/ui/CurrencyInput';
 
 // Default months to assume when goal has no deadline
@@ -18,6 +17,7 @@ export default function GoalsPage() {
   const { formatCurrency, t, language } = useSettings();
   const { getInvestmentsByGoal, getGoalInvestmentValue, getGoalInvestmentGrowth } = useInvestments();
   const { ownerId } = useAccess();
+  const { transactions } = useTransactions({}, { enabled: Boolean(ownerId) });
 
   const [view, setView] = useState('list');
   const [showSummaryDetails, setShowSummaryDetails] = useState(false);
@@ -27,7 +27,6 @@ export default function GoalsPage() {
   const [fundAmount, setFundAmount] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [sortBy, setSortBy] = useState('deadline');
-  const [transactions, setTransactions] = useState([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -40,25 +39,6 @@ export default function GoalsPage() {
 
   // Confirmation state for marking goal as achieved
   const [confirmAchieved, setConfirmAchieved] = useState(null);
-
-  useEffect(() => {
-    if (!auth.currentUser || !ownerId) return;
-
-    const q = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTransactions(data);
-    });
-
-    return () => unsubscribe();
-  }, [ownerId]);
 
   const handleClose = () => {
     navigate(-1);

@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { IsString, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsBoolean } from 'class-validator';
 
 export class CreateGoalDto {
   @IsString()
@@ -13,8 +13,24 @@ export class CreateGoalDto {
   currentAmount?: string;
 
   @IsOptional()
+  @IsString()
+  icon?: string;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
   @IsDateString()
   deadline?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  completed?: boolean;
 }
 
 export class UpdateGoalDto extends PartialType(CreateGoalDto) {}

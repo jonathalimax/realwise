@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAccess } from './AccessContext';
+import { requireOwnerId } from '../lib/auth/ownerSession';
+import { billsResource, subscribeBillsChanged } from '../lib/api/resources/bills';
 
 const BillsContext = createContext();
 
@@ -18,42 +18,42 @@ export const BillsProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const { ownerId } = useAccess();
 
-  // Load bills from Firestore
-  useEffect(() => {
+  const loadBills = useCallback(async () => {
     if (!ownerId) {
       setBills([]);
       setLoading(false);
       return;
     }
 
-    const q = query(
-      collection(db, 'bills'),
-      where('userId', '==', ownerId) // Use ownerId instead of user.uid
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const billsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setBills(billsData);
+    setLoading(true);
+    try {
+      const rows = await billsResource.list();
+      setBills(rows);
+    } catch (error) {
+      console.error('Error loading bills:', error);
+      setBills([]);
+    } finally {
       setLoading(false);
-    });
+    }
+  }, [ownerId]);
 
-    return () => unsubscribe();
-  }, [ownerId]); // Use ownerId
+  useEffect(() => {
+    loadBills();
+    return subscribeBillsChanged(() => {
+      loadBills();
+    });
+  }, [loadBills]);
 
   // Add a new bill
   const addBill = async (billData) => {
     try {
       const newBill = {
         ...billData,
-        userId: auth.currentUser.uid,
         status: 'pending', // pending, paid, overdue
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        recurrence: billData.recurrence === 'none' ? null : billData.recurrence,
       };
-      await addDoc(collection(db, 'bills'), newBill);
+      await billsResource.create(newBill);
+      await loadBills();
       return { success: true };
     } catch (error) {
       console.error('Error adding bill:', error);
@@ -64,10 +64,11 @@ export const BillsProvider = ({ children }) => {
   // Update a bill
   const updateBill = async (billId, updates) => {
     try {
-      await updateDoc(doc(db, 'bills', billId), {
+      await billsResource.update(billId, {
         ...updates,
-        updatedAt: serverTimestamp()
+        recurrence: updates.recurrence === 'none' ? null : updates.recurrence,
       });
+      await loadBills();
       return { success: true };
     } catch (error) {
       console.error('Error updating bill:', error);
@@ -78,7 +79,8 @@ export const BillsProvider = ({ children }) => {
   // Delete a bill
   const deleteBill = async (billId) => {
     try {
-      await deleteDoc(doc(db, 'bills', billId));
+      await billsResource.remove(billId);
+      await loadBills();
       return { success: true };
     } catch (error) {
       console.error('Error deleting bill:', error);
@@ -89,60 +91,8 @@ export const BillsProvider = ({ children }) => {
   // Mark bill as paid
   const markBillAsPaid = async (billId, paidDate = new Date().toISOString(), virtualDueDate = null) => {
     try {
-      const sourceBill = bills.find(b => b.id === billId);
-
-      // Virtual recurring instance: source bill is already paid for a different month.
-      // Create a new paid document for this specific instance rather than updating the source.
-      if (sourceBill?.status === 'paid' && virtualDueDate) {
-        const { id: _id, paidDate: _paidDate, postponeCount: _pc, nextReminderAt: _nra, ...baseFields } = sourceBill;
-        await addDoc(collection(db, 'bills'), {
-          ...baseFields,
-          dueDate: virtualDueDate,
-          status: 'paid',
-          paidDate,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-        return { success: true };
-      }
-
-      // Guard: already paid (double-tap / race condition)
-      if (sourceBill?.status === 'paid') return { success: true };
-
-      await updateDoc(doc(db, 'bills', billId), {
-        status: 'paid',
-        paidDate: paidDate,
-        updatedAt: serverTimestamp()
-      });
-
-      // If recurring, create the next instance
-      if (sourceBill && sourceBill.recurrence && sourceBill.recurrence !== 'none') {
-        const shouldCreateNext = !sourceBill.recurrenceEndDate || new Date(sourceBill.recurrenceEndDate) > new Date(sourceBill.dueDate);
-
-        if (shouldCreateNext) {
-          const nextDueDate = calculateNextDueDate(sourceBill.dueDate, sourceBill.recurrence);
-
-          // Deduplication: don't create if a pending bill for this name+dueDate already exists
-          const alreadyExists = bills.some(
-            b => b.id !== billId && b.status === 'pending' && b.name === sourceBill.name && b.dueDate === nextDueDate
-          );
-
-          if (!alreadyExists) {
-            // Strip per-cycle state fields so the next occurrence starts clean
-            const { id: _id, paidDate: _paidDate, postponeCount: _postponeCount, nextReminderAt: _nextReminderAt, ...baseFields } = sourceBill;
-            const nextBill = {
-              ...baseFields,
-              dueDate: nextDueDate,
-              status: 'pending',
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            };
-
-            await addDoc(collection(db, 'bills'), nextBill);
-          }
-        }
-      }
-
+      await billsResource.markPaid(billId, { paidDate, virtualDueDate });
+      await loadBills();
       return { success: true };
     } catch (error) {
       console.error('Error marking bill as paid:', error);
@@ -156,22 +106,11 @@ export const BillsProvider = ({ children }) => {
       const newReminderTime = new Date();
       newReminderTime.setHours(newReminderTime.getHours() + postponeHours);
 
-      // Create postponement record
-      await addDoc(collection(db, 'bill_reminders'), {
-        billId,
-        userId: auth.currentUser.uid,
-        postponedFrom: new Date().toISOString(),
-        postponedTo: newReminderTime.toISOString(),
-        createdAt: serverTimestamp()
-      });
-
-      // Update bill with new reminder time
-      await updateDoc(doc(db, 'bills', billId), {
+      await billsResource.update(billId, {
         nextReminderAt: newReminderTime.toISOString(),
         postponeCount: (bills.find(b => b.id === billId)?.postponeCount || 0) + 1,
-        updatedAt: serverTimestamp()
       });
-
+      await loadBills();
       return { success: true };
     } catch (error) {
       console.error('Error postponing bill reminder:', error);

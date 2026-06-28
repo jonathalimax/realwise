@@ -8,10 +8,28 @@ import { CreateTransactionDto, UpdateTransactionDto } from './dto/create-transac
 import { ListTransactionsDto } from './dto/list-transactions.dto';
 
 type Transaction = typeof transactions.$inferSelect;
+type TransactionPayload = Partial<Omit<typeof transactions.$inferInsert, 'clientId' | 'userId'>>;
+type CreateTransactionPayload = Omit<typeof transactions.$inferInsert, 'clientId' | 'userId'>;
 
 @Injectable()
 export class TransactionsService {
   constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
+
+  private normalizePayload(dto: UpdateTransactionDto): TransactionPayload {
+    return {
+      ...dto,
+      date: dto.date ? dto.date.slice(0, 10) : undefined,
+      recurrenceEndDate: dto.recurrenceEndDate ? new Date(dto.recurrenceEndDate) : null,
+    };
+  }
+
+  private normalizeCreatePayload(dto: CreateTransactionDto): CreateTransactionPayload {
+    return {
+      ...dto,
+      date: dto.date.slice(0, 10),
+      recurrenceEndDate: dto.recurrenceEndDate ? new Date(dto.recurrenceEndDate) : null,
+    };
+  }
 
   findAll(clientId: string, userId: string, filters: ListTransactionsDto): Promise<Transaction[]> {
     const conditions = [eq(transactions.clientId, clientId), eq(transactions.userId, userId)];
@@ -52,7 +70,7 @@ export class TransactionsService {
   async create(dto: CreateTransactionDto, clientId: string, userId: string): Promise<Transaction> {
     const rows = await this.db
       .insert(transactions)
-      .values({ ...dto, clientId, userId })
+      .values({ ...this.normalizeCreatePayload(dto), clientId, userId })
       .returning();
     return rows[0];
   }
@@ -61,7 +79,7 @@ export class TransactionsService {
     await this.findOne(id, clientId, userId);
     const rows = await this.db
       .update(transactions)
-      .set({ ...dto, updatedAt: new Date() })
+      .set({ ...this.normalizePayload(dto), updatedAt: new Date() })
       .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId)))
       .returning();
     return rows[0];

@@ -97,4 +97,13 @@ export class AuthService {
       .set({ refreshTokenHash: null, updatedAt: new Date() })
       .where(eq(users.id, userId));
   }
+
+  async findById(userId: string): Promise<User | null> {
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+
+    return rows[0] ?? null;
+  }
 }

@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHelp from '@/components/ui/PageHelp';
-import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
@@ -10,6 +8,7 @@ import { useInvestments } from '../contexts/InvestmentContext';
 import { useFeature } from '../contexts/ClientConfigContext';
 import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import useTransactions from '../hooks/useTransactions';
 import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
 import BillsSummaryCard from '../components/BillsSummaryCard';
 import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
@@ -33,15 +32,13 @@ export default function DashboardPage() {
   const [showBillModal, setShowBillModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [transactionsLoaded, setTransactionsLoaded] = useState(false);
-  const [refreshKey] = useState(0);
   const { selectedMonth } = useMonth();
   const [viewMode] = useState('payment');
   const { t, language, tutorialCompleted, loading: settingsLoading } = useSettings();
   const { canWrite, ownerId, loading: accessLoading } = useAccess();
   const hasGoals = useFeature('goals');
   const { getPaymentMonthKey, loading: cardsLoading } = useCards();
+  const { transactions, loading: transactionsLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
     transactions, selectedMonth, viewMode, getPaymentMonthKey
   );
@@ -62,45 +59,10 @@ export default function DashboardPage() {
 
   const showTutorial = !settingsLoading && !tutorialCompleted && !tutorialDismissed;
 
-  useEffect(() => {
-    if (!auth.currentUser || !ownerId) return;
-
-    // Diagnostic: marks when the dashboard begins subscribing for an owner.
-    // Helps capture evidence of the post-login "stuck at zero" race.
-    console.info('[Dashboard] subscribing to transactions for ownerId:', ownerId);
-
-    const q = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId)
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        console.info('[Dashboard] transactions snapshot received:', data.length);
-        setTransactions(data);
-        setTransactionsLoaded(true);
-      },
-      (err) => {
-        // Previously there was no error handler — a permission-denied listener
-        // (e.g. auth token not yet propagated post-login) would fail silently
-        // and leave the dashboard showing zeros until a manual refresh.
-        console.error('[Dashboard] transactions listener error:', err);
-        setTransactionsLoaded(true);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [refreshKey, ownerId]);
-
   // Dashboard is hydrating until access resolves an owner, cards finish loading,
   // and the first transactions snapshot lands. Gating here prevents the
   // "everything shows 0" flash where totals are computed from empty arrays.
-  const isHydrating = accessLoading || !ownerId || cardsLoading || !transactionsLoaded;
+  const isHydrating = accessLoading || !ownerId || cardsLoading || transactionsLoading;
 
   const last6Months = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d = new Date(`${selectedMonth}-01`);

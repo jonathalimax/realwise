@@ -6,9 +6,8 @@ import { parseBradescoStatement, detectBradesco } from './bankParsers/bradesco';
 import { parseMercadopagoStatement, detectMercadopago } from './bankParsers/mercadopago';
 import { parseGenericStatement } from './bankParsers/generic';
 import { categorizeTransaction } from '../../constants/defaultCategorizationRules';
-import { loadUserCategorizationRules } from '../categorizationService';
-import { getSharedDb } from '../../firebase';
 import { batchCategorizeWithAI } from '../aiCategorizationService';
+import { transactionsResource } from '../../lib/api/resources/transactions';
 import {
   detectInstallment,
   generateInstallmentTransactions,
@@ -191,19 +190,14 @@ async function parseExcel(file) {
   });
 }
 
-async function loadSharedCategorizationRules() {
+async function loadUserCategorizationRulesSafely(userId) {
+  if (!userId) return [];
+
   try {
-    const { collection, query, where, orderBy, limit, getDocs } = await import('firebase/firestore');
-    const sharedDb = await getSharedDb();
-    const rulesRef = collection(sharedDb, 'sharedCategorizationRules');
-    const q = query(rulesRef, where('isActive', '==', true), orderBy('usageCount', 'desc'), limit(1000));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => {
-      const data = d.data();
-      return { id: d.id, keywords: [data.pattern], category: data.category, type: data.type || 'expense', priority: 20, isSharedRule: true };
-    });
+    const { loadUserCategorizationRules } = await import('../categorizationService');
+    return await loadUserCategorizationRules(userId);
   } catch (err) {
-    console.warn('[importers] Failed to load shared rules:', err);
+    console.warn('[importers] Failed to load user rules:', err);
     return [];
   }
 }
@@ -211,11 +205,8 @@ async function loadSharedCategorizationRules() {
 async function categorizeParsedTransactions(transactions, userId, options) {
   const { apiKey, categories: availableCategories } = options;
 
-  const [userRules, sharedRules] = await Promise.all([
-    userId ? loadUserCategorizationRules(userId).catch(err => { console.error('Error loading user categorization rules:', err); return []; }) : Promise.resolve([]),
-    loadSharedCategorizationRules(),
-  ]);
-  const allRules = [...userRules, ...sharedRules];
+  const userRules = await loadUserCategorizationRulesSafely(userId);
+  const allRules = [...userRules];
 
   const processedTransactions = [];
   const uncategorizedTransactions = [];
@@ -335,17 +326,16 @@ function assignPositionalIndices(transactions) {
   });
 }
 
-export async function filterDuplicates(transactions, userId, db) {
-  const { collection, query, where, getDocs } = await import('firebase/firestore');
+export async function filterDuplicates(transactions, userId) {
   const hashes = transactions.map(t => t.dedupHash).filter(Boolean);
   if (!hashes.length) return transactions;
+  if (!userId) return transactions;
+
+  const rows = await transactionsResource.list();
   const existingHashes = new Set();
-  for (let i = 0; i < hashes.length; i += 30) {
-    const chunk = hashes.slice(i, i + 30);
-    const q = query(collection(db, 'transactions'), where('userId', '==', userId), where('dedupHash', 'in', chunk));
-    const snap = await getDocs(q);
-    snap.docs.forEach(d => existingHashes.add(d.data().dedupHash));
-  }
+  rows.forEach((row) => {
+    if (row.dedupHash) existingHashes.add(row.dedupHash);
+  });
   return transactions.filter(t => !existingHashes.has(t.dedupHash));
 }
 

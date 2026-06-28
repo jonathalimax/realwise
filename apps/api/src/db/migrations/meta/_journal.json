@@ -15,6 +15,90 @@
       "when": 1782425619753,
       "tag": "0001_abnormal_smiling_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782649200000,
+      "tag": "0002_settings_profile_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782666600000,
+      "tag": "0003_bills_extended_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782668400000,
+      "tag": "0004_accounts_card_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782670200000,
+      "tag": "0005_planner_state_json",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782671400000,
+      "tag": "0006_transactions_extended_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782672600000,
+      "tag": "0007_goals_extended_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782673800000,
+      "tag": "0008_budgets_monthly_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782675000000,
+      "tag": "0009_investments_extended_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782676200000,
+      "tag": "0010_categorization_rules_extended_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782677400000,
+      "tag": "0011_coupons_enabled_field",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782678600000,
+      "tag": "0012_testimonials_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1782679800000,
+      "tag": "0013_pricing_config_table",
+      "breakpoints": true
     }
   ]
 }

@@ -1,42 +1,29 @@
 // src/pages/planner/carteira/index.jsx
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
 import { useInvestments } from '@/contexts/InvestmentContext';
+import useTransactions from '@/hooks/useTransactions';
 import { getActiveVersion, updateWalletForMonth } from './walletVersion';
 import LayerAllocationEditor from './LayerAllocationEditor';
 import WalletLayerSection from './WalletLayerSection';
 
 export default function CarteiraTab({ state, update, poupancaValue, selectedMonth }) {
   const { ownerId } = useAccess();
+  const { transactions } = useTransactions({}, { enabled: Boolean(ownerId) });
   const { investments, getCurrentValue, loading: invLoading } = useInvestments();
   const [taggedTransactions, setTaggedTransactions] = useState({});
 
   // Fetch transactions tagged to planner goals
   useEffect(() => {
-    if (!ownerId) return;
-    const fetchTagged = async () => {
-      try {
-        const q = query(collection(db, 'transactions'), where('userId', '==', ownerId));
-        const snap = await getDocs(q);
-        const byGoal = {};
-        snap.forEach(d => {
-          const tx = { id: d.id, ...d.data() };
-          // Transactions that already created a linked investment should not be
-          // counted again in wallet balances.
-          if (tx.plannerGoalId && !tx.investmentId) {
-            if (!byGoal[tx.plannerGoalId]) byGoal[tx.plannerGoalId] = [];
-            byGoal[tx.plannerGoalId].push(tx);
-          }
-        });
-        setTaggedTransactions(byGoal);
-      } catch (err) {
-        console.error('[CarteiraTab] Error fetching tagged transactions:', err);
+    const byGoal = {};
+    transactions.forEach((tx) => {
+      if (tx.plannerGoalId && !tx.investmentId) {
+        if (!byGoal[tx.plannerGoalId]) byGoal[tx.plannerGoalId] = [];
+        byGoal[tx.plannerGoalId].push(tx);
       }
-    };
-    fetchTagged();
-  }, [ownerId]);
+    });
+    setTaggedTransactions(byGoal);
+  }, [transactions]);
 
   const walletVersions = state.walletVersions ?? [];
   const activeVersion = getActiveVersion(walletVersions, selectedMonth);

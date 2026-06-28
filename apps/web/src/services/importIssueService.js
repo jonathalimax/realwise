@@ -1,9 +1,4 @@
-// Sends a failed bank-statement import to the SHARED Firebase project's
-// submitImportIssue callable. Reuses the same 'shared' app instance that
-// SharedLogin already initialized.
-
-import { httpsCallable } from 'firebase/functions';
-import { initSharedFirebase } from '../lib/sharedFirebase';
+import { importsResource } from '../lib/api/resources/imports';
 
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -44,9 +39,7 @@ export async function submitImportIssue({
   if (!bankType || !clientId) throw new Error('Missing bankType or clientId');
 
   const fileBase64 = await fileToBase64(file);
-  const { functions } = await initSharedFirebase();
-  const call = httpsCallable(functions, 'submitImportIssue');
-  const res = await call({
+  return importsResource.reportIssue({
     fileName: file.name,
     fileMime: file.type || 'application/octet-stream',
     fileBase64,
@@ -57,7 +50,5 @@ export async function submitImportIssue({
     userNote: userNote || null,
     userName: userName || '',
     userEmail: userEmail || '',
-    clientId,
   });
-  return res.data;
 }

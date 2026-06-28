@@ -1,8 +1,7 @@
 // src/pages/planner/usePlannerLayers.js
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/firebase';
 import { useAccess } from '@/contexts/AccessContext';
+import { plannerResource } from '@/lib/api/resources/planner';
 
 /**
  * Returns the layers array from the active wallet version for the current month.
@@ -15,9 +14,10 @@ export default function usePlannerLayers() {
 
   useEffect(() => {
     if (!ownerId) return;
-    const unsubscribe = onSnapshot(doc(db, 'planner', ownerId), (snap) => {
-      if (!snap.exists()) { setLayers([]); return; }
-      const walletVersions = snap.data().walletVersions ?? [];
+    plannerResource.get()
+      .then((response) => {
+      const data = response?.state || response || {};
+      const walletVersions = data.walletVersions ?? [];
       if (!walletVersions.length) { setLayers([]); return; }
 
       const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -27,8 +27,11 @@ export default function usePlannerLayers() {
         if (v.from <= currentMonth) active = v;
       }
       setLayers((active ?? sorted[sorted.length - 1]).layers ?? []);
-    });
-    return unsubscribe;
+      })
+      .catch((error) => {
+        console.error('[usePlannerLayers] Error loading planner:', error);
+        setLayers([]);
+      });
   }, [ownerId]);
 
   return layers;

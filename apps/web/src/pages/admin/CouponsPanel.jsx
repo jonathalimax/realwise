@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { couponsResource } from '../../lib/api/resources/coupons';
 
-export default function CouponsPanel({ db, functions }) {
+export default function CouponsPanel() {
   const [discountType, setDiscountType] = useState('percent');
   const [discountPct, setDiscountPct] = useState(20);
   const [discountAmount, setDiscountAmount] = useState(50);
@@ -15,14 +14,24 @@ export default function CouponsPanel({ db, functions }) {
   const [coupons, setCoupons] = useState([]);
   const [copied, setCopied] = useState(false);
 
+  function generateCouponCode() {
+    return `PROMO-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  }
+
   // Load existing coupons
   useEffect(() => {
-    const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      setCoupons(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-    return unsub;
-  }, [db]);
+    let active = true;
+    couponsResource.list()
+      .then((rows) => {
+        if (!active) return;
+        setCoupons(rows);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setErrorMsg(err.message || 'Erro ao carregar cupons');
+      });
+    return () => { active = false; };
+  }, []);
 
   // Compute preview price
   const basePrice = 47988; // R$479,88 in centavos
@@ -56,17 +65,15 @@ export default function CouponsPanel({ db, functions }) {
     }
 
     try {
-      const fn = httpsCallable(functions, 'createStandaloneCoupon');
-      const expiresAtUnix = expiresAt ? Math.floor(new Date(expiresAt).getTime() / 1000) : null;
-      const { data } = await fn({
-        discountType,
-        discountPct: discountType === 'percent' ? discountPct : undefined,
-        discountAmount: discountType === 'fixed' ? discountAmount : undefined,
-        maxRedemptions: maxUses,
-        code: code || undefined,
-        expiresAt: expiresAtUnix,
+      const row = await couponsResource.create({
+        code: code || generateCouponCode(),
+        discountType: discountType === 'percent' ? 'percentage' : 'fixed_amount',
+        discountValue: discountType === 'percent' ? discountPct : Math.round(discountAmount * 100),
+        maxUses: maxUses || undefined,
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+        enabled: true,
       });
-      setResult(data);
+      setResult(row);
       setStatus('done');
       // Reset form
       setDiscountPct(20);
@@ -245,11 +252,11 @@ export default function CouponsPanel({ db, functions }) {
                       <span className="px-3 py-1 bg-gray-800 rounded-lg font-mono font-bold text-emerald-400 text-sm">
                         {coupon.code}
                       </span>
-                      {coupon.discountType === 'percent' && (
-                        <span className="text-gray-300 text-sm">{coupon.discountPct}% off</span>
+                      {coupon.discountType === 'percentage' && (
+                        <span className="text-gray-300 text-sm">{coupon.discountValue}% off</span>
                       )}
-                      {coupon.discountType === 'fixed' && (
-                        <span className="text-gray-300 text-sm">R$ {coupon.discountAmount.toFixed(2)} off</span>
+                      {coupon.discountType === 'fixed_amount' && (
+                        <span className="text-gray-300 text-sm">R$ {((coupon.discountValue || 0) / 100).toFixed(2)} off</span>
                       )}
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-xs text-gray-400">
@@ -263,12 +270,12 @@ export default function CouponsPanel({ db, functions }) {
                       </div>
                       <div>
                         <p className="text-gray-500 uppercase tracking-wide">Criado por</p>
-                        <p className="text-white font-medium text-xs truncate">{coupon.createdBy}</p>
+                        <p className="text-white font-medium text-xs truncate">{coupon.createdBy || '—'}</p>
                       </div>
                     </div>
                     {coupon.createdAt && (
                       <p className="text-xs text-gray-600">
-                        Criado em {coupon.createdAt.toDate?.().toLocaleDateString?.('pt-BR') || 'N/A'}
+                        Criado em {new Date(coupon.createdAt).toLocaleDateString('pt-BR')}
                       </p>
                     )}
                   </div>

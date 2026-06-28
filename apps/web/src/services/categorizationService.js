@@ -3,20 +3,7 @@
  * Manages user-defined categorization rules that learn from manual categorizations
  */
 
-import { db, getSharedDb } from '../firebase';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  increment,
-  serverTimestamp
-} from 'firebase/firestore';
+import { categorizationRulesResource } from '../lib/api/resources/categorizationRules';
 import { categorizeTransaction as defaultCategorize } from '../constants/defaultCategorizationRules';
 
 /**
@@ -87,25 +74,8 @@ export function extractPattern(description) {
  * @param {string} category - Corrected category
  */
 async function writeSharedRule(pattern, category) {
-  if (!pattern || !category || category === 'Sem categoria') return;
-  try {
-    const sharedDb = await getSharedDb();
-    const rulesRef = collection(sharedDb, 'sharedCategorizationRules');
-    const q = query(rulesRef, where('pattern', '==', pattern));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      await updateDoc(doc(sharedDb, 'sharedCategorizationRules', snap.docs[0].id), {
-        category, usageCount: increment(1), updatedAt: serverTimestamp(),
-      });
-    } else {
-      await addDoc(rulesRef, {
-        pattern, category, source: 'user_correction', createdBy: 'unknown',
-        createdAt: serverTimestamp(), updatedAt: serverTimestamp(), usageCount: 1, isActive: true,
-      });
-    }
-  } catch (err) {
-    console.warn('[categorizationService] Failed to write shared rule:', err);
-  }
+  void pattern;
+  void category;
 }
 
 /**
@@ -120,44 +90,29 @@ export async function saveUserCategorizationRule(userId, { description, category
   if (!pattern) return null;
 
   try {
-    // Check if a similar rule already exists
-    const rulesRef = collection(db, 'userCategorizationRules');
-    const existingQuery = query(
-      rulesRef,
-      where('userId', '==', userId),
-      where('pattern', '==', pattern)
-    );
+    const existingRules = await categorizationRulesResource.list();
+    const existingRule = existingRules.find((rule) => rule.keyword === pattern);
 
-    const existingSnapshot = await getDocs(existingQuery);
-
-    if (!existingSnapshot.empty) {
-      // Update existing rule
-      const existingDoc = existingSnapshot.docs[0];
-      await updateDoc(doc(rulesRef, existingDoc.id), {
-        category,
-        type,
-        usedCount: increment(1),
-        updatedAt: serverTimestamp()
-      });
-      writeSharedRule(pattern, category); // best-effort, don't await
-      return existingDoc.id;
-    } else {
-      // Create new rule
-      const newRule = {
-        userId,
-        pattern,
+    if (existingRule) {
+      await categorizationRulesResource.update(existingRule.id, {
         category,
         type,
         originalDescription: description,
-        usedCount: 1,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        isActive: true
-      };
-
-      const docRef = await addDoc(rulesRef, newRule);
+        isActive: true,
+      });
+      await categorizationRulesResource.recordUsage(existingRule.id);
       writeSharedRule(pattern, category); // best-effort, don't await
-      return docRef.id;
+      return existingRule.id;
+    } else {
+      const created = await categorizationRulesResource.create({
+        keyword: pattern,
+        category,
+        type,
+        originalDescription: description,
+        isActive: true,
+      });
+      writeSharedRule(pattern, category); // best-effort, don't await
+      return created.id;
     }
   } catch (error) {
     console.error('Error saving user categorization rule:', error);
@@ -174,27 +129,17 @@ export async function loadUserCategorizationRules(userId) {
   if (!userId) return [];
 
   try {
-    const rulesRef = collection(db, 'userCategorizationRules');
-    const rulesQuery = query(
-      rulesRef,
-      where('userId', '==', userId),
-      where('isActive', '==', true),
-      orderBy('usedCount', 'desc'),
-      limit(500) // Reasonable limit for performance
-    );
+    const rows = await categorizationRulesResource.list();
 
-    const snapshot = await getDocs(rulesQuery);
-
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
+    return rows.map((data) => {
       return {
-        id: doc.id,
-        keywords: [data.pattern],
+        id: data.id,
+        keywords: [data.keyword],
         category: data.category,
         type: data.type,
         priority: 20, // Higher than default rules (15 max)
         isUserRule: true,
-        usedCount: data.usedCount
+        usedCount: data.usedCount || 0
       };
     });
   } catch (error) {

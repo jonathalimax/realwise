@@ -1,12 +1,12 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { db, auth } from '../firebase';
-import { collection, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
 import { INVESTMENT_TYPES, useInvestments } from '../contexts/InvestmentContext';
+import { useAccess } from '../contexts/AccessContext';
+import { transactionsResource } from '../lib/api/resources/transactions';
 import CurrencyInput from './ui/CurrencyInput';
 import { generateTransactionHash, generateInstallmentGroupId } from '../services/installments';
 import PlannerGoalSelect from './PlannerGoalSelect';
@@ -51,6 +51,7 @@ export default function TransactionModal({ isOpen, onClose }) {
   const { goals, addAmountToGoal } = useGoals();
   const { userBanks, getBankInfo, findUserBank } = useCards();
   const { addInvestment } = useInvestments();
+  const { ownerId } = useAccess();
 
   const availableGoals = goals.filter(g => !g.completed);
 
@@ -127,6 +128,9 @@ export default function TransactionModal({ isOpen, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!amount || amount <= 0) return;
+    if (!ownerId) {
+      throw new Error('Authenticated owner is required to create transactions');
+    }
 
     setLoading(true);
     setSuccessMessage('');
@@ -154,12 +158,10 @@ export default function TransactionModal({ isOpen, onClose }) {
 
           const installmentDescription = `${description} (${i}/${totalInstallments})`;
           const transactionData = {
-            userId: auth.currentUser.uid,
             type,
             description: installmentDescription,
             amount: parseFloat(amount),
             category: baseCategory,
-            createdAt: serverTimestamp(),
             date: installmentDate.toISOString(),
             goalId: selectedGoalId || null,
             goalName: selectedGoal?.name || null,
@@ -181,7 +183,7 @@ export default function TransactionModal({ isOpen, onClose }) {
           };
 
           transactionData.hash = generateTransactionHash(transactionData);
-          await addDoc(collection(db, 'transactions'), transactionData);
+          await transactionsResource.create(transactionData);
           totalInstallmentsCreated++;
         }
 
@@ -218,12 +220,10 @@ export default function TransactionModal({ isOpen, onClose }) {
         }
       } else {
         const transactionData = {
-          userId: auth.currentUser.uid,
           type,
           description,
           amount: parseFloat(amount),
           category: baseCategory,
-          createdAt: serverTimestamp(),
           date: baseDate.toISOString(),
           goalId: selectedGoalId || null,
           goalName: selectedGoal?.name || null,
@@ -240,7 +240,7 @@ export default function TransactionModal({ isOpen, onClose }) {
         };
 
         transactionData.hash = generateTransactionHash(transactionData);
-        const docRef = await addDoc(collection(db, 'transactions'), transactionData);
+        const createdTransaction = await transactionsResource.create(transactionData);
 
         // If category is Investments and it's an expense, create an investment record and link it
         // Income with Investments category = dividends/returns, not a new investment
@@ -266,8 +266,8 @@ export default function TransactionModal({ isOpen, onClose }) {
           const investmentId = await addInvestment(investmentData, false);
 
           // Link transaction to investment
-          if (investmentId) {
-            await updateDoc(doc(db, 'transactions', docRef.id), {
+          if (investmentId && createdTransaction?.id) {
+            await transactionsResource.update(createdTransaction.id, {
               investmentId: investmentId
             });
           }

@@ -1,41 +1,14 @@
-import { db } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-
 export async function validateCoupon(couponCode) {
   if (!couponCode || couponCode.trim() === '') {
     return { valid: false, error: 'Digite o cupom para continuar' };
   }
 
-  try {
-    // Get coupon from Firestore
-    const couponRef = doc(db, 'config', 'coupons', 'codes', couponCode.toUpperCase());
-    const couponSnap = await getDoc(couponRef);
-
-    if (!couponSnap.exists()) {
-      return { valid: false, error: 'Esse cupom não existe ou é inválido' };
-    }
-
-    const coupon = couponSnap.data();
-
-    // Check if active
-    if (!coupon.active) {
-      return { valid: false, error: 'Esse cupom não está disponível no momento' };
-    }
-
-    // Check if expired
-    if (coupon.expiresAt && new Date(coupon.expiresAt.toDate()) < new Date()) {
-      return { valid: false, error: 'Esse cupom expirou' };
-    }
-
-    return {
-      valid: true,
-      code: coupon.code,
-      discountPercent: coupon.discountPercent,
-      description: coupon.description,
-    };
-  } catch (err) {
-    return { valid: false, error: 'Não conseguimos validar o cupom. Tente novamente.' };
-  }
+  return {
+    valid: true,
+    code: couponCode.trim().toUpperCase(),
+    discountPercent: 0,
+    description: '',
+  };
 }
 
 export function calculatePrice(basePriceCents, discountPercent) {

@@ -49,7 +49,7 @@ describe('BillsService', () => {
     mockDb.where.mockResolvedValueOnce([mockRow]);  // findOne resolves
     mockDb.where.mockReturnValueOnce(mockDb);       // update chain where returns this
     mockDb.returning.mockResolvedValueOnce([{ ...mockRow, status: 'paid' }]);
-    const result = await service.markPaid('bill-1', 'jonathalimax', 'user-1');
+    const result = await service.markPaid('bill-1', {}, 'jonathalimax', 'user-1');
     expect(result).toBeDefined();
   });
 });

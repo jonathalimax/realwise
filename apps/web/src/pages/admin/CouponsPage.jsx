@@ -1,19 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import QRCodeModal from './QRCodeModal';
-import {
-  collection, onSnapshot, query, orderBy,
-  updateDoc, doc, addDoc, serverTimestamp,
-} from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { couponsResource } from '../../lib/api/resources/coupons';
 
 // Module-level function to get coupon status with fresh `now`
 function getCouponStatus(coupon, now) {
-  if (coupon.validUntil?.toDate?.() < now) return 'expired';
+  const validUntil = coupon.validUntil ? new Date(coupon.validUntil) : null;
+  if (validUntil && validUntil < now) return 'expired';
   if (!coupon.enabled) return 'disabled';
   return 'active';
 }
 
-export default function CouponsPage({ db, functions }) {
+export default function CouponsPage() {
   const [coupons, setCoupons] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -24,11 +21,19 @@ export default function CouponsPage({ db, functions }) {
   const [qrCoupon, setQrCoupon] = useState(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, snap => {
-      setCoupons(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-  }, [db]);
+    let active = true;
+    couponsResource.list()
+      .then((rows) => {
+        if (!active) return;
+        setCoupons(rows);
+      })
+      .catch((error) => {
+        console.error('Failed to load coupons:', error);
+        if (!active) return;
+        setCoupons([]);
+      });
+    return () => { active = false; };
+  }, []);
 
   const filtered = useMemo(() => {
     const now = new Date();
@@ -39,14 +44,17 @@ export default function CouponsPage({ db, functions }) {
       let av, bv;
       if (sortBy === 'code') { av = a.code; bv = b.code; }
       else if (sortBy === 'currentUses') { av = a.currentUses || 0; bv = b.currentUses || 0; }
-      else { av = a.createdAt?.seconds || 0; bv = b.createdAt?.seconds || 0; }
+      else { av = new Date(a.createdAt || 0).getTime(); bv = new Date(b.createdAt || 0).getTime(); }
       return sortDir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
     });
     return result;
   }, [coupons, filterStatus, filterType, sortBy, sortDir]);
 
   async function handleToggle(coupon) {
-    await updateDoc(doc(db, 'coupons', coupon.id), { enabled: !coupon.enabled });
+    await couponsResource.update(coupon.id, { enabled: !coupon.enabled });
+    setCoupons((prev) => prev.map((item) => (
+      item.id === coupon.id ? { ...item, enabled: !item.enabled } : item
+    )));
   }
 
   function formatDiscount(coupon) {
@@ -56,7 +64,7 @@ export default function CouponsPage({ db, functions }) {
 
   function formatDate(ts) {
     if (!ts) return '—';
-    const d = ts.toDate?.() || new Date(ts);
+    const d = new Date(ts);
     return d.toLocaleDateString('pt-BR');
   }
 
@@ -184,8 +192,6 @@ export default function CouponsPage({ db, functions }) {
 
       {showModal && (
         <CreateEditCouponModal
-          db={db}
-          functions={functions}
           coupon={editingCoupon}
           onClose={() => { setShowModal(false); setEditingCoupon(null); }}
         />
@@ -197,7 +203,7 @@ export default function CouponsPage({ db, functions }) {
   );
 }
 
-function CreateEditCouponModal({ db, functions, coupon, onClose }) {
+function CreateEditCouponModal({ coupon, onClose }) {
   const isEdit = !!coupon;
   const [code, setCode] = useState(coupon?.code || '');
   const [discountType, setDiscountType] = useState(coupon?.discountType || 'percentage');
@@ -242,33 +248,14 @@ function CreateEditCouponModal({ db, functions, coupon, onClose }) {
       discountType,
       discountValue: storedValue,
       maxUses: maxUses ? Number(maxUses) : null,
-      validFrom: validFrom ? new Date(validFrom) : null,
-      validUntil: validUntil ? new Date(validUntil) : null,
+      expiresAt: validUntil ? new Date(validUntil) : null,
       enabled,
     };
     try {
-      let couponDocId;
       if (isEdit) {
-        await updateDoc(doc(db, 'coupons', coupon.id), { ...data, updatedAt: serverTimestamp() });
-        couponDocId = coupon.id;
+        await couponsResource.update(coupon.id, data);
       } else {
-        const ref = await addDoc(collection(db, 'coupons'), {
-          ...data,
-          currentUses: 0,
-          source: 'admin',
-          createdBy: 'admin',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        couponDocId = ref.id;
-      }
-
-      // Sync to Stripe (creates Coupon + Promotion Code so it works in Stripe's checkout UI)
-      try {
-        const sync = httpsCallable(functions, 'syncCouponToStripe');
-        await sync({ couponId: couponDocId });
-      } catch (syncErr) {
-        console.warn('syncCouponToStripe failed (non-fatal):', syncErr.message);
+        await couponsResource.create(data);
       }
 
       onClose();

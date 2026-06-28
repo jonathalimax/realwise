@@ -1,19 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  getDoc,
-  serverTimestamp
-} from 'firebase/firestore';
 import { useAccess } from './AccessContext';
+import { transactionsResource } from '../lib/api/resources/transactions';
+import { investmentsResource } from '../lib/api/resources/investments';
+import { goalsResource } from '../lib/api/resources/goals';
 
 const InvestmentContext = createContext();
 
@@ -108,6 +97,16 @@ export function InvestmentProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const { ownerId } = useAccess();
 
+  const getCreatedAtDate = (investment) => {
+    if (investment?.createdAt?.toDate) {
+      return investment.createdAt.toDate();
+    }
+    if (investment?.createdAt) {
+      return new Date(investment.createdAt);
+    }
+    return new Date();
+  };
+
   // Listen for investments when ownerId is available
   useEffect(() => {
     if (!ownerId) {
@@ -117,36 +116,26 @@ export function InvestmentProvider({ children }) {
     }
 
     setLoading(true);
+    let active = true;
 
-    const q = query(
-      collection(db, 'investments'),
-      where('userId', '==', ownerId) // Use ownerId instead of userId
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const investmentsData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        // Sort by createdAt
-        investmentsData.sort((a, b) => {
-          const dateA = a.createdAt?.toDate?.() || new Date(0);
-          const dateB = b.createdAt?.toDate?.() || new Date(0);
-          return dateB - dateA;
-        });
+    investmentsResource.list()
+      .then((rows) => {
+        if (!active) return;
+        const investmentsData = [...rows].sort((a, b) => getCreatedAtDate(b) - getCreatedAtDate(a));
         setInvestments(investmentsData);
         setLoading(false);
-      },
-      (err) => {
+      })
+      .catch((err) => {
         console.error('Investments query error:', err);
+        if (!active) return;
+        setInvestments([]);
         setLoading(false);
-      }
-    );
+      });
 
-    return () => unsubscribe();
-  }, [ownerId]); // Use ownerId instead of userId
+    return () => {
+      active = false;
+    };
+  }, [ownerId]);
 
   // Calculate projected value based on return rate and time
   const calculateProjectedValue = (investment) => {
@@ -175,7 +164,7 @@ export function InvestmentProvider({ children }) {
     // Get start date - prefer purchaseDate, fallback to createdAt
     const startDate = purchaseDate
       ? new Date(purchaseDate + 'T12:00:00')
-      : (createdAt?.toDate?.() || new Date());
+      : getCreatedAtDate(investment);
 
     // Calculate to today
     const today = new Date();
@@ -240,7 +229,7 @@ export function InvestmentProvider({ children }) {
   const getDaysHeld = (investment) => {
     const startDate = investment.purchaseDate
       ? new Date(investment.purchaseDate + 'T12:00:00')
-      : (investment.createdAt?.toDate?.() || new Date());
+      : getCreatedAtDate(investment);
     const today = new Date();
     const diffMs = today - startDate;
     return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
@@ -351,14 +340,8 @@ export function InvestmentProvider({ children }) {
 
   // Add new investment
   const addInvestment = async (investmentData, createTransaction = true) => {
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
-      return null;
-    }
-
     try {
       const newInvestment = {
-        userId: auth.currentUser.uid,
         name: investmentData.name,
         type: investmentData.type || 'fixed_income',
         bank: investmentData.bank || '',
@@ -374,12 +357,15 @@ export function InvestmentProvider({ children }) {
         platform: investmentData.platform || null,
         coinName: investmentData.coinName || null,
         fundName: investmentData.fundName || null,
+        propertyDescription: investmentData.propertyDescription || null,
         transactionId: investmentData.transactionId || null,
         notes: investmentData.notes || '',
-        createdAt: serverTimestamp(),
+        totalWithdrawn: investmentData.totalWithdrawn || 0,
+        status: investmentData.status || 'active',
+        source: investmentData.source || null,
       };
 
-      const docRef = await addDoc(collection(db, 'investments'), newInvestment);
+      const created = await investmentsResource.create(newInvestment);
 
       // Create expense transaction if requested
       if (createTransaction && investmentData.initialAmount > 0) {
@@ -387,14 +373,12 @@ export function InvestmentProvider({ children }) {
           ? new Date(investmentData.purchaseDate + 'T12:00:00')
           : new Date();
         const transactionData = {
-          userId: auth.currentUser.uid,
           type: 'expense',
           description: `Investment: ${investmentData.name}`,
           amount: investmentData.initialAmount,
           category: investmentData.transactionCategory || 'Investimentos',
           date: txDate.toISOString(),
-          createdAt: serverTimestamp(),
-          investmentId: docRef.id,
+          investmentId: created.id,
           bankId: investmentData.bank || null,
           paymentMethod: investmentData.paymentMethod || null,
           goalId: investmentData.goalId || null,
@@ -402,15 +386,18 @@ export function InvestmentProvider({ children }) {
           investmentType: investmentData.type || 'fixed_income',
         };
 
-        const txRef = await addDoc(collection(db, 'transactions'), transactionData);
+        const tx = await transactionsResource.create(transactionData);
 
         // Update investment with transaction reference
-        await updateDoc(doc(db, 'investments', docRef.id), {
-          transactionId: txRef.id
+        const linked = await investmentsResource.update(created.id, {
+          transactionId: tx?.id || null,
         });
+        setInvestments((prev) => [linked, ...prev.filter((item) => item.id !== linked.id)]);
+        return linked.id;
       }
 
-      return docRef.id;
+      setInvestments((prev) => [created, ...prev.filter((item) => item.id !== created.id)]);
+      return created.id;
     } catch (error) {
       console.error('Error adding investment:', error);
       return null;
@@ -420,11 +407,10 @@ export function InvestmentProvider({ children }) {
   // Update investment
   const updateInvestment = async (investmentId, updates) => {
     try {
-      const investmentRef = doc(db, 'investments', investmentId);
-      await updateDoc(investmentRef, {
-        ...updates,
-        updatedAt: serverTimestamp()
-      });
+      const updated = await investmentsResource.update(investmentId, updates);
+      setInvestments((prev) => prev.map((investment) => (
+        investment.id === investmentId ? updated : investment
+      )));
       return true;
     } catch (error) {
       console.error('Error updating investment:', error);
@@ -435,7 +421,8 @@ export function InvestmentProvider({ children }) {
   // Delete investment
   const deleteInvestment = async (investmentId) => {
     try {
-      await deleteDoc(doc(db, 'investments', investmentId));
+      await investmentsResource.remove(investmentId);
+      setInvestments((prev) => prev.filter((investment) => investment.id !== investmentId));
       return true;
     } catch (error) {
       console.error('Error deleting investment:', error);
@@ -447,8 +434,8 @@ export function InvestmentProvider({ children }) {
   const withdrawFromInvestment = async (investmentId, amount, options = {}) => {
     const { goalId = null, createTransaction = true, withdrawDate = null } = options;
 
-    if (!auth.currentUser) {
-      console.error('No authenticated user');
+    if (!ownerId) {
+      console.error('No authenticated owner');
       return { success: false, error: 'Not authenticated' };
     }
 
@@ -477,19 +464,20 @@ export function InvestmentProvider({ children }) {
         currentAmount: isFullWithdrawal ? 0 : currentValue - amount,
         totalWithdrawn: (investment.totalWithdrawn || 0) + amount,
         lastWithdrawDate: transactionDate.toISOString(),
-        updatedAt: serverTimestamp()
       };
 
       if (isFullWithdrawal) {
         updateData.status = 'closed';
       }
 
-      await updateDoc(doc(db, 'investments', investmentId), updateData);
+      const updatedInvestment = await investmentsResource.update(investmentId, updateData);
+      setInvestments((prev) => prev.map((item) => (
+        item.id === investmentId ? updatedInvestment : item
+      )));
 
       // Create income transaction
       if (createTransaction && amount > 0) {
-        await addDoc(collection(db, 'transactions'), {
-          userId: ownerId,
+        await transactionsResource.create({
           type: 'income',
           description: `Resgate: ${investment.name}`,
           amount,
@@ -497,21 +485,20 @@ export function InvestmentProvider({ children }) {
           date: transactionDate.toISOString(),
           investmentId,
           isWithdrawal: true,
-          createdAt: serverTimestamp()
         });
       }
 
       // Update goal if specified
       if (goalId) {
-        const goalRef = doc(db, 'goals', goalId);
-        const goalSnap = await getDoc(goalRef);
-        if (goalSnap.exists()) {
-          const goalData = goalSnap.data();
+        try {
+          const goalData = await goalsResource.get(goalId);
           const newGoalAmount = (goalData.currentAmount || 0) + amount;
-          await updateDoc(goalRef, {
+          await goalsResource.update(goalId, {
             currentAmount: newGoalAmount,
             completed: newGoalAmount >= goalData.targetAmount
           });
+        } catch (error) {
+          console.error('Error updating linked goal after withdrawal:', error);
         }
       }
 

@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useMonth } from '../contexts/MonthContext';
+import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
 import TransactionModal from '../components/TransactionModal';
 import PageHeader from '../components/PageHeader';
@@ -15,9 +14,8 @@ export default function IncomePage() {
   const { t, language } = useSettings();
   const { ownerId, canWrite } = useAccess();
   const { selectedMonth } = useMonth();
+  const { transactions } = useTransactions({ type: 'income' }, { enabled: Boolean(ownerId) });
 
-  const [transactions, setTransactions] = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(() => sessionStorage.getItem('income_categoryFilter') ?? 'all');
   const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('income_sortBy') ?? 'date');
   const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem('income_sortOrder') ?? 'desc');
@@ -31,26 +29,6 @@ export default function IncomePage() {
   const handleSetSortOrder = (v) => { sessionStorage.setItem('income_sortOrder', v); setSortOrder(v); };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  useEffect(() => {
-    if (!auth.currentUser || !ownerId) return;
-
-    const q = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId),
-      where('type', '==', 'income')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTransactions(data);
-    });
-
-    return () => unsubscribe();
-  }, [refreshKey, ownerId]);
 
   const monthlyTransactions = useMemo(() => {
     if (!selectedMonth) return transactions;
@@ -93,7 +71,7 @@ export default function IncomePage() {
     selectedCategoryFilter !== 'all'
   ].filter(Boolean).length;
 
-  const triggerRefresh = () => setRefreshKey(prev => prev + 1);
+  const triggerRefresh = () => {};
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat(locale, {

@@ -3,8 +3,9 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { imports, transactions, categories, accounts } from '../db/schema';
+import { imports, transactions, categories, accounts, importIssues } from '../db/schema';
 import { BankParserService, ParsedTransaction } from './bank-parser.service';
+import { ReportImportIssueDto } from './dto/report-import-issue.dto';
 
 type Import = typeof imports.$inferSelect;
 
@@ -86,5 +87,37 @@ export class ImportsService {
       .update(imports)
       .set({ status: 'complete', updatedAt: new Date() })
       .where(and(eq(imports.id, importId), eq(imports.clientId, clientId), eq(imports.userId, userId)));
+  }
+
+  async reportIssue(
+    dto: ReportImportIssueDto,
+    clientId: string,
+    userId: string,
+  ): Promise<{ ok: true; issueId: string }> {
+    const rows = await this.db
+      .insert(importIssues)
+      .values({
+        clientId,
+        userId,
+        description: dto.errorMessage || dto.userNote || 'Import issue reported by user',
+        status: 'open',
+        metadata: {
+          fileName: dto.fileName,
+          fileMime: dto.fileMime || 'application/octet-stream',
+          fileBase64: dto.fileBase64,
+          bankType: dto.bankType,
+          parserUsed: dto.parserUsed || 'unknown',
+          detectedHeaders: dto.detectedHeaders || [],
+          errorMessage: dto.errorMessage || null,
+          userNote: dto.userNote || null,
+          userName: dto.userName || '',
+          userEmail: dto.userEmail || '',
+          reportedAt: new Date().toISOString(),
+        },
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return { ok: true, issueId: rows[0].id };
   }
 }

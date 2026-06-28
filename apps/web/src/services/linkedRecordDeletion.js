@@ -1,15 +1,5 @@
-import {
-  collection,
-  deleteField,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  query,
-  where,
-  writeBatch,
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { transactionsResource } from '../lib/api/resources/transactions';
+import { investmentsResource } from '../lib/api/resources/investments';
 
 const uniqueIds = (items = []) => [...new Set(items.filter(Boolean))];
 
@@ -50,14 +40,20 @@ export function buildInvestmentDeletionPlan({
 
 async function getTransactionById(transactionId) {
   if (!transactionId) return null;
-  const snapshot = await getDoc(doc(db, 'transactions', transactionId));
-  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  try {
+    return await transactionsResource.get(transactionId);
+  } catch {
+    return null;
+  }
 }
 
 async function getInvestmentById(investmentId) {
   if (!investmentId) return null;
-  const snapshot = await getDoc(doc(db, 'investments', investmentId));
-  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  try {
+    return await investmentsResource.get(investmentId);
+  } catch {
+    return null;
+  }
 }
 
 async function getInstallmentTransactions(transaction) {
@@ -65,15 +61,12 @@ async function getInstallmentTransactions(transaction) {
     return transaction?.id ? [transaction] : [];
   }
 
-  const snapshot = await getDocs(
-    query(
-      collection(db, 'transactions'),
-      where('installmentGroupId', '==', transaction.installmentGroupId),
-      where('userId', '==', transaction.userId)
-    )
+  const rows = await transactionsResource.list();
+  return rows.filter(
+    (item) =>
+      item.installmentGroupId === transaction.installmentGroupId
+      && item.userId === transaction.userId
   );
-
-  return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 }
 
 async function findLinkedInvestmentForTransaction(transaction) {
@@ -83,14 +76,8 @@ async function findLinkedInvestmentForTransaction(transaction) {
   }
 
   if (!transaction?.id) return null;
-
-  const snapshot = await getDocs(
-    query(collection(db, 'investments'), where('transactionId', '==', transaction.id), limit(1))
-  );
-
-  if (snapshot.empty) return null;
-  const match = snapshot.docs[0];
-  return { id: match.id, ...match.data() };
+  const rows = await investmentsResource.list();
+  return rows.find((item) => item.transactionId === transaction.id) || null;
 }
 
 async function findLinkedTransactionsForInvestment(investment) {
@@ -108,10 +95,10 @@ async function findLinkedTransactionsForInvestment(investment) {
   }
 
   if (investment?.id) {
-    const snapshot = await getDocs(
-      query(collection(db, 'transactions'), where('investmentId', '==', investment.id))
-    );
-    snapshot.docs.forEach((item) => pushUnique({ id: item.id, ...item.data() }));
+    const rows = await transactionsResource.list();
+    rows
+      .filter((item) => item.investmentId === investment.id)
+      .forEach((item) => pushUnique(item));
   }
 
   return matches;
@@ -134,23 +121,11 @@ export async function deleteTransactionWithLinks({
     deleteLinkedInvestment,
   });
 
-  const batch = writeBatch(db);
-
-  plan.transactionIdsToDelete.forEach((transactionId) => {
-    batch.delete(doc(db, 'transactions', transactionId));
-  });
-
-  plan.investmentIdsToDelete.forEach((investmentId) => {
-    batch.delete(doc(db, 'investments', investmentId));
-  });
-
-  plan.investmentIdsToUnlink.forEach((investmentId) => {
-    batch.update(doc(db, 'investments', investmentId), {
-      transactionId: deleteField(),
-    });
-  });
-
-  await batch.commit();
+  await Promise.all(plan.transactionIdsToDelete.map((transactionId) => transactionsResource.remove(transactionId)));
+  await Promise.all(plan.investmentIdsToDelete.map((investmentId) => investmentsResource.remove(investmentId)));
+  await Promise.all(plan.investmentIdsToUnlink.map((investmentId) => (
+    investmentsResource.update(investmentId, { transactionId: null })
+  )));
 
   return {
     deletedTransactionCount: plan.transactionIdsToDelete.length,
@@ -169,23 +144,14 @@ export async function deleteInvestmentWithLinks({
     deleteLinkedTransactions,
   });
 
-  const batch = writeBatch(db);
+  await Promise.all(plan.transactionIdsToDelete.map((transactionId) => transactionsResource.remove(transactionId)));
+  await Promise.all(
+    plan.transactionIdsToUnlink.map((transactionId) =>
+      transactionsResource.update(transactionId, { investmentId: null })
+    )
+  );
 
-  plan.transactionIdsToDelete.forEach((transactionId) => {
-    batch.delete(doc(db, 'transactions', transactionId));
-  });
-
-  plan.transactionIdsToUnlink.forEach((transactionId) => {
-    batch.update(doc(db, 'transactions', transactionId), {
-      investmentId: deleteField(),
-    });
-  });
-
-  plan.investmentIdsToDelete.forEach((investmentId) => {
-    batch.delete(doc(db, 'investments', investmentId));
-  });
-
-  await batch.commit();
+  await Promise.all(plan.investmentIdsToDelete.map((investmentId) => investmentsResource.remove(investmentId)));
 
   return {
     deletedTransactionCount: plan.transactionIdsToDelete.length,

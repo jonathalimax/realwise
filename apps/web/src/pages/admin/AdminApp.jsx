@@ -1,10 +1,8 @@
 // src/pages/admin/AdminApp.jsx
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signOut, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, doc, getDoc, connectFirestoreEmulator } from 'firebase/firestore';
 import AdminAuth from './AdminAuth';
+import { authApi } from '../../lib/api/auth';
 
 const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
 const OnboardingRun = lazy(() => import('./OnboardingRun'));
@@ -15,34 +13,6 @@ const GuidePage = lazy(() => import('./GuidePage'));
 const CouponsPage = lazy(() => import('./CouponsPage'));
 const PricingConfigPage = lazy(() => import('./PricingConfigPage'));
 const TestimonialManagementPage = lazy(() => import('./TestimonialManagementPage'));
-
-let adminDb = null;
-let adminAuth = null;
-let adminFunctions = null;
-
-async function initAdminFirebase() {
-  if (adminAuth) return { auth: adminAuth, db: adminDb };
-  const devHostnames = new Set(['realwise-dev.web.app', 'realwise-dev.firebaseapp.com', 'localhost']);
-  const configFile = devHostnames.has(window.location.hostname) ? 'app.dev' : 'app';
-  const res = await fetch(`/clients/${configFile}.json`);
-  const config = await res.json();
-  const isNew = !getApps().find(a => a.name === 'admin');
-  const app = getApps().find(a => a.name === 'admin') ?? initializeApp(config.firebase, 'admin');
-  adminAuth = getAuth(app);
-  adminDb = getFirestore(app);
-  const { getFunctions, connectFunctionsEmulator } = await import('firebase/functions');
-  adminFunctions = getFunctions(app);
-
-  if (isNew && import.meta.env.VITE_USE_EMULATOR === 'true') {
-    // Idempotent: ignore reconnect errors when this app shares state with another
-    try { connectAuthEmulator(adminAuth, 'http://localhost:9099', { disableWarnings: true }); } catch (_) {}
-    try { connectFirestoreEmulator(adminDb, 'localhost', 8080); } catch (_) {}
-    try { connectFunctionsEmulator(adminFunctions, 'localhost', 5001); } catch (_) {}
-  }
-  return { auth: adminAuth, db: adminDb, functions: adminFunctions };
-}
-
-export { adminDb, adminAuth, adminFunctions };
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-950">
@@ -57,7 +27,6 @@ const navLinkClass = ({ isActive }) =>
 
 export default function AdminApp() {
   const [ready, setReady] = useState(false);
-  const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authError, setAuthError] = useState('');
 
@@ -67,25 +36,35 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    initAdminFirebase().then(({ auth, db }) => {
-      const unsub = onAuthStateChanged(auth, async (u) => {
-        if (!u) { setUser(null); setIsAdmin(false); setReady(true); return; }
-        const adminDoc = await getDoc(doc(db, 'admins', u.email));
-        if (!adminDoc.exists()) {
-          await signOut(auth);
-          setAuthError('Acesso negado. Seu email não está na lista de admins.');
-          setUser(null); setIsAdmin(false);
+    let active = true;
+
+    authApi.getSession()
+      .then((session) => {
+        if (!active) return;
+        const nextUser = session?.user || session || null;
+        if (nextUser?.role === 'admin') {
+          setIsAdmin(true);
+          setAuthError('');
         } else {
-          setUser(u); setIsAdmin(true); setAuthError('');
+          setIsAdmin(false);
+          setAuthError('Acesso negado. Sua sessão não tem permissão de admin.');
         }
         setReady(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setIsAdmin(false);
+        setAuthError('');
+        setReady(true);
       });
-      return () => unsub();
-    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (!ready) return <PageLoader />;
-  if (!isAdmin) return <AdminAuth onSignIn={() => {}} error={authError} />;
+  if (!isAdmin) return <AdminAuth error={authError} />;
 
   return (
     <BrowserRouter basename="/admin">
@@ -100,7 +79,10 @@ export default function AdminApp() {
           <NavLink to="testimonials" className={navLinkClass}>Testimonials</NavLink>
           <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
           <button
-            onClick={() => signOut(adminAuth)}
+            onClick={async () => {
+              await authApi.logout();
+              window.location.replace('/login');
+            }}
             className="ml-auto text-xs sm:text-sm text-gray-500 hover:text-red-400 whitespace-nowrap flex-shrink-0"
           >
             Sign out
@@ -109,15 +91,15 @@ export default function AdminApp() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route index element={<Navigate to="leads" replace />} />
-            <Route path="leads" element={<LeadsDashboard db={adminDb} functions={adminFunctions} />} />
-            <Route path="coupons" element={<CouponsPage db={adminDb} functions={adminFunctions} />} />
-            <Route path="pricing" element={<PricingConfigPage db={adminDb} functions={adminFunctions} />} />
+            <Route path="leads" element={<LeadsDashboard />} />
+            <Route path="coupons" element={<CouponsPage />} />
+            <Route path="pricing" element={<PricingConfigPage />} />
             <Route path="transfer" element={<TransferScript />} />
             <Route path="guia" element={<GuidePage />} />
-            <Route path="testimonials" element={<TestimonialManagementPage db={adminDb} />} />
-            <Route path="onboarding/:runId" element={<OnboardingRun db={adminDb} functions={adminFunctions} />} />
-            <Route path="import-issues" element={<ImportIssues db={adminDb} />} />
-            <Route path="import-issues/:id" element={<ImportIssueDetail db={adminDb} />} />
+            <Route path="testimonials" element={<TestimonialManagementPage />} />
+            <Route path="onboarding/:runId" element={<OnboardingRun />} />
+            <Route path="import-issues" element={<ImportIssues />} />
+            <Route path="import-issues/:id" element={<ImportIssueDetail />} />
             <Route path="*" element={<Navigate to="" replace />} />
           </Routes>
         </Suspense>

@@ -1,185 +1,84 @@
-// src/pages/SharedLogin.jsx
-// Standalone login page served at /login.
-// Does NOT rely on ClientConfigProvider or the per-client firebase.js bindings.
+import { useEffect, useMemo, useState } from 'react';
+import { authApi } from '../lib/api/auth';
+import { clearLoginSession, isLoginSessionExpired } from '../lib/auth/sessionAge';
 
-import { useState, useEffect, useRef } from 'react';
-import { GoogleAuthProvider, signInWithCredential, signOut } from 'firebase/auth';
-import { initSharedFirebase } from '../lib/sharedFirebase';
-import { devMark } from '../lib/devMarker';
-import { isLoginSessionExpired, markLoginSession } from '../lib/auth/sessionAge';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
+function getLoginErrorMessage(errorCode) {
+  switch (errorCode) {
+    case 'oauth':
+      return 'Falha na autenticacao. Tente novamente.';
+    case 'server':
+      return 'Erro interno ao concluir o login.';
+    default:
+      return '';
+  }
+}
 
 export default function SharedLogin() {
   const [loading, setLoading] = useState(false);
   const [initDone, setInitDone] = useState(false);
   const [error, setError] = useState('');
-  const sharedRef = useRef(null); // { auth, functions }
+  const errorCode = useMemo(
+    () => new URLSearchParams(window.location.search).get('error') || '',
+    [],
+  );
 
   useEffect(() => {
-    initSharedFirebase()
-      .then(async (shared) => {
-        sharedRef.current = shared;
-        // Explicit login intent from landing page suppresses auto-redirect.
-        // One-shot: consume immediately so refresh / PWA reopen behaves normally.
+    async function bootstrap() {
+      try {
+        setError(getLoginErrorMessage(errorCode));
+
         const showLogin = sessionStorage.getItem('__rw_show_login');
         if (showLogin) {
           sessionStorage.removeItem('__rw_show_login');
-          if (shared.auth.currentUser) {
-            await signOut(shared.auth).catch(() => {});
-          }
-        } else if (shared.auth.currentUser) {
-          // Auto-redirect: already signed in → go straight through the loader
-          if (isLoginSessionExpired()) {
-            signOut(shared.auth).finally(() => setInitDone(true));
-            return;
-          }
-          const username = shared.auth.currentUser.email.split('@')[0];
-          window.location.href = `/${username}/loading`;
+          clearLoginSession();
+          await authApi.logout().catch((err) => {
+            if (err?.status !== 401) throw err;
+          });
+          setInitDone(true);
           return;
         }
-        // Surface any error left by LoadingPage on a previous failed attempt
-        const prior = sessionStorage.getItem('__rw_login_error');
-        if (prior) {
-          sessionStorage.removeItem('__rw_login_error');
-          if (prior === 'client_config_not_found') {
-            setError('Configuração do usuário não encontrada.');
-          } else {
-            setError('Falha na autenticação. Tente novamente.');
+
+        const session = await authApi.getSession().catch((err) => {
+          if (err?.status === 401) return null;
+          throw err;
+        });
+
+        if (session) {
+          if (isLoginSessionExpired()) {
+            clearLoginSession();
+            await authApi.logout().catch((err) => {
+              if (err?.status !== 401) throw err;
+            });
+            setInitDone(true);
+            return;
           }
+
+          window.location.href = `/${session.clientId}/dashboard`;
+          return;
         }
+
         setInitDone(true);
-      })
-      .catch((err) => {
-        console.error('[SharedLogin] init error', err);
-        setError('Erro ao carregar configuração. Tente novamente.');
+      } catch (err) {
+        console.error('[SharedLogin] bootstrap error', err);
+        setError('Erro ao carregar configuracao. Tente novamente.');
         setInitDone(true);
-      });
-  }, []);
-
-  const handlePostSignIn = async (email) => {
-    devMark('SharedLogin: signed in as ' + email);
-    if (!email) throw new Error('No email returned from Google');
-    markLoginSession();
-    const username = email.split('@')[0];
-    // Navigate immediately to the per-client loading route. The LoadingPage
-    // owns the rest of the pipeline (config fetch, getCustomToken,
-    // signInWithCustomToken). This is what makes the login button stop spinning fast.
-    window.location.href = `/${username}/loading`;
-  };
-
-  const handleDevEmulatorSignIn = async () => {
-    if (!sharedRef.current) return;
-    setError('');
-    setLoading(true);
-    try {
-      const { auth } = sharedRef.current;
-      const { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } = await import('firebase/auth');
-      // Clear any stale auth state — the emulator may have been restarted
-      // since IndexedDB was last written, leaving us with a token for a UID
-      // that no longer exists ("Internal state invariant broken").
-      await signOut(auth).catch(() => {});
-      const DEV_EMAIL = 'jonathalimax@gmail.com';
-      const DEV_PASSWORD = 'devpassword';
-      const projectId = auth.app.options.projectId;
-
-      // Helper: forcefully delete the user from the Auth Emulator REST API.
-      // The emulator accepts "Bearer owner" as an admin auth shortcut.
-      const purgeDevUser = async () => {
-        try {
-          const lookupRes = await fetch(
-            `http://localhost:9099/identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer owner' },
-              body: JSON.stringify({ email: [DEV_EMAIL] }),
-            }
-          );
-          const lookup = await lookupRes.json();
-          const localId = lookup?.users?.[0]?.localId;
-          if (!localId) return;
-          await fetch(
-            `http://localhost:9099/identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:delete`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer owner' },
-              body: JSON.stringify({ localId }),
-            }
-          );
-        } catch (purgeErr) {
-          console.warn('[SharedLogin] purge dev user failed', purgeErr);
-        }
-      };
-
-      let result;
-      try {
-        result = await signInWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
-      } catch (e) {
-        const code = e?.code;
-        const recoverableNotFound = code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials';
-        const wrongPassword = code === 'auth/wrong-password';
-        if (recoverableNotFound) {
-          result = await createUserWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
-        } else if (wrongPassword) {
-          // Stale dev user from a previous run with a different password — purge & recreate.
-          await purgeDevUser();
-          result = await createUserWithEmailAndPassword(auth, DEV_EMAIL, DEV_PASSWORD);
-        } else {
-          throw e;
-        }
       }
-      await handlePostSignIn(result.user.email);
-    } catch (err) {
-      console.error('[SharedLogin] dev sign-in error', err);
-      setError('Falha no sign-in dev: ' + (err?.message || 'unknown'));
-      setLoading(false);
     }
-  };
 
-  const handleGoogleSignIn = async () => {
-    if (!sharedRef.current) return;
+    bootstrap();
+  }, [errorCode]);
+
+  const handleGoogleSignIn = () => {
     setError('');
     setLoading(true);
-
-    try {
-      const { auth } = sharedRef.current;
-      const apiKey = auth.app.options.apiKey;
-      const authDomain = auth.app.options.authDomain;
-      const protocol = authDomain.includes('localhost') ? 'http' : 'https';
-      const popupUrl = `${protocol}://${authDomain}/__/auth/handler?apiKey=${apiKey}&prompt=select_account`;
-
-      const popup = window.open(popupUrl, 'firebase-auth-popup', 'width=500,height=600,left=400,top=100');
-
-      const idToken = await new Promise((resolve, reject) => {
-        const onMessage = (event) => {
-          if (event.data?.type === 'lf-google-auth') {
-            window.removeEventListener('message', onMessage);
-            clearInterval(closedCheck);
-            resolve(event.data.idToken);
-          }
-        };
-        window.addEventListener('message', onMessage);
-
-        const closedCheck = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(closedCheck);
-            window.removeEventListener('message', onMessage);
-            reject(new Error('Popup closed'));
-          }
-        }, 500);
-      });
-
-      const credential = GoogleAuthProvider.credential(idToken);
-      const result = await signInWithCredential(auth, credential);
-      await handlePostSignIn(result.user.email);
-    } catch (err) {
-      console.error('[SharedLogin] auth error', err);
-      setError('Falha na autenticação. Tente novamente.');
-      setLoading(false);
-    }
+    const authUrl = API_BASE_URL ? `${API_BASE_URL.replace(/\/$/, '')}/auth/google` : '/auth/google';
+    window.location.href = authUrl;
   };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side — Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gray-900 p-12 flex-col justify-between">
         <div className="flex items-center gap-3">
           <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
@@ -188,7 +87,7 @@ export default function SharedLogin() {
 
         <div className="space-y-6">
           <h1 className="text-4xl font-bold text-white leading-tight">
-            Controle suas finanças com clareza
+            Controle suas financas com clareza
           </h1>
           <p className="text-lg text-gray-400">
             Seu painel financeiro pessoal, seguro e isolado.
@@ -196,15 +95,13 @@ export default function SharedLogin() {
         </div>
 
         <p className="text-sm text-gray-500">
-          Realwise — feito com ❤️ por{' '}
+          Realwise - feito com carinho por{' '}
           <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">Jonatha Lima</a>
         </p>
       </div>
 
-      {/* Right side — Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white dark:bg-gray-800">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <img src="/logo.jpg" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
             <span className="text-2xl font-bold text-gray-900 dark:text-white">Realwise</span>
@@ -248,28 +145,8 @@ export default function SharedLogin() {
             Continuar com Google
           </button>
 
-          {import.meta.env.DEV && (
-            <>
-              <div className="flex items-center gap-3 my-4">
-                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-                <span className="text-xs text-gray-400">DEV</span>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-              </div>
-              <button
-                onClick={handleDevEmulatorSignIn}
-                disabled={loading || !initDone}
-                className="w-full py-3 border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30
-                  rounded-xl font-medium text-amber-700 dark:text-amber-300
-                  hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors
-                  disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Entrando...' : 'Entrar como jonathalimax (DEV emulator)'}
-              </button>
-            </>
-          )}
-
           <p className="text-center mt-8 text-sm text-gray-400">
-            Acesso restrito a usuários cadastrados
+            Acesso restrito a usuarios cadastrados
           </p>
         </div>
       </div>

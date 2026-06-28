@@ -1,41 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
-import { db } from '@/firebase';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 
 export default function Testimonials() {
-  const [testimonials, setTestimonials] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!db) return;
-
-    const loadTestimonials = async () => {
-      try {
-        const q = query(
-          collection(db, 'config', 'testimonials', 'reviews'),
-          where('active', '==', true),
-          orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        if (snapshot.size > 0) {
-          setTestimonials(snapshot.docs.map((doc) => doc.data()));
-        } else {
-          setTestimonials([]);
-        }
-      } catch (err) {
-        setTestimonials([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTestimonials();
-  }, []);
+  const testimonials = [];
+  const loading = false;
 
   // Show placeholder if no testimonials
-  if (loading || testimonials === null || testimonials.length === 0) {
+  if (loading || testimonials.length === 0) {
     return (
       <section data-section="testimonials" className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
         <div className="max-w-4xl mx-auto">

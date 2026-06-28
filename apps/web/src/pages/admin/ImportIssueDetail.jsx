@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import {
-  doc, onSnapshot, updateDoc, arrayUnion, serverTimestamp,
-} from 'firebase/firestore';
-import { getStorage, ref as storageRef, getDownloadURL } from 'firebase/storage';
+import { adminResource } from '../../lib/api/resources/admin';
 
 const STATUS_BADGE = {
   open: 'bg-amber-900 text-amber-300',
@@ -11,7 +8,7 @@ const STATUS_BADGE = {
   duplicate: 'bg-gray-800 text-gray-400',
 };
 
-export default function ImportIssueDetail({ db }) {
+export default function ImportIssueDetail() {
   const { id } = useParams();
   const [issue, setIssue] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState(null);
@@ -19,34 +16,43 @@ export default function ImportIssueDetail({ db }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Live subscription to the issue doc
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'importIssues', id), (snap) => {
-      if (snap.exists()) {
-        setIssue({ id: snap.id, ...snap.data() });
-      } else {
+    let active = true;
+    adminResource.getImportIssue(id)
+      .then((row) => {
+        if (!active) return;
+        setIssue(row);
+      })
+      .catch((error) => {
+        console.error('Error loading import issue:', error);
+        if (!active) return;
         setIssue({ notFound: true });
-      }
-    });
-    return () => unsub();
-  }, [db, id]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
-  // Resolve a download URL whenever the storage path changes
   useEffect(() => {
-    if (!issue?.storagePath) return;
-    const storage = getStorage(db.app);
-    getDownloadURL(storageRef(storage, issue.storagePath))
-      .then((url) => { setDownloadUrl(url); setDownloadErr(null); })
-      .catch((err) => { setDownloadErr(err?.message || 'Falha ao gerar URL'); setDownloadUrl(null); });
-  }, [issue?.storagePath, db.app]);
+    if (!issue?.fileBase64) {
+      setDownloadUrl(null);
+      return;
+    }
+    try {
+      const mime = issue.fileMime || 'application/octet-stream';
+      setDownloadUrl(`data:${mime};base64,${issue.fileBase64}`);
+      setDownloadErr(null);
+    } catch (err) {
+      setDownloadErr(err?.message || 'Falha ao gerar URL');
+      setDownloadUrl(null);
+    }
+  }, [issue?.fileBase64, issue?.fileMime]);
 
   async function setStatus(status) {
     setBusy(true);
     try {
-      await updateDoc(doc(db, 'importIssues', id), {
-        status,
-        resolvedAt: status === 'resolved' ? serverTimestamp() : null,
-      });
+      const updated = await adminResource.updateImportIssue(id, { status });
+      setIssue(updated);
     } finally {
       setBusy(false);
     }
@@ -57,12 +63,8 @@ export default function ImportIssueDetail({ db }) {
     if (!text) return;
     setBusy(true);
     try {
-      await updateDoc(doc(db, 'importIssues', id), {
-        internalNotes: arrayUnion({
-          ts: new Date().toISOString(),
-          text,
-        }),
-      });
+      const updated = await adminResource.updateImportIssue(id, { note: text });
+      setIssue(updated);
       setNote('');
     } finally {
       setBusy(false);
@@ -96,7 +98,7 @@ export default function ImportIssueDetail({ db }) {
 
       <dl className="grid grid-cols-[160px_1fr] gap-y-2 text-sm mb-6">
         <dt className="text-gray-400">Quando</dt>
-        <dd>{issue.ts?.toDate?.().toLocaleString('pt-BR') || '—'}</dd>
+        <dd>{issue.createdAt ? new Date(issue.createdAt).toLocaleString('pt-BR') : '—'}</dd>
 
         <dt className="text-gray-400">Cliente</dt>
         <dd className="font-mono text-xs">{issue.clientId}</dd>
@@ -122,7 +124,7 @@ export default function ImportIssueDetail({ db }) {
         <dd className="whitespace-pre-wrap">{issue.userNote || '—'}</dd>
 
         <dt className="text-gray-400">Arquivo</dt>
-        <dd className="font-mono text-xs">{issue.fileName} ({Math.round((issue.fileSizeBytes || 0) / 1024)} KB)</dd>
+        <dd className="font-mono text-xs">{issue.fileName || '—'}</dd>
       </dl>
 
       <div className="mb-6">
@@ -131,6 +133,7 @@ export default function ImportIssueDetail({ db }) {
             href={downloadUrl}
             target="_blank"
             rel="noreferrer"
+            download={issue.fileName || 'import-issue-file'}
             className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Baixar arquivo

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, numeric, date, timestamp } from 'drizzle-orm/pg-core';
 import { investmentTypeEnum } from './enums';
 import { users } from './users';
 
@@ -10,6 +10,25 @@ export const investments = pgTable('investments', {
   ticker: varchar('ticker'),
   name: varchar('name').notNull(),
   type: investmentTypeEnum('type').notNull(),
+  bank: varchar('bank'),
+  initialAmount: numeric('initial_amount', { precision: 12, scale: 2 }),
+  currentAmount: numeric('current_amount', { precision: 12, scale: 2 }),
+  expectedReturn: numeric('expected_return', { precision: 12, scale: 6 }),
+  returnType: varchar('return_type'),
+  purchaseDate: date('purchase_date'),
+  maturityDate: date('maturity_date'),
+  goalId: varchar('goal_id'),
+  plannerGoalId: varchar('planner_goal_id'),
+  platform: varchar('platform'),
+  coinName: varchar('coin_name'),
+  fundName: varchar('fund_name'),
+  propertyDescription: varchar('property_description'),
+  transactionId: varchar('transaction_id'),
+  notes: varchar('notes'),
+  totalWithdrawn: numeric('total_withdrawn', { precision: 12, scale: 2 }),
+  lastWithdrawDate: timestamp('last_withdraw_date', { withTimezone: true }),
+  status: varchar('status'),
+  source: varchar('source'),
   quantity: numeric('quantity', { precision: 18, scale: 8 }),
   avgPrice: numeric('avg_price', { precision: 12, scale: 2 }),
   currentPrice: numeric('current_price', { precision: 12, scale: 2 }),

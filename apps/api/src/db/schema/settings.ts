@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, boolean, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, boolean, timestamp, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 export const settings = pgTable(
@@ -11,6 +11,12 @@ export const settings = pgTable(
     language: varchar('language').default('pt-BR').notNull(),
     darkMode: boolean('dark_mode').default(false).notNull(),
     billReminders: boolean('bill_reminders').default(true).notNull(),
+    tutorialCompleted: boolean('tutorial_completed').default(false).notNull(),
+    geminiApiKey: varchar('gemini_api_key'),
+    expenseCategories: jsonb('expense_categories'),
+    incomeCategories: jsonb('income_categories'),
+    categoryRuleMapping: jsonb('category_rule_mapping'),
+    rulePercentages: jsonb('rule_percentages'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

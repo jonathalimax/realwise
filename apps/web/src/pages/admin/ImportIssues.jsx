@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
+import { adminResource } from '../../lib/api/resources/admin';
 
 const STATUS_BADGE = {
   open: 'bg-amber-900 text-amber-300',
@@ -8,18 +8,27 @@ const STATUS_BADGE = {
   duplicate: 'bg-gray-800 text-gray-400',
 };
 
-export default function ImportIssues({ db }) {
+export default function ImportIssues() {
   const [issues, setIssues] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const unsub = onSnapshot(
-      query(collection(db, 'importIssues'), orderBy('ts', 'desc'), limit(200)),
-      (snap) => setIssues(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
-    return () => unsub();
-  }, [db]);
+    let active = true;
+    adminResource.listImportIssues()
+      .then((rows) => {
+        if (!active) return;
+        setIssues(rows);
+      })
+      .catch((error) => {
+        console.error('Error loading import issues:', error);
+        if (!active) return;
+        setIssues([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = issues.filter((i) => {
     if (statusFilter !== 'all' && i.status !== statusFilter) return false;
@@ -83,7 +92,7 @@ export default function ImportIssues({ db }) {
             {filtered.map((i) => (
               <tr key={i.id} className="border-t border-gray-800 hover:bg-gray-900/50">
                 <td className="px-3 py-2 text-xs text-gray-400">
-                  {i.ts?.toDate?.().toLocaleString('pt-BR') || '—'}
+                  {i.createdAt ? new Date(i.createdAt).toLocaleString('pt-BR') : '—'}
                 </td>
                 <td className="px-3 py-2">{i.clientId}</td>
                 <td className="px-3 py-2">

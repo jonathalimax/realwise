@@ -1,44 +1,35 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { adminResource } from '../../lib/api/resources/admin';
 
 function brl(cents) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export default function PricingConfigPage({ db, functions }) {
+export default function PricingConfigPage() {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedAt, setSavedAt] = useState(null);
 
   useEffect(() => {
-    if (!db) return;
-    const defaults = { basePriceCents: 23880, installments: 12 };
-    const unsub = onSnapshot(doc(db, 'config', 'pricing'),
-      (snap) => {
-        const data = snap.data();
-        const pricingData = data || defaults;
+    let active = true;
+    adminResource.getPricingConfig()
+      .then((pricingData) => {
+        if (!active) return;
         setForm({
           basePriceReais: (pricingData.basePriceCents / 100).toString(),
           installments: pricingData.installments.toString(),
         });
         setError('');
-      },
-      (err) => {
-        if (err.code === 'permission-denied') {
-          setError('Sem permissão. Verifique se as regras do Firestore foram deployadas: firebase deploy --only firestore:rules');
-          setForm({
-            basePriceReais: (defaults.basePriceCents / 100).toString(),
-            installments: defaults.installments.toString(),
-          });
-        } else {
-          setError('Erro ao carregar preços: ' + err.message);
-        }
-      }
-    );
-    return () => unsub();
-  }, [db]);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError('Erro ao carregar preços: ' + err.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -46,7 +37,7 @@ export default function PricingConfigPage({ db, functions }) {
     try {
       const basePriceCents = Math.round(parseFloat(form.basePriceReais.replace(',', '.')) * 100);
       const installments = parseInt(form.installments, 10);
-      await httpsCallable(functions, 'updatePricingConfig')({
+      await adminResource.updatePricingConfig({
         basePriceCents,
         installments,
       });
@@ -56,7 +47,7 @@ export default function PricingConfigPage({ db, functions }) {
     } finally {
       setSaving(false);
     }
-  }, [form, functions]);
+  }, [form]);
 
   if (!form) return <div className="p-6 text-gray-400">Carregando...</div>;
 

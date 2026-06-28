@@ -1,19 +1,4 @@
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-
-async function logEvent(userId, eventName, properties = {}) {
-  if (!userId || !eventName) return;
-  try {
-    await addDoc(collection(db, 'events'), {
-      userId,
-      event: eventName,
-      properties,
-      createdAt: serverTimestamp(),
-    });
-  } catch {
-    // Analytics failures must not break product flows
-  }
-}
+async function logEvent() {}
 
 export const analytics = {
   // Lifecycle

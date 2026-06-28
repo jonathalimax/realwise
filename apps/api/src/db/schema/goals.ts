@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, date, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, numeric, date, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 export const goals = pgTable('goals', {
@@ -9,7 +9,11 @@ export const goals = pgTable('goals', {
   name: varchar('name').notNull(),
   targetAmount: numeric('target_amount', { precision: 12, scale: 2 }).notNull(),
   currentAmount: numeric('current_amount', { precision: 12, scale: 2 }).default('0'),
+  icon: varchar('icon'),
+  color: varchar('color'),
   deadline: date('deadline'),
+  description: varchar('description'),
+  completed: boolean('completed').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

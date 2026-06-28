@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useAccess } from './AccessContext';
 import { analytics } from '../services/analyticsService';
+import { requireOwnerId } from '../lib/auth/ownerSession';
+import { settingsResource } from '../lib/api/resources/settings';
+import { budgetsResource } from '../lib/api/resources/budgets';
+import { resolveBudgetPreferences } from './budgetPreferences';
 
 const BudgetContext = createContext();
 
@@ -64,31 +66,37 @@ export function BudgetProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const { ownerId } = useAccess();
 
-  // Listen for budget documents
   useEffect(() => {
-    if (!auth.currentUser || !ownerId) {
+    if (!ownerId) {
+      setBudgets([]);
+      setTemplateBudget(null);
       setLoading(false);
       return;
     }
 
-    const budgetsQuery = query(
-      collection(db, 'budgets'),
-      where('userId', '==', ownerId) // Use ownerId instead of currentUser.uid
-    );
+    let active = true;
+    setLoading(true);
 
-    const unsubscribe = onSnapshot(budgetsQuery, (snapshot) => {
-      const budgetData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setBudgets(budgetData);
-      const tmpl = budgetData.find(b => b.id?.endsWith('_template'));
-      setTemplateBudget(tmpl ?? null);
-      setLoading(false);
-    });
+    budgetsResource.list()
+      .then((budgetData) => {
+        if (!active) return;
+        setBudgets(budgetData);
+        const tmpl = budgetData.find((budget) => budget.month === 'template');
+        setTemplateBudget(tmpl ?? null);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Budgets query error:', error);
+        if (!active) return;
+        setBudgets([]);
+        setTemplateBudget(null);
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
-  }, [ownerId]); // Use ownerId instead of currentUser.uid
+    return () => {
+      active = false;
+    };
+  }, [ownerId]);
 
   // Get budget for a specific month
   const getBudgetForMonth = (month) => {
@@ -100,79 +108,93 @@ export function BudgetProvider({ children }) {
 
   // Set a category limit in the recurring template (applies to all future months)
   const setTemplateCategoryBudget = async (category, amount) => {
-    if (!auth.currentUser) return;
-    const templateId = `${auth.currentUser.uid}_template`;
-    const budgetRef = doc(db, 'budgets', templateId);
     const current = templateBudget?.categoryBudgets || {};
-    await setDoc(budgetRef, {
-      userId: auth.currentUser.uid,
+    const payload = {
       month: 'template',
       categoryBudgets: { ...current, [category]: amount },
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+      totalBudget: templateBudget?.totalBudget || 0,
+      name: 'Template Budget',
+      amount: '0',
+    };
+    const saved = templateBudget
+      ? await budgetsResource.update(templateBudget.id, payload)
+      : await budgetsResource.create(payload);
+
+    setTemplateBudget(saved);
+    setBudgets((prev) => {
+      const next = prev.filter((budget) => budget.id !== saved.id && budget.month !== 'template');
+      return [...next, saved];
+    });
   };
 
   // Set category budget for a month
   const setCategoryBudget = async (month, category, amount) => {
-    if (!auth.currentUser) return;
+    const userId = requireOwnerId(ownerId);
 
     const existingBudget = getBudgetForMonth(month);
-    const budgetId = existingBudget?.id || `${auth.currentUser.uid}_${month}`;
-    const budgetRef = doc(db, 'budgets', budgetId);
-
     const currentCategoryBudgets = existingBudget?.categoryBudgets || {};
-
-    await setDoc(budgetRef, {
-      userId: auth.currentUser.uid,
+    const payload = {
       month,
       categoryBudgets: {
         ...currentCategoryBudgets,
         [category]: amount
       },
       totalBudget: existingBudget?.totalBudget || 0,
-      updatedAt: serverTimestamp(),
-      ...(existingBudget ? {} : { createdAt: serverTimestamp() })
-    }, { merge: true });
+      name: `Budget ${month}`,
+      amount: String(existingBudget?.totalBudget || 0),
+    };
+    const saved = existingBudget
+      ? await budgetsResource.update(existingBudget.id, payload)
+      : await budgetsResource.create(payload);
+
+    setBudgets((prev) => {
+      const next = prev.filter((budget) => budget.id !== saved.id && budget.month !== month);
+      return [...next, saved];
+    });
 
     if (!existingBudget) {
-      analytics.budgetCreated(auth.currentUser.uid);
+      analytics.budgetCreated(userId);
     }
   };
 
   // Set total monthly budget
   const setTotalBudget = async (month, amount) => {
-    if (!auth.currentUser) return;
-
     const existingBudget = getBudgetForMonth(month);
-    const budgetId = existingBudget?.id || `${auth.currentUser.uid}_${month}`;
-    const budgetRef = doc(db, 'budgets', budgetId);
-
-    await setDoc(budgetRef, {
-      userId: auth.currentUser.uid,
+    const payload = {
       month,
       totalBudget: amount,
       categoryBudgets: existingBudget?.categoryBudgets || {},
-      updatedAt: serverTimestamp(),
-      ...(existingBudget ? {} : { createdAt: serverTimestamp() })
-    }, { merge: true });
+      name: `Budget ${month}`,
+      amount: String(amount),
+    };
+    const saved = existingBudget
+      ? await budgetsResource.update(existingBudget.id, payload)
+      : await budgetsResource.create(payload);
+
+    setBudgets((prev) => {
+      const next = prev.filter((budget) => budget.id !== saved.id && budget.month !== month);
+      return [...next, saved];
+    });
   };
 
   // Set all category budgets at once
   const setAllCategoryBudgets = async (month, categoryBudgets, totalBudget = 0) => {
-    if (!auth.currentUser) return;
-
     const existingBudget = getBudgetForMonth(month);
-    const budgetId = existingBudget?.id || `${auth.currentUser.uid}_${month}`;
-    const budgetRef = doc(db, 'budgets', budgetId);
-
-    await setDoc(budgetRef, {
-      userId: auth.currentUser.uid,
+    const payload = {
       month,
       categoryBudgets,
       totalBudget,
-      updatedAt: serverTimestamp(),
-      ...(existingBudget ? {} : { createdAt: serverTimestamp() })
-    }, { merge: true });
+      name: `Budget ${month}`,
+      amount: String(totalBudget),
+    };
+    const saved = existingBudget
+      ? await budgetsResource.update(existingBudget.id, payload)
+      : await budgetsResource.create(payload);
+
+    setBudgets((prev) => {
+      const next = prev.filter((budget) => budget.id !== saved.id && budget.month !== month);
+      return [...next, saved];
+    });
   };
 
   // Calculate spending per category from transactions
@@ -293,11 +315,8 @@ export function BudgetProvider({ children }) {
     };
     setCategoryRuleMappingState(newMapping);
 
-    // Persist to Firestore in settings
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { categoryRuleMapping: newMapping }, { merge: true });
-    }
+    // Persist to the shared settings record
+    await settingsResource.update({ categoryRuleMapping: newMapping });
   };
 
   // Set custom rule percentages
@@ -311,11 +330,7 @@ export function BudgetProvider({ children }) {
 
     setRulePercentagesState(newPercentages);
 
-    // Persist to Firestore in settings
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { rulePercentages: newPercentages }, { merge: true });
-    }
+    await settingsResource.update({ rulePercentages: newPercentages });
     return true;
   };
 
@@ -323,36 +338,33 @@ export function BudgetProvider({ children }) {
   const resetRulePercentages = async () => {
     setRulePercentagesState(DEFAULT_RULE_PERCENTAGES);
 
-    if (auth.currentUser) {
-      const settingsRef = doc(db, 'settings', auth.currentUser.uid);
-      await setDoc(settingsRef, { rulePercentages: DEFAULT_RULE_PERCENTAGES }, { merge: true });
-    }
+    await settingsResource.update({ rulePercentages: DEFAULT_RULE_PERCENTAGES });
   };
 
   // Load category rule mapping and percentages from settings
   useEffect(() => {
-    if (!auth.currentUser || !ownerId) return;
+    if (!ownerId) return;
 
-    const settingsRef = doc(db, 'settings', ownerId); // Use ownerId
-    const unsubscribe = onSnapshot(settingsRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.categoryRuleMapping) {
-          setCategoryRuleMappingState({
-            ...DEFAULT_RULE_MAPPING,
-            ...data.categoryRuleMapping
-          });
-        }
-        if (data.rulePercentages) {
-          setRulePercentagesState({
-            ...DEFAULT_RULE_PERCENTAGES,
-            ...data.rulePercentages
-          });
-        }
-      }
-    });
+    let active = true;
 
-    return () => unsubscribe();
+    settingsResource.get()
+      .then((settings) => {
+        if (!active) return;
+        const preferences = resolveBudgetPreferences(
+          settings,
+          DEFAULT_RULE_MAPPING,
+          DEFAULT_RULE_PERCENTAGES,
+        );
+        setCategoryRuleMappingState(preferences.categoryRuleMapping);
+        setRulePercentagesState(preferences.rulePercentages);
+      })
+      .catch((error) => {
+        console.error('Error loading budget preferences:', error);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [ownerId]); // Use ownerId
 
   // Auto-distribute budget based on custom percentages

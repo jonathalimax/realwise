@@ -23,3 +23,18 @@ export interface JwtPayload {
   iat: number;
   exp: number;
 }
+
+export type {
+  ApiErrorShape,
+  ApiResponse,
+  AuthStatusResponse,
+  Coupon,
+  ImportIssue,
+  Lead,
+  OnboardingRun,
+  PaginatedResponse,
+  PricingConfig,
+  Purchase,
+  SessionUser,
+  Testimonial,
+} from './api';

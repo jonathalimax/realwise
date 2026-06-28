@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { db } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
 import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
+import { transactionsResource } from '../lib/api/resources/transactions';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 import { saveUserCategorizationRule } from '../services/categorizationService';
@@ -126,7 +125,7 @@ export default function TransactionList({
 
     setSavingId(transaction.id);
     try {
-      await updateDoc(doc(db, 'transactions', transaction.id), { category: newCategory });
+      await transactionsResource.update(transaction.id, { category: newCategory });
       if (ownerId) {
         saveUserCategorizationRule(ownerId, {
           description: transaction.description,

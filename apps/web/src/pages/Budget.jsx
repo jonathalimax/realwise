@@ -3,18 +3,18 @@ import { useState, useEffect, useMemo } from 'react';
 import PageHelp from '@/components/ui/PageHelp';
 import { Tab } from '@headlessui/react';
 import { ArrowPathIcon, AdjustmentsHorizontalIcon, ArrowLeftIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
-import { auth, db } from '../firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useBudget, RULE_COLORS, DEFAULT_RULE_MAPPING, DEFAULT_RULE_PERCENTAGES } from '../contexts/BudgetContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useMonth } from '../contexts/MonthContext';
+import useTransactions from '../hooks/useTransactions';
 import CurrencyInput from '../components/ui/CurrencyInput';
 
 export default function BudgetPage() {
   const navigate = useNavigate();
   const { ownerId } = useAccess();
   const { selectedMonth } = useMonth();
+  const { transactions } = useTransactions({}, { enabled: Boolean(ownerId) });
   const {
     getBudgetForMonth,
     setAllCategoryBudgets,
@@ -28,28 +28,6 @@ export default function BudgetPage() {
 
   // Get expense categories from settings
   const expenseCategories = useMemo(() => categories.expense || [], [categories]);
-
-  // Real transactions for calculating income
-  const [transactions, setTransactions] = useState([]);
-
-  useEffect(() => {
-    if (!auth.currentUser || !ownerId) return;
-
-    const q = query(
-      collection(db, 'transactions'),
-      where('userId', '==', ownerId)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTransactions(data);
-    });
-
-    return () => unsubscribe();
-  }, [ownerId]);
 
   // Calculate total income for the selected month
   const totalIncome = useMemo(() => {
