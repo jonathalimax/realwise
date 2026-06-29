@@ -90,6 +90,13 @@ function buildOauthFailureRedirect(frontend: string, provider: 'google' | 'apple
   return `${frontend}/login?${params.toString()}`;
 }
 
+function safeRedirect(res: Response, location: string): void {
+  if (res.headersSent) {
+    return;
+  }
+  res.redirect(location);
+}
+
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
@@ -147,7 +154,7 @@ export class AuthController {
     passport.authenticate('google', { session: false }, async (err: unknown, profile: GoogleProfile, info?: unknown) => {
       if (err || !profile) {
         this.logger.warn(`Google OAuth failed: ${extractOauthReason(err, info) || 'unknown_oauth_error'}`);
-        return res.redirect(buildOauthFailureRedirect(frontend, 'google', err, info));
+        return safeRedirect(res, buildOauthFailureRedirect(frontend, 'google', err, info));
       }
       try {
         const cookieNonce = (req.cookies as Record<string, string>)?.oauth_state;
@@ -161,9 +168,9 @@ export class AuthController {
         });
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
-        res.redirect(`${frontend}/${resolvedClientId}/dashboard`);
+        return safeRedirect(res, `${frontend}/${resolvedClientId}/dashboard`);
       } catch {
-        res.redirect(`${frontend}/login?error=server`);
+        return safeRedirect(res, `${frontend}/login?error=server`);
       }
     })(req, res, next);
   }
@@ -197,7 +204,7 @@ export class AuthController {
     passport.authenticate('apple', { session: false }, async (err: unknown, profile: AppleProfile, info?: unknown) => {
       if (err || !profile) {
         this.logger.warn(`Apple OAuth failed: ${extractOauthReason(err, info) || 'unknown_oauth_error'}`);
-        return res.redirect(buildOauthFailureRedirect(frontend, 'apple', err, info));
+        return safeRedirect(res, buildOauthFailureRedirect(frontend, 'apple', err, info));
       }
       try {
         const state = (req.body as Record<string, string>)?.state ?? '';
@@ -220,9 +227,9 @@ export class AuthController {
 
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
-        res.redirect(`${frontend}/${resolvedClientId}/dashboard`);
+        return safeRedirect(res, `${frontend}/${resolvedClientId}/dashboard`);
       } catch {
-        res.redirect(`${frontend}/login?error=server`);
+        return safeRedirect(res, `${frontend}/login?error=server`);
       }
     })(req, res, next);
   }

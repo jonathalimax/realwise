@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import passport from 'passport';
+import * as crypto from 'crypto';
 import { AuthController, resolveClientIdForLogin } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -42,16 +43,27 @@ type MockRes = {
   clearCookie: jest.Mock;
   redirect: jest.Mock;
   json: jest.Mock;
+  headersSent: boolean;
 };
 
 const mockRes = (): MockRes => {
   const res = {} as MockRes;
   res.cookie = jest.fn().mockReturnValue(res);
   res.clearCookie = jest.fn().mockReturnValue(res);
-  res.redirect = jest.fn().mockReturnValue(res);
+  res.redirect = jest.fn().mockImplementation(() => {
+    res.headersSent = true;
+    return res;
+  });
   res.json = jest.fn().mockReturnValue(res);
+  res.headersSent = false;
   return res;
 };
+
+function buildSignedState(clientId: string, nonce: string) {
+  const payload = JSON.stringify({ clientId, nonce });
+  const sig = crypto.createHmac('sha256', 'dev-secret').update(payload).digest('base64url');
+  return Buffer.from(JSON.stringify({ payload, sig })).toString('base64url');
+}
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -113,6 +125,28 @@ describe('AuthController', () => {
       expect(res.redirect).toHaveBeenCalledWith(
         'http://localhost:5173/login?error=oauth&provider=google&reason=redirect_uri_mismatch',
       );
+    });
+
+    it('does not attempt a second redirect after headers are already sent', async () => {
+      const req = { cookies: { oauth_state: 'nonce-1' } } as unknown as Request;
+      const res = mockRes();
+      const next = jest.fn();
+      const state = buildSignedState(fakeUser.clientId, 'nonce-1');
+
+      (passport.authenticate as jest.Mock).mockImplementation(
+        (_strategy: string, _options: unknown, callback: (err: unknown, profile?: unknown) => void) =>
+          () => callback(null, { email: 'user@example.com', name: 'User', googleId: 'g-1' }),
+      );
+
+      mockAuthService.findOrCreateUser.mockResolvedValue(fakeUser);
+      mockAuthService.issueTokens.mockImplementation(async () => {
+        res.redirect('http://localhost:5173/jonathalimax/dashboard');
+        throw new Error('late failure after redirect');
+      });
+
+      await expect(controller.googleCallback(state, req, res as unknown as Response, next)).resolves.toBeUndefined();
+      expect(res.redirect).toHaveBeenCalledTimes(1);
+      expect(res.redirect).not.toHaveBeenCalledWith('http://localhost:5173/login?error=server');
     });
   });
 
