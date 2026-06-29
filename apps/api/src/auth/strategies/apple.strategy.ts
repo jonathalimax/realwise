@@ -29,12 +29,10 @@ export class AppleSignInStrategy extends PassportStrategy(AppleStrategy, 'apple'
     _refreshToken: string,
     idToken: Record<string, unknown>,
     profile: Record<string, unknown> & { name?: { firstName?: string; lastName?: string } },
-    done: (err: Error | null, user?: AppleProfile) => void,
-  ): Promise<void> {
+  ): Promise<AppleProfile> {
     const appleId = (idToken?.sub ?? profile?.id) as string | undefined;
     if (!appleId) {
-      done(new Error('No sub in Apple id_token'), undefined);
-      return;
+      throw new Error('No sub in Apple id_token');
     }
 
     const email = (idToken?.email ?? profile?.email ?? null) as string | null;
@@ -45,6 +43,6 @@ export class AppleSignInStrategy extends PassportStrategy(AppleStrategy, 'apple'
         ? [firstName, lastName].filter(Boolean).join(' ')
         : null;
 
-    done(null, { email, name, appleId });
+    return { email, name, appleId };
   }
 }

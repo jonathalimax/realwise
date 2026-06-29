@@ -23,17 +23,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     _accessToken: string,
     _refreshToken: string,
     profile: Profile,
-    done: (err: Error | null, user?: GoogleProfile) => void,
-  ): Promise<void> {
+  ): Promise<GoogleProfile> {
     const email = profile.emails?.[0]?.value;
     if (!email) {
-      done(new Error('No email returned from Google'), undefined);
-      return;
+      throw new Error('No email returned from Google');
     }
-    done(null, {
+
+    return {
       email,
       name: profile.displayName ?? null,
       googleId: profile.id,
-    });
+    };
   }
 }
