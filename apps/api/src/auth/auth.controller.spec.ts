@@ -1,9 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { Request, Response } from 'express';
+import passport from 'passport';
 import { AuthController, resolveClientIdForLogin } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+
+jest.mock('passport', () => ({
+  __esModule: true,
+  default: {
+    authenticate: jest.fn(),
+  },
+}));
 
 const fakeUser = {
   id: '00000000-0000-0000-0000-000000000001',
@@ -85,6 +93,26 @@ describe('AuthController', () => {
       expect(mockAuthService.issueTokens).toHaveBeenCalledWith(fakeUser);
       expect(res.cookie).toHaveBeenCalledTimes(2);
       expect(res.json).toHaveBeenCalledWith({ ok: true });
+    });
+  });
+
+  describe('googleCallback', () => {
+    it('redirects with the oauth reason when Google authentication fails', async () => {
+      const req = { cookies: {} } as unknown as Request;
+      const res = mockRes();
+      const next = jest.fn();
+      const authError = new Error('redirect_uri_mismatch');
+
+      (passport.authenticate as jest.Mock).mockImplementation(
+        (_strategy: string, _options: unknown, callback: (err: unknown, profile?: unknown) => void) =>
+          () => callback(authError, undefined),
+      );
+
+      await controller.googleCallback('state-token', req, res as unknown as Response, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        'http://localhost:5173/login?error=oauth&provider=google&reason=redirect_uri_mismatch',
+      );
     });
   });
 

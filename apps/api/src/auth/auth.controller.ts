@@ -1,4 +1,5 @@
 import {
+  Logger,
   Controller,
   Get,
   Post,
@@ -61,8 +62,38 @@ function verifyState(state: string, cookieNonce: string): { clientId: string } {
   return { clientId };
 }
 
+function extractOauthReason(error: unknown, info?: unknown): string {
+  const candidates = [
+    error instanceof Error ? error.message : null,
+    typeof error === 'string' ? error : null,
+    info instanceof Error ? info.message : null,
+    typeof info === 'string' ? info : null,
+    typeof info === 'object' && info && 'message' in info && typeof info.message === 'string' ? info.message : null,
+    typeof info === 'object' && info && 'code' in info && typeof info.code === 'string' ? info.code : null,
+    typeof info === 'object' && info && 'error' in info && typeof info.error === 'string' ? info.error : null,
+  ];
+
+  const reason = candidates.find((value) => value && value.trim());
+  if (!reason) {
+    return '';
+  }
+
+  return reason.replace(/\s+/g, ' ').trim().slice(0, 160);
+}
+
+function buildOauthFailureRedirect(frontend: string, provider: 'google' | 'apple', error: unknown, info?: unknown): string {
+  const params = new URLSearchParams({ error: 'oauth', provider });
+  const reason = extractOauthReason(error, info);
+  if (reason) {
+    params.set('reason', reason);
+  }
+  return `${frontend}/login?${params.toString()}`;
+}
+
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
   private get isProd(): boolean {
@@ -113,9 +144,10 @@ export class AuthController {
     @Next() next: NextFunction,
   ): Promise<void> {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
-    passport.authenticate('google', { session: false }, async (err: unknown, profile: GoogleProfile) => {
+    passport.authenticate('google', { session: false }, async (err: unknown, profile: GoogleProfile, info?: unknown) => {
       if (err || !profile) {
-        return res.redirect(`${frontend}/login?error=oauth`);
+        this.logger.warn(`Google OAuth failed: ${extractOauthReason(err, info) || 'unknown_oauth_error'}`);
+        return res.redirect(buildOauthFailureRedirect(frontend, 'google', err, info));
       }
       try {
         const cookieNonce = (req.cookies as Record<string, string>)?.oauth_state;
@@ -162,9 +194,10 @@ export class AuthController {
     @Next() next: NextFunction,
   ): Promise<void> {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
-    passport.authenticate('apple', { session: false }, async (err: unknown, profile: AppleProfile) => {
+    passport.authenticate('apple', { session: false }, async (err: unknown, profile: AppleProfile, info?: unknown) => {
       if (err || !profile) {
-        return res.redirect(`${frontend}/login?error=oauth`);
+        this.logger.warn(`Apple OAuth failed: ${extractOauthReason(err, info) || 'unknown_oauth_error'}`);
+        return res.redirect(buildOauthFailureRedirect(frontend, 'apple', err, info));
       }
       try {
         const state = (req.body as Record<string, string>)?.state ?? '';

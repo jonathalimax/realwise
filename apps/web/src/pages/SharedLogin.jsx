@@ -5,10 +5,18 @@ import { clearLoginSession, isLoginSessionExpired } from '../lib/auth/sessionAge
 
 const API_BASE_URL = resolveApiBaseUrl();
 
-function getLoginErrorMessage(errorCode) {
+function formatOauthReason(reason) {
+  if (!reason) {
+    return 'Falha na autenticacao. Tente novamente.';
+  }
+
+  return `Falha na autenticacao: ${reason}.`;
+}
+
+function getLoginErrorMessage(errorCode, reason) {
   switch (errorCode) {
     case 'oauth':
-      return 'Falha na autenticacao. Tente novamente.';
+      return formatOauthReason(reason);
     case 'server':
       return 'Erro interno ao concluir o login.';
     default:
@@ -20,15 +28,21 @@ export default function SharedLogin() {
   const [loading, setLoading] = useState(false);
   const [initDone, setInitDone] = useState(false);
   const [error, setError] = useState('');
-  const errorCode = useMemo(
-    () => new URLSearchParams(window.location.search).get('error') || '',
+  const authError = useMemo(
+    () => {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        code: params.get('error') || '',
+        reason: params.get('reason') || '',
+      };
+    },
     [],
   );
 
   useEffect(() => {
     async function bootstrap() {
       try {
-        setError(getLoginErrorMessage(errorCode));
+        setError(getLoginErrorMessage(authError.code, authError.reason));
 
         const showLogin = sessionStorage.getItem('__rw_show_login');
         if (showLogin) {
@@ -69,7 +83,7 @@ export default function SharedLogin() {
     }
 
     bootstrap();
-  }, [errorCode]);
+  }, [authError]);
 
   const handleGoogleSignIn = () => {
     setError('');
