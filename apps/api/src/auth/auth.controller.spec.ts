@@ -148,6 +148,29 @@ describe('AuthController', () => {
       expect(res.redirect).toHaveBeenCalledTimes(1);
       expect(res.redirect).not.toHaveBeenCalledWith('http://localhost:5173/login?error=server');
     });
+
+    it('uses callback query params when Google returns an oauth error without passport details', async () => {
+      const req = {
+        cookies: {},
+        query: {
+          error: 'access_denied',
+          error_description: 'The user denied your request',
+        },
+      } as unknown as Request;
+      const res = mockRes();
+      const next = jest.fn();
+
+      (passport.authenticate as jest.Mock).mockImplementation(
+        (_strategy: string, _options: unknown, callback: (err: unknown, profile?: unknown, info?: unknown) => void) =>
+          () => callback(null, undefined, undefined),
+      );
+
+      await controller.googleCallback('state-token', req, res as unknown as Response, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        'http://localhost:5173/login?error=oauth&provider=google&reason=The+user+denied+your+request',
+      );
+    });
   });
 
   describe('me', () => {

@@ -62,15 +62,36 @@ function verifyState(state: string, cookieNonce: string): { clientId: string } {
   return { clientId };
 }
 
-function extractOauthReason(error: unknown, info?: unknown): string {
+function pickStringField(source: unknown, key: string): string | null {
+  if (typeof source !== 'object' || !source || !(key in source)) {
+    return null;
+  }
+
+  const value = (source as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function extractOauthReason(error: unknown, info?: unknown, query?: unknown): string {
   const candidates = [
     error instanceof Error ? error.message : null,
     typeof error === 'string' ? error : null,
+    pickStringField(error, 'error_description'),
+    pickStringField(error, 'error'),
+    pickStringField(error, 'code'),
+    pickStringField(error, 'message'),
     info instanceof Error ? info.message : null,
     typeof info === 'string' ? info : null,
     typeof info === 'object' && info && 'message' in info && typeof info.message === 'string' ? info.message : null,
     typeof info === 'object' && info && 'code' in info && typeof info.code === 'string' ? info.code : null,
     typeof info === 'object' && info && 'error' in info && typeof info.error === 'string' ? info.error : null,
+    pickStringField(info, 'error_description'),
+    pickStringField(info, 'error'),
+    pickStringField((error as { oauthError?: unknown } | null)?.oauthError, 'data'),
+    pickStringField((error as { oauthError?: unknown } | null)?.oauthError, 'message'),
+    pickStringField((error as { oauthError?: unknown } | null)?.oauthError, 'error'),
+    pickStringField(query, 'error_description'),
+    pickStringField(query, 'error'),
+    pickStringField(query, 'error_subtype'),
   ];
 
   const reason = candidates.find((value) => value && value.trim());
@@ -81,9 +102,9 @@ function extractOauthReason(error: unknown, info?: unknown): string {
   return reason.replace(/\s+/g, ' ').trim().slice(0, 160);
 }
 
-function buildOauthFailureRedirect(frontend: string, provider: 'google' | 'apple', error: unknown, info?: unknown): string {
+function buildOauthFailureRedirect(frontend: string, provider: 'google' | 'apple', error: unknown, info?: unknown, query?: unknown): string {
   const params = new URLSearchParams({ error: 'oauth', provider });
-  const reason = extractOauthReason(error, info);
+  const reason = extractOauthReason(error, info, query);
   if (reason) {
     params.set('reason', reason);
   }
@@ -153,8 +174,8 @@ export class AuthController {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
     passport.authenticate('google', { session: false }, async (err: unknown, profile: GoogleProfile, info?: unknown) => {
       if (err || !profile) {
-        this.logger.warn(`Google OAuth failed: ${extractOauthReason(err, info) || 'unknown_oauth_error'}`);
-        return safeRedirect(res, buildOauthFailureRedirect(frontend, 'google', err, info));
+        this.logger.warn(`Google OAuth failed: ${extractOauthReason(err, info, req.query) || 'unknown_oauth_error'}`);
+        return safeRedirect(res, buildOauthFailureRedirect(frontend, 'google', err, info, req.query));
       }
       try {
         const cookieNonce = (req.cookies as Record<string, string>)?.oauth_state;
@@ -203,8 +224,8 @@ export class AuthController {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
     passport.authenticate('apple', { session: false }, async (err: unknown, profile: AppleProfile, info?: unknown) => {
       if (err || !profile) {
-        this.logger.warn(`Apple OAuth failed: ${extractOauthReason(err, info) || 'unknown_oauth_error'}`);
-        return safeRedirect(res, buildOauthFailureRedirect(frontend, 'apple', err, info));
+        this.logger.warn(`Apple OAuth failed: ${extractOauthReason(err, info, req.query) || 'unknown_oauth_error'}`);
+        return safeRedirect(res, buildOauthFailureRedirect(frontend, 'apple', err, info, req.query));
       }
       try {
         const state = (req.body as Record<string, string>)?.state ?? '';
