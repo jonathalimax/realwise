@@ -84,6 +84,33 @@ function parseNestedOauthPayload(source: unknown): Record<string, unknown> | nul
   }
 }
 
+function listObjectKeys(source: unknown): string[] {
+  if (typeof source !== 'object' || !source) {
+    return [];
+  }
+
+  return Object.keys(source as Record<string, unknown>).sort();
+}
+
+function buildOauthDebugContext(error: unknown, info?: unknown, query?: unknown): string {
+  const errorRecord = typeof error === 'object' && error ? error as Record<string, unknown> : null;
+  const infoRecord = typeof info === 'object' && info ? info as Record<string, unknown> : null;
+  const queryRecord = typeof query === 'object' && query ? query as Record<string, unknown> : null;
+
+  const parts = [
+    `queryKeys=${listObjectKeys(queryRecord).join(',') || 'none'}`,
+    `hasCode=${Boolean(pickStringField(queryRecord, 'code'))}`,
+    `hasState=${Boolean(pickStringField(queryRecord, 'state'))}`,
+    `errorType=${error === null ? 'null' : Array.isArray(error) ? 'array' : typeof error}`,
+    `errorName=${pickStringField(errorRecord, 'name') || 'none'}`,
+    `errorKeys=${listObjectKeys(errorRecord).join(',') || 'none'}`,
+    `infoType=${info === null ? 'null' : Array.isArray(info) ? 'array' : typeof info}`,
+    `infoKeys=${listObjectKeys(infoRecord).join(',') || 'none'}`,
+  ];
+
+  return parts.join(' ');
+}
+
 function extractOauthReason(error: unknown, info?: unknown, query?: unknown): string {
   const nestedOauthPayload = parseNestedOauthPayload(
     pickStringField((error as { oauthError?: unknown } | null)?.oauthError, 'data'),
@@ -198,7 +225,9 @@ export class AuthController {
 
     passport.authenticate('google', { session: false }, async (err: unknown, profile: GoogleProfile, info?: unknown) => {
       if (err || !profile) {
-        this.logger.warn(`Google OAuth failed: ${extractOauthReason(err, info, req.query) || 'unknown_oauth_error'}`);
+        const reason = extractOauthReason(err, info, req.query) || 'unknown_oauth_error';
+        const debugContext = buildOauthDebugContext(err, info, req.query);
+        this.logger.warn(`Google OAuth failed: ${reason} ${debugContext}`);
         return safeRedirect(res, buildOauthFailureRedirect(frontend, 'google', err, info, req.query));
       }
       try {
@@ -253,7 +282,9 @@ export class AuthController {
 
     passport.authenticate('apple', { session: false }, async (err: unknown, profile: AppleProfile, info?: unknown) => {
       if (err || !profile) {
-        this.logger.warn(`Apple OAuth failed: ${extractOauthReason(err, info, req.query) || 'unknown_oauth_error'}`);
+        const reason = extractOauthReason(err, info, req.query) || 'unknown_oauth_error';
+        const debugContext = buildOauthDebugContext(err, info, req.query);
+        this.logger.warn(`Apple OAuth failed: ${reason} ${debugContext}`);
         return safeRedirect(res, buildOauthFailureRedirect(frontend, 'apple', err, info, req.query));
       }
       try {

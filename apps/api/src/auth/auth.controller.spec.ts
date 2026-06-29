@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { Logger, UnauthorizedException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import passport from 'passport';
 import * as crypto from 'crypto';
@@ -216,6 +216,38 @@ describe('AuthController', () => {
       expect(res.redirect).toHaveBeenCalledWith(
         'http://localhost:5173/login?error=oauth&provider=google&reason=The+user+denied+your+request',
       );
+    });
+
+    it('logs sanitized oauth debug context when passport returns no profile and no reason', async () => {
+      const req = {
+        cookies: {},
+        query: {
+          code: 'secret-auth-code',
+          state: 'signed-state-token',
+        },
+      } as unknown as Request;
+      const res = mockRes();
+      const next = jest.fn();
+      const warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+      (passport.authenticate as jest.Mock).mockImplementation(
+        (_strategy: string, _options: unknown, callback: (err: unknown, profile?: unknown, info?: unknown) => void) =>
+          () => callback(null, undefined, undefined),
+      );
+
+      await controller.googleCallback('signed-state-token', req, res as unknown as Response, next);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Google OAuth failed: unknown_oauth_error'),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('queryKeys=code,state'),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.not.stringContaining('secret-auth-code'),
+      );
+
+      warnSpy.mockRestore();
     });
   });
 
