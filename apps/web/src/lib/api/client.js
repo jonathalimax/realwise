@@ -1,4 +1,21 @@
-const DEFAULT_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const DEFAULT_PRODUCTION_API_BASE_URL = 'https://api.realwise.com.br';
+
+export function resolveApiBaseUrl(envBaseUrl = import.meta.env.VITE_API_BASE_URL) {
+  if (envBaseUrl) {
+    return envBaseUrl;
+  }
+
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const hostname = window.location?.hostname ?? '';
+  if (hostname === 'realwise.com.br' || hostname.endsWith('.realwise.com.br')) {
+    return DEFAULT_PRODUCTION_API_BASE_URL;
+  }
+
+  return '';
+}
 
 function joinUrl(baseUrl, path) {
   if (!baseUrl) return path;
@@ -28,7 +45,9 @@ export class ApiError extends Error {
   }
 }
 
-export function createApiClient({ baseUrl = DEFAULT_BASE_URL, defaultHeaders = {} } = {}) {
+export function createApiClient({ baseUrl, defaultHeaders = {} } = {}) {
+  const resolvedBaseUrl = baseUrl ?? resolveApiBaseUrl();
+
   async function request(path, { method = 'GET', headers = {}, body } = {}) {
     const finalHeaders = { ...defaultHeaders, ...headers };
     const init = {
@@ -49,7 +68,7 @@ export function createApiClient({ baseUrl = DEFAULT_BASE_URL, defaultHeaders = {
       }
     }
 
-    const response = await fetch(joinUrl(baseUrl, path), init);
+    const response = await fetch(joinUrl(resolvedBaseUrl, path), init);
     const data = await readResponseBody(response);
 
     if (!response.ok) {

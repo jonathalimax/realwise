@@ -4,6 +4,7 @@ import { ApiError, createApiClient } from './client';
 describe('createApiClient', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('sends credentials on GET requests and parses JSON responses', async () => {
@@ -85,6 +86,33 @@ describe('createApiClient', () => {
           'Content-Type': 'application/json',
         }),
         body: JSON.stringify({ currency: 'BRL' }),
+      }),
+    );
+  });
+
+  it('falls back to the production API host on realwise domains', async () => {
+    vi.stubGlobal('window', {
+      location: {
+        hostname: 'realwise.com.br',
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name) => name.toLowerCase() === 'content-type' ? 'application/json' : null,
+      },
+      json: async () => ({ ok: true }),
+    }));
+
+    const client = createApiClient();
+    await client.get('/auth/me');
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.realwise.com.br/auth/me',
+      expect.objectContaining({
+        method: 'GET',
+        credentials: 'include',
       }),
     );
   });

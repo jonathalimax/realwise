@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { authApi } from '../lib/api/auth';
+import { resolveApiBaseUrl } from '../lib/api/client';
 import { clearLoginSession, isLoginSessionExpired } from '../lib/auth/sessionAge';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const API_BASE_URL = resolveApiBaseUrl();
 
 function getLoginErrorMessage(errorCode) {
   switch (errorCode) {
