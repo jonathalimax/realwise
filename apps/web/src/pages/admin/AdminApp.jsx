@@ -5,8 +5,6 @@ import AdminAuth from './AdminAuth';
 import { authApi } from '../../lib/api/auth';
 
 const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
-const OnboardingRun = lazy(() => import('./OnboardingRun'));
-const TransferScript = lazy(() => import('./TransferScript'));
 const ImportIssues = lazy(() => import('./ImportIssues'));
 const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 const GuidePage = lazy(() => import('./GuidePage'));
@@ -74,7 +72,6 @@ export default function AdminApp() {
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
           <NavLink to="coupons" className={navLinkClass}>Cupons</NavLink>
           <NavLink to="pricing" className={navLinkClass}>Preço</NavLink>
-          <NavLink to="transfer" className={navLinkClass}>Transfer</NavLink>
           <NavLink to="guia" className={navLinkClass}>Guia</NavLink>
           <NavLink to="testimonials" className={navLinkClass}>Testimonials</NavLink>
           <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
@@ -94,10 +91,8 @@ export default function AdminApp() {
             <Route path="leads" element={<LeadsDashboard />} />
             <Route path="coupons" element={<CouponsPage />} />
             <Route path="pricing" element={<PricingConfigPage />} />
-            <Route path="transfer" element={<TransferScript />} />
             <Route path="guia" element={<GuidePage />} />
             <Route path="testimonials" element={<TestimonialManagementPage />} />
-            <Route path="onboarding/:runId" element={<OnboardingRun />} />
             <Route path="import-issues" element={<ImportIssues />} />
             <Route path="import-issues/:id" element={<ImportIssueDetail />} />
             <Route path="*" element={<Navigate to="" replace />} />

@@ -26,18 +26,6 @@ export function createAdminResource({ client = apiClient } = {}) {
     sendAbandonedCheckoutEmail(data) {
       return client.post('/admin/emails/send-abandoned-checkout', data);
     },
-    startOnboardingRun(data) {
-      return client.post('/admin/onboarding-runs', data);
-    },
-    getOnboardingRun(runId) {
-      return client.get(`/admin/onboarding-runs/${runId}`);
-    },
-    listOnboardingRunLogs(runId) {
-      return client.get(`/admin/onboarding-runs/${runId}/logs`);
-    },
-    transferClient(data) {
-      return client.post('/admin/transfer-client', data);
-    },
     getPricingConfig() {
       return client.get('/admin/pricing-config');
     },

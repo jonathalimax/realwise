@@ -7,7 +7,6 @@ import { leads, purchases, coupons, importIssues, testimonials, pricingConfig } 
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import * as adminOps from './admin-ops';
 
 @Injectable()
 export class AdminService {
@@ -174,42 +173,6 @@ export class AdminService {
     });
     await this.notifications.sendAbandonedCheckoutEmail(dto.email, displayName, dto.stage, code, discountPercent, expiresAt);
     return { success: true, email: dto.email, stage: dto.stage, code };
-  }
-
-  async startOnboardingRun(dto: { email: string; runId: string }) {
-    void adminOps.startOnboardingRun(dto, {
-      sendAccessEmail: async (name, loginUrl) => {
-        await this.notifications.sendAdminEmail(dto.email, 'access_granted', { name, loginUrl });
-      },
-    }).catch((err: unknown) => {
-      console.error('[admin] onboarding run failed:', err instanceof Error ? err.message : String(err));
-    });
-    return { started: true, runId: dto.runId };
-  }
-
-  async getOnboardingRun(runId: string) {
-    return adminOps.getOnboardingRun(runId);
-  }
-
-  async listOnboardingRunLogs(runId: string) {
-    return adminOps.listOnboardingRunLogs(runId);
-  }
-
-  async transferClient(dto: {
-    clientId: string;
-    clientEmail: string;
-    billingAccount?: string | null;
-    removeSelf?: boolean;
-  }, callerEmail: string) {
-    return adminOps.transferClient(
-      {
-        clientId: dto.clientId,
-        clientEmail: dto.clientEmail,
-        billingAccount: dto.billingAccount ?? null,
-        removeSelf: dto.removeSelf ?? false,
-      },
-      callerEmail,
-    );
   }
 
   async getPricingConfig() {

@@ -1,8 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminGuard } from '../auth/guards/admin.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdatePricingConfigDto } from './dto/update-pricing-config.dto';
@@ -56,29 +54,6 @@ class SendAbandonedCheckoutEmailDto {
   name?: string;
 }
 
-class StartOnboardingRunDto {
-  @IsString()
-  email: string;
-
-  @IsString()
-  runId: string;
-}
-
-class TransferClientDto {
-  @IsString()
-  clientId: string;
-
-  @IsString()
-  clientEmail: string;
-
-  @IsOptional()
-  @IsString()
-  billingAccount?: string | null;
-
-  @IsOptional()
-  removeSelf?: boolean;
-}
-
 @Controller('admin')
 @UseGuards(AdminGuard)
 export class AdminController {
@@ -124,26 +99,6 @@ export class AdminController {
   @Post('emails/send-abandoned-checkout')
   sendAbandonedCheckoutEmail(@Body() dto: SendAbandonedCheckoutEmailDto) {
     return this.service.sendAbandonedCheckoutEmail(dto);
-  }
-
-  @Post('onboarding-runs')
-  startOnboardingRun(@Body() dto: StartOnboardingRunDto) {
-    return this.service.startOnboardingRun(dto);
-  }
-
-  @Get('onboarding-runs/:runId')
-  getOnboardingRun(@Param('runId') runId: string) {
-    return this.service.getOnboardingRun(runId);
-  }
-
-  @Get('onboarding-runs/:runId/logs')
-  listOnboardingRunLogs(@Param('runId') runId: string) {
-    return this.service.listOnboardingRunLogs(runId);
-  }
-
-  @Post('transfer-client')
-  transferClient(@Body() dto: TransferClientDto, @CurrentUser() user: JwtPayload) {
-    return this.service.transferClient(dto, user.sub);
   }
 
   @Get('pricing-config')
