@@ -89,9 +89,23 @@ export const BillsProvider = ({ children }) => {
   };
 
   // Mark bill as paid
-  const markBillAsPaid = async (billId, paidDate = new Date().toISOString(), virtualDueDate = null) => {
+  const markBillAsPaid = async (payloadOrBillId, paidAt = new Date().toISOString(), targetDueDate = null, paidAmount = null) => {
     try {
-      await billsResource.markPaid(billId, { paidDate, virtualDueDate });
+      const payload = typeof payloadOrBillId === 'object' && payloadOrBillId !== null
+        ? payloadOrBillId
+        : {
+            billId: payloadOrBillId,
+            paidAt,
+            targetDueDate,
+            paidAmount,
+          };
+
+      await billsResource.markPaid(payload.billId, {
+        paidAt: payload.paidAt ?? new Date().toISOString(),
+        paidAmount: payload.paidAmount ?? null,
+        targetDueDate: payload.targetDueDate ?? null,
+        virtualDueDate: payload.virtualDueDate ?? null,
+      });
       await loadBills();
       return { success: true };
     } catch (error) {

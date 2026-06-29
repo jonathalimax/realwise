@@ -7,6 +7,7 @@ interface BillEntry {
   amount: string;
   dueDate: string;
   daysOverdue?: number;
+  actionUrl?: string;
 }
 
 interface BillGroups {
@@ -151,7 +152,7 @@ export class NotificationsService {
       return `<h3>${title}</h3><ul>${bills
         .map(
           (b) =>
-            `<li><strong>${b.name}</strong> — ${formatAmount(b.amount)}, vence ${formatDate(b.dueDate)}${b.daysOverdue ? ` (${b.daysOverdue} dias em atraso)` : ''}</li>`,
+            `<li><strong>${b.name}</strong> — ${formatAmount(b.amount)}, vence ${formatDate(b.dueDate)}${b.daysOverdue ? ` (${b.daysOverdue} dias em atraso)` : ''}${b.actionUrl ? ` <a href="${b.actionUrl}">Marcar como pago</a>` : ''}</li>`,
         )
         .join('')}</ul>`;
     };

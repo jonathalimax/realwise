@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { BillRemindersService } from './bill-reminders.service';
 import { DRIZZLE } from '../db/drizzle.module';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BillActionsService } from '../bill-actions/bill-actions.service';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -18,6 +19,7 @@ const mockDb = {
 };
 
 const mockNotifications = { sendBillReminderEmail: jest.fn().mockResolvedValue(undefined) };
+const mockBillActions = { createTokenForBill: jest.fn().mockResolvedValue({ token: 'abc', expiresAt: new Date() }) };
 
 describe('BillRemindersService', () => {
   let service: BillRemindersService;
@@ -28,6 +30,7 @@ describe('BillRemindersService', () => {
         BillRemindersService,
         { provide: DRIZZLE, useValue: mockDb },
         { provide: NotificationsService, useValue: mockNotifications },
+        { provide: BillActionsService, useValue: mockBillActions },
       ],
     }).compile();
     service = module.get(BillRemindersService);

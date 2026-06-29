@@ -5,6 +5,7 @@ import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { bills, users, billReminders } from '../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BillActionsService } from '../bill-actions/bill-actions.service';
 
 interface BillRow {
   id: string;
@@ -31,6 +32,7 @@ export class BillRemindersService {
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
+    private readonly billActions: BillActionsService,
   ) {}
 
   groupBillsForUser(pendingBills: BillRow[]): {
@@ -98,7 +100,26 @@ export class BillRemindersService {
       if (totalActionable === 0) continue;
 
       try {
-        await this.notifications.sendBillReminderEmail(user.email, groups);
+        const frontendBase = (process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br').replace(/\/$/, '');
+        const addActionUrls = async (entries: BillEntry[]) => Promise.all(entries.map(async (bill) => {
+          const { token } = await this.billActions.createTokenForBill({
+            id: bill.id,
+            clientId: user.clientId,
+            userId: user.id,
+          });
+          return {
+            ...bill,
+            actionUrl: `${frontendBase}/bill-payment?token=${encodeURIComponent(token)}`,
+          };
+        }));
+
+        const enrichedGroups = {
+          overdue: await addActionUrls(groups.overdue),
+          dueToday: await addActionUrls(groups.dueToday),
+          dueSoon: await addActionUrls(groups.dueSoon),
+        };
+
+        await this.notifications.sendBillReminderEmail(user.email, enrichedGroups);
         const billIds = [...groups.overdue, ...groups.dueToday, ...groups.dueSoon].map((b) => b.id);
         await this.db.insert(billReminders).values(
           billIds.map((billId) => ({

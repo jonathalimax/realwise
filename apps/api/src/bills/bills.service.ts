@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { randomUUID } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { bills } from '../db/schema';
@@ -23,6 +24,24 @@ export class BillsService {
     return new Date(value);
   }
 
+  private normalizeAmount(value?: string | null): string | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return null;
+    return String(value);
+  }
+
+  private normalizeBillSeriesId(dto: { recurrence?: string | null; seriesId?: string | null }, allowGenerate = false) {
+    if (dto.seriesId !== undefined) return dto.seriesId ?? null;
+    if (allowGenerate && dto.recurrence && dto.recurrence !== 'none') {
+      return randomUUID();
+    }
+    return undefined;
+  }
+
+  private normalizePaidDate(dto: { paidAt?: string | null; paidDate?: string | null }) {
+    return this.normalizeTimestamp(dto.paidAt ?? dto.paidDate);
+  }
+
   private mapCreateBillDto(dto: CreateBillDto) {
     return {
       name: dto.name,
@@ -38,6 +57,9 @@ export class BillsService {
       notificationDaysBefore: dto.notificationDaysBefore,
       linkedBankId: dto.linkedBankId,
       paidDate: this.normalizeTimestamp(dto.paidDate),
+      paidAt: this.normalizeTimestamp(dto.paidAt),
+      paidAmount: this.normalizeAmount(dto.paidAmount),
+      seriesId: this.normalizeBillSeriesId(dto, true),
       postponeCount: dto.postponeCount,
       nextReminderAt: this.normalizeTimestamp(dto.nextReminderAt),
     };
@@ -50,6 +72,9 @@ export class BillsService {
       dueDate: dto.dueDate ? this.normalizeDateOnly(dto.dueDate) : undefined,
       recurrenceEndDate: this.normalizeTimestamp(dto.recurrenceEndDate),
       paidDate: this.normalizeTimestamp(dto.paidDate),
+      paidAt: this.normalizeTimestamp(dto.paidAt),
+      paidAmount: this.normalizeAmount(dto.paidAmount),
+      seriesId: this.normalizeBillSeriesId(dto, false),
       nextReminderAt: this.normalizeTimestamp(dto.nextReminderAt),
     };
   }
@@ -82,6 +107,86 @@ export class BillsService {
       .where(and(eq(bills.clientId, clientId), eq(bills.userId, userId)));
   }
 
+  private getSeriesKey(bill: Bill): string {
+    if (bill.seriesId) return `series:${bill.seriesId}`;
+    if (!bill.recurrence) return `bill:${bill.id}`;
+    return `legacy:${[
+      bill.clientId,
+      bill.userId,
+      bill.name,
+      bill.amount,
+      bill.categoryId ?? '',
+      bill.category ?? '',
+      bill.description ?? '',
+      bill.recurrence ?? '',
+      bill.linkedBankId ?? '',
+      this.normalizeDateOnly(bill.recurrenceEndDate ? new Date(bill.recurrenceEndDate).toISOString() : undefined) ?? '',
+    ].join('|')}`;
+  }
+
+  private getSeriesAliases(bill: Bill): string[] {
+    const aliases = [this.getSeriesKey(bill)];
+    if (bill.recurrence) {
+      aliases.push(`legacy:${[
+        bill.clientId,
+        bill.userId,
+        bill.name,
+        bill.amount,
+        bill.categoryId ?? '',
+        bill.category ?? '',
+        bill.description ?? '',
+        bill.recurrence ?? '',
+        bill.linkedBankId ?? '',
+        this.normalizeDateOnly(bill.recurrenceEndDate ? new Date(bill.recurrenceEndDate).toISOString() : undefined) ?? '',
+      ].join('|')}`);
+    }
+    return [...new Set(aliases)];
+  }
+
+  private getOccurrenceKey(bill: Bill): string {
+    return `${this.getSeriesKey(bill)}::${this.normalizeDateOnly(bill.dueDate)}`;
+  }
+
+  private sameRecurringSeries(left: Bill, right: Bill): boolean {
+    if (!left.recurrence || !right.recurrence) return false;
+    const leftKeys = new Set(this.getSeriesAliases(left));
+    return this.getSeriesAliases(right).some((key) => leftKeys.has(key));
+  }
+
+  private async maybeCreateNextOccurrence(paidBill: Bill, clientId: string, userId: string): Promise<void> {
+    if (!paidBill.recurrence) return;
+
+    const sourceDueDate = this.normalizeDateOnly(paidBill.dueDate);
+    const nextDueDate = sourceDueDate ? this.calculateNextDueDate(sourceDueDate, paidBill.recurrence) : null;
+    if (!sourceDueDate || !nextDueDate) return;
+
+    const sourceEndDate = paidBill.recurrenceEndDate ? new Date(paidBill.recurrenceEndDate) : null;
+    if (sourceEndDate && new Date(`${nextDueDate}T00:00:00`) > sourceEndDate) {
+      return;
+    }
+
+    const allBills = await this.findAll(clientId, userId);
+    const nextExists = allBills.some((bill) => this.sameRecurringSeries(bill, paidBill) && this.normalizeDateOnly(bill.dueDate) === nextDueDate);
+    if (nextExists) return;
+
+    const baseBill = { ...paidBill };
+    delete (baseBill as { id?: string }).id;
+    await this.db.insert(bills).values({
+      ...baseBill,
+      firebaseDocId: null,
+      dueDate: nextDueDate,
+      status: 'pending',
+      paidDate: null,
+      paidAt: null,
+      paidAmount: null,
+      postponeCount: 0,
+      nextReminderAt: null,
+      seriesId: paidBill.seriesId ?? paidBill.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
   async findOne(id: string, clientId: string, userId: string): Promise<Bill> {
     const rows = await this.db
       .select()
@@ -111,71 +216,44 @@ export class BillsService {
 
   async markPaid(id: string, dto: MarkBillPaidDto, clientId: string, userId: string): Promise<Bill> {
     const sourceBill = await this.findOne(id, clientId, userId);
-    const paidDate = this.normalizeTimestamp(dto?.paidDate) ?? new Date();
-    const virtualDueDate = this.normalizeDateOnly(dto?.virtualDueDate);
+    const paidDate = this.normalizePaidDate(dto) ?? new Date();
+    const targetDueDate = this.normalizeDateOnly(dto?.targetDueDate ?? dto?.virtualDueDate ?? sourceBill.dueDate);
+    const paidAmount = this.normalizeAmount(dto?.paidAmount) ?? sourceBill.amount;
+    const allBills = await this.findAll(clientId, userId);
+    const matchingOccurrence = allBills.find((bill) => this.sameRecurringSeries(bill, sourceBill) && this.normalizeDateOnly(bill.dueDate) === targetDueDate);
+    const paidBill = matchingOccurrence ?? sourceBill;
 
-    if (sourceBill.status === 'paid' && virtualDueDate) {
-      const baseBill = { ...sourceBill };
-      delete (baseBill as { id?: string }).id;
+    if (matchingOccurrence || this.normalizeDateOnly(sourceBill.dueDate) === targetDueDate) {
       const rows = await this.db
-        .insert(bills)
-        .values({
-          ...baseBill,
-          firebaseDocId: null,
-          dueDate: virtualDueDate,
-          status: 'paid',
-          paidDate,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
+        .update(bills)
+        .set({ status: 'paid', paidDate, paidAt: paidDate, paidAmount, updatedAt: new Date() })
+        .where(and(eq(bills.id, paidBill.id), eq(bills.clientId, clientId), eq(bills.userId, userId)))
         .returning();
-      return rows[0];
+      const updatedBill = rows[0];
+      await this.maybeCreateNextOccurrence(updatedBill, clientId, userId);
+      return updatedBill;
     }
 
+    const baseBill = { ...sourceBill };
+    delete (baseBill as { id?: string }).id;
     const rows = await this.db
-      .update(bills)
-      .set({ status: 'paid', paidDate, updatedAt: new Date() })
-      .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId)))
+      .insert(bills)
+      .values({
+        ...baseBill,
+        firebaseDocId: null,
+        dueDate: targetDueDate,
+        status: 'paid',
+        paidDate,
+        paidAt: paidDate,
+        paidAmount,
+        seriesId: sourceBill.seriesId ?? sourceBill.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
       .returning();
-    const updatedBill = rows[0];
-
-    if (sourceBill.recurrence) {
-      const sourceDueDate = this.normalizeDateOnly(sourceBill.dueDate);
-      const sourceEndDate = sourceBill.recurrenceEndDate ? new Date(sourceBill.recurrenceEndDate) : null;
-      const shouldCreateNext = !sourceEndDate || (sourceDueDate ? sourceEndDate > new Date(`${sourceDueDate}T00:00:00`) : false);
-      const nextDueDate = sourceDueDate ? this.calculateNextDueDate(sourceDueDate, sourceBill.recurrence) : null;
-
-      if (shouldCreateNext && nextDueDate) {
-        const existingRows = await this.db
-          .select()
-          .from(bills)
-          .where(and(
-            eq(bills.clientId, clientId),
-            eq(bills.userId, userId),
-            eq(bills.name, sourceBill.name),
-            eq(bills.dueDate, nextDueDate),
-            eq(bills.status, 'pending'),
-          ));
-
-        if (existingRows.length === 0) {
-          const baseBill = { ...sourceBill };
-          delete (baseBill as { id?: string }).id;
-          await this.db.insert(bills).values({
-            ...baseBill,
-            firebaseDocId: null,
-            dueDate: nextDueDate,
-            status: 'pending',
-            paidDate: null,
-            postponeCount: 0,
-            nextReminderAt: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-      }
-    }
-
-    return updatedBill;
+    const insertedBill = rows[0];
+    await this.maybeCreateNextOccurrence(insertedBill, clientId, userId);
+    return insertedBill;
   }
 
   async remove(id: string, clientId: string, userId: string): Promise<void> {

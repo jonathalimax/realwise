@@ -6,6 +6,7 @@ export * from './categories';
 export * from './transactions';
 export * from './bills';
 export * from './bill-reminders';
+export * from './bill-action-tokens';
 export * from './budgets';
 export * from './goals';
 export * from './investments';

@@ -3,7 +3,19 @@ import { BillsService } from './bills.service';
 import { DRIZZLE } from '../db/drizzle.module';
 import { NotFoundException } from '@nestjs/common';
 
-const mockRow = { id: 'bill-1', clientId: 'jonathalimax', userId: 'user-1', name: 'Rent', amount: '1500.00', dueDate: '2026-07-01', status: 'pending', recurrence: 'monthly', categoryId: null, createdAt: new Date(), updatedAt: new Date() };
+const mockRow = {
+  id: 'bill-1',
+  clientId: 'jonathalimax',
+  userId: 'user-1',
+  name: 'Rent',
+  amount: '1500.00',
+  dueDate: '2026-07-01',
+  status: 'pending',
+  recurrence: 'monthly',
+  categoryId: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 const mockDb = {
   select: jest.fn().mockReturnThis(),
   from: jest.fn().mockReturnThis(),
@@ -45,11 +57,39 @@ describe('BillsService', () => {
     await expect(service.findOne('bad', 'jonathalimax', 'user-1')).rejects.toThrow(NotFoundException);
   });
 
-  it('markPaid updates status to paid', async () => {
-    mockDb.where.mockResolvedValueOnce([mockRow]);  // findOne resolves
-    mockDb.where.mockReturnValueOnce(mockDb);       // update chain where returns this
+  it('markPaid updates the target occurrence with paid amount and timestamp', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([mockRow]) // findOne
+      .mockResolvedValueOnce([mockRow]) // findAll for target lookup
+      .mockReturnValueOnce(mockDb)      // update chain where returns this
+      .mockResolvedValueOnce([]);       // next occurrence lookup
     mockDb.returning.mockResolvedValueOnce([{ ...mockRow, status: 'paid' }]);
-    const result = await service.markPaid('bill-1', {}, 'jonathalimax', 'user-1');
+    const result = await service.markPaid('bill-1', {
+      paidDate: '2026-06-27T12:00:00.000Z',
+      paidAmount: '1490.00',
+      targetDueDate: '2026-07-01',
+    }, 'jonathalimax', 'user-1');
     expect(result).toBeDefined();
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'paid',
+      paidDate: expect.any(Date),
+      paidAmount: '1490.00',
+    }));
+  });
+
+  it('creates the next recurring occurrence only when it does not already exist', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([mockRow]) // findOne
+      .mockResolvedValueOnce([mockRow]) // findAll for target lookup
+      .mockReturnValueOnce(mockDb)      // update chain where returns this
+      .mockResolvedValueOnce([]);       // next occurrence lookup
+    mockDb.returning.mockResolvedValueOnce([{ ...mockRow, status: 'paid' }]);
+
+    await service.markPaid('bill-1', {
+      paidAmount: '1500.00',
+      targetDueDate: '2026-07-01',
+    }, 'jonathalimax', 'user-1');
+
+    expect(mockDb.insert).toHaveBeenCalled();
   });
 });

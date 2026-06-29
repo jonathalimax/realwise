@@ -3,7 +3,9 @@ import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import useCardBillAmounts from '../hooks/useCardBillAmounts';
+import { buildMonthlyBillRows } from '../lib/bills/occurrences';
 import BillModal from './BillModal';
+import BillPaymentModal from './BillPaymentModal';
 import { BellIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 export default function BillsList({ compact = false, selectedMonth, statusFilter = 'all' }) {
@@ -12,101 +14,16 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
   const { canWrite } = useAccess();
   const [editingBill, setEditingBill] = useState(null);
   const [showAllBills, setShowAllBills] = useState(false);
-  const [confirmPayBillId, setConfirmPayBillId] = useState(null);
+  const [payingBill, setPayingBill] = useState(null);
 
   const cardAmounts = useCardBillAmounts(bills, selectedMonth);
 
   const getBillAmount = (bill) => cardAmounts.get(bill.id) ?? bill.amount ?? 0;
-
-  // Parse selectedMonth for filtering (format: "YYYY-MM")
   const [selectedYear, selectedMonthNum] = selectedMonth
     ? selectedMonth.split('-').map(Number)
     : [new Date().getFullYear(), new Date().getMonth() + 1];
 
-  // Expand recurring bills to show virtual instances for the selected month
-  const expandRecurringBills = (billsList) => {
-    const expandedBills = [];
-
-    billsList.forEach(bill => {
-      const originalDueDate = new Date(bill.dueDate);
-      // Use UTC methods to avoid timezone issues
-      const originalYear = originalDueDate.getUTCFullYear();
-      const originalMonth = originalDueDate.getUTCMonth() + 1;
-
-      // If bill is in the selected month, add it as-is
-      if (originalYear === selectedYear && originalMonth === selectedMonthNum) {
-        expandedBills.push(bill);
-        return;
-      }
-
-      // For non-recurring bills not in selected month, skip
-      if (!bill.recurrence || bill.recurrence === 'none') {
-        // Still add it for overdue checking
-        expandedBills.push(bill);
-        return;
-      }
-
-      // Check if recurrence has ended
-      if (bill.recurrenceEndDate) {
-        const endDate = new Date(bill.recurrenceEndDate);
-        const selectedDateUTC = Date.UTC(selectedYear, selectedMonthNum - 1, 1);
-        if (selectedDateUTC > endDate.getTime()) {
-          return; // Recurrence ended before selected month
-        }
-      }
-
-      // For recurring bills, calculate the due date for the selected month
-      if (bill.recurrence === 'monthly') {
-        // Only generate instance if selected month is >= original month
-        const selectedDateUTC = Date.UTC(selectedYear, selectedMonthNum - 1, 1);
-        const originalDateUTC = Date.UTC(originalYear, originalMonth - 1, 1);
-
-        if (selectedDateUTC >= originalDateUTC) {
-          // Create virtual instance for the selected month using UTC
-          const day = originalDueDate.getUTCDate();
-          // Handle months with fewer days (e.g., Feb 30 -> Feb 28)
-          const lastDayOfMonth = new Date(Date.UTC(selectedYear, selectedMonthNum, 0)).getUTCDate();
-          const adjustedDay = Math.min(day, lastDayOfMonth);
-          const virtualDueDate = new Date(Date.UTC(selectedYear, selectedMonthNum - 1, adjustedDay));
-
-          expandedBills.push({
-            ...bill,
-            dueDate: virtualDueDate.toISOString(),
-            originalDueDate: bill.dueDate,
-            isRecurringInstance: true,
-            status: bill.status === 'paid' ? 'pending' : bill.status // Reset status for future instances
-          });
-        }
-      } else if (bill.recurrence === 'yearly') {
-        // For yearly, only show if it's the same month as original
-        if (originalMonth === selectedMonthNum && selectedYear >= originalYear) {
-          const day = originalDueDate.getUTCDate();
-          const lastDayOfMonth = new Date(Date.UTC(selectedYear, selectedMonthNum, 0)).getUTCDate();
-          const adjustedDay = Math.min(day, lastDayOfMonth);
-          const virtualDueDate = new Date(Date.UTC(selectedYear, selectedMonthNum - 1, adjustedDay));
-
-          expandedBills.push({
-            ...bill,
-            dueDate: virtualDueDate.toISOString(),
-            originalDueDate: bill.dueDate,
-            isRecurringInstance: true,
-            status: bill.status === 'paid' ? 'pending' : bill.status
-          });
-        }
-      }
-      // Weekly bills are handled differently - we'd need to check each week
-      // For simplicity, we'll show them if they started before selected month
-      else if (bill.recurrence === 'weekly') {
-        // Add original bill for reference
-        expandedBills.push(bill);
-      }
-    });
-
-    return expandedBills;
-  };
-
-  // Expand bills to include recurring instances for selected month
-  const expandedBills = expandRecurringBills(bills);
+  const expandedBills = buildMonthlyBillRows(bills, selectedMonth);
 
   const isInSelectedMonth = (bill) => {
     const dueDate = new Date(bill.dueDate);
@@ -116,7 +33,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
   const isOverdueFromPreviousMonth = (bill) => {
     if (bill.status === 'paid') return false;
-    if (bill.isRecurringInstance) return false; // Don't show recurring instances as overdue from previous months
+    if (bill.isRecurringInstance && bill.isPreviewOccurrence) return false;
     const dueDate = new Date(bill.dueDate);
     const now = new Date();
     return dueDate < now && (
@@ -163,19 +80,9 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
     .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
 
-  const handleMarkPaid = async (bill) => {
-    await markBillAsPaid(bill.id, new Date().toISOString(), bill.isRecurringInstance ? bill.dueDate : null);
-    setConfirmPayBillId(null);
-  };
-
-  const handleConfirmPayClick = (billId, event) => {
+  const handleConfirmPayClick = (bill, event) => {
     event.stopPropagation();
-    setConfirmPayBillId(billId);
-  };
-
-  const handleCancelPay = (event) => {
-    event.stopPropagation();
-    setConfirmPayBillId(null);
+    setPayingBill(bill);
   };
 
   const getBillStatus = (bill) => {
@@ -227,13 +134,13 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
   const BillItem = ({ bill }) => {
     const status = getBillStatus(bill);
     const StatusIcon = status.icon;
-    const isConfirming = confirmPayBillId === bill.id;
+    const isPaying = payingBill?.id === bill.id && payingBill?.dueDate === bill.dueDate;
 
     return (
       <div className="relative">
         <div
-          onClick={() => canWrite && !isConfirming && setEditingBill(bill)}
-          className={`group flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg ${canWrite && !isConfirming ? 'cursor-pointer' : ''} transition-colors`}
+          onClick={() => canWrite && !isPaying && setEditingBill(bill)}
+          className={`group flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg ${canWrite && !isPaying ? 'cursor-pointer' : ''} transition-colors`}
         >
           <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${status.bgColor} flex items-center justify-center flex-shrink-0`}>
             <StatusIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${status.color}`} />
@@ -258,9 +165,9 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
           </div>
 
           {/* Mark as paid button - only for write access */}
-          {canWrite && bill.status !== 'paid' && !isConfirming && (
+          {canWrite && bill.status !== 'paid' && !isPaying && (
             <button
-              onClick={(e) => handleConfirmPayClick(bill.id, e)}
+              onClick={(e) => handleConfirmPayClick(bill, e)}
               className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all flex-shrink-0"
               title={language === 'pt' ? 'Marcar como pago' : 'Mark as paid'}
             >
@@ -268,27 +175,6 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
             </button>
           )}
         </div>
-
-        {/* Confirmation overlay */}
-        {isConfirming && (
-          <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-900 rounded-lg p-2 sm:p-3 flex items-center gap-2 z-10">
-            <span className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 font-medium flex-1">
-              {language === 'pt' ? 'Marcar como pago?' : 'Mark as paid?'}
-            </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleMarkPaid(bill); }}
-              className="px-2 sm:px-3 py-1 bg-emerald-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-700 transition"
-            >
-              {language === 'pt' ? 'Sim' : 'Yes'}
-            </button>
-            <button
-              onClick={handleCancelPay}
-              className="px-2 sm:px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-            >
-              {language === 'pt' ? 'Não' : 'No'}
-            </button>
-          </div>
-        )}
       </div>
     );
   };
@@ -395,6 +281,26 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
           isOpen={!!editingBill}
           onClose={() => setEditingBill(null)}
           bill={editingBill}
+        />
+        <BillPaymentModal
+          key={payingBill ? `${payingBill.id}:${getBillAmount(payingBill) || payingBill.amount || 0}` : 'bill-payment-modal-closed'}
+          isOpen={!!payingBill}
+          bill={payingBill}
+          initialAmount={payingBill ? (getBillAmount(payingBill) || payingBill.amount || 0) : 0}
+          onClose={() => setPayingBill(null)}
+          onConfirm={async ({ bill, paidAmount }) => {
+            const result = await markBillAsPaid({
+              billId: bill.id,
+              paidAt: new Date().toISOString(),
+              targetDueDate: bill.dueDate,
+              paidAmount,
+            });
+            if (!result?.success) {
+              throw new Error(result?.error || (language === 'pt' ? 'Falha ao marcar como pago' : 'Failed to mark bill as paid'));
+            }
+            setPayingBill(null);
+          }}
+          language={language}
         />
 
         {/* Full Bills Modal */}
@@ -620,6 +526,26 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
         isOpen={!!editingBill}
         onClose={() => setEditingBill(null)}
         bill={editingBill}
+      />
+      <BillPaymentModal
+        key={payingBill ? `${payingBill.id}:${getBillAmount(payingBill) || payingBill.amount || 0}` : 'bill-payment-modal-closed'}
+        isOpen={!!payingBill}
+        bill={payingBill}
+        initialAmount={payingBill ? (getBillAmount(payingBill) || payingBill.amount || 0) : 0}
+        onClose={() => setPayingBill(null)}
+        onConfirm={async ({ bill, paidAmount }) => {
+          const result = await markBillAsPaid({
+            billId: bill.id,
+            paidAt: new Date().toISOString(),
+            targetDueDate: bill.dueDate,
+            paidAmount,
+          });
+          if (!result?.success) {
+            throw new Error(result?.error || (language === 'pt' ? 'Falha ao marcar como pago' : 'Failed to mark bill as paid'));
+          }
+          setPayingBill(null);
+        }}
+        language={language}
       />
     </div>
   );

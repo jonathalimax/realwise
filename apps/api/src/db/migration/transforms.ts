@@ -114,6 +114,18 @@ export function transformBill(docId: string, data: Row, clientId: string, userId
     status: toStrOrNull(data.status) ?? 'pending',
     recurrence: toStrOrNull(data.recurrence),
     categoryId: toStrOrNull(data.categoryId),
+    description: toStrOrNull(data.description),
+    category: toStrOrNull(data.category),
+    recurrenceEndDate: toDate(data.recurrenceEndDate),
+    notificationEnabled: (data.notificationEnabled as boolean) ?? true,
+    notificationDaysBefore: (data.notificationDaysBefore as number) ?? 3,
+    linkedBankId: toStrOrNull(data.linkedBankId),
+    paidDate: toDate(data.paidDate),
+    paidAt: toDate(data.paidAt),
+    paidAmount: toNumericString(data.paidAmount),
+    seriesId: toStrOrNull(data.seriesId),
+    postponeCount: (data.postponeCount as number) ?? 0,
+    nextReminderAt: toDate(data.nextReminderAt),
   };
 }
 

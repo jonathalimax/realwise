@@ -53,6 +53,18 @@ export class CreateBillDto {
   paidDate?: string | null;
 
   @IsOptional()
+  @IsDateString()
+  paidAt?: string | null;
+
+  @IsOptional()
+  @IsString()
+  paidAmount?: string | null;
+
+  @IsOptional()
+  @IsString()
+  seriesId?: string | null;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   postponeCount?: number;
@@ -67,9 +79,21 @@ export class UpdateBillDto extends PartialType(CreateBillDto) {}
 export class MarkBillPaidDto {
   @IsOptional()
   @IsDateString()
+  paidAt?: string;
+
+  @IsOptional()
+  @IsDateString()
   paidDate?: string;
 
   @IsOptional()
   @IsDateString()
+  targetDueDate?: string;
+
+  @IsOptional()
+  @IsDateString()
   virtualDueDate?: string;
+
+  @IsOptional()
+  @IsString()
+  paidAmount?: string;
 }

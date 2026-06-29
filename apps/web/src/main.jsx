@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import CheckoutRedirect from './pages/CheckoutRedirect.jsx'
+import BillPaymentPage from './pages/BillPaymentPage.jsx'
 import Home from '../landing_page/pages/home.jsx'
 
 const path = window.location.pathname
@@ -21,6 +22,12 @@ if (path === '/checkout') {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <CheckoutRedirect />
+    </StrictMode>,
+  )
+} else if (path === '/bill-payment') {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <BillPaymentPage />
     </StrictMode>,
   )
 } else if (promoCode) {

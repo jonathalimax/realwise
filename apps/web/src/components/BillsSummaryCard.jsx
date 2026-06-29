@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { buildMonthlyBillRows } from '../lib/bills/occurrences';
 import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 export default function BillsSummaryCard({ selectedMonth }) {
@@ -8,84 +9,16 @@ export default function BillsSummaryCard({ selectedMonth }) {
   const { language } = useSettings();
   const navigate = useNavigate();
 
-  // Parse selectedMonth for filtering (format: "YYYY-MM")
   const [selectedYear, selectedMonthNum] = selectedMonth
     ? selectedMonth.split('-').map(Number)
     : [new Date().getFullYear(), new Date().getMonth() + 1];
-
   const isInSelectedMonth = (bill) => {
     const dueDate = new Date(bill.dueDate);
     return dueDate.getUTCFullYear() === selectedYear &&
            (dueDate.getUTCMonth() + 1) === selectedMonthNum;
   };
 
-  // Expand recurring bills for the selected month
-  const expandRecurringBills = (billsList) => {
-    const expandedBills = [];
-
-    billsList.forEach(bill => {
-      const originalDueDate = new Date(bill.dueDate);
-      const originalYear = originalDueDate.getUTCFullYear();
-      const originalMonth = originalDueDate.getUTCMonth() + 1;
-
-      if (originalYear === selectedYear && originalMonth === selectedMonthNum) {
-        expandedBills.push(bill);
-        return;
-      }
-
-      if (!bill.recurrence || bill.recurrence === 'none') {
-        expandedBills.push(bill);
-        return;
-      }
-
-      if (bill.recurrenceEndDate) {
-        const endDate = new Date(bill.recurrenceEndDate);
-        const selectedDateUTC = Date.UTC(selectedYear, selectedMonthNum - 1, 1);
-        if (selectedDateUTC > endDate.getTime()) {
-          return;
-        }
-      }
-
-      if (bill.recurrence === 'monthly') {
-        const selectedDateUTC = Date.UTC(selectedYear, selectedMonthNum - 1, 1);
-        const originalDateUTC = Date.UTC(originalYear, originalMonth - 1, 1);
-
-        if (selectedDateUTC >= originalDateUTC) {
-          const day = originalDueDate.getUTCDate();
-          const lastDayOfMonth = new Date(Date.UTC(selectedYear, selectedMonthNum, 0)).getUTCDate();
-          const adjustedDay = Math.min(day, lastDayOfMonth);
-          const virtualDueDate = new Date(Date.UTC(selectedYear, selectedMonthNum - 1, adjustedDay));
-
-          expandedBills.push({
-            ...bill,
-            dueDate: virtualDueDate.toISOString(),
-            originalDueDate: bill.dueDate,
-            isRecurringInstance: true,
-            status: bill.status === 'paid' ? 'pending' : bill.status
-          });
-        }
-      } else if (bill.recurrence === 'yearly') {
-        if (originalMonth === selectedMonthNum && selectedYear >= originalYear) {
-          const day = originalDueDate.getUTCDate();
-          const lastDayOfMonth = new Date(Date.UTC(selectedYear, selectedMonthNum, 0)).getUTCDate();
-          const adjustedDay = Math.min(day, lastDayOfMonth);
-          const virtualDueDate = new Date(Date.UTC(selectedYear, selectedMonthNum - 1, adjustedDay));
-
-          expandedBills.push({
-            ...bill,
-            dueDate: virtualDueDate.toISOString(),
-            originalDueDate: bill.dueDate,
-            isRecurringInstance: true,
-            status: bill.status === 'paid' ? 'pending' : bill.status
-          });
-        }
-      }
-    });
-
-    return expandedBills;
-  };
-
-  const expandedBills = expandRecurringBills(bills);
+  const expandedBills = buildMonthlyBillRows(bills, selectedMonth);
   const monthBills = expandedBills.filter(isInSelectedMonth);
   const totalBills = monthBills.length;
   const paidBills = monthBills.filter(b => b.status === 'paid').length;
