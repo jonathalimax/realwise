@@ -109,6 +109,25 @@ describe('AuthController', () => {
   });
 
   describe('googleCallback', () => {
+    it('short-circuits to the frontend error redirect when Google returns an oauth error in the callback query', async () => {
+      const req = {
+        cookies: {},
+        query: {
+          error: 'access_denied',
+          error_description: 'The user denied your request',
+        },
+      } as unknown as Request;
+      const res = mockRes();
+      const next = jest.fn();
+
+      await controller.googleCallback('state-token', req, res as unknown as Response, next);
+
+      expect(passport.authenticate).not.toHaveBeenCalled();
+      expect(res.redirect).toHaveBeenCalledWith(
+        'http://localhost:5173/login?error=oauth&provider=google&reason=The+user+denied+your+request',
+      );
+    });
+
     it('redirects with the oauth reason when Google authentication fails', async () => {
       const req = { cookies: {} } as unknown as Request;
       const res = mockRes();
@@ -147,6 +166,33 @@ describe('AuthController', () => {
       await expect(controller.googleCallback(state, req, res as unknown as Response, next)).resolves.toBeUndefined();
       expect(res.redirect).toHaveBeenCalledTimes(1);
       expect(res.redirect).not.toHaveBeenCalledWith('http://localhost:5173/login?error=server');
+    });
+
+    it('extracts nested oauth error details from the token exchange failure', async () => {
+      const req = { cookies: {} } as unknown as Request;
+      const res = mockRes();
+      const next = jest.fn();
+      const authError = {
+        message: 'Failed to obtain access token',
+        oauthError: {
+          statusCode: 401,
+          data: JSON.stringify({
+            error: 'invalid_client',
+            error_description: 'The OAuth client was not found.',
+          }),
+        },
+      };
+
+      (passport.authenticate as jest.Mock).mockImplementation(
+        (_strategy: string, _options: unknown, callback: (err: unknown, profile?: unknown) => void) =>
+          () => callback(authError, undefined),
+      );
+
+      await controller.googleCallback('state-token', req, res as unknown as Response, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        'http://localhost:5173/login?error=oauth&provider=google&reason=The+OAuth+client+was+not+found.',
+      );
     });
 
     it('uses callback query params when Google returns an oauth error without passport details', async () => {

@@ -71,8 +71,27 @@ function pickStringField(source: unknown, key: string): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
+function parseNestedOauthPayload(source: unknown): Record<string, unknown> | null {
+  if (typeof source !== 'string') {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(source);
+    return typeof parsed === 'object' && parsed ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
 function extractOauthReason(error: unknown, info?: unknown, query?: unknown): string {
+  const nestedOauthPayload = parseNestedOauthPayload(
+    pickStringField((error as { oauthError?: unknown } | null)?.oauthError, 'data'),
+  );
+
   const candidates = [
+    pickStringField(nestedOauthPayload, 'error_description'),
+    pickStringField(nestedOauthPayload, 'message'),
     error instanceof Error ? error.message : null,
     typeof error === 'string' ? error : null,
     pickStringField(error, 'error_description'),
@@ -172,6 +191,11 @@ export class AuthController {
     @Next() next: NextFunction,
   ): Promise<void> {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
+    if (pickStringField(req.query, 'error') || pickStringField(req.query, 'error_description')) {
+      this.logger.warn(`Google OAuth failed: ${extractOauthReason(null, null, req.query) || 'unknown_oauth_error'}`);
+      return safeRedirect(res, buildOauthFailureRedirect(frontend, 'google', null, null, req.query));
+    }
+
     passport.authenticate('google', { session: false }, async (err: unknown, profile: GoogleProfile, info?: unknown) => {
       if (err || !profile) {
         this.logger.warn(`Google OAuth failed: ${extractOauthReason(err, info, req.query) || 'unknown_oauth_error'}`);
@@ -222,6 +246,11 @@ export class AuthController {
     @Next() next: NextFunction,
   ): Promise<void> {
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:5173';
+    if (pickStringField(req.query, 'error') || pickStringField(req.query, 'error_description')) {
+      this.logger.warn(`Apple OAuth failed: ${extractOauthReason(null, null, req.query) || 'unknown_oauth_error'}`);
+      return safeRedirect(res, buildOauthFailureRedirect(frontend, 'apple', null, null, req.query));
+    }
+
     passport.authenticate('apple', { session: false }, async (err: unknown, profile: AppleProfile, info?: unknown) => {
       if (err || !profile) {
         this.logger.warn(`Apple OAuth failed: ${extractOauthReason(err, info, req.query) || 'unknown_oauth_error'}`);
