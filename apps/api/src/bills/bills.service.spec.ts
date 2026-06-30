@@ -92,4 +92,16 @@ describe('BillsService', () => {
 
     expect(mockDb.insert).toHaveBeenCalled();
   });
+
+  it('removes dependent reminders and action tokens before deleting the bill', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([mockRow])
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined);
+
+    await service.remove('bill-1', 'jonathalimax', 'user-1');
+
+    expect(mockDb.delete).toHaveBeenCalledTimes(3);
+  });
 });

@@ -4,7 +4,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { bills } from '../db/schema';
+import { billActionTokens, billReminders, bills } from '../db/schema';
 import { CreateBillDto, UpdateBillDto, MarkBillPaidDto } from './dto/create-bill.dto';
 
 type Bill = typeof bills.$inferSelect;
@@ -258,6 +258,12 @@ export class BillsService {
 
   async remove(id: string, clientId: string, userId: string): Promise<void> {
     await this.findOne(id, clientId, userId);
+    await this.db
+      .delete(billActionTokens)
+      .where(and(eq(billActionTokens.billId, id), eq(billActionTokens.clientId, clientId), eq(billActionTokens.userId, userId)));
+    await this.db
+      .delete(billReminders)
+      .where(and(eq(billReminders.billId, id), eq(billReminders.clientId, clientId), eq(billReminders.userId, userId)));
     await this.db
       .delete(bills)
       .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId)));

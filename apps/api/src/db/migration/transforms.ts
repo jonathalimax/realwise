@@ -15,11 +15,27 @@ function toNumericString(val: unknown): string | null {
 }
 
 const INVESTMENT_TYPE_MAP: Record<string, string> = {
-  stocks: 'stock', stock: 'stock',
-  fii: 'fii', fiis: 'fii',
-  etf: 'etf', etfs: 'etf',
-  fixed: 'fixed', fixed_income: 'fixed', renda_fixa: 'fixed',
+  stocks: 'stocks',
+  stock: 'stocks',
+  acoes: 'stocks',
+  acoes_dividendos: 'stocks',
+  fii: 'fii',
+  fiis: 'fii',
+  etf: 'etf',
+  etfs: 'etf',
+  fixed: 'fixed_income',
+  fixed_income: 'fixed_income',
+  renda_fixa: 'fixed_income',
+  'renda fixa': 'fixed_income',
   crypto: 'crypto',
+  funds: 'funds',
+  fund: 'funds',
+  fundos: 'funds',
+  real_estate: 'real_estate',
+  realestate: 'real_estate',
+  imovel: 'real_estate',
+  imoveis: 'real_estate',
+  property: 'real_estate',
 };
 function mapInvestmentType(val: string): string {
   if (!val) return 'other';
@@ -196,6 +212,25 @@ export function transformInvestment(docId: string, data: Row, clientId: string, 
     ticker: (data.ticker as string) ?? null,
     name: data.name as string,
     type: mapInvestmentType(data.type as string),
+    bank: toStrOrNull(data.bank),
+    initialAmount: toNumericString(data.initialAmount),
+    currentAmount: toNumericString(data.currentAmount) ?? '0',
+    expectedReturn: toNumericString(data.expectedReturn),
+    returnType: toStrOrNull(data.returnType),
+    purchaseDate: data.purchaseDate ? String(data.purchaseDate).slice(0, 10) : null,
+    maturityDate: data.maturityDate ? String(data.maturityDate).slice(0, 10) : null,
+    goalId: toStrOrNull(data.goalId),
+    plannerGoalId: toStrOrNull(data.plannerGoalId),
+    platform: toStrOrNull(data.platform),
+    coinName: toStrOrNull(data.coinName),
+    fundName: toStrOrNull(data.fundName),
+    propertyDescription: toStrOrNull(data.propertyDescription),
+    transactionId: toStrOrNull(data.transactionId),
+    notes: toStrOrNull(data.notes),
+    totalWithdrawn: toNumericString(data.totalWithdrawn) ?? '0',
+    lastWithdrawDate: toDate(data.lastWithdrawDate),
+    status: toStrOrNull(data.status),
+    source: toStrOrNull(data.source),
     quantity: toNumericString(data.quantity),
     avgPrice: toNumericString(data.avgPrice),
     currentPrice: toNumericString(data.currentPrice),
@@ -204,12 +239,18 @@ export function transformInvestment(docId: string, data: Row, clientId: string, 
 }
 
 export function transformPlanner(data: Row, clientId: string, userId: string) {
+  const savedState = (data.state as Row | undefined) ?? data;
   return {
     clientId,
     userId,
     salaryGross: toNumericString(data.salarioBruto ?? data.salaryGross),
     deductions: (data.salarioDeductions ?? data.deductions ?? null) as object | null,
-    allocations: (data.allocations ?? null) as object | null,
+    allocations: (data.allocations ?? {
+      necessidades: data.necessidades ?? null,
+      poupanca: data.poupanca ?? null,
+      desejos: data.desejos ?? null,
+    }) as object | null,
+    state: savedState as object,
   };
 }
 
@@ -221,6 +262,12 @@ export function transformSettings(data: Row, clientId: string, userId: string) {
     language: (data.language as string) ?? 'pt-BR',
     darkMode: (data.darkMode as boolean) ?? false,
     billReminders: (data.billReminders as boolean) ?? true,
+    tutorialCompleted: (data.tutorialCompleted as boolean) ?? false,
+    geminiApiKey: toStrOrNull(data.geminiApiKey),
+    expenseCategories: (data.expenseCategories as string[]) ?? null,
+    incomeCategories: (data.incomeCategories as string[]) ?? null,
+    categoryRuleMapping: (data.categoryRuleMapping as object) ?? null,
+    rulePercentages: (data.rulePercentages as object) ?? null,
   };
 }
 

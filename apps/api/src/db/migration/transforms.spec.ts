@@ -1,4 +1,10 @@
-import { transformAccount, transformTransaction } from './transforms';
+import {
+  transformAccount,
+  transformInvestment,
+  transformPlanner,
+  transformSettings,
+  transformTransaction,
+} from './transforms';
 
 describe('transformAccount', () => {
   it('preserves bank metadata required by the migrated web app', () => {
@@ -98,6 +104,128 @@ describe('transformTransaction', () => {
       hash: 'hash-1',
       dedupHash: 'dedup-1',
       metadata: { source: 'manual' },
+    });
+  });
+});
+
+describe('transformInvestment', () => {
+  it('preserves the fields required by the migrated investments screens', () => {
+    const result = transformInvestment(
+      'inv-fire-1',
+      {
+        ticker: 'PETR4',
+        name: 'PETR4',
+        type: 'stocks',
+        bank: 'Inter',
+        initialAmount: 1000,
+        currentAmount: 1125.55,
+        expectedReturn: 0.125,
+        returnType: 'annual',
+        purchaseDate: '2026-01-10T12:00:00.000Z',
+        maturityDate: '2028-01-10T12:00:00.000Z',
+        goalId: 'goal-1',
+        plannerGoalId: 'planner-goal-1',
+        platform: 'B3',
+        notes: 'Long term',
+        totalWithdrawn: 50,
+        lastWithdrawDate: '2026-06-01T12:00:00.000Z',
+        status: 'active',
+        source: 'manual',
+        quantity: 10,
+        avgPrice: 100,
+        currentPrice: 112.555,
+        lastSyncedAt: '2026-06-15T12:00:00.000Z',
+      },
+      'jonathalimax',
+      'user-1',
+    );
+
+    expect(result).toMatchObject({
+      clientId: 'jonathalimax',
+      userId: 'user-1',
+      firebaseDocId: 'inv-fire-1',
+      ticker: 'PETR4',
+      name: 'PETR4',
+      type: 'stocks',
+      bank: 'Inter',
+      initialAmount: '1000',
+      currentAmount: '1125.55',
+      expectedReturn: '0.125',
+      returnType: 'annual',
+      purchaseDate: '2026-01-10',
+      maturityDate: '2028-01-10',
+      goalId: 'goal-1',
+      plannerGoalId: 'planner-goal-1',
+      platform: 'B3',
+      notes: 'Long term',
+      totalWithdrawn: '50',
+      lastWithdrawDate: new Date('2026-06-01T12:00:00.000Z'),
+      status: 'active',
+      source: 'manual',
+      quantity: '10',
+      avgPrice: '100',
+      currentPrice: '112.555',
+      lastSyncedAt: new Date('2026-06-15T12:00:00.000Z'),
+    });
+  });
+});
+
+describe('transformPlanner', () => {
+  it('stores the full legacy planner state for the web planner', () => {
+    const source = {
+      salarioBruto: 12000,
+      salarioDeductions: [{ id: 'inss', amount: 7.5 }],
+      necessidades: 70,
+      poupanca: 20,
+      desejos: 10,
+      walletVersions: [{ from: '2026-06', layers: [] }],
+    };
+
+    const result = transformPlanner(source, 'jonathalimax', 'user-1');
+
+    expect(result).toMatchObject({
+      clientId: 'jonathalimax',
+      userId: 'user-1',
+      salaryGross: '12000',
+      deductions: [{ id: 'inss', amount: 7.5 }],
+      allocations: { necessidades: 70, poupanca: 20, desejos: 10 },
+      state: source,
+    });
+  });
+});
+
+describe('transformSettings', () => {
+  it('preserves migrated categories and budgeting metadata', () => {
+    const result = transformSettings(
+      {
+        currency: 'BRL',
+        language: 'pt-BR',
+        darkMode: true,
+        billReminders: false,
+        tutorialCompleted: true,
+        geminiApiKey: 'abc',
+        expenseCategories: ['Moradia', 'Contas'],
+        incomeCategories: ['Salario'],
+        categoryRuleMapping: { Moradia: 'needs' },
+        rulePercentages: { needs: 50, wants: 30, savings: 20 },
+      },
+      'jonathalimax',
+      'user-1',
+    );
+
+    expect(result).toMatchObject({
+      clientId: 'jonathalimax',
+      userId: 'user-1',
+      currency: 'BRL',
+      language: 'pt-BR',
+      darkMode: true,
+      billReminders: false,
+      tutorialCompleted: true,
+      geminiApiKey: 'abc',
+      expenseCategories: ['Moradia', 'Contas'],
+      incomeCategories: ['Salario'],
+      categoryRuleMapping: { Moradia: 'needs' },
+      rulePercentages: { needs: 50, wants: 30, savings: 20 },
     });
   });
 });

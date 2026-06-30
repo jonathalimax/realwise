@@ -26,39 +26,57 @@ export default function BillPaymentModal({ isOpen, bill, initialAmount = 0, onCl
   };
 
   return (
-    <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-900 rounded-lg p-3 flex items-center gap-2 z-10">
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-emerald-800 dark:text-emerald-200 truncate">
-          {bill.name}
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label={language === 'pt' ? 'Fechar' : 'Close'}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/50"
+      />
+
+      <div
+        className="relative w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-5 shadow-2xl dark:border-emerald-800 dark:bg-gray-900"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
+            {language === 'pt' ? 'Confirmar pagamento' : 'Confirm payment'}
+          </p>
+          <h3 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
+            {bill.name}
+          </h3>
         </div>
-        <div className="mt-1">
-          <CurrencyInput
-            value={paidAmount || 0}
-            onChange={(value) => setPaidAmount(value)}
-          />
-        </div>
+
+        <CurrencyInput
+          value={paidAmount || 0}
+          onChange={(value) => setPaidAmount(value)}
+        />
+
         {error && (
-          <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400">
+          <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">
             {error}
           </p>
         )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+            className="px-3 py-2 rounded-xl bg-gray-100 text-sm font-medium text-gray-700 transition hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            {language === 'pt' ? 'Cancelar' : 'Cancel'}
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving}
+            className="px-3 py-2 rounded-xl bg-emerald-600 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {saving ? (language === 'pt' ? 'Salvando...' : 'Saving...') : (language === 'pt' ? 'Confirmar' : 'Confirm')}
+          </button>
+        </div>
       </div>
-      <button
-        onClick={handleConfirm}
-        disabled={saving}
-        className="px-2 sm:px-3 py-1 bg-emerald-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-60 transition"
-      >
-        {saving ? (language === 'pt' ? 'Salvando...' : 'Saving...') : (language === 'pt' ? 'Confirmar' : 'Confirm')}
-      </button>
-      <button
-        onClick={(event) => {
-          event.stopPropagation();
-          onClose();
-        }}
-        className="px-2 sm:px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-      >
-        {language === 'pt' ? 'Cancelar' : 'Cancel'}
-      </button>
     </div>
   );
 }
