@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import CurrencyInput from './ui/CurrencyInput';
+import { serializeBillPayload } from '../lib/bills/serializeBillPayload';
 
 export default function BillModal({ isOpen, onClose, bill = null }) {
   const { addBill, updateBill, deleteBill } = useBills();
@@ -92,18 +93,10 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
     setSaving(true);
 
     try {
-      const billData = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        dueDate: new Date(formData.dueDate).toISOString(),
-        category: formData.category,
-        amount: formData.amount ? parseFloat(formData.amount) : 0,
-        recurrence: formData.recurrence,
-        recurrenceEndDate: formData.recurrenceEndDate ? new Date(formData.recurrenceEndDate).toISOString() : null,
-        notificationEnabled: formData.notificationEnabled,
-        notificationDaysBefore: parseInt(formData.notificationDaysBefore),
-        postponeCount: bill?.postponeCount || 0
-      };
+      const billData = serializeBillPayload({
+        formData,
+        postponeCount: bill?.postponeCount || 0,
+      });
 
       let result;
       if (bill) {
