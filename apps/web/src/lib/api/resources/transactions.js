@@ -2,6 +2,20 @@ import { apiClient } from '../client';
 
 const TRANSACTIONS_CHANGED_EVENT = 'rw:transactions:changed';
 
+function toNumber(value, fallback = 0) {
+  if (value === null || value === undefined || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function normalizeTransaction(data) {
+  return {
+    ...data,
+    amount: toNumber(data?.amount),
+    category: data?.category ?? 'Sem categoria',
+  };
+}
+
 function buildQuery(params = {}) {
   const search = new URLSearchParams();
 
@@ -30,22 +44,24 @@ export function subscribeTransactionsChanged(listener) {
 
 export function createTransactionsResource({ client = apiClient } = {}) {
   return {
-    list(params = {}) {
-      return client.get(`/transactions${buildQuery(params)}`);
+    async list(params = {}) {
+      const rows = await client.get(`/transactions${buildQuery(params)}`);
+      return Array.isArray(rows) ? rows.map(normalizeTransaction) : [];
     },
-    get(id) {
-      return client.get(`/transactions/${id}`);
+    async get(id) {
+      const row = await client.get(`/transactions/${id}`);
+      return normalizeTransaction(row);
     },
     create(data) {
       return client.post('/transactions', data).then((result) => {
         notifyTransactionsChanged();
-        return result;
+        return normalizeTransaction(result);
       });
     },
     update(id, patch) {
       return client.patch(`/transactions/${id}`, patch).then((result) => {
         notifyTransactionsChanged();
-        return result;
+        return normalizeTransaction(result);
       });
     },
     remove(id) {

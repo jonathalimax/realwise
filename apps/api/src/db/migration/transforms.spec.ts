@@ -1,4 +1,40 @@
-import { transformTransaction } from './transforms';
+import { transformAccount, transformTransaction } from './transforms';
+
+describe('transformAccount', () => {
+  it('preserves bank metadata required by the migrated web app', () => {
+    const result = transformAccount(
+      'acct-fire-1',
+      {
+        bankId: 'nubank',
+        cardName: 'Ultravioleta',
+        customBankName: null,
+        hasCredit: true,
+        closingDay: 10,
+        paymentDay: 15,
+        color: '#820AD1',
+        balance: 1500.5,
+      },
+      'jonathalimax',
+      'user-1',
+    );
+
+    expect(result).toMatchObject({
+      clientId: 'jonathalimax',
+      userId: 'user-1',
+      firebaseDocId: 'acct-fire-1',
+      name: 'Ultravioleta',
+      type: 'credit',
+      bankId: 'nubank',
+      cardName: 'Ultravioleta',
+      customBankName: null,
+      hasCredit: true,
+      closingDay: 10,
+      paymentDay: 15,
+      icon: 'nubank',
+      balance: '1500.5',
+    });
+  });
+});
 
 describe('transformTransaction', () => {
   it('preserves the richer transaction fields required by the web app', () => {

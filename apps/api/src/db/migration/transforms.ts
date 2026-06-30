@@ -42,15 +42,26 @@ export function transformUser(docId: string, data: Row, clientId: string) {
 }
 
 export function transformAccount(docId: string, data: Row, clientId: string, userId: string) {
+  const bankId = toStrOrNull(data.bankId);
+  const cardName = toStrOrNull(data.cardName);
+  const customBankName = toStrOrNull(data.customBankName);
+  const hasCredit = Boolean(data.hasCredit);
+
   const type = data.hasCredit ? 'credit' : (toStrOrNull(data.type) ?? 'checking');
   return {
     clientId,
     userId,
     firebaseDocId: docId,
-    name: toStrOrNull(data.cardName) ?? toStrOrNull(data.customBankName) ?? toStrOrNull(data.bankId) ?? 'Unknown',
+    name: cardName ?? customBankName ?? bankId ?? 'Unknown',
     type: type as 'checking' | 'savings' | 'credit' | 'investment' | 'wallet',
+    bankId,
+    cardName,
+    customBankName,
+    hasCredit,
+    closingDay: (data.closingDay as number) ?? null,
+    paymentDay: (data.paymentDay as number) ?? null,
     color: toStrOrNull(data.color),
-    icon: toStrOrNull(data.icon) ?? toStrOrNull(data.bankId),
+    icon: toStrOrNull(data.icon) ?? bankId,
     balance: toNumericString(data.balance),
   };
 }

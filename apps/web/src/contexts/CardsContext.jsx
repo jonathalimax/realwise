@@ -295,7 +295,7 @@ export function CardsProvider({ children }) {
 
   // Get user bank by unique document ID (preferred for transactions)
   const getUserBankById = (docId) => {
-    return userBanks.find(b => b.id === docId) || null;
+    return userBanks.find(b => b.id === docId || b.firebaseDocId === docId) || null;
   };
 
   // Get user bank by bank type ID (for backwards compatibility with old transactions)
@@ -312,7 +312,7 @@ export function CardsProvider({ children }) {
   const findUserBank = (id) => {
     if (!id) return null;
     // First try to find by unique document ID
-    const byDocId = userBanks.find(b => b.id === id);
+    const byDocId = userBanks.find(b => b.id === id || b.firebaseDocId === id);
     if (byDocId) return byDocId;
     // Fall back to bank type ID for backwards compatibility
     return userBanks.find(b => b.bankId === id) || null;
