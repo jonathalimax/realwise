@@ -32,12 +32,32 @@ describe('createTransactionsResource', () => {
     const updateResult = await resource.update('tx-1', { description: 'Updated' });
     await resource.remove('tx-1');
 
-    expect(client.get).toHaveBeenCalledWith('/transactions?month=2026-06&type=expense');
+    expect(client.get).toHaveBeenCalledWith('/transactions?month=2026-06&type=expense&limit=200&offset=0');
     expect(client.post).toHaveBeenCalledWith('/transactions', { description: 'Lunch' });
     expect(client.patch).toHaveBeenCalledWith('/transactions/tx-1', { description: 'Updated' });
     expect(client.delete).toHaveBeenCalledWith('/transactions/tx-1');
     expect(listResult[0]).toMatchObject({ amount: 10.5, category: 'Sem categoria' });
     expect(createResult).toMatchObject({ amount: 12.25, category: 'Sem categoria' });
     expect(updateResult).toMatchObject({ amount: 13.75, category: 'Sem categoria' });
+  });
+
+  it('paginates through all transactions when no explicit limit is provided', async () => {
+    const client = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce(Array.from({ length: 200 }, (_, index) => ({ id: `tx-${index + 1}`, amount: '1.00', category: null })))
+        .mockResolvedValueOnce([{ id: 'tx-201', amount: '2.50', category: null }]),
+      post: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    };
+
+    const resource = createTransactionsResource({ client });
+    const rows = await resource.list({ type: 'expense' });
+
+    expect(client.get).toHaveBeenNthCalledWith(1, '/transactions?type=expense&limit=200&offset=0');
+    expect(client.get).toHaveBeenNthCalledWith(2, '/transactions?type=expense&limit=200&offset=200');
+    expect(rows).toHaveLength(201);
+    expect(rows.at(-1)).toMatchObject({ id: 'tx-201', amount: 2.5, category: 'Sem categoria' });
   });
 });

@@ -45,8 +45,28 @@ export function subscribeTransactionsChanged(listener) {
 export function createTransactionsResource({ client = apiClient } = {}) {
   return {
     async list(params = {}) {
-      const rows = await client.get(`/transactions${buildQuery(params)}`);
-      return Array.isArray(rows) ? rows.map(normalizeTransaction) : [];
+      if (params.limit !== undefined && params.limit !== null && params.limit !== '') {
+        const rows = await client.get(`/transactions${buildQuery(params)}`);
+        return Array.isArray(rows) ? rows.map(normalizeTransaction) : [];
+      }
+
+      const pageSize = 200;
+      const results = [];
+      let offset = 0;
+
+      while (true) {
+        const rows = await client.get(`/transactions${buildQuery({ ...params, limit: pageSize, offset })}`);
+        const normalized = Array.isArray(rows) ? rows.map(normalizeTransaction) : [];
+        results.push(...normalized);
+
+        if (normalized.length < pageSize) {
+          break;
+        }
+
+        offset += pageSize;
+      }
+
+      return results;
     },
     async get(id) {
       const row = await client.get(`/transactions/${id}`);
