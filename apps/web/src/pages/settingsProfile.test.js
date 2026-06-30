@@ -6,11 +6,12 @@ describe('getSettingsProfile', () => {
     expect(getSettingsProfile({
       name: 'Jane Doe',
       email: 'jane@example.com',
+      profileImageUrl: 'https://avatars.example.com/jane.png',
     })).toEqual({
       name: 'Jane Doe',
       email: 'jane@example.com',
       initial: 'J',
-      photoUrl: null,
+      photoUrl: 'https://avatars.example.com/jane.png',
     });
   });
 

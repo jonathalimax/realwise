@@ -9,6 +9,6 @@ export function getSettingsProfile(user) {
     name,
     email,
     initial,
-    photoUrl: user?.photoUrl ?? user?.photoURL ?? null,
+    photoUrl: user?.profileImageUrl ?? user?.photoUrl ?? user?.photoURL ?? null,
   };
 }
