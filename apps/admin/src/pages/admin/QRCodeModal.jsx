@@ -63,7 +63,7 @@ function drawPoster(canvas, qrImage, logoImage, coupon) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, cW, cH);
 
-  // ── Logo (circular crop from logo.jpg) ──
+  // ── Logo (circular crop from logo.png) ──
   const logoSize = 72;
   const logoX = cW / 2 - logoSize / 2;
   const logoY = 36;
@@ -163,7 +163,7 @@ export default function QRCodeModal({ coupon, onClose }) {
     qrImg.crossOrigin = 'anonymous';
 
     const logoImg = new Image();
-    logoImg.src = '/logo.jpg';
+    logoImg.src = '/logo.png';
 
     let cancelled = false;
 

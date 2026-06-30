@@ -52,6 +52,7 @@ export function transformUser(docId: string, data: Row, clientId: string) {
     clientId,
     email: data.email as string,
     name: (data.name as string) ?? null,
+    profileImageUrl: (data.profileImageUrl as string) ?? (data.photoURL as string) ?? null,
     firebaseUid: docId,
     role: 'user' as const,
   };

@@ -68,7 +68,10 @@ export default function AdminApp() {
     <BrowserRouter basename="/admin">
       <div className="min-h-screen bg-gray-950 text-gray-100">
         <nav className="bg-gray-900 border-b border-gray-800 px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 overflow-x-auto">
-          <span className="font-bold text-emerald-400 text-base sm:text-lg mr-2 sm:mr-3 whitespace-nowrap flex-shrink-0">Realwise Admin</span>
+          <div className="mr-2 sm:mr-3 flex items-center gap-3 whitespace-nowrap flex-shrink-0">
+            <img src="/logo.png" alt="Realwise" className="w-8 h-8 rounded-xl object-contain" />
+            <span className="font-bold text-emerald-400 text-base sm:text-lg">Realwise Admin</span>
+          </div>
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
           <NavLink to="coupons" className={navLinkClass}>Cupons</NavLink>
           <NavLink to="pricing" className={navLinkClass}>Preço</NavLink>

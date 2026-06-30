@@ -6,6 +6,7 @@ export interface SessionUser {
   role: UserRole;
   email?: string | null;
   name?: string | null;
+  profileImageUrl?: string | null;
 }
 
 export interface AuthStatusResponse {

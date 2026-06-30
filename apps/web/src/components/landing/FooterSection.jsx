@@ -48,9 +48,7 @@ export default function FooterSection() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
             {/* Logo/Brand */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
-              </div>
+              <img src="/logo.png" alt="Realwise" className="w-10 h-10 rounded-xl object-contain" />
               <span className="font-bold text-lg">Realwise</span>
             </div>
 

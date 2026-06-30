@@ -23,12 +23,14 @@ describe('OAuth strategies', () => {
             id: 'google-id-1',
             displayName: 'Test User',
             emails: [{ value: 'user@example.com' }],
+            photos: [{ value: 'https://avatars.example.com/google-user.png' }],
           } as never,
         ),
       ).resolves.toEqual({
         email: 'user@example.com',
         name: 'Test User',
         googleId: 'google-id-1',
+        profileImageUrl: 'https://avatars.example.com/google-user.png',
       });
     });
 
@@ -57,13 +59,14 @@ describe('OAuth strategies', () => {
         strategy.validate(
           'access-token',
           'refresh-token',
-          { sub: 'apple-sub-1', email: 'user@example.com' },
+          { sub: 'apple-sub-1', email: 'user@example.com', picture: 'https://avatars.example.com/apple-user.png' },
           { name: { firstName: 'Test', lastName: 'User' } } as never,
         ),
       ).resolves.toEqual({
         email: 'user@example.com',
         name: 'Test User',
         appleId: 'apple-sub-1',
+        profileImageUrl: 'https://avatars.example.com/apple-user.png',
       });
     });
 

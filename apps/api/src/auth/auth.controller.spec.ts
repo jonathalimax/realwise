@@ -19,6 +19,7 @@ const fakeUser = {
   clientId: 'jonathalimax',
   email: 'test@example.com',
   name: 'Test',
+  profileImageUrl: 'https://avatars.example.com/test-user.png',
   role: 'user' as const,
   firebaseUid: null,
   appleId: null,
@@ -264,6 +265,7 @@ describe('AuthController', () => {
         email: fakeUser.email,
         name: fakeUser.name,
         displayName: fakeUser.name,
+        profileImageUrl: fakeUser.profileImageUrl,
       });
     });
   });

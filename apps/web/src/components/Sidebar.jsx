@@ -16,8 +16,20 @@ import {
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
+function getUserInitials(name) {
+  if (!name) return '';
+
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
 function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, currentUser }) {
   const location = useLocation();
+  const userInitials = getUserInitials(currentUser?.displayName);
   const handleLinkClick = () => {
     if (mobileClose) mobileClose();
   };
@@ -42,9 +54,24 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
     <div className="flex flex-col h-full">
       {/* Brand */}
       <div className="p-6 flex items-center gap-3">
-        <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/20">
-          <span className="text-white text-xl">💰</span>
-        </div>
+        {currentUser?.profileImageUrl ? (
+          <img
+            src={currentUser.profileImageUrl}
+            alt={currentUser.displayName ?? 'User profile'}
+            className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-violet-600/20"
+            referrerPolicy="no-referrer"
+          />
+        ) : userInitials ? (
+          <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/20">
+            <span className="text-white text-sm font-black">{userInitials}</span>
+          </div>
+        ) : (
+          <img
+            src="/logo.png"
+            alt="Realwise"
+            className="w-10 h-10 rounded-xl object-contain shadow-lg shadow-violet-600/20"
+          />
+        )}
         <div className="min-w-0">
           <span className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Realwise</span>
           {currentUser && (

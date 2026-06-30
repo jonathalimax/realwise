@@ -113,6 +113,13 @@
       "when": 1782764593000,
       "tag": "0015_bill_action_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1782816000000,
+      "tag": "0016_users_profile_image",
+      "breakpoints": true
     }
   ]
 }

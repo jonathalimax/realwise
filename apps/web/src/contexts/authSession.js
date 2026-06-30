@@ -15,6 +15,7 @@ export function normalizeAuthenticatedUser(user) {
     ...user,
     uid: user.uid ?? user.sub ?? null,
     displayName: user.displayName ?? user.name ?? null,
+    profileImageUrl: user.profileImageUrl ?? null,
   };
 }
 

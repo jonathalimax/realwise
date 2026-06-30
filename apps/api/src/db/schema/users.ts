@@ -8,6 +8,7 @@ export const users = pgTable(
     clientId: varchar('client_id').notNull(),
     email: varchar('email').notNull(),
     name: varchar('name'),
+    profileImageUrl: varchar('profile_image_url'),
     firebaseUid: varchar('firebase_uid').unique(),
     appleId: varchar('apple_id').unique(),
     role: userRoleEnum('role').default('user').notNull(),

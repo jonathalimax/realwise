@@ -239,6 +239,7 @@ export class AuthController {
           email: profile.email,
           clientId: resolvedClientId,
           name: profile.name,
+          profileImageUrl: profile.profileImageUrl,
         });
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
@@ -303,6 +304,7 @@ export class AuthController {
           email: profile.email,
           clientId: resolvedClientId,
           name: profile.name,
+          profileImageUrl: profile.profileImageUrl,
           appleId: profile.appleId,
         });
 
@@ -355,6 +357,7 @@ export class AuthController {
       email: currentUser?.email ?? null,
       name: currentUser?.name ?? null,
       displayName: currentUser?.name ?? null,
+      profileImageUrl: currentUser?.profileImageUrl ?? null,
     };
   }
 

@@ -39,6 +39,7 @@ describe('normalizeSettings', () => {
       expect.objectContaining({
         currency: 'BRL',
         language: 'pt',
+        darkMode: false,
         billReminders: true,
         tutorialCompleted: false,
         geminiApiKey: '',
@@ -52,6 +53,7 @@ describe('normalizeSettings', () => {
     expect(normalizeSettings({
       currency: 'USD',
       language: 'en',
+      darkMode: true,
       billReminders: false,
       tutorialCompleted: true,
       geminiApiKey: 'abc',
@@ -61,6 +63,7 @@ describe('normalizeSettings', () => {
       expect.objectContaining({
         currency: 'USD',
         language: 'en',
+        darkMode: true,
         billReminders: false,
         tutorialCompleted: true,
         geminiApiKey: 'abc',

@@ -4,6 +4,7 @@ import { useAccess } from './AccessContext';
 import { settingsResource, normalizeSettings } from '../lib/api/resources/settings';
 
 const SettingsContext = createContext();
+const DARK_MODE_STORAGE_KEY = 'realwise:darkMode';
 
 export const CURRENCIES = {
   BRL: { symbol: 'R$', name: 'Brazilian Real', locale: 'pt-BR' },
@@ -118,9 +119,10 @@ export function SettingsProvider({ children }) {
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [billReminders, setBillRemindersState] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    if (saved !== null) return JSON.parse(saved);
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const saved = localStorage.getItem(DARK_MODE_STORAGE_KEY);
+    if (saved === 'true') return true;
+    if (saved === 'false') return false;
+    return false;
   });
   const [loading, setLoading] = useState(true);
   const { ownerId } = useAccess();
@@ -132,7 +134,7 @@ export function SettingsProvider({ children }) {
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    localStorage.setItem(DARK_MODE_STORAGE_KEY, String(darkMode));
   }, [darkMode]);
 
   useEffect(() => {
@@ -196,8 +198,16 @@ export function SettingsProvider({ children }) {
     });
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode(prev => !prev);
+  const toggleDarkMode = async () => {
+    const nextDarkMode = !darkMode;
+    setDarkMode(nextDarkMode);
+
+    try {
+      await settingsResource.update({ darkMode: nextDarkMode });
+    } catch (error) {
+      console.error('Error updating dark mode:', error);
+      setDarkMode(!nextDarkMode);
+    }
   };
 
   const setTutorialCompleted = async (completed = true) => {

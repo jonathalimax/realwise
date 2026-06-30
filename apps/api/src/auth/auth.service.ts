@@ -20,6 +20,7 @@ export class AuthService {
     email: string;
     clientId: string;
     name?: string | null;
+    profileImageUrl?: string | null;
     firebaseUid?: string | null;
     appleId?: string | null;
   }): Promise<User> {
@@ -34,6 +35,7 @@ export class AuthService {
       if (opts.firebaseUid && !user.firebaseUid) updates.firebaseUid = opts.firebaseUid;
       if (opts.appleId && !user.appleId) updates.appleId = opts.appleId;
       if (opts.name && !user.name) updates.name = opts.name;
+      if (opts.profileImageUrl && opts.profileImageUrl !== user.profileImageUrl) updates.profileImageUrl = opts.profileImageUrl;
       await this.db.update(users).set(updates).where(eq(users.id, user.id));
       return { ...user, ...updates };
     }
@@ -44,6 +46,7 @@ export class AuthService {
         clientId: opts.clientId,
         email: opts.email,
         name: opts.name ?? null,
+        profileImageUrl: opts.profileImageUrl ?? null,
         firebaseUid: opts.firebaseUid ?? null,
         appleId: opts.appleId ?? null,
       })

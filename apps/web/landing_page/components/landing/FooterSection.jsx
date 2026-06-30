@@ -12,7 +12,7 @@ export default function FooterSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3 mb-1">
-              <img src="/logo.jpg" alt="Realwise" className="w-9 h-9 rounded-xl object-contain" />
+              <img src="/logo.png" alt="Realwise" className="w-9 h-9 rounded-xl object-contain" />
               <span className="font-semibold">Realwise</span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">

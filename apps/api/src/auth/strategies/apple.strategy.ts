@@ -6,6 +6,7 @@ export interface AppleProfile {
   email: string | null;
   name: string | null;
   appleId: string;
+  profileImageUrl: string | null;
 }
 
 @Injectable()
@@ -42,7 +43,8 @@ export class AppleSignInStrategy extends PassportStrategy(AppleStrategy, 'apple'
       firstName || lastName
         ? [firstName, lastName].filter(Boolean).join(' ')
         : null;
+    const profileImageUrl = (idToken?.picture ?? profile?.picture ?? null) as string | null;
 
-    return { email, name, appleId };
+    return { email, name, appleId, profileImageUrl };
   }
 }

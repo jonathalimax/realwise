@@ -13,6 +13,21 @@ describe('normalizeAuthenticatedUser', () => {
       name: 'Jane Doe',
       displayName: 'Jane Doe',
       email: 'jane@example.com',
+      profileImageUrl: null,
+    });
+  });
+
+  it('preserves the provider profile image when present', () => {
+    expect(normalizeAuthenticatedUser({
+      sub: 'u1',
+      name: 'Jane Doe',
+      profileImageUrl: 'https://avatars.example.com/jane.png',
+    })).toEqual({
+      sub: 'u1',
+      uid: 'u1',
+      name: 'Jane Doe',
+      displayName: 'Jane Doe',
+      profileImageUrl: 'https://avatars.example.com/jane.png',
     });
   });
 });
@@ -43,6 +58,7 @@ describe('bootstrapAuthSession', () => {
         clientId: 'jonathalimax',
         role: 'user',
         displayName: null,
+        profileImageUrl: null,
       },
     });
   });

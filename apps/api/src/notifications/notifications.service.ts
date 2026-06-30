@@ -17,6 +17,7 @@ interface BillGroups {
 }
 
 type RecoveryStage = 1 | 2 | 3;
+const BRAND_LOGO_URL = 'https://realwise.com.br/logo.png';
 
 function getBaseTemplate({
   title,
@@ -38,7 +39,8 @@ function getBaseTemplate({
       <tr><td align="center" style="padding:24px 16px;">
         <table width="600" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;padding:24px;">
           <tr><td style="padding:0 4px 16px;">
-            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Realwise</div>
+            <img src="${BRAND_LOGO_URL}" alt="Realwise" width="48" height="48" style="display:block;width:48px;height:48px;border-radius:12px;object-fit:contain;" />
+            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:10px;">Realwise</div>
           </td></tr>
           <tr><td style="padding:0 4px 8px;">
             <div style="color:#1e293b;font-size:22px;font-weight:700;line-height:1.3;">${title}</div>
