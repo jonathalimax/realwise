@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { isAxiosError } from 'axios';
 import { eq } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
@@ -80,7 +81,12 @@ export class PaymentsService {
       };
     }
 
-    const providerPayment = await this.mercadoPago.createPayment(dto);
+    let providerPayment: Record<string, unknown>;
+    try {
+      providerPayment = await this.mercadoPago.createPayment(dto);
+    } catch (error) {
+      throw this.mapMercadoPagoError(error);
+    }
     const providerId = String(providerPayment.id ?? '');
     const status = String(providerPayment.status ?? 'pending');
     const statusDetail = String(providerPayment.status_detail ?? '');
@@ -258,6 +264,36 @@ export class PaymentsService {
     }
 
     return coupon;
+  }
+
+  private mapMercadoPagoError(error: unknown): BadRequestException {
+    if (isAxiosError(error)) {
+      const data = error.response?.data as Record<string, unknown> | undefined;
+      const cause = typeof data?.cause === 'string'
+        ? data.cause
+        : Array.isArray(data?.cause)
+          ? data.cause
+              .map((item) => {
+                if (typeof item === 'string') return item;
+                if (item && typeof item === 'object') {
+                  const description = 'description' in item && typeof item.description === 'string' ? item.description : null;
+                  const code = 'code' in item && typeof item.code === 'string' ? item.code : null;
+                  return description ?? code ?? null;
+                }
+                return null;
+              })
+              .filter(Boolean)
+              .join(', ')
+          : null;
+      const message =
+        (typeof data?.message === 'string' && data.message) ||
+        (typeof data?.error === 'string' && data.error) ||
+        cause ||
+        'Mercado Pago rejected the payment request.';
+      return new BadRequestException(message);
+    }
+
+    return new BadRequestException('Mercado Pago rejected the payment request.');
   }
 
   private applyCoupon(basePriceCents: number, coupon: CouponRow | null): number {

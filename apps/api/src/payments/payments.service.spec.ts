@@ -143,6 +143,28 @@ describe('PaymentsService', () => {
     });
   });
 
+  it('surfaces Mercado Pago validation errors instead of throwing a generic 500', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([{ configKey: 'landing-pricing', basePriceCents: 23880, installments: 12 }])
+      .mockResolvedValueOnce([]);
+    mockMercadoPago.createPayment.mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        data: {
+          message: 'payer.identification.number is required',
+        },
+      },
+    });
+
+    await expect(service.processPayment({
+      transaction_amount: 23880,
+      installments: 1,
+      payment_method_id: 'pix',
+      email: 'buyer@example.com',
+      name: 'Buyer',
+    })).rejects.toThrow('payer.identification.number is required');
+  });
+
   it('reconciles a webhook approval and increments coupon usage once', async () => {
     mockMercadoPago.getPayment.mockResolvedValue({
       id: 'mp-1',
