@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
 
 @Injectable()
@@ -30,7 +31,11 @@ export class MercadoPagoClient {
       description: 'Realwise acesso vitalicio',
     };
 
-    const { data } = await this.http.post('/v1/payments', payload);
+    const { data } = await this.http.post('/v1/payments', payload, {
+      headers: {
+        'X-Idempotency-Key': randomUUID(),
+      },
+    });
     return data;
   }
 
