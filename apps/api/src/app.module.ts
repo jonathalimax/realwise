@@ -29,6 +29,7 @@ import { B3SyncModule } from './b3-sync/b3-sync.module';
 import { BillRemindersModule } from './bill-reminders/bill-reminders.module';
 import { BillActionsModule } from './bill-actions/bill-actions.module';
 import { AdminModule } from './admin/admin.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { AdminModule } from './admin/admin.module';
     BillRemindersModule,
     BillActionsModule,
     AdminModule,
+    PaymentsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })

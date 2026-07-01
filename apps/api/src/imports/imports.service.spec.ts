@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ImportsService } from './imports.service';
 import { DRIZZLE } from '../db/drizzle.module';
 import { BankParserService } from './bank-parser.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const mockImportRow = {
   id: 'imp-1', clientId: 'jonathalimax', userId: 'user-1', bank: 'nubank',
@@ -29,6 +30,10 @@ const mockParser = {
   }),
 };
 
+const mockNotifications = {
+  sendImportIssueEmail: jest.fn(),
+};
+
 describe('ImportsService', () => {
   let service: ImportsService;
 
@@ -38,6 +43,7 @@ describe('ImportsService', () => {
         ImportsService,
         { provide: DRIZZLE, useValue: mockDb },
         { provide: BankParserService, useValue: mockParser },
+        { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
     service = module.get(ImportsService);
@@ -50,6 +56,7 @@ describe('ImportsService', () => {
     mockDb.where.mockResolvedValue([mockImportRow]);
     mockDb.select.mockReturnThis();
     mockDb.from.mockReturnThis();
+    mockNotifications.sendImportIssueEmail.mockResolvedValue(undefined);
   });
 
   it('processUpload creates import record and returns parsed transactions', async () => {
@@ -66,5 +73,35 @@ describe('ImportsService', () => {
         { date: '2026-06-01', amount: '150.00', type: 'expense', description: 'Supermercado', categoryId: undefined, accountId: undefined },
       ], 'jonathalimax', 'user-1'),
     ).resolves.not.toThrow();
+  });
+
+  it('reportIssue stores the issue and sends a notification email', async () => {
+    const result = await service.reportIssue({
+      fileName: 'extrato.csv',
+      fileMime: 'text/csv',
+      fileBase64: 'ZmFrZQ==',
+      bankType: 'nubank',
+      parserUsed: 'csv-parser',
+      detectedHeaders: ['date', 'description', 'amount'],
+      errorMessage: 'Unknown format',
+      userNote: 'Arquivo exportado pelo app',
+      userName: 'Jonatha',
+      userEmail: 'jonatha@example.com',
+    }, 'jonathalimax', 'user-1');
+
+    expect(result).toEqual({ ok: true, issueId: 'imp-1' });
+    expect(mockNotifications.sendImportIssueEmail).toHaveBeenCalledWith({
+      issueId: 'imp-1',
+      clientId: 'jonathalimax',
+      userId: 'user-1',
+      fileName: 'extrato.csv',
+      fileMime: 'text/csv',
+      bankType: 'nubank',
+      parserUsed: 'csv-parser',
+      errorMessage: 'Unknown format',
+      userNote: 'Arquivo exportado pelo app',
+      userName: 'Jonatha',
+      userEmail: 'jonatha@example.com',
+    });
   });
 });
