@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
 import { ArrowRight, Loader2, Lock, ChevronLeft, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
+import { resolveApiBaseUrl } from '@/lib/api/client';
 
-const CREATE_PAYMENT_URL = import.meta.env.VITE_CREATE_PAYMENT_URL || '';
-const PROCESS_PAYMENT_URL = import.meta.env.VITE_PROCESS_PAYMENT_URL || '';
-const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
+const API_BASE_URL = resolveApiBaseUrl();
+const CREATE_PAYMENT_URL = `${API_BASE_URL}/payments/session`;
+const PROCESS_PAYMENT_URL = `${API_BASE_URL}/payments/process`;
+const PARTIAL_LEAD_URL = `${API_BASE_URL}/payments/partial-lead`;
 
 // BASE_PRICE / PROMO_PRICE are local fallbacks used when remote config is unavailable.
 const FALLBACK_BASE_PRICE = 479;
@@ -52,9 +53,6 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const [amount, setAmount] = useState(FALLBACK_PROMO_PRICE);
   const basePrice = FALLBACK_BASE_PRICE;
   const promoPrice = FALLBACK_PROMO_PRICE;
-  const [createPaymentUrl, setCreatePaymentUrl] = useState(CREATE_PAYMENT_URL);
-  const [processPaymentUrl, setProcessPaymentUrl] = useState(PROCESS_PAYMENT_URL);
-  const [partialLeadUrl, setPartialLeadUrl] = useState(PARTIAL_LEAD_URL);
   const autoSubmittedRef = useRef(false);
   const savedPartialRef = useRef(false);
   const bricksControllerRef = useRef(null);
@@ -64,8 +62,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   useEffect(() => { formRef.current = form; }, [form]);
   const amountRef = useRef(amount);
   useEffect(() => { amountRef.current = amount; }, [amount]);
-  const processPaymentUrlRef = useRef(processPaymentUrl);
-  useEffect(() => { processPaymentUrlRef.current = processPaymentUrl; }, [processPaymentUrl]);
+  const processPaymentUrlRef = useRef(PROCESS_PAYMENT_URL);
 
   // Mount/unmount with CSS transition
   useEffect(() => {
@@ -94,21 +91,6 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   }, [open]);
 
   useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const hostname = window.location.hostname;
-        const rawId = extractClientId(hostname);
-        const clientId = rawId === 'realwise-dev' ? 'app.dev' : (rawId || 'app');
-        const config = await fetchClientConfig(clientId);
-        if (config.createPaymentUrl) setCreatePaymentUrl(config.createPaymentUrl);
-        if (config.processPaymentUrl) setProcessPaymentUrl(config.processPaymentUrl);
-        if (config.partialLeadUrl) setPartialLeadUrl(config.partialLeadUrl);
-      } catch { /* fallback to env vars */ }
-    };
-    loadConfig();
-  }, []);
-
-  useEffect(() => {
     if (open) {
       setStep(1);
       setForm({
@@ -130,7 +112,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   useEffect(() => {
     if (!open) { autoSubmittedRef.current = false; return; }
     if (step !== 1 || autoSubmittedRef.current) return;
-    if (!createPaymentUrl) return; // wait for config to load
+    if (!CREATE_PAYMENT_URL) return;
     const { name, email, whatsapp, coupon } = prefill;
     if (!name || !email || !whatsapp) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
@@ -139,7 +121,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
     landingAnalytics.trackFormSubmitted();
     setLoading(true);
     setError('');
-    fetch(createPaymentUrl, {
+    fetch(CREATE_PAYMENT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -162,7 +144,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
         setError(err.message || 'Erro inesperado. Tente novamente.');
         setLoading(false);
       });
-  }, [open, createPaymentUrl, basePrice, promoPrice]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, basePrice, promoPrice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function destroyBricks() {
     if (bricksControllerRef.current) {
@@ -352,9 +334,9 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
   }
 
   async function savePartialLead(payload) {
-    if (!partialLeadUrl) return;
+    if (!PARTIAL_LEAD_URL) return;
     try {
-      await fetch(partialLeadUrl, {
+      await fetch(PARTIAL_LEAD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, utmSource: landingAnalytics.getUtmSource() }),
@@ -380,7 +362,7 @@ export default function CheckoutModal({ open, onClose, prefill = {} }) {
     setError('');
 
     try {
-      const res = await fetch(createPaymentUrl, {
+      const res = await fetch(CREATE_PAYMENT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
