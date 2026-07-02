@@ -16,6 +16,11 @@ on:
           - none
           - production
           - staging
+      api_base_url:
+        description: 'API base URL baked into the Vite build.'
+        required: true
+        default: 'https://api.realwise.com.br'
+        type: string
 
 jobs:
   validate:
@@ -99,6 +104,8 @@ jobs:
           context: .
           file: apps/business-admin/Dockerfile
           push: true
+          build-args: |
+            VITE_API_BASE_URL=${{ inputs.api_base_url || 'https://api.realwise.com.br' }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.env_tag }}
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
