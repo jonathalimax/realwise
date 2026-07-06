@@ -55,7 +55,10 @@ export class AdminService {
       return {
         configKey: 'landing-pricing',
         basePriceCents: 23880,
+        compareAtPriceCents: 47988,
         installments: 12,
+        stripeWalletEnabled: true,
+        mercadopagoEnabled: true,
       };
     }
     return row;
@@ -180,20 +183,32 @@ export class AdminService {
     return this.mapPricingConfig(rows[0]);
   }
 
-  async updatePricingConfig(dto: { basePriceCents?: number; installments?: number }) {
+  async updatePricingConfig(dto: {
+    basePriceCents?: number;
+    compareAtPriceCents?: number;
+    installments?: number;
+    stripeWalletEnabled?: boolean;
+    mercadopagoEnabled?: boolean;
+  }) {
     const rows = await this.db
       .insert(pricingConfig)
       .values({
         configKey: 'landing-pricing',
         basePriceCents: dto.basePriceCents ?? 23880,
+        compareAtPriceCents: dto.compareAtPriceCents ?? 47988,
         installments: dto.installments ?? 12,
+        stripeWalletEnabled: dto.stripeWalletEnabled ?? true,
+        mercadopagoEnabled: dto.mercadopagoEnabled ?? true,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: pricingConfig.configKey,
         set: {
           ...(dto.basePriceCents !== undefined ? { basePriceCents: dto.basePriceCents } : {}),
+          ...(dto.compareAtPriceCents !== undefined ? { compareAtPriceCents: dto.compareAtPriceCents } : {}),
           ...(dto.installments !== undefined ? { installments: dto.installments } : {}),
+          ...(dto.stripeWalletEnabled !== undefined ? { stripeWalletEnabled: dto.stripeWalletEnabled } : {}),
+          ...(dto.mercadopagoEnabled !== undefined ? { mercadopagoEnabled: dto.mercadopagoEnabled } : {}),
           updatedAt: new Date(),
         },
       })

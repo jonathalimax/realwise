@@ -18,7 +18,10 @@ export default function PricingConfigPage() {
         if (!active) return;
         setForm({
           basePriceReais: (pricingData.basePriceCents / 100).toString(),
+          compareAtPriceReais: (pricingData.compareAtPriceCents / 100).toString(),
           installments: pricingData.installments.toString(),
+          stripeWalletEnabled: pricingData.stripeWalletEnabled !== false,
+          mercadopagoEnabled: pricingData.mercadopagoEnabled !== false,
         });
         setError('');
       })
@@ -36,10 +39,14 @@ export default function PricingConfigPage() {
     setError('');
     try {
       const basePriceCents = Math.round(parseFloat(form.basePriceReais.replace(',', '.')) * 100);
+      const compareAtPriceCents = Math.round(parseFloat(form.compareAtPriceReais.replace(',', '.')) * 100);
       const installments = parseInt(form.installments, 10);
       await adminResource.updatePricingConfig({
         basePriceCents,
+        compareAtPriceCents,
         installments,
+        stripeWalletEnabled: form.stripeWalletEnabled,
+        mercadopagoEnabled: form.mercadopagoEnabled,
       });
       setSavedAt(new Date());
     } catch (err) {
@@ -52,8 +59,12 @@ export default function PricingConfigPage() {
   if (!form) return <div className="p-6 text-gray-400">Carregando...</div>;
 
   const basePriceCents = Math.round(parseFloat(form.basePriceReais.replace(',', '.') || '0') * 100);
+  const compareAtPriceCents = Math.round(parseFloat(form.compareAtPriceReais.replace(',', '.') || '0') * 100);
   const installments = parseInt(form.installments, 10) || 1;
   const installmentCents = Math.round(basePriceCents / installments);
+  const discountPercent = compareAtPriceCents > 0
+    ? Math.round((1 - (basePriceCents / compareAtPriceCents)) * 100)
+    : 0;
 
   return (
     <div className="p-6 max-w-xl">
@@ -61,11 +72,21 @@ export default function PricingConfigPage() {
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-4 space-y-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Preço Base (R$)</label>
+          <label className="block text-xs text-gray-500 mb-1">Preço Premium (R$)</label>
           <input
             type="text"
             value={form.basePriceReais}
             onChange={(e) => setForm({ ...form, basePriceReais: e.target.value })}
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Preço de comparação (R$)</label>
+          <input
+            type="text"
+            value={form.compareAtPriceReais}
+            onChange={(e) => setForm({ ...form, compareAtPriceReais: e.target.value })}
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
           />
         </div>
@@ -79,12 +100,37 @@ export default function PricingConfigPage() {
             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white"
           />
         </div>
+
+        <label className="flex items-center justify-between rounded-lg border border-gray-800 px-3 py-2 text-sm text-gray-300">
+          <span>Apple Pay / Google Pay via Stripe</span>
+          <input
+            type="checkbox"
+            checked={form.stripeWalletEnabled}
+            onChange={(e) => setForm({ ...form, stripeWalletEnabled: e.target.checked })}
+            className="h-4 w-4"
+          />
+        </label>
+
+        <label className="flex items-center justify-between rounded-lg border border-gray-800 px-3 py-2 text-sm text-gray-300">
+          <span>Pix e cartão manual via Mercado Pago</span>
+          <input
+            type="checkbox"
+            checked={form.mercadopagoEnabled}
+            onChange={(e) => setForm({ ...form, mercadopagoEnabled: e.target.checked })}
+            className="h-4 w-4"
+          />
+        </label>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-4">
         <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Prévia</p>
         <p className="text-white font-bold text-xl">{installments}x de {brl(installmentCents)}</p>
         <p className="text-gray-400 text-sm">ou {brl(basePriceCents)} à vista</p>
+        <p className="text-gray-500 text-sm line-through mt-1">{brl(compareAtPriceCents)}</p>
+        <p className="text-emerald-400 text-sm mt-1">{discountPercent}% abaixo do valor de comparação</p>
+        <p className="text-gray-500 text-xs mt-3">
+          Stripe: {form.stripeWalletEnabled ? 'ativo' : 'desativado'} · Mercado Pago: {form.mercadopagoEnabled ? 'ativo' : 'desativado'}
+        </p>
       </div>
 
       {error && <p className="text-red-400 text-sm mb-3">{error}</p>}

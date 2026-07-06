@@ -4,8 +4,8 @@ export const ptTranslations = {
   'hero.headline1': 'Acompanhe, planeje e expanda',
   'hero.headline2': 'suas finanças',
   'hero.subheadline': 'Um rastreador de finanças simples e privado que ajuda você a gerenciar, acompanhar e analisar seu dinheiro—sem IA e com total transparência.',
-  'hero.cta': 'Começar Agora',
-  'hero.note': 'Compra única. Sem assinaturas.',
+  'hero.cta': 'Começar grátis',
+  'hero.note': 'Transações manuais e importação ficam grátis para sempre.',
   'hero.desktop': 'Desktop',
   'hero.mobile': 'Mobile',
 

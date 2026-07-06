@@ -24,6 +24,12 @@ const fakeUser = {
   firebaseUid: null,
   appleId: null,
   refreshTokenHash: null,
+  premiumAccessStartedAt: new Date('2026-07-02T12:00:00.000Z'),
+  premiumAccessEndsAt: new Date('2026-08-16T12:00:00.000Z'),
+  premiumPurchasedAt: null,
+  premiumStatus: 'trialing' as const,
+  premiumPaymentProvider: null,
+  premiumProviderPaymentId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -266,6 +272,12 @@ describe('AuthController', () => {
         name: fakeUser.name,
         displayName: fakeUser.name,
         profileImageUrl: fakeUser.profileImageUrl,
+        premiumAccessStartedAt: fakeUser.premiumAccessStartedAt,
+        premiumAccessEndsAt: fakeUser.premiumAccessEndsAt,
+        premiumPurchasedAt: fakeUser.premiumPurchasedAt,
+        premiumStatus: fakeUser.premiumStatus,
+        premiumPaymentProvider: fakeUser.premiumPaymentProvider,
+        premiumProviderPaymentId: fakeUser.premiumProviderPaymentId,
       });
     });
   });

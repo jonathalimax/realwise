@@ -95,7 +95,7 @@ export default function PricingSection() {
                     )}
                     <span className="text-slate-500 dark:text-slate-400 text-sm">{t('pricing.onetime')}</span>
                   </div>
-                  <Link to="/checkout">
+                  <Link to="/login">
                     <Button
                       size="lg"
                       className="w-full lg:w-auto h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"

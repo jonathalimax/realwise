@@ -358,6 +358,12 @@ export class AuthController {
       name: currentUser?.name ?? null,
       displayName: currentUser?.name ?? null,
       profileImageUrl: currentUser?.profileImageUrl ?? null,
+      premiumAccessStartedAt: currentUser?.premiumAccessStartedAt ?? null,
+      premiumAccessEndsAt: currentUser?.premiumAccessEndsAt ?? null,
+      premiumPurchasedAt: currentUser?.premiumPurchasedAt ?? null,
+      premiumStatus: currentUser?.premiumStatus ?? null,
+      premiumPaymentProvider: currentUser?.premiumPaymentProvider ?? null,
+      premiumProviderPaymentId: currentUser?.premiumProviderPaymentId ?? null,
     };
   }
 

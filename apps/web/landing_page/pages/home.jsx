@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
 import MobileDemo from '../components/landing/MobileDemo';
@@ -11,12 +11,11 @@ import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
 import FooterSection from '../components/landing/FooterSection';
 import WhatsAppFloatingButton from '../components/landing/WhatsAppFloatingButton';
-import CheckoutModal from '../components/landing/CheckoutModal';
 import { landingAnalytics } from '../landingAnalytics';
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 
-function getInitialCheckoutState(couponCode) {
+function getLegacyCheckoutState(couponCode) {
   const params = new URLSearchParams(window.location.search);
   if (params.get('checkout') === '1') {
     const email = params.get('email') || '';
@@ -24,21 +23,20 @@ function getInitialCheckoutState(couponCode) {
     const name = params.get('name') || '';
     const whatsapp = params.get('whatsapp') || '';
     return {
-      open: true,
-      prefill: email || coupon || name ? { email, coupon: coupon || couponCode, name, whatsapp } : { coupon: couponCode || '' }
+      shouldRedirect: true,
+      search: new URLSearchParams({
+        ...(email ? { email } : {}),
+        ...(coupon || couponCode ? { coupon: coupon || couponCode } : {}),
+        ...(name ? { name } : {}),
+        ...(whatsapp ? { whatsapp } : {}),
+      }).toString(),
     };
   }
-  return {
-    open: false,
-    prefill: couponCode ? { coupon: couponCode } : {}
-  };
+  return { shouldRedirect: false, search: '' };
 }
 
 export default function Home({ couponCode = '' }) {
-  const initialCheckout = getInitialCheckoutState(couponCode);
-  const [checkoutOpen, setCheckoutOpen] = useState(initialCheckout.open);
-  const [checkoutSection, setCheckoutSection] = useState('');
-  const [checkoutPrefill] = useState(initialCheckout.prefill);
+  const legacyCheckout = getLegacyCheckoutState(couponCode);
 
   useEffect(() => {
     if (!GA_MEASUREMENT_ID) return;
@@ -50,40 +48,28 @@ export default function Home({ couponCode = '' }) {
 
     script.onload = () => landingAnalytics.init(GA_MEASUREMENT_ID);
   }, []);
-
-  function openCheckout(section) {
-    setCheckoutSection(section);
-    setCheckoutOpen(true);
-    landingAnalytics.trackCheckoutOpened(section);
-  }
-
-  function closeCheckout(reason, fieldsFilled) {
-    setCheckoutOpen(false);
-    landingAnalytics.trackCheckoutClosed(reason, fieldsFilled);
-  }
+  useEffect(() => {
+    if (!legacyCheckout.shouldRedirect) return;
+    const suffix = legacyCheckout.search ? `?${legacyCheckout.search}` : '';
+    window.location.replace(`/checkout${suffix}`);
+  }, [legacyCheckout.search, legacyCheckout.shouldRedirect]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white overflow-x-hidden">
-      <Header onBuy={() => openCheckout('header')} />
+      <Header />
       <div className="pt-20">
-        <HeroSection onBuy={() => openCheckout('hero')} couponCode={couponCode} />
-        <MobileDemo onBuy={() => openCheckout('mobile-demo')} />
+        <HeroSection couponCode={couponCode} />
+        <MobileDemo />
         <FeaturesSection />
         <FounderStory />
         <Testimonials />
-        <PricingSection onBuy={() => openCheckout('pricing')} couponCode={couponCode} />
+        <PricingSection couponCode={couponCode} />
         <GuaranteeSection />
         <FAQSection />
-        <FinalCTASection onBuy={() => openCheckout('final-cta')} />
+        <FinalCTASection />
         <FooterSection />
       </div>
       <WhatsAppFloatingButton />
-      <CheckoutModal
-        open={checkoutOpen}
-        section={checkoutSection}
-        onClose={closeCheckout}
-        prefill={checkoutPrefill}
-      />
     </div>
   );
 }

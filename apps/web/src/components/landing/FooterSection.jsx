@@ -29,7 +29,7 @@ export default function FooterSection() {
             <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-400 mb-6 sm:mb-10 max-w-xl mx-auto">
               {t('footer.desc')}
             </p>
-            <Link to="/checkout">
+            <Link to="/login">
               <Button
                 size="lg"
                 className="h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"

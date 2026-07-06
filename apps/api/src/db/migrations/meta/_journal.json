@@ -120,6 +120,20 @@
       "when": 1782816000000,
       "tag": "0016_users_profile_image",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1782864000000,
+      "tag": "0017_user_premium_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1783383600000,
+      "tag": "0018_pricing_config_premium_offer",
+      "breakpoints": true
     }
   ]
 }

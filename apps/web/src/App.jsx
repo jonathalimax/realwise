@@ -14,6 +14,7 @@ import { PWAInstallProvider } from './contexts/PWAInstallContext';
 import { MonthProvider } from './contexts/MonthContext';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import PremiumRouteGate from './components/premium/PremiumRouteGate';
 import LoadingPage from './pages/LoadingPage';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -79,10 +80,24 @@ function AuthenticatedApp() {
                             <Route index element={<Navigate to="/dashboard" replace />} />
                             <Route path="dashboard" element={<DashboardPage />} />
                             <Route path="planner" element={<Navigate to="../planning" replace />} />
-                            <Route path="planning" element={<PlanningPage />} />
+                            <Route
+                              path="planning"
+                              element={(
+                                <PremiumRouteGate featureKey="planning" featureName="Planning">
+                                  <PlanningPage />
+                                </PremiumRouteGate>
+                              )}
+                            />
                             <Route path="expenses" element={<ExpensesPage />} />
                             <Route path="income" element={<IncomePage />} />
-                            <Route path="bills" element={<BillsPage />} />
+                            <Route
+                              path="bills"
+                              element={(
+                                <PremiumRouteGate featureKey="bills" featureName="Bills">
+                                  <BillsPage />
+                                </PremiumRouteGate>
+                              )}
+                            />
                             <Route path="cards" element={<CardsPage />} />
                             <Route path="transactions" element={<TransactionsPage />} />
                             <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
@@ -97,10 +112,38 @@ function AuthenticatedApp() {
                             {hasGoals && <Route path="goals" element={<GoalsPage />} />}
                             {hasInvestments && (
                               <>
-                                <Route path="investments" element={<InvestmentsPage />} />
-                                <Route path="investments/new" element={<InvestmentForm />} />
-                                <Route path="investments/:id/edit" element={<InvestmentForm />} />
-                                <Route path="investments/:id/withdraw" element={<InvestmentForm />} />
+                                <Route
+                                  path="investments"
+                                  element={(
+                                    <PremiumRouteGate featureKey="investments" featureName="Investments">
+                                      <InvestmentsPage />
+                                    </PremiumRouteGate>
+                                  )}
+                                />
+                                <Route
+                                  path="investments/new"
+                                  element={(
+                                    <PremiumRouteGate featureKey="investments" featureName="Investments">
+                                      <InvestmentForm />
+                                    </PremiumRouteGate>
+                                  )}
+                                />
+                                <Route
+                                  path="investments/:id/edit"
+                                  element={(
+                                    <PremiumRouteGate featureKey="investments" featureName="Investments">
+                                      <InvestmentForm />
+                                    </PremiumRouteGate>
+                                  )}
+                                />
+                                <Route
+                                  path="investments/:id/withdraw"
+                                  element={(
+                                    <PremiumRouteGate featureKey="investments" featureName="Investments">
+                                      <InvestmentForm />
+                                    </PremiumRouteGate>
+                                  )}
+                                />
                               </>
                             )}
                           </Route>

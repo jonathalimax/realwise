@@ -71,16 +71,16 @@ export default function FAQSection() {
   
   const faqsData = language === 'pt' ? [
     {
-      question: "É uma assinatura?",
-      answer: "Não. É uma compra única de R$ 99. Você tem acesso a todos os recursos disponíveis no momento da compra. A compra inclui 2 alterações de suporte gratuitas para bugs ou configurações. Atualizações futuras e personalizações requerem contato com o suporte."
+      question: "O aplicativo inteiro é pago?",
+      answer: "Não. Você pode começar usando o Realwise de graça com transações manuais, importação de extratos, dashboard e histórico. O Premium libera planejamento, contas, investimentos e a orientação de quanto ainda dá para gastar."
     },
     {
-      question: "Qual suporte está incluído?",
-      answer: "Sua compra inclui 2 alterações de suporte gratuitas apenas para bugs ou configurações incorretas. Implementações personalizadas, novos recursos ou acesso ao código fonte requerem contato com nossa equipe de suporte através do formulário."
+      question: "O que acontece depois dos 45 dias?",
+      answer: "Os recursos Premium ficam bloqueados, mas o núcleo gratuito continua funcionando. Você continua podendo lançar transações manualmente, importar extratos e acompanhar seu histórico."
     },
     {
-      question: "Atualizações estão inclusas?",
-      answer: "Não. Sua compra dá acesso a todos os recursos disponíveis no momento da compra. Atualizações futuras do sistema não estão automaticamente inclusas. Se precisar de novos recursos ou atualizações, entre em contato com o suporte através do formulário."
+      question: "O que o Premium desbloqueia?",
+      answer: "Hoje o Premium desbloqueia Planejamento, Contas, Investimentos e a visão de quanto ainda está disponível para gastar com base no seu plano. A ideia é cobrar pelos recursos de controle avançado, não pelo uso básico do sistema."
     },
     {
       question: "Quais moedas e idiomas são suportados?",

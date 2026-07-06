@@ -19,7 +19,7 @@ async function bootstrap() {
   const allowedOrigin = process.env.FRONTEND_BASE_URL;
   if (!allowedOrigin) throw new Error('FRONTEND_BASE_URL must be set');
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
   app.enableCors({

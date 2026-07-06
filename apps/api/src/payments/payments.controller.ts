@@ -1,0 +1,64 @@
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
+import { PaymentsService } from './payments.service';
+
+@Controller('payments')
+export class PaymentsController {
+  constructor(private readonly service: PaymentsService) {}
+
+  @Public()
+  @Get('health')
+  health() {
+    return {
+      status: 'ok',
+      providers: ['stripe', 'mercadopago'],
+    };
+  }
+
+  @Public()
+  @Post('stripe/checkout')
+  createStripeCheckout(@Body() body: {
+    email: string;
+    name?: string;
+    whatsapp?: string;
+    couponCode?: string;
+    clientId?: string;
+    feature?: string;
+    utmSource?: string;
+  }) {
+    return this.service.createStripeCheckout(body);
+  }
+
+  @Public()
+  @Post('mercadopago/quote')
+  createMercadoPagoQuote(@Body() body: {
+    email: string;
+    name?: string;
+    whatsapp?: string;
+    couponCode?: string;
+    clientId?: string;
+    feature?: string;
+    utmSource?: string;
+  }) {
+    return this.service.createMercadoPagoQuote(body);
+  }
+
+  @Public()
+  @Post('mercadopago/process')
+  processMercadoPagoPayment(@Body() body: {
+    token?: string;
+    issuer_id?: string;
+    payment_method_id?: string;
+    transaction_amount?: number;
+    installments?: number;
+    payer?: Record<string, unknown>;
+    email: string;
+    name?: string;
+    whatsapp?: string;
+    couponCode?: string;
+    clientId?: string;
+    feature?: string;
+  }) {
+    return this.service.processMercadoPagoPayment(body);
+  }
+}

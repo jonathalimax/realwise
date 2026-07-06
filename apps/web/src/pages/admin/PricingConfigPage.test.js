@@ -26,15 +26,15 @@ describe('PricingConfigPage', () => {
 
   it('should handle form state updates', () => {
     const initialForm = {
-      originalReais: '100.00',
-      totalReais: '75.00',
+      compareAtPriceReais: '100.00',
+      basePriceReais: '75.00',
       installments: '3',
-      active: true,
-      campaignLabel: 'Promoção',
+      stripeWalletEnabled: true,
+      mercadopagoEnabled: true,
     };
 
-    const updated = { ...initialForm, campaignLabel: 'Novo Rótulo' };
-    expect(updated.campaignLabel).toBe('Novo Rótulo');
-    expect(updated.originalReais).toBe('100.00');
+    const updated = { ...initialForm, stripeWalletEnabled: false };
+    expect(updated.stripeWalletEnabled).toBe(false);
+    expect(updated.compareAtPriceReais).toBe('100.00');
   });
 });

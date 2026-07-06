@@ -1,8 +1,5 @@
 {
   "clientName": "Realwise Dev",
-  "checkoutUrl": "https://us-central1-realwise-dev.cloudfunctions.net/createCheckoutSession",
-  "createPaymentUrl": "https://us-central1-realwise-dev.cloudfunctions.net/createPayment",
-  "processPaymentUrl": "https://us-central1-realwise-dev.cloudfunctions.net/processPayment",
   "partialLeadUrl": "https://us-central1-realwise-dev.cloudfunctions.net/savePartialLead",
   "mpPublicKey": "TEST-c2abae0c-c217-4ffd-8d5e-d8b714648057",
   "firebase": {

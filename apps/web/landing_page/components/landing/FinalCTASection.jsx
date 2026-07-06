@@ -6,7 +6,7 @@ import { landingAnalytics } from '../../landingAnalytics';
 
 const FALLBACK_PRICING = { basePriceCents: 23880, installments: 12, activeCouponCode: null };
 
-export default function FinalCTASection({ onBuy }) {
+export default function FinalCTASection() {
   const [pricing] = useState(FALLBACK_PRICING);
 
   // Calculate installment price
@@ -27,25 +27,25 @@ export default function FinalCTASection({ onBuy }) {
           transition={{ duration: 0.7 }}
         >
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-            Pare de gastar horas.
+            Comece de graça.
             <br />
             <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">
-              Comece a viver tranquilo.
+              Desbloqueie o Premium quando fizer sentido.
             </span>
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-10 max-w-md mx-auto">
-            Uma única compra. Controle automático. Seu sossego.
+            Entrada manual e importação ficam liberadas. Premium entra quando você quiser planejamento, contas e investimentos.
           </p>
           <Button
             size="lg"
-            onClick={() => { landingAnalytics.trackCtaClicked('Comprar Agora', 'final-cta'); onBuy(); }}
+            onClick={() => { landingAnalytics.trackCtaClicked('Começar grátis', 'final-cta'); window.location.href = '/login'; }}
             className="h-14 px-10 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105"
           >
-            Comprar Agora
+            Começar grátis
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <p className="mt-4 text-sm text-slate-400 dark:text-slate-500">
-            {INSTALLMENTS}x de {fmt(installmentCents)} · Acesso vitalício · 30 dias de garantia
+            Premium: {INSTALLMENTS}x de {fmt(installmentCents)} · Core gratuito para começar
           </p>
         </motion.div>
       </div>

@@ -1,6 +1,7 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', ['user', 'admin']);
+export const premiumStatusEnum = pgEnum('premium_status', ['trialing', 'active', 'expired']);
 
 export const accountTypeEnum = pgEnum('account_type', [
   'checking',

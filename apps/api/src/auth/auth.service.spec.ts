@@ -11,7 +11,14 @@ const fakeUser = {
   role: 'user' as const,
   firebaseUid: null,
   appleId: null,
+  profileImageUrl: null,
   refreshTokenHash: null,
+  premiumAccessStartedAt: new Date('2026-07-02T12:00:00.000Z'),
+  premiumAccessEndsAt: new Date('2026-08-16T12:00:00.000Z'),
+  premiumPurchasedAt: null,
+  premiumStatus: 'trialing' as const,
+  premiumPaymentProvider: null,
+  premiumProviderPaymentId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -63,7 +70,64 @@ describe('AuthService', () => {
       expect(mockDb.insert).not.toHaveBeenCalled();
     });
 
+    it('does not reset premium access dates for an existing user', async () => {
+      mockDb.select.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([fakeUser]),
+        }),
+      });
+      mockDb.update.mockReturnValue({
+        set: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([fakeUser]),
+        }),
+      });
+
+      const result = await service.findOrCreateUser({
+        email: 'test@example.com',
+        clientId: 'jonathalimax',
+      });
+
+      expect(result.premiumAccessStartedAt).toEqual(fakeUser.premiumAccessStartedAt);
+      expect(result.premiumAccessEndsAt).toEqual(fakeUser.premiumAccessEndsAt);
+    });
+
+    it('initializes premium access for a legacy existing user missing premium dates', async () => {
+      const legacyUser = {
+        ...fakeUser,
+        premiumAccessStartedAt: null,
+        premiumAccessEndsAt: null,
+        premiumStatus: null,
+      };
+
+      const whereSpy = jest.fn().mockResolvedValue([legacyUser]);
+      const setSpy = jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue([legacyUser]) });
+
+      mockDb.select.mockReturnValue({
+        from: jest.fn().mockReturnValue({ where: whereSpy }),
+      });
+      mockDb.update.mockReturnValue({ set: setSpy });
+
+      const result = await service.findOrCreateUser({
+        email: 'test@example.com',
+        clientId: 'jonathalimax',
+      });
+
+      expect(result.premiumAccessStartedAt).toBeInstanceOf(Date);
+      expect(result.premiumAccessEndsAt).toBeInstanceOf(Date);
+      expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({
+        premiumAccessStartedAt: expect.any(Date),
+        premiumAccessEndsAt: expect.any(Date),
+        premiumStatus: 'trialing',
+      }));
+    });
+
     it('creates user when none exists', async () => {
+      const insertedUser = {
+        ...fakeUser,
+        premiumAccessStartedAt: new Date('2026-07-02T15:30:00.000Z'),
+        premiumAccessEndsAt: new Date('2026-08-16T15:30:00.000Z'),
+      };
+
       mockDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockResolvedValue([]),
@@ -71,7 +135,7 @@ describe('AuthService', () => {
       });
       mockDb.insert.mockReturnValue({
         values: jest.fn().mockReturnValue({
-          returning: jest.fn().mockResolvedValue([fakeUser]),
+          returning: jest.fn().mockResolvedValue([insertedUser]),
         }),
       });
 
@@ -81,6 +145,12 @@ describe('AuthService', () => {
         name: 'Test User',
       });
       expect(result.id).toBe(fakeUser.id);
+      expect(result.premiumStatus).toBe('trialing');
+      expect(result.premiumAccessStartedAt).toBeInstanceOf(Date);
+      expect(result.premiumAccessEndsAt).toBeInstanceOf(Date);
+      expect(result.premiumPurchasedAt).toBeNull();
+      expect(result.premiumPaymentProvider).toBeNull();
+      expect(result.premiumProviderPaymentId).toBeNull();
     });
   });
 

@@ -46,6 +46,13 @@ pnpm build
 pnpm test
 ```
 
+## Payments
+
+- Stripe webhook endpoint: `https://api.realwise.com.br/webhooks/stripe`
+- Mercado Pago webhook endpoint: `https://api.realwise.com.br/webhooks/mercadopago`
+- Required API secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`
+- The premium unlock path now converges inside `apps/api/src/payments/*` so both providers end in the same entitlement update.
+
 ## Notes
 
 - The web app still supports the path-based tenant UX.

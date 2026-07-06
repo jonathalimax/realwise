@@ -165,6 +165,9 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
+      stripe:
+        specifier: ^18.4.0
+        version: 18.5.0(@types/node@20.19.43)
       uuid:
         specifier: ^14.0.1
         version: 14.0.1
@@ -6773,6 +6776,15 @@ packages:
   strip-json-comments@3.1.1:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
+
+  stripe@18.5.0:
+    resolution: {integrity: sha512-Hp+wFiEQtCB0LlNgcFh5uVyKznpDjzyUZ+CNVEf+I3fhlYvh7rZruIg+jOwzJRCpy0ZTPMjlzm7J2/M2N6d+DA==}
+    engines: {node: '>=12.*'}
+    peerDependencies:
+      '@types/node': '>=12.x.x'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
 
   strtok3@10.3.5:
     resolution: {integrity: sha512-ki4hZQfh5rX0QDLLkOCj+h+CVNkqmp/CMf8v8kZpkNVK6jGQooMytqzLZYUVYIZcFZ6yDB70EfD8POcFXiF5oA==}
@@ -15165,6 +15177,12 @@ snapshots:
     optional: true
 
   strip-json-comments@3.1.1: {}
+
+  stripe@18.5.0(@types/node@20.19.43):
+    dependencies:
+      qs: 6.15.2
+    optionalDependencies:
+      '@types/node': 20.19.43
 
   strtok3@10.3.5:
     dependencies:

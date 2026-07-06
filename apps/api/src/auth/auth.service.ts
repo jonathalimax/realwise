@@ -7,6 +7,7 @@ import { users } from '../db/schema';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 type User = typeof users.$inferSelect;
+const PREMIUM_TRIAL_DAYS = 45;
 
 @Injectable()
 export class AuthService {
@@ -24,6 +25,13 @@ export class AuthService {
     firebaseUid?: string | null;
     appleId?: string | null;
   }): Promise<User> {
+    const now = new Date();
+    const buildInitialPremiumAccess = () => ({
+      premiumAccessStartedAt: now,
+      premiumAccessEndsAt: new Date(now.getTime() + PREMIUM_TRIAL_DAYS * 24 * 60 * 60 * 1000),
+      premiumStatus: 'trialing' as const,
+    });
+
     const existing = await this.db
       .select()
       .from(users)
@@ -36,6 +44,9 @@ export class AuthService {
       if (opts.appleId && !user.appleId) updates.appleId = opts.appleId;
       if (opts.name && !user.name) updates.name = opts.name;
       if (opts.profileImageUrl && opts.profileImageUrl !== user.profileImageUrl) updates.profileImageUrl = opts.profileImageUrl;
+      if (!user.premiumAccessStartedAt || !user.premiumAccessEndsAt || !user.premiumStatus) {
+        Object.assign(updates, buildInitialPremiumAccess());
+      }
       await this.db.update(users).set(updates).where(eq(users.id, user.id));
       return { ...user, ...updates };
     }
@@ -49,6 +60,7 @@ export class AuthService {
         profileImageUrl: opts.profileImageUrl ?? null,
         firebaseUid: opts.firebaseUid ?? null,
         appleId: opts.appleId ?? null,
+        ...buildInitialPremiumAccess(),
       })
       .returning();
 
