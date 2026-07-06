@@ -333,13 +333,19 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
   }
 
   async function savePartialLead(payload) {
-    if (!partialLeadUrl) return;
+    const body = { ...payload, utmSource: landingAnalytics.getUtmSource() };
+
     try {
-      await fetch(partialLeadUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, utmSource: landingAnalytics.getUtmSource() }),
-      });
+      if (partialLeadUrl) {
+        await fetch(partialLeadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        return;
+      }
+
+      await paymentsResource.savePartialLead(body);
     } catch { /* never throw */ }
   }
 

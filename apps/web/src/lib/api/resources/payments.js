@@ -11,6 +11,9 @@ export function createPaymentsResource({ client = apiClient } = {}) {
     processMercadoPagoPayment(payload) {
       return client.post('/payments/mercadopago/process', payload);
     },
+    savePartialLead(payload) {
+      return client.post('/payments/partial-lead', payload);
+    },
   };
 }
 

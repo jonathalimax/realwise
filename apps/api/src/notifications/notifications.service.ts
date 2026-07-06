@@ -16,6 +16,20 @@ interface BillGroups {
   dueSoon: BillEntry[];
 }
 
+interface ImportIssueNotification {
+  issueId: string;
+  clientId: string;
+  userId: string;
+  fileName: string;
+  fileMime: string;
+  bankType: string;
+  parserUsed: string;
+  errorMessage?: string | null;
+  userNote?: string | null;
+  userName?: string;
+  userEmail?: string;
+}
+
 type RecoveryStage = 1 | 2 | 3;
 const BRAND_LOGO_URL = 'https://realwise.com.br/logo.png';
 
@@ -270,6 +284,54 @@ export class NotificationsService {
         cta: isLastChance ? 'Finalizar Compra Agora' : 'Usar Cupom e Finalizar',
         ctaUrl: buildCheckoutUrl({ email: to, name, couponCode }),
         footerNote: 'Você está recebendo este e-mail porque iniciou um cadastro no Realwise.',
+      }),
+    });
+  }
+
+  async sendImportIssueEmail(issue: ImportIssueNotification): Promise<void> {
+    const recipient = process.env.IMPORT_ISSUES_EMAIL_TO || process.env.MAIL_FROM;
+    if (!recipient) return;
+
+    const details = [
+      ['Issue ID', issue.issueId],
+      ['Client ID', issue.clientId],
+      ['User ID', issue.userId],
+      ['Arquivo', issue.fileName],
+      ['MIME', issue.fileMime],
+      ['Banco', issue.bankType],
+      ['Parser', issue.parserUsed],
+      ['Nome', issue.userName || '-'],
+      ['Email', issue.userEmail || '-'],
+      ['Erro', issue.errorMessage || '-'],
+      ['Observacao', issue.userNote || '-'],
+    ];
+
+    const body = `
+      <div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:20px;">
+        Um usuario reportou um problema na importacao de arquivo.
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        ${details
+          .map(
+            ([label, value]) => `
+              <tr>
+                <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:700;color:#1f2937;width:140px;">${label}</td>
+                <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#4b5563;">${String(value)}</td>
+              </tr>
+            `,
+          )
+          .join('')}
+      </table>
+    `;
+
+    await this.mailer.sendMail({
+      to: recipient,
+      subject: `Realwise import issue: ${issue.fileName}`,
+      html: getBaseTemplate({
+        title: 'Novo report de importacao',
+        subtitle: 'Detalhes do problema reportado pelo usuario.',
+        body,
+        footerNote: 'Notificacao automatica do fluxo de importacao do Realwise.',
       }),
     });
   }

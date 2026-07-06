@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { DrizzleModule } from '../db/drizzle.module';
 import { AuthModule } from '../auth/auth.module';
+import { DrizzleModule } from '../db/drizzle.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MercadoPagoWebhookController } from './mercadopago.webhook.controller';
+import { MercadoPagoClient } from './mercadopago.client';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { PremiumEntitlementsService } from './premium-entitlements.service';
 import { StripeWebhookController } from './stripe.webhook.controller';
-import { MercadoPagoWebhookController } from './mercadopago.webhook.controller';
 
 @Module({
   imports: [DrizzleModule, AuthModule, NotificationsModule],
@@ -15,6 +16,10 @@ import { MercadoPagoWebhookController } from './mercadopago.webhook.controller';
     StripeWebhookController,
     MercadoPagoWebhookController,
   ],
-  providers: [PaymentsService, PremiumEntitlementsService],
+  providers: [
+    PaymentsService,
+    PremiumEntitlementsService,
+    MercadoPagoClient,
+  ],
 })
 export class PaymentsModule {}

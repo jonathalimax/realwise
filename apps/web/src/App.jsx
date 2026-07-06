@@ -40,6 +40,7 @@ const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 import LandingPage from '../landing_page/pages/home';
 import PurchaseSuccessPage from '../landing_page/pages/PurchaseSuccess';
 const SharedLogin = lazy(() => import('./pages/SharedLogin'));
+const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -202,6 +203,12 @@ function App() {
     inner = (
       <Suspense fallback={<PageLoader />}>
         <SharedLogin />
+      </Suspense>
+    );
+  } else if (window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')) {
+    inner = (
+      <Suspense fallback={<PageLoader />}>
+        <AdminApp />
       </Suspense>
     );
   } else if (window.location.pathname === '/loading') {

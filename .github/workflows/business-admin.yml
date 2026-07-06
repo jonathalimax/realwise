@@ -1,0 +1,119 @@
+name: Business Admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Optional Docker image tag. Defaults to the selected branch name sanitized for Docker.'
+        required: false
+        type: string
+      deploy_target:
+        description: 'Optional Coolify deploy target for manual runs.'
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - production
+          - staging
+      api_base_url:
+        description: 'API base URL baked into the Vite build.'
+        required: true
+        default: 'https://api.realwise.com.br'
+        type: string
+
+jobs:
+  validate:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.0'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter @realwise/business-admin lint
+
+      - name: Build
+        run: pnpm --filter @realwise/business-admin build
+
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          INPUT_IMAGE_TAG="${{ inputs.image_tag }}"
+          INPUT_DEPLOY_TARGET="${{ inputs.deploy_target }}"
+          BRANCH_TAG=$(printf '%s' "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]+/-/g; s/^-+//; s/-+$//' | cut -c1-120)
+
+          if [ -n "$INPUT_IMAGE_TAG" ]; then
+            IMAGE_TAG=$(printf '%s' "$INPUT_IMAGE_TAG" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]+/-/g; s/^-+//; s/-+$//' | cut -c1-120)
+          else
+            IMAGE_TAG="$BRANCH_TAG"
+          fi
+
+          if [ -z "$IMAGE_TAG" ]; then
+            echo "Unable to resolve Docker image tag" >&2
+            exit 1
+          fi
+
+          echo "env_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+          if [ "$INPUT_DEPLOY_TARGET" = "production" ]; then
+            echo "coolify_uuid=${{ secrets.COOLIFY_BUSINESS_ADMIN_PROD_UUID }}" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          elif [ "$INPUT_DEPLOY_TARGET" = "staging" ]; then
+            echo "coolify_uuid=${{ secrets.COOLIFY_BUSINESS_ADMIN_STAGING_UUID }}" >> $GITHUB_OUTPUT
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "coolify_uuid=" >> $GITHUB_OUTPUT
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+          echo "sha_tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "image=ghcr.io/jonathalimax/realwise-business-admin" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/business-admin/Dockerfile
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=${{ inputs.api_base_url || 'https://api.realwise.com.br' }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.env_tag }}
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
+
+      - name: Trigger Coolify deploy
+        if: steps.meta.outputs.should_deploy == 'true'
+        run: |
+          curl -s -f -X POST \
+            "${{ secrets.COOLIFY_BASE_URL }}/api/v1/deploy?uuid=${{ steps.meta.outputs.coolify_uuid }}&force=false" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            -H "Content-Type: application/json"

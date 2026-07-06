@@ -1,9 +1,13 @@
-import { Inject, Injectable, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import Stripe from 'stripe';
 import { eq, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../db/drizzle.module';
 import { coupons, leads, pricingConfig } from '../db/schema';
+import { CreatePartialLeadDto } from './dto/create-partial-lead.dto';
+import { CreatePaymentSessionDto } from './dto/create-payment-session.dto';
+import { PaymentWebhookDto } from './dto/payment-webhook.dto';
+import { ProcessPaymentDto } from './dto/process-payment.dto';
 import { PremiumEntitlementsService } from './premium-entitlements.service';
 
 type StripeCheckoutSessionLike = {
@@ -93,6 +97,14 @@ export class PaymentsService {
     return basePriceCents;
   }
 
+  private getMercadoPagoPublicKey() {
+    return process.env.MERCADOPAGO_PUBLIC_KEY ?? process.env.MP_PUBLIC_KEY ?? null;
+  }
+
+  private getMercadoPagoAccessToken() {
+    return process.env.MERCADOPAGO_ACCESS_TOKEN ?? process.env.MP_ACCESS_TOKEN ?? null;
+  }
+
   private async recordLead(input: {
     email: string;
     name?: string | null;
@@ -101,21 +113,44 @@ export class PaymentsService {
     feature?: string | null;
     whatsapp?: string | null;
     utmSource?: string | null;
+    status?: string | null;
   }) {
+    const rows = await this.db
+      .select()
+      .from(leads)
+      .where(eq(leads.email, input.email));
+
+    const existing = rows[0];
+    const metadata = {
+      source: 'payments-api',
+      clientId: input.clientId ?? null,
+      couponCode: input.couponCode ?? null,
+      feature: input.feature ?? null,
+      whatsapp: input.whatsapp ?? null,
+      utmSource: input.utmSource ?? null,
+      ...(existing?.metadata ?? {}),
+    };
+
+    if (existing?.id) {
+      await this.db
+        .update(leads)
+        .set({
+          name: input.name ?? existing.name ?? null,
+          status: input.status ?? 'checkout_started',
+          updatedAt: new Date(),
+          metadata,
+        })
+        .where(eq(leads.id, existing.id));
+      return;
+    }
+
     await this.db.insert(leads).values({
       email: input.email,
       name: input.name ?? null,
       plan: 'premium',
-      status: 'checkout_started',
+      status: input.status ?? 'checkout_started',
       updatedAt: new Date(),
-      metadata: {
-        source: 'payments-api',
-        clientId: input.clientId ?? null,
-        couponCode: input.couponCode ?? null,
-        feature: input.feature ?? null,
-        whatsapp: input.whatsapp ?? null,
-        utmSource: input.utmSource ?? null,
-      },
+      metadata,
     });
   }
 
@@ -198,7 +233,7 @@ export class PaymentsService {
       throw new BadRequestException('email e obrigatorio.');
     }
 
-    const publicKey = process.env.MERCADOPAGO_PUBLIC_KEY;
+    const publicKey = this.getMercadoPagoPublicKey();
     if (!publicKey) {
       throw new BadRequestException('Configuração de pagamento ausente.');
     }
@@ -264,7 +299,7 @@ export class PaymentsService {
       return { status: 'approved' };
     }
 
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    const accessToken = this.getMercadoPagoAccessToken();
     if (!accessToken) {
       throw new BadRequestException('Mercado Pago access token is not configured');
     }
@@ -314,6 +349,49 @@ export class PaymentsService {
     };
   }
 
+  async createSession(dto: CreatePaymentSessionDto) {
+    return this.createMercadoPagoQuote({
+      email: dto.email,
+      name: dto.name,
+      whatsapp: dto.whatsapp,
+      couponCode: dto.couponCode,
+      utmSource: dto.utmSource,
+    });
+  }
+
+  async processPayment(dto: ProcessPaymentDto) {
+    return this.processMercadoPagoPayment({
+      token: dto.token,
+      issuer_id: dto.issuer_id,
+      payment_method_id: dto.payment_method_id,
+      transaction_amount: dto.transaction_amount != null ? dto.transaction_amount / 100 : dto.transaction_amount,
+      installments: dto.installments,
+      payer: dto.payer,
+      email: dto.email,
+      name: dto.name,
+      whatsapp: dto.whatsapp,
+      couponCode: dto.couponCode,
+      clientId: 'app',
+    });
+  }
+
+  async savePartialLead(dto: CreatePartialLeadDto) {
+    const email = dto.email?.trim().toLowerCase();
+    if (!email) {
+      throw new BadRequestException('email e obrigatorio.');
+    }
+
+    await this.recordLead({
+      email,
+      name: dto.name?.trim() || null,
+      whatsapp: dto.whatsapp?.trim() || null,
+      utmSource: dto.utmSource?.trim() || null,
+      status: 'partial_checkout',
+    });
+
+    return { ok: true };
+  }
+
   constructStripeEvent(rawBody: Buffer, signature: string) {
     const secretKey = process.env.STRIPE_SECRET_KEY;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -354,7 +432,7 @@ export class PaymentsService {
   }
 
   async fetchMercadoPagoPayment(paymentId: string) {
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    const accessToken = this.getMercadoPagoAccessToken();
     if (!accessToken) {
       throw new BadRequestException('Mercado Pago access token is not configured');
     }
@@ -391,5 +469,19 @@ export class PaymentsService {
       await this.incrementCouponUse(metadata.couponCode);
     }
     return result;
+  }
+
+  async handleWebhook(dto: PaymentWebhookDto) {
+    const paymentId = dto.paymentId || dto.dataId;
+    if (!paymentId) {
+      throw new BadRequestException('paymentId is required');
+    }
+
+    const payment = await this.fetchMercadoPagoPayment(paymentId);
+    if (payment?.status === 'approved') {
+      await this.handleMercadoPagoPaymentApproved(payment);
+    }
+
+    return { ok: true, status: payment?.status ?? 'unknown' };
   }
 }

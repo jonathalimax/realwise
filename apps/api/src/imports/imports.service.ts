@@ -6,6 +6,7 @@ import * as schema from '../db/schema';
 import { imports, transactions, categories, accounts, importIssues } from '../db/schema';
 import { BankParserService, ParsedTransaction } from './bank-parser.service';
 import { ReportImportIssueDto } from './dto/report-import-issue.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type Import = typeof imports.$inferSelect;
 
@@ -19,6 +20,7 @@ export class ImportsService {
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly parser: BankParserService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async processUpload(
@@ -117,6 +119,20 @@ export class ImportsService {
         updatedAt: new Date(),
       })
       .returning();
+
+    await this.notifications.sendImportIssueEmail({
+      issueId: rows[0].id,
+      clientId,
+      userId,
+      fileName: dto.fileName,
+      fileMime: dto.fileMime || 'application/octet-stream',
+      bankType: dto.bankType,
+      parserUsed: dto.parserUsed || 'unknown',
+      errorMessage: dto.errorMessage || null,
+      userNote: dto.userNote || null,
+      userName: dto.userName || '',
+      userEmail: dto.userEmail || '',
+    });
 
     return { ok: true, issueId: rows[0].id };
   }

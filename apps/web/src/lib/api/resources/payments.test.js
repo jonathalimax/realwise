@@ -38,4 +38,17 @@ describe('createPaymentsResource', () => {
     expect(client.post).toHaveBeenCalledWith('/payments/mercadopago/process', payload);
     expect(result).toEqual({ status: 'approved' });
   });
+
+  it('saves partial lead data through the compatibility API route', async () => {
+    const client = {
+      post: vi.fn().mockResolvedValue({ ok: true }),
+    };
+
+    const resource = createPaymentsResource({ client });
+    const payload = { email: 'buyer@example.com', whatsapp: '5511999999999' };
+    const result = await resource.savePartialLead(payload);
+
+    expect(client.post).toHaveBeenCalledWith('/payments/partial-lead', payload);
+    expect(result).toEqual({ ok: true });
+  });
 });

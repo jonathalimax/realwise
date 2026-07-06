@@ -1,9 +1,10 @@
 import { Test } from '@nestjs/testing';
+import axios from 'axios';
 import { DRIZZLE } from '../db/drizzle.module';
-import { AuthService } from '../auth/auth.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import { PaymentsService } from './payments.service';
 import { PremiumEntitlementsService } from './premium-entitlements.service';
+
+jest.mock('axios');
 
 const fakeUser = {
   id: '00000000-0000-0000-0000-000000000101',
@@ -31,12 +32,8 @@ const mockDb = {
   update: jest.fn(),
 };
 
-const mockAuthService = {
-  findOrCreateUser: jest.fn(),
-};
-
-const mockNotificationsService = {
-  sendAdminEmail: jest.fn(),
+const mockEntitlements = {
+  unlockPremiumAccess: jest.fn(),
 };
 
 describe('PaymentsService', () => {
@@ -44,19 +41,23 @@ describe('PaymentsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    process.env.MERCADOPAGO_PUBLIC_KEY = 'TEST-public-key';
+    delete process.env.MP_PUBLIC_KEY;
 
     const module = await Test.createTestingModule({
       providers: [
         PaymentsService,
-        PremiumEntitlementsService,
+        { provide: PremiumEntitlementsService, useValue: mockEntitlements },
         { provide: DRIZZLE, useValue: mockDb },
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
 
     service = module.get(PaymentsService);
-    mockAuthService.findOrCreateUser.mockResolvedValue(fakeUser);
+    mockEntitlements.unlockPremiumAccess.mockResolvedValue({
+      user: fakeUser,
+      purchase: { id: 'purchase-1' },
+      alreadyProcessed: false,
+    });
     mockDb.select.mockReturnValue({
       from: jest.fn().mockReturnValue({
         where: jest.fn().mockResolvedValue([]),
@@ -68,16 +69,7 @@ describe('PaymentsService', () => {
       }),
     });
     mockDb.insert.mockReturnValue({
-      values: jest.fn().mockReturnValue({
-        returning: jest.fn().mockResolvedValue([{
-          id: 'purchase-1',
-          clientId: 'jonathalimax',
-          email: 'buyer@example.com',
-          status: 'approved',
-          paymentProvider: 'stripe',
-          providerPaymentId: 'cs_test_123',
-        }]),
-      }),
+      values: jest.fn().mockResolvedValue(undefined),
     });
   });
 
@@ -93,34 +85,15 @@ describe('PaymentsService', () => {
       },
     });
 
-    expect(mockAuthService.findOrCreateUser).toHaveBeenCalledWith({
-      clientId: 'jonathalimax',
-      email: 'buyer@example.com',
-      name: 'Buyer Example',
-    });
-    expect(mockNotificationsService.sendAdminEmail).toHaveBeenCalledWith(
-      'buyer@example.com',
-      'access_granted',
-      expect.objectContaining({ name: 'Buyer Example' }),
+    expect(mockEntitlements.unlockPremiumAccess).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'jonathalimax',
+        email: 'buyer@example.com',
+        name: 'Buyer Example',
+        paymentProvider: 'stripe',
+        providerPaymentId: 'cs_test_123',
+      }),
     );
-  });
-
-  it('derives the client id from the email when Stripe metadata does not include one', async () => {
-    await service.handleStripeCheckoutCompleted({
-      id: 'cs_test_derive',
-      payment_intent: 'pi_derive',
-      amount_total: 23900,
-      customer_details: { email: 'jonathalimax@gmail.com' },
-      metadata: {
-        name: 'Jonatha Lima',
-      },
-    });
-
-    expect(mockAuthService.findOrCreateUser).toHaveBeenCalledWith({
-      clientId: 'jonathalimax',
-      email: 'jonathalimax@gmail.com',
-      name: 'Jonatha Lima',
-    });
   });
 
   it('activates premium from an approved Mercado Pago payment', async () => {
@@ -135,40 +108,15 @@ describe('PaymentsService', () => {
       },
     });
 
-    expect(mockAuthService.findOrCreateUser).toHaveBeenCalledWith({
-      clientId: 'jonathalimax',
-      email: 'buyer@example.com',
-      name: 'Buyer Example',
-    });
-  });
-
-  it('does not duplicate purchases or resend access email when the same provider payment is retried', async () => {
-    mockDb.select.mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([{
-          id: 'purchase-existing',
-          clientId: 'jonathalimax',
-          email: 'buyer@example.com',
-          status: 'approved',
-          paymentProvider: 'stripe',
-          providerPaymentId: 'cs_test_123',
-        }]),
-      }),
-    });
-
-    await service.handleStripeCheckoutCompleted({
-      id: 'cs_test_123',
-      payment_intent: 'pi_123',
-      amount_total: 23900,
-      customer_details: { email: 'buyer@example.com' },
-      metadata: {
+    expect(mockEntitlements.unlockPremiumAccess).toHaveBeenCalledWith(
+      expect.objectContaining({
         clientId: 'jonathalimax',
+        email: 'buyer@example.com',
         name: 'Buyer Example',
-      },
-    });
-
-    expect(mockDb.insert).not.toHaveBeenCalled();
-    expect(mockNotificationsService.sendAdminEmail).not.toHaveBeenCalled();
+        paymentProvider: 'mercadopago',
+        providerPaymentId: '998877',
+      }),
+    );
   });
 
   it('builds a Mercado Pago quote from pricing config and a percentage coupon', async () => {
@@ -197,9 +145,12 @@ describe('PaymentsService', () => {
             expiresAt: null,
           }]),
         }),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([]),
+        }),
       });
-
-    process.env.MERCADOPAGO_PUBLIC_KEY = 'TEST-public-key';
 
     await expect(service.createMercadoPagoQuote({
       email: 'buyer@example.com',
@@ -213,22 +164,105 @@ describe('PaymentsService', () => {
     });
   });
 
-  it('refuses Stripe checkout when wallet payments are disabled in pricing config', async () => {
-    mockDb.select.mockReturnValueOnce({
+  it('supports the legacy session endpoint wrapper', async () => {
+    mockDb.select
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([{
+            configKey: 'landing-pricing',
+            basePriceCents: 23880,
+            compareAtPriceCents: 47988,
+            installments: 12,
+            stripeWalletEnabled: true,
+            mercadopagoEnabled: true,
+          }]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([]),
+        }),
+      })
+      .mockReturnValueOnce({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue([]),
+        }),
+      });
+
+    const result = await service.createSession({
+      email: 'buyer@example.com',
+      name: 'Buyer Example',
+      whatsapp: '5511999999999',
+      couponCode: undefined,
+      utmSource: 'instagram',
+    });
+
+    expect(result).toEqual({
+      publicKey: 'TEST-public-key',
+      amount: 238.8,
+      baseAmount: 238.8,
+      couponCode: null,
+      installments: 12,
+    });
+  });
+
+  it('converts cents for the legacy process endpoint wrapper', async () => {
+    process.env.MP_ACCESS_TOKEN = 'test-access-token';
+    mockDb.select.mockReturnValue({
       from: jest.fn().mockReturnValue({
         where: jest.fn().mockResolvedValue([{
           configKey: 'landing-pricing',
           basePriceCents: 23880,
           compareAtPriceCents: 47988,
           installments: 12,
-          stripeWalletEnabled: false,
+          stripeWalletEnabled: true,
           mercadopagoEnabled: true,
         }]),
       }),
     });
 
-    await expect(service.createStripeCheckout({
+    jest.mocked(axios.post).mockResolvedValue({
+      data: {
+        id: 12345,
+        status: 'pending',
+        status_detail: null,
+        point_of_interaction: { transaction_data: {} },
+      },
+    } as any);
+
+    await service.processPayment({
+      transaction_amount: 23880,
+      installments: 1,
       email: 'buyer@example.com',
-    })).rejects.toThrow('Carteiras digitais estao desabilitadas no momento.');
+      name: 'Buyer Example',
+      whatsapp: '5511999999999',
+      couponCode: undefined,
+      payer: {},
+    });
+
+    expect(jest.mocked(axios.post)).toHaveBeenCalledWith(
+      'https://api.mercadopago.com/v1/payments',
+      expect.objectContaining({
+        transaction_amount: 238.8,
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('stores partial leads through the compatibility endpoint', async () => {
+    mockDb.select.mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue([]),
+      }),
+    });
+
+    await expect(service.savePartialLead({
+      email: 'buyer@example.com',
+      name: 'Buyer Example',
+      whatsapp: '5511999999999',
+      utmSource: 'instagram',
+    })).resolves.toEqual({ ok: true });
+
+    expect(mockDb.insert).toHaveBeenCalled();
   });
 });
