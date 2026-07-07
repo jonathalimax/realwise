@@ -7,9 +7,9 @@ import {
 } from '@/config/onboardingSteps';
 
 const STEP_ROUTES = {
-  account: '/cards',
   renda: '/planner',
-  transaction: '/transactions',
+  account: '/cards',
+  transaction: '/import',
 };
 
 function StepIndicator({ steps, currentIndex }) {

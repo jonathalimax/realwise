@@ -12,7 +12,7 @@
     "investments": true,
     "b3Sync": false,
     "whatsapp": false,
-    "goals": false,
+    "goals": true,
     "salaryBreakdown": true
   }
 }

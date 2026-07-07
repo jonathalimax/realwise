@@ -30,16 +30,16 @@ describe('ONBOARDING_STEPS', () => {
 });
 
 describe('step.isComplete', () => {
-  const [account, renda, transaction] = ONBOARDING_STEPS;
-
-  it('account step: complete when hasAccount is true', () => {
-    expect(account.isComplete({ hasAccount: true })).toBe(true);
-    expect(account.isComplete({ hasAccount: false })).toBe(false);
-  });
+  const [renda, account, transaction] = ONBOARDING_STEPS;
 
   it('renda step: complete when hasRenda is true', () => {
     expect(renda.isComplete({ hasRenda: true })).toBe(true);
     expect(renda.isComplete({ hasRenda: false })).toBe(false);
+  });
+
+  it('account step: complete when hasAccount is true', () => {
+    expect(account.isComplete({ hasAccount: true })).toBe(true);
+    expect(account.isComplete({ hasAccount: false })).toBe(false);
   });
 
   it('transaction step: complete when hasTransaction is true', () => {
@@ -60,11 +60,11 @@ describe('getFirstIncompleteIndex', () => {
     expect(getFirstIncompleteIndex(EMPTY_PROFILE)).toBe(0);
   });
 
-  it('returns 1 when only account is complete', () => {
-    expect(getFirstIncompleteIndex({ hasAccount: true, hasRenda: false, hasTransaction: false })).toBe(1);
+  it('returns 1 when only renda is complete', () => {
+    expect(getFirstIncompleteIndex({ hasAccount: false, hasRenda: true, hasTransaction: false })).toBe(1);
   });
 
-  it('returns 2 when account and renda are complete', () => {
+  it('returns 2 when renda and account are complete', () => {
     expect(getFirstIncompleteIndex({ hasAccount: true, hasRenda: true, hasTransaction: false })).toBe(2);
   });
 
@@ -93,7 +93,7 @@ describe('countCompletedSteps', () => {
   });
 
   it('counts partial completion correctly', () => {
-    expect(countCompletedSteps({ hasAccount: true, hasRenda: false, hasTransaction: false })).toBe(1);
+    expect(countCompletedSteps({ hasAccount: false, hasRenda: true, hasTransaction: false })).toBe(1);
     expect(countCompletedSteps({ hasAccount: true, hasRenda: true, hasTransaction: false })).toBe(2);
   });
 

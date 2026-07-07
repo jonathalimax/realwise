@@ -17,21 +17,21 @@
 
 export const ONBOARDING_STEPS = [
   {
-    id: 'account',
-    title: 'Adicione uma conta',
-    subtitle: 'Cadastre sua conta bancária ou cartão de crédito.',
-    isComplete: (profile) => Boolean(profile?.hasAccount),
-  },
-  {
     id: 'renda',
-    title: 'Configure sua renda',
-    subtitle: 'Informe seu salário bruto e deduções mensais.',
+    title: 'Configure seu planejamento',
+    subtitle: 'Adicione salário por mês, deduções e regras por porcentagem e por categoria.',
     isComplete: (profile) => Boolean(profile?.hasRenda),
   },
   {
+    id: 'account',
+    title: 'Adicione bancos e cartões',
+    subtitle: 'Cadastre suas contas bancárias e cartões para preparar a importação.',
+    isComplete: (profile) => Boolean(profile?.hasAccount),
+  },
+  {
     id: 'transaction',
-    title: 'Registre uma movimentação',
-    subtitle: 'Adicione uma receita ou despesa manualmente ou via importação.',
+    title: 'Importe seu extrato',
+    subtitle: 'Traga seu extrato para começar a categorizar e acompanhar seus dados reais.',
     isComplete: (profile) => Boolean(profile?.hasTransaction),
   },
 ];
