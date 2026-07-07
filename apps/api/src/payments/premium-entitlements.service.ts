@@ -1,6 +1,8 @@
 import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { purchases, users } from '../db/schema';
 import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -23,7 +25,7 @@ function resolveClientId(clientId: string | null | undefined, email: string): st
 @Injectable()
 export class PremiumEntitlementsService {
   constructor(
-    @Inject(DRIZZLE) private readonly db: any,
+    @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly authService: AuthService,
     private readonly notifications: NotificationsService,
   ) {}

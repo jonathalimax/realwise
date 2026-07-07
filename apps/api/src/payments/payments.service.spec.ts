@@ -228,7 +228,7 @@ describe('PaymentsService', () => {
         status_detail: null,
         point_of_interaction: { transaction_data: {} },
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof axios.post>>);
 
     await service.processPayment({
       transaction_amount: 23880,

@@ -2,7 +2,9 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import Stripe from 'stripe';
 import { eq, sql } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
+import * as schema from '../db/schema';
 import { coupons, leads, pricingConfig } from '../db/schema';
 import { CreatePartialLeadDto } from './dto/create-partial-lead.dto';
 import { CreatePaymentSessionDto } from './dto/create-payment-session.dto';
@@ -26,10 +28,12 @@ type MercadoPagoPaymentLike = {
   metadata?: Record<string, string | null | undefined> | null;
 };
 
+type CouponRow = typeof coupons.$inferSelect;
+
 @Injectable()
 export class PaymentsService {
   constructor(
-    @Inject(DRIZZLE) private readonly db: any,
+    @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly entitlements: PremiumEntitlementsService,
   ) {}
 
@@ -82,7 +86,7 @@ export class PaymentsService {
     return coupon;
   }
 
-  private calculateAmount(basePriceCents: number, coupon: any) {
+  private calculateAmount(basePriceCents: number, coupon: CouponRow | null) {
     if (!coupon) return basePriceCents;
 
     const rawValue = Number(coupon.discountValue ?? 0);
