@@ -16,7 +16,7 @@ export default function FooterSection() {
               <span className="font-semibold">Realwise</span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-500 leading-relaxed">
-              Seu sistema financeiro. Seus dados. Para sempre.
+              Comece grátis com o núcleo do app. Desbloqueie o Premium só se ele realmente ajudar você.
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">
               Jonatha Pereira Lima LTDA<br />
@@ -59,7 +59,7 @@ export default function FooterSection() {
         </div>
 
         <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 dark:text-slate-600">
-          <span>© 2026 Realwise. Feito com ❤️ por <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-900 dark:hover:text-white transition-colors">Jonatha Lima</a>.</span>
+          <span>© 2026 Realwise. Core gratuito, Premium opcional. Feito com ❤️ por <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-900 dark:hover:text-white transition-colors">Jonatha Lima</a>.</span>
           <div className="flex items-center gap-4">
             <a href="/privacidade" className="hover:text-slate-900 dark:hover:text-white transition-colors">
               Política de Privacidade

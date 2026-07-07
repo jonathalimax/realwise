@@ -16,28 +16,28 @@ import {
 
 const clusters = [
   {
-    title: 'Controle',
+    title: 'Sempre grátis',
     features: [
-      { icon: FileText, title: 'Contas e alertas', desc: 'Sem juros por esquecimento.' },
-      { icon: CreditCard, title: 'Cartões de crédito', desc: 'Saiba quando cada fatura vence.' },
-      { icon: PiggyBank, title: 'Planejador de renda', desc: 'Bruto, deduções, líquido real.' },
-      { icon: PieChart, title: 'Orçamento e metas', desc: 'Distribua a renda por categoria.' },
+      { icon: Upload, title: 'Importação simples', desc: 'Traga extratos e organize seu histórico em minutos.' },
+      { icon: BarChart3, title: 'Análise do que já aconteceu', desc: 'Veja gastos, entradas e categorias sem travas.' },
+      { icon: FileText, title: 'Entrada manual', desc: 'Registre tudo o que quiser, mesmo sem importar arquivos.' },
     ],
   },
   {
-    title: 'Inteligência',
+    title: 'Premium',
     features: [
-      { icon: BrainCircuit, title: 'Categorização que aprende', desc: 'Corrija uma vez. O app repete sozinho.' },
-      { icon: Upload, title: 'Importação simples', desc: 'Nubank, Itaú, Bradesco. Em minutos.' },
-      { icon: BarChart3, title: 'Análise de gastos', desc: 'Padrões e comparações por mês.' },
+      { icon: PiggyBank, title: 'Planejamento', desc: 'Descubra quanto ainda pode gastar com segurança.' },
+      { icon: CreditCard, title: 'Contas e acompanhamento', desc: 'Acompanhe vencimentos, recorrências e organização do mês.' },
+      { icon: PieChart, title: 'Investimentos e visão avançada', desc: 'Enxergue patrimônio, metas e decisões de longo prazo.' },
+      { icon: BrainCircuit, title: 'Automação que economiza tempo', desc: 'Mais contexto, menos trabalho manual no dia a dia.' },
     ],
   },
   {
     title: 'Privacidade',
     features: [
-      { icon: Shield, title: 'Dados no seu Google', desc: 'Ficam na sua conta. Não nos nossos servidores.' },
-      { icon: EyeOff, title: 'Sem IA para rastreamento', desc: 'Nenhum IA vê seus dados ou aprende com eles.' },
-      { icon: Database, title: 'Zero coleta de dados', desc: 'Nunca vendemos ou usamos seus dados.' },
+      { icon: Shield, title: 'Sem Open Banking', desc: 'Você não entrega sua senha bancária nem conecta sua conta diretamente.' },
+      { icon: EyeOff, title: 'Sem uso publicitário dos seus dados', desc: 'O foco é te ajudar a entender suas finanças, não te rastrear.' },
+      { icon: Database, title: 'Dados protegidos na infraestrutura Realwise', desc: 'Sua conta é privada e separada das demais, sem promessa enganosa de infra dedicada.' },
     ],
   },
 ];
@@ -54,10 +54,10 @@ export default function FeaturesSection() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-            Tudo em um só lugar.
+            Comece pelo essencial. Evolua quando precisar.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-            Privacidade, inteligência e controle — sem complicar.
+            O núcleo gratuito mostra o que aconteceu. O Premium ajuda você a decidir o que fazer daqui para frente.
           </p>
         </motion.div>
 

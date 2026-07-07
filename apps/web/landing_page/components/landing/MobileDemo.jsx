@@ -5,6 +5,16 @@ import { ArrowRight } from 'lucide-react';
 import { landingAnalytics } from '../../landingAnalytics';
 
 export default function MobileDemo({ onBuy }) {
+  const startFree = () => {
+    landingAnalytics.trackCtaClicked('Testar grátis', 'mobile-demo');
+    if (onBuy) {
+      onBuy();
+      return;
+    }
+    sessionStorage.setItem('__rw_show_login', '1');
+    window.location.href = '/login';
+  };
+
   return (
     <section data-section="mobile-demo" className="py-24 px-6">
       <div className="max-w-4xl mx-auto">
@@ -17,7 +27,7 @@ export default function MobileDemo({ onBuy }) {
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-3">Veja como funciona.</h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Dashboard em tempo real, importação automática e categorização inteligente.
+            Você já entra vendo movimentações, categorias e histórico. Premium fica para quem quer organizar o próximo passo.
           </p>
         </motion.div>
 
@@ -56,13 +66,10 @@ export default function MobileDemo({ onBuy }) {
         >
           <Button
             size="lg"
-            onClick={() => {
-              landingAnalytics.trackCtaClicked('Gostei! Quero testar', 'mobile-demo');
-              onBuy();
-            }}
+            onClick={startFree}
             className="px-8 py-3 bg-violet-600 hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600 rounded-full text-white font-medium transition-all duration-300 hover:scale-105"
           >
-            Gostei! Quero testar
+            Gostei! Quero testar grátis
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </motion.div>

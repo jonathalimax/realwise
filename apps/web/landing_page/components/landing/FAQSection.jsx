@@ -5,20 +5,20 @@ import { cn } from '@/lib/utils';
 
 const faqs = [
   {
-    question: 'Por que não é uma assinatura?',
-    answer: 'Apps de finanças não mudam toda semana — não faz sentido cobrar todo mês. Você compra uma vez, usa para sempre. Sem renovação, sem aumento de preço, sem dependência.',
+    question: 'O que eu posso usar de graça?',
+    answer: 'Você pode começar sem pagar para lançar transações manualmente, importar extratos e entender o que entrou, saiu e em quais categorias seu dinheiro foi parar.',
   },
   {
-    question: 'Vou realmente usar? Já abandonei outros apps.',
-    answer: 'Setup em 5 minutos. O dashboard mostra valor imediato — você vê seus padrões de gasto desde o primeiro dia. E sem mensalidade, você não tem culpa de "não usar o suficiente".',
+    question: 'O que entra no Premium?',
+    answer: 'Premium é para quem quer ir além do histórico: planejamento, contas, investimentos e a visão de quanto ainda pode gastar com segurança no mês.',
   },
   {
-    question: 'Como meus dados ficam seguros?',
-    answer: 'Seus dados vivem no seu próprio projeto Firebase (infraestrutura do Google). Realwise não tem servidor central com seus dados. Você controla as permissões e pode exportar quando quiser.',
+    question: 'O que acontece depois dos 45 dias?',
+    answer: 'Depois dos 45 dias, apenas os recursos premium ficam bloqueados. O núcleo gratuito continua funcionando normalmente para entrada manual, importação e leitura do histórico.',
   },
   {
-    question: 'Meus dados ficam presos ao Realwise?',
-    answer: 'Não. Seus dados vivem no seu próprio Firebase — você é o dono. Pode exportar, migrar ou acessar diretamente quando quiser. Sem dependência.',
+    question: 'Isso quer dizer que o app inteiro vira pago depois?',
+    answer: 'Não. A janela de 45 dias vale só para os recursos premium. A proposta é você continuar usando o básico sem fricção e decidir depois se quer subir de nível.',
   },
   {
     question: 'Funciona no celular?',
@@ -29,16 +29,16 @@ const faqs = [
     answer: 'Não. Realwise não faz Open Banking nem lê sua conta diretamente. Você importa seus extratos manualmente (CSV ou PDF do seu banco). Simples, seguro e sem nenhuma conexão direta com sua instituição financeira.',
   },
   {
+    question: 'Onde meus dados ficam?',
+    answer: 'Seus dados ficam protegidos na infraestrutura da Realwise e associados apenas à sua conta. O importante aqui é: não pedimos senha bancária, não conectamos direto ao seu banco e não vendemos seus dados para anúncio.',
+  },
+  {
     question: 'Preciso conectar meu banco?',
-    answer: 'Não precisa. Você baixa o extrato direto no site do seu banco (Nubank, Itaú, Bradesco e outros) e importa no Realwise em segundos. Sem senhas de banco, sem Open Banking, sem permissões bancárias.',
+    answer: 'Não precisa. Você baixa o extrato direto no site do seu banco e importa no Realwise em segundos. Sem senhas de banco, sem Open Banking, sem permissões bancárias.',
   },
   {
-    question: 'Diferença para Mobills, YNAB, Organizze?',
-    answer: 'Eles são assinatura — você paga enquanto usa. Realwise é compra única — você é dono. Seus dados ficam com você, não com eles. Em 30 anos, você gastaria R$3.600–14.400 com eles e R$479 conosco. Uma vez.',
-  },
-  {
-    question: 'E se eu não gostar?',
-    answer: '30 dias de garantia incondicional. Devolvo seu dinheiro, sem perguntar o porquê. O risco é meu, não seu.',
+    question: 'Como eu decido se vale pagar pelo Premium?',
+    answer: 'Se o básico já resolve seu controle, continue grátis. Se você quer organizar contas, planejar o mês, acompanhar investimentos e enxergar o quanto ainda pode gastar, aí o Premium passa a fazer sentido.',
   },
 ];
 
@@ -88,6 +88,9 @@ export default function FAQSection() {
           <h2 className="text-3xl sm:text-4xl font-bold">
             Perguntas frequentes.
           </h2>
+          <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">
+            Sem letra miúda: o que é grátis, o que é premium e quando cada parte faz sentido.
+          </p>
         </div>
 
         <div

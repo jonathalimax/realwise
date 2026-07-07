@@ -32,6 +32,16 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
   const [pricing] = useState(FALLBACK_PRICING);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
 
+  const startFree = () => {
+    landingAnalytics.trackCtaClicked('Começar grátis pelo premium', 'pricing');
+    if (onBuy) {
+      onBuy();
+      return;
+    }
+    sessionStorage.setItem('__rw_show_login', '1');
+    window.location.href = '/login';
+  };
+
   // If couponCode is passed via URL, use it
   useEffect(() => {
     if (couponCode && !appliedCoupon) {
@@ -66,10 +76,10 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
-            Pague uma vez. Sem assinatura.
+            Premium para quem quer ir além.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Sem mensalidade e sem renovação. Você compra o acesso e ele é seu.
+            Entrada manual e importação já ficam liberadas. O Premium entra quando você quiser planejamento, contas, investimentos e visão de saldo disponível.
           </p>
         </motion.div>
 
@@ -86,7 +96,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
               <div className="text-center space-y-3">
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50 text-sm font-medium text-violet-700 dark:text-violet-300">
-                    Pagamento único
+                    Premium opcional
                   </span>
                   {appliedCoupon && (
                     <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50 text-sm font-bold text-rose-600 dark:text-rose-400">
@@ -121,12 +131,27 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
                 ))}
               </ul>
 
+              <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-5 space-y-2">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  O que continua grátis
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Entrada manual, importação de extratos e visão do que entrou, saiu e em quais categorias.
+                </p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white pt-2">
+                  O que o Premium desbloqueia
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Planejamento, contas, investimentos e a resposta para “quanto ainda posso gastar?”.
+                </p>
+              </div>
+
               <Button
                 size="lg"
-                onClick={() => { landingAnalytics.trackCtaClicked('Sim, Quero Acesso', 'pricing'); onBuy(); }}
+                onClick={startFree}
                 className="w-full h-14 px-8 text-base bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Sim, Quero Acesso
+                Começar grátis
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
@@ -152,7 +177,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8"
         >
-          Suporte, correções e melhorias incluídos. Novas funcionalidades são upgrades opcionais — você decide se quer.
+          Os recursos premium ficam liberados por 45 dias para você experimentar sem bloquear o uso básico do app.
         </motion.p>
       </div>
     </section>

@@ -34,7 +34,7 @@ export default function Header() {
             onClick={() => { sessionStorage.setItem('__rw_show_login', '1'); window.location.href = '/login'; }}
             className="h-9 px-4 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
-            Login
+            Começar grátis
           </button>
         </div>
       </div>
