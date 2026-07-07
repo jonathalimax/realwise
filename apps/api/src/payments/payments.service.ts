@@ -30,6 +30,14 @@ type MercadoPagoPaymentLike = {
 
 type CouponRow = typeof coupons.$inferSelect;
 
+function asMetadataRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  return {};
+}
+
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -125,6 +133,7 @@ export class PaymentsService {
       .where(eq(leads.email, input.email));
 
     const existing = rows[0];
+    const existingMetadata = asMetadataRecord(existing?.metadata);
     const metadata = {
       source: 'payments-api',
       clientId: input.clientId ?? null,
@@ -132,7 +141,7 @@ export class PaymentsService {
       feature: input.feature ?? null,
       whatsapp: input.whatsapp ?? null,
       utmSource: input.utmSource ?? null,
-      ...(existing?.metadata ?? {}),
+      ...existingMetadata,
     };
 
     if (existing?.id) {
