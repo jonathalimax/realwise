@@ -33,6 +33,14 @@ export async function fetchClientConfig(clientId, signal) {
   return response.json();
 }
 
+export function resolveRuntimeConfigId({ isDev, clientEnv }) {
+  if (isDev) {
+    return clientEnv || 'app';
+  }
+
+  return 'app';
+}
+
 /**
  * Builds a config object from Vite env vars.
  * Used in development so we don't need a /clients/app.json locally.
@@ -40,14 +48,6 @@ export async function fetchClientConfig(clientId, signal) {
 export function buildDevConfig() {
   return {
     clientName: 'Dev',
-    firebase: {
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    },
     features: {
       investments: true,
       b3Sync: true,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { extractClientId, fetchClientConfig, buildDevConfig } from './clientConfig';
+import { extractClientId, fetchClientConfig, resolveRuntimeConfigId, buildDevConfig } from './clientConfig';
 
 describe('extractClientId', () => {
   it('extracts subdomain from a tenant hostname', () => {
@@ -41,7 +41,7 @@ describe('fetchClientConfig', () => {
   });
 
   it('returns parsed JSON when response is ok', async () => {
-    const mockConfig = { clientName: 'Test', firebase: {}, features: {} };
+    const mockConfig = { clientName: 'Test', features: {} };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       headers: { get: () => 'application/json' },
@@ -62,14 +62,25 @@ describe('fetchClientConfig', () => {
 });
 
 describe('buildDevConfig', () => {
-  it('returns an object with firebase keys and features shape', () => {
+  it('returns an object with shared client config shape', () => {
     const config = buildDevConfig();
     expect(config).toHaveProperty('clientName');
-    expect(config).toHaveProperty('firebase');
     expect(config).toHaveProperty('features');
-    const firebaseKeys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-    firebaseKeys.forEach(key => expect(config.firebase).toHaveProperty(key));
     const featureKeys = ['investments', 'b3Sync', 'whatsapp', 'goals', 'salaryBreakdown'];
     featureKeys.forEach(key => expect(config.features).toHaveProperty(key));
+  });
+});
+
+describe('resolveRuntimeConfigId', () => {
+  it('uses the dev client env when running locally', () => {
+    expect(resolveRuntimeConfigId({ isDev: true, clientEnv: 'sandbox' })).toBe('sandbox');
+  });
+
+  it('falls back to app in dev when no override is provided', () => {
+    expect(resolveRuntimeConfigId({ isDev: true, clientEnv: '' })).toBe('app');
+  });
+
+  it('always uses the shared app config in production', () => {
+    expect(resolveRuntimeConfigId({ isDev: false, clientEnv: 'jonathalimax' })).toBe('app');
   });
 });
