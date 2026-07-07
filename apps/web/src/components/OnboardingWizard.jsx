@@ -7,8 +7,8 @@ import {
 } from '@/config/onboardingSteps';
 
 const STEP_ROUTES = {
-  renda: '/planner',
-  account: '/cards',
+  renda: '/planning',
+  account: '/banks',
   transaction: '/import',
 };
 

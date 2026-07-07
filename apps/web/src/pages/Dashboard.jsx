@@ -18,7 +18,8 @@ import PlannerSummaryCard from '../components/PlannerSummaryCard';
 import ExpensesByCategoryCard from '../components/ExpensesByCategoryCard';
 import TrendChart from '../components/charts/TrendChart';
 import PageHeader from '../components/PageHeader';
-import TutorialModal from '../components/TutorialModal';
+import OnboardingWizard from '../components/OnboardingWizard';
+import { useOnboardingProfile } from '../hooks/useOnboardingProfile';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
 export default function DashboardPage() {
@@ -29,13 +30,13 @@ export default function DashboardPage() {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [showFabMenu, setShowFabMenu] = useState(false);
-  const [tutorialDismissed, setTutorialDismissed] = useState(false);
   const { selectedMonth } = useMonth();
   const [viewMode] = useState('payment');
-  const { t, language, tutorialCompleted, loading: settingsLoading } = useSettings();
+  const { t, language } = useSettings();
   const { canWrite, ownerId, loading: accessLoading } = useAccess();
   const { getPaymentMonthKey, loading: cardsLoading } = useCards();
   const { transactions, loading: transactionsLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
+  const { profile: onboardingProfile } = useOnboardingProfile();
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
     transactions, selectedMonth, viewMode, getPaymentMonthKey
   );
@@ -53,8 +54,6 @@ export default function DashboardPage() {
   };
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  const showTutorial = !settingsLoading && !tutorialCompleted && !tutorialDismissed;
 
   // Dashboard is hydrating until access resolves an owner, cards finish loading,
   // and the first transactions snapshot lands. Gating here prevents the
@@ -116,6 +115,8 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
+        <OnboardingWizard profile={onboardingProfile} />
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Left Column - Main Charts */}
@@ -236,12 +237,6 @@ export default function DashboardPage() {
       <BillModal
         isOpen={showBillModal}
         onClose={() => setShowBillModal(false)}
-      />
-
-      <TutorialModal
-        isOpen={showTutorial}
-        onClose={() => setTutorialDismissed(true)}
-        isFirstTime={true}
       />
 
       <style>{`
