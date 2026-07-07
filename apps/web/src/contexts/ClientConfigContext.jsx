@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { extractClientId, fetchClientConfig } from '../config/clientConfig';
+import { fetchClientConfig, resolveRuntimeConfigId } from '../config/clientConfig';
 import { devMark } from '../lib/devMarker';
 import { ClientConfigError } from '../components/ClientConfigError';
 
@@ -17,8 +17,8 @@ function classifyError(err) {
     if (status === 404) return { code: 'NOT_FOUND', message: msg };
     return { code: 'HTTP_ERROR', message: msg };
   }
-  // Firebase Hosting serves index.html (200 + text/html) for missing files —
-  // content-type mismatch here means the config file simply doesn't exist.
+  // A SPA host may serve index.html (200 + text/html) for missing files.
+  // Treat that mismatch as "config missing" rather than a parse failure.
   if (msg.includes('unexpected content-type') || err instanceof SyntaxError) {
     return { code: 'NOT_FOUND', message: msg };
   }
@@ -50,16 +50,11 @@ export function ClientConfigProvider({ children }) {
     async function load() {
       try {
         devMark('ClientConfig: load() start');
-        let cfg;
-        if (import.meta.env.DEV) {
-          const clientEnv = import.meta.env.VITE_CLIENT_ENV || 'app';
-          cfg = await fetchClientConfig(clientEnv, controller.signal);
-        } else {
-          const clientId = extractClientId(window.location.hostname)
-            || window.location.pathname.split('/').filter(Boolean)[0];
-          if (!clientId) return;
-          cfg = await fetchClientConfig(clientId, controller.signal);
-        }
+        const configId = resolveRuntimeConfigId({
+          isDev: import.meta.env.DEV,
+          clientEnv: import.meta.env.VITE_CLIENT_ENV,
+        });
+        const cfg = await fetchClientConfig(configId, controller.signal);
         devMark('ClientConfig: loaded');
         if (isMounted.current) {
           setConfig(cfg);
