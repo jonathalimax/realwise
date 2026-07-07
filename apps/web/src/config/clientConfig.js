@@ -52,7 +52,6 @@ export function buildDevConfig() {
       investments: true,
       b3Sync: true,
       whatsapp: true,
-      goals: true,
       salaryBreakdown: true,
     },
   };

@@ -5,7 +5,6 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
-import { useFeature } from '../contexts/ClientConfigContext';
 import { useMonth } from '../contexts/MonthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import useTransactions from '../hooks/useTransactions';
@@ -15,7 +14,6 @@ import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
 import CardsModal from '../components/CardsModal';
 import TransactionModal from '../components/TransactionModal';
 import BillModal from '../components/BillModal';
-import GoalProgress from '../components/GoalProgress';
 import PlannerSummaryCard from '../components/PlannerSummaryCard';
 import ExpensesByCategoryCard from '../components/ExpensesByCategoryCard';
 import TrendChart from '../components/charts/TrendChart';
@@ -36,7 +34,6 @@ export default function DashboardPage() {
   const [viewMode] = useState('payment');
   const { t, language, tutorialCompleted, loading: settingsLoading } = useSettings();
   const { canWrite, ownerId, loading: accessLoading } = useAccess();
-  const hasGoals = useFeature('goals');
   const { getPaymentMonthKey, loading: cardsLoading } = useCards();
   const { transactions, loading: transactionsLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
@@ -145,9 +142,6 @@ export default function DashboardPage() {
 
           {/* Right Column - Summary Cards */}
           <div className="space-y-4 md:space-y-6">
-            {/* My Goals Progress - only when feature is enabled */}
-            {hasGoals && <GoalProgress onManageGoals={() => navigate('/goals')} />}
-
             {/* Planner allocation summary */}
             <PlannerSummaryCard />
 

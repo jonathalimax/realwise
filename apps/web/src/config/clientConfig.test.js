@@ -66,7 +66,7 @@ describe('buildDevConfig', () => {
     const config = buildDevConfig();
     expect(config).toHaveProperty('clientName');
     expect(config).toHaveProperty('features');
-    const featureKeys = ['investments', 'b3Sync', 'whatsapp', 'goals', 'salaryBreakdown'];
+    const featureKeys = ['investments', 'b3Sync', 'whatsapp', 'salaryBreakdown'];
     featureKeys.forEach(key => expect(config.features).toHaveProperty(key));
   });
 });

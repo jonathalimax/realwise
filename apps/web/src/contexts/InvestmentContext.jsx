@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useAccess } from './AccessContext';
 import { transactionsResource } from '../lib/api/resources/transactions';
 import { investmentsResource } from '../lib/api/resources/investments';
-import { goalsResource } from '../lib/api/resources/goals';
 
 const InvestmentContext = createContext();
 
@@ -432,7 +431,7 @@ export function InvestmentProvider({ children }) {
 
   // Withdraw from investment
   const withdrawFromInvestment = async (investmentId, amount, options = {}) => {
-    const { goalId = null, createTransaction = true, withdrawDate = null } = options;
+    const { createTransaction = true, withdrawDate = null } = options;
 
     if (!ownerId) {
       console.error('No authenticated owner');
@@ -486,20 +485,6 @@ export function InvestmentProvider({ children }) {
           investmentId,
           isWithdrawal: true,
         });
-      }
-
-      // Update goal if specified
-      if (goalId) {
-        try {
-          const goalData = await goalsResource.get(goalId);
-          const newGoalAmount = (goalData.currentAmount || 0) + amount;
-          await goalsResource.update(goalId, {
-            currentAmount: newGoalAmount,
-            completed: newGoalAmount >= goalData.targetAmount
-          });
-        } catch (error) {
-          console.error('Error updating linked goal after withdrawal:', error);
-        }
       }
 
       return { success: true, isFullWithdrawal };

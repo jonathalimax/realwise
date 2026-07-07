@@ -33,7 +33,6 @@ const ImportPage = lazy(() => import('./pages/Import'));
 const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlanningPage = lazy(() => import('./pages/Planning'));
 const BanksPage = lazy(() => import('./pages/Banks'));
-const GoalsPage = lazy(() => import('./pages/Goals'));
 const InvestmentsPage = lazy(() => import('./pages/Investments'));
 const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 
@@ -62,7 +61,6 @@ function RedirectToGlobalLogin() {
 }
 
 function AuthenticatedApp() {
-  const hasGoals = useFeature('goals');
   const hasInvestments = useFeature('investments');
 
   return (
@@ -110,7 +108,6 @@ function AuthenticatedApp() {
                             <Route path="notifications" element={<NotificationsPage />} />
                             <Route path="import" element={<ImportPage />} />
                             <Route path="banks" element={<BanksPage />} />
-                            {hasGoals && <Route path="goals" element={<GoalsPage />} />}
                             {hasInvestments && (
                               <>
                                 <Route

@@ -2,7 +2,6 @@ export interface ClientConfig {
   clientId: string;
   features: {
     investments: boolean;
-    goals: boolean;
     b3Sync: boolean;
     whatsapp: boolean;
     salaryBreakdown: boolean;
