@@ -14,6 +14,10 @@ function buildCheckoutPath(currentUser) {
     params.set('name', currentUser.displayName);
   }
 
+  if (currentUser?.clientId) {
+    params.set('clientId', currentUser.clientId);
+  }
+
   return `/checkout${params.toString() ? `?${params.toString()}` : ''}`;
 }
 

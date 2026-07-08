@@ -1,7 +1,5 @@
 import { useEffect } from 'react';
-import { buildStripeCheckoutUrl } from '../lib/payments/buildStripeCheckoutUrl';
-
-const STRIPE_PAYMENT_LINK_URL = import.meta.env.VITE_STRIPE_PAYMENT_LINK_URL || '';
+import { resolveApiBaseUrl } from '../lib/api/client';
 
 export default function CheckoutRedirect() {
   useEffect(() => {
@@ -9,20 +7,53 @@ export default function CheckoutRedirect() {
     const email = params.get('email') || '';
     const name = params.get('name') || '';
     const coupon = params.get('coupon') || '';
-    const stripeUrl = params.get('stripeUrl') || STRIPE_PAYMENT_LINK_URL;
+    const clientId = params.get('clientId') || '';
+    const apiBaseUrl = resolveApiBaseUrl();
 
-    const checkoutUrl = buildStripeCheckoutUrl(stripeUrl, { email, name, coupon });
-
-    if (checkoutUrl) {
-      window.location.replace(checkoutUrl);
+    if (!apiBaseUrl || !email) {
+      return;
     }
-  }, []);
 
-  const hasStripeLink = Boolean(STRIPE_PAYMENT_LINK_URL || new URLSearchParams(window.location.search).get('stripeUrl'));
+    fetch(`${apiBaseUrl.replace(/\/$/, '')}/payments/session`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        name,
+        couponCode: coupon || undefined,
+        clientId: clientId || undefined,
+      }),
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data?.message || data?.error || 'Nao foi possivel iniciar o checkout.');
+        }
+        return data;
+      })
+      .then((data) => {
+        if (data?.url) {
+          window.location.replace(data.url);
+          return;
+        }
+
+        throw new Error('Checkout sem URL de redirecionamento.');
+      })
+      .catch(() => {
+        window.location.replace(`${window.location.origin}/?checkout_error=1`);
+      });
+  }, []);
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get('email') || '';
+  const apiBaseUrl = resolveApiBaseUrl();
+  const canStartCheckout = Boolean(apiBaseUrl && email);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center gap-4">
-      {hasStripeLink ? (
+      {canStartCheckout ? (
         <>
           <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-gray-600 dark:text-gray-300 text-sm">
@@ -35,7 +66,7 @@ export default function CheckoutRedirect() {
             Checkout premium ainda nao configurado
           </p>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            Defina `VITE_STRIPE_PAYMENT_LINK_URL` ou envie `stripeUrl` na rota para concluir o checkout premium no Stripe.
+            Verifique `VITE_API_BASE_URL` e confirme que o endpoint `POST /payments/session` esta disponivel.
           </p>
         </div>
       )}
