@@ -15,6 +15,7 @@ import { MonthProvider } from './contexts/MonthContext';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
+import PremiumFeatureGate from './components/premium/PremiumFeatureGate';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
@@ -94,15 +95,37 @@ function AuthenticatedApp() {
                             <Route path="notifications" element={<NotificationsPage />} />
                             <Route path="import" element={<ImportPage />} />
                             <Route path="banks" element={<BanksPage />} />
-                            {hasGoals && <Route path="goals" element={<GoalsPage />} />}
-                            {hasInvestments && (
-                              <>
-                                <Route path="investments" element={<InvestmentsPage />} />
-                                <Route path="investments/new" element={<InvestmentForm />} />
-                                <Route path="investments/:id/edit" element={<InvestmentForm />} />
-                                <Route path="investments/:id/withdraw" element={<InvestmentForm />} />
-                              </>
-                            )}
+                            <Route
+                              path="goals"
+                              element={
+                                hasGoals ? (
+                                  <GoalsPage />
+                                ) : (
+                                  <PremiumFeatureGate
+                                    title="Metas avancadas fazem parte do Premium"
+                                    description="As metas e o acompanhamento mais profundo de objetivos financeiros ficam no Premium depois do periodo de acesso experimental."
+                                    featureName="Metas, objetivos e acompanhamento avancado"
+                                  />
+                                )
+                              }
+                            />
+                            <Route
+                              path="investments"
+                              element={
+                                hasInvestments ? (
+                                  <InvestmentsPage />
+                                ) : (
+                                  <PremiumFeatureGate
+                                    title="Investimentos agora fazem parte do Premium"
+                                    description="Acompanhamento de investimentos, carteira e analise mais profunda de patrimonio ficam no Premium."
+                                    featureName="Carteira e acompanhamento de investimentos"
+                                  />
+                                )
+                              }
+                            />
+                            <Route path="investments/new" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/investments" replace />} />
+                            <Route path="investments/:id/edit" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/investments" replace />} />
+                            <Route path="investments/:id/withdraw" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/investments" replace />} />
                           </Route>
                           <Route path="*" element={<Navigate to="/dashboard" replace />} />
                         </Routes>

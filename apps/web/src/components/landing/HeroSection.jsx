@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { ArrowRight, Monitor, Smartphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -39,11 +39,7 @@ export default function HeroSection() {
       <div className="hidden sm:block absolute bottom-1/4 right-1/4 w-80 h-80 bg-slate-200/30 dark:bg-slate-500/10 rounded-full blur-3xl" />
       
       <div className="relative z-10 max-w-5xl mx-auto text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <div>
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -68,7 +64,7 @@ export default function HeroSection() {
 
           {/* CTA */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-10 sm:mb-16">
-            <Link to="/checkout">
+            <Link to="/login">
               <Button
                 size="lg"
                 className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
@@ -83,12 +79,7 @@ export default function HeroSection() {
           </div>
 
           {/* Device mockup hint */}
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="flex items-center justify-center gap-6 text-slate-400 dark:text-slate-500"
-          >
+          <div className="flex items-center justify-center gap-6 text-slate-400 dark:text-slate-500">
             <div className="flex items-center gap-2">
               <Monitor className="h-5 w-5" />
               <span className="text-sm">{t('hero.desktop')}</span>
@@ -98,16 +89,11 @@ export default function HeroSection() {
               <Smartphone className="h-5 w-5" />
               <span className="text-sm">{t('hero.mobile')}</span>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* App Preview - Real Screenshots Carousel */}
-        <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-20 relative"
-        >
+        <div className="mt-20 relative">
           <div className="relative mx-auto max-w-5xl">
             {/* Desktop mockup */}
             <div className="rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/20 dark:shadow-black/40 border border-slate-200 dark:border-slate-700 bg-slate-900">
@@ -120,7 +106,7 @@ export default function HeroSection() {
                 </div>
                 <div className="flex-1 mx-4">
                   <div className="max-w-md mx-auto h-6 rounded-md bg-slate-700 flex items-center px-3">
-                    <span className="text-xs text-slate-400">realwisewallet.com</span>
+                    <span className="text-xs text-slate-400">realwise.com.br</span>
                   </div>
                 </div>
               </div>
@@ -128,7 +114,7 @@ export default function HeroSection() {
               {/* Screenshot carousel */}
               <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
                 <AnimatePresence mode="wait">
-                  <motion.img
+                  <img
                     key={currentIndex}
                     src={screenshots[currentIndex].src}
                     alt={screenshots[currentIndex].alt}
@@ -178,7 +164,7 @@ export default function HeroSection() {
             <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-emerald-400/20 rounded-full blur-3xl" />
             <div className="absolute -top-4 -left-4 w-40 h-40 bg-teal-400/20 rounded-full blur-3xl" />
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

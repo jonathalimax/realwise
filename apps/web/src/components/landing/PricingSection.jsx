@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Check, Heart, ArrowRight, Globe, Lock, Infinity } from 'lucide-react';
+import { Check, Heart, ArrowRight, Globe, Lock, Infinity as InfinityIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/LanguageToggle';
 import { Link } from 'react-router-dom';
@@ -28,13 +27,7 @@ export default function PricingSection() {
   return (
     <section id="pricing" className="py-16 sm:py-32 px-4 sm:px-6 bg-slate-50/50 dark:bg-slate-900/50">
       <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
+        <div className="text-center mb-16">
           <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-3 tracking-wide uppercase">
             {t('pricing.label')}
           </p>
@@ -44,15 +37,9 @@ export default function PricingSection() {
           <p className="text-lg text-slate-600 dark:text-slate-400">
             {t('pricing.subtitle')}
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="relative"
-        >
+        <div className="relative">
           {/* Main pricing card */}
           <div className="relative rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 overflow-hidden">
             {/* Gradient accent */}
@@ -95,7 +82,7 @@ export default function PricingSection() {
                     )}
                     <span className="text-slate-500 dark:text-slate-400 text-sm">{t('pricing.onetime')}</span>
                   </div>
-                  <Link to="/checkout">
+                  <Link to="/login">
                     <Button
                       size="lg"
                       className="w-full lg:w-auto h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
@@ -111,16 +98,10 @@ export default function PricingSection() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Why Choose Us section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mt-16"
-        >
+        <div className="mt-16">
           <h3 className="text-xl font-bold mb-6 text-center">{t('pricing.why.title')}</h3>
           <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
             <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -134,7 +115,7 @@ export default function PricingSection() {
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why2.desc')}</p>
             </div>
             <div className="text-center p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <Infinity className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+              <InfinityIcon className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
               <p className="font-bold text-slate-700 dark:text-slate-200">{t('pricing.why3.title')}</p>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">{t('pricing.why3.desc')}</p>
             </div>
@@ -145,7 +126,7 @@ export default function PricingSection() {
               {t('pricing.note')}
             </p>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

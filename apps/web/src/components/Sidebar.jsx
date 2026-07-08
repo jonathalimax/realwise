@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
+import { useFeature } from '../contexts/ClientConfigContext';
 import {
   HomeIcon,
   BanknotesIcon,
@@ -140,8 +141,8 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { language } = useSettings();
-  const navigate = useNavigate();
   const { currentUser } = useAccess();
+  const hasInvestments = useFeature('investments');
 
   const navigationGroups = useMemo(() => [
     {
@@ -159,11 +160,11 @@ export default function Sidebar() {
       labelPt: 'Planejar',
       items: [
         { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
-        { name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: CalendarDaysIcon },
+        { name: hasInvestments ? 'Investments' : 'Investments (Premium)', namePt: hasInvestments ? 'Investimentos' : 'Investimentos (Premium)', href: '/investments', icon: CalendarDaysIcon },
         { name: 'Banks', namePt: 'Bancos', href: '/banks', icon: BuildingLibraryIcon },
       ],
     },
-  ], []);
+  ], [hasInvestments]);
 
   useEffect(() => {
     const handleToggle = () => setMobileOpen(prev => !prev);

@@ -3,9 +3,9 @@ export const ptTranslations = {
   'hero.badge': 'Finanças pessoais simplificadas',
   'hero.headline1': 'Acompanhe, planeje e expanda',
   'hero.headline2': 'suas finanças',
-  'hero.subheadline': 'Um rastreador de finanças simples e privado que ajuda você a gerenciar, acompanhar e analisar seu dinheiro—sem IA e com total transparência.',
-  'hero.cta': 'Começar Agora',
-  'hero.note': 'Compra única. Sem assinaturas.',
+  'hero.subheadline': 'Comece gratis para registrar e entender sua movimentacao. Quando quiser planejamento, importacao e recursos mais avancados, voce desbloqueia o Premium.',
+  'hero.cta': 'Comecar gratis',
+  'hero.note': 'Entrada manual gratis. Premium so para recursos avancados.',
   'hero.desktop': 'Desktop',
   'hero.mobile': 'Mobile',
 

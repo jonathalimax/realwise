@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -13,12 +12,7 @@ export default function FooterSection() {
       {/* Final CTA Section */}
       <section className="py-16 sm:py-32 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div>
             <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-4 sm:mb-6 leading-tight">
               {t('footer.title')}
               <br />
@@ -29,7 +23,7 @@ export default function FooterSection() {
             <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-400 mb-6 sm:mb-10 max-w-xl mx-auto">
               {t('footer.desc')}
             </p>
-            <Link to="/checkout">
+            <Link to="/login">
               <Button
                 size="lg"
                 className="h-12 sm:h-16 px-8 sm:px-12 text-base sm:text-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/40"
@@ -38,7 +32,7 @@ export default function FooterSection() {
                 <ArrowRight className="ml-3 h-6 w-6" />
               </Button>
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
 

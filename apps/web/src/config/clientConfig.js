@@ -48,6 +48,7 @@ export function resolveRuntimeConfigId({ isDev, clientEnv }) {
 export function buildDevConfig() {
   return {
     clientName: 'Dev',
+    stripePaymentLinkUrl: import.meta.env.VITE_STRIPE_PAYMENT_LINK_URL || '',
     features: {
       investments: true,
       b3Sync: true,
