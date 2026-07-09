@@ -33,7 +33,6 @@ const ImportPage = lazy(() => import('./pages/Import'));
 const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlanningPage = lazy(() => import('./pages/Planning'));
 const BanksPage = lazy(() => import('./pages/Banks'));
-const GoalsPage = lazy(() => import('./pages/Goals'));
 const InvestmentsPage = lazy(() => import('./pages/Investments'));
 const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 
@@ -62,7 +61,6 @@ function RedirectToGlobalLogin() {
 }
 
 function AuthenticatedApp() {
-  const hasGoals = useFeature('goals');
   const hasInvestments = useFeature('investments');
 
   return (
@@ -99,15 +97,11 @@ function AuthenticatedApp() {
                             <Route
                               path="goals"
                               element={
-                                hasGoals ? (
-                                  <GoalsPage />
-                                ) : (
-                                  <PremiumFeatureGate
-                                    title="Metas avancadas fazem parte do Premium"
-                                    description="As metas e o acompanhamento mais profundo de objetivos financeiros ficam no Premium depois do periodo de acesso experimental."
-                                    featureName="Metas, objetivos e acompanhamento avancado"
-                                  />
-                                )
+                                <PremiumFeatureGate
+                                  title="Metas avancadas fazem parte do Premium"
+                                  description="As metas e o acompanhamento mais profundo de objetivos financeiros ficam no Premium depois do periodo de acesso experimental."
+                                  featureName="Metas, objetivos e acompanhamento avancado"
+                                />
                               }
                             />
                             <Route

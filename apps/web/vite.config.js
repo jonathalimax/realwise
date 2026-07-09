@@ -2,17 +2,19 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
-import { readFileSync, copyFileSync } from 'node:fs'
+import { readFileSync, copyFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 function copyStaticPages() {
   return {
     name: 'copy-static-pages',
     closeBundle() {
-      copyFileSync(
-        resolve(process.cwd(), 'public/sales-card.html'),
-        resolve(process.cwd(), 'dist/sales-card.html')
-      );
+      const source = resolve(__dirname, 'public/sales-card.html');
+      const destination = resolve(__dirname, 'dist/sales-card.html');
+
+      if (!existsSync(source)) return;
+
+      copyFileSync(source, destination);
     },
   };
 }
