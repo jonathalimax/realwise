@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { authApi } from '../lib/api/auth';
 import { resolveApiBaseUrl } from '../lib/api/client';
 import { clearLoginSession, isLoginSessionExpired } from '../lib/auth/sessionAge';
+import { resolveLoginClientId } from '../lib/auth/loginClient';
 
 const API_BASE_URL = resolveApiBaseUrl();
 
@@ -88,8 +89,16 @@ export default function SharedLogin() {
   const handleGoogleSignIn = () => {
     setError('');
     setLoading(true);
-    const authUrl = API_BASE_URL ? `${API_BASE_URL.replace(/\/$/, '')}/auth/google` : '/auth/google';
-    window.location.href = authUrl;
+    const clientId = resolveLoginClientId({
+      search: window.location.search,
+      pathname: window.location.pathname,
+      storedClientId: localStorage.getItem('rw_last_client') || '',
+    });
+    const authUrl = new URL(API_BASE_URL ? `${API_BASE_URL.replace(/\/$/, '')}/auth/google` : '/auth/google', window.location.origin);
+    if (clientId) {
+      authUrl.searchParams.set('clientId', clientId);
+    }
+    window.location.href = authUrl.toString();
   };
 
   return (

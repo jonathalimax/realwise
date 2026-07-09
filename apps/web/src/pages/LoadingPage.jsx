@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoginLoader from '../components/LoginLoader';
+import { buildLoginRedirectUrl } from '../lib/auth/loginClient';
 import { markLoginSession } from '../lib/auth/sessionAge';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,7 +19,8 @@ export default function LoadingPage() {
     }
 
     if (status === 'unauthenticated') {
-      window.location.href = '/login';
+      const storedClientId = localStorage.getItem('rw_last_client') || '';
+      window.location.href = buildLoginRedirectUrl(window.location.pathname, storedClientId);
     }
   }, [status, user]);
 

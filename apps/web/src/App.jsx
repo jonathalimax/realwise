@@ -16,6 +16,7 @@ import AppErrorBoundary from './components/AppErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
 import PremiumFeatureGate from './components/premium/PremiumFeatureGate';
+import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
@@ -55,7 +56,8 @@ function AuthenticatedShell({ children }) {
 
 function RedirectToGlobalLogin() {
   useEffect(() => {
-    window.location.replace('/login');
+    const storedClientId = localStorage.getItem('rw_last_client') || '';
+    window.location.replace(buildLoginRedirectUrl(window.location.pathname, storedClientId));
   }, []);
   return null;
 }
