@@ -164,6 +164,22 @@ function safeRedirect(res: Response, location: string): void {
   res.redirect(location);
 }
 
+function buildInternalAuthErrorContext(error: unknown): string {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}`;
+  }
+
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim();
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'unknown_internal_auth_error';
+  }
+}
+
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
@@ -244,7 +260,8 @@ export class AuthController {
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
         return safeRedirect(res, `${frontend}/${resolvedClientId}/dashboard`);
-      } catch {
+      } catch (error) {
+        this.logger.error(`Google OAuth callback internal failure: ${buildInternalAuthErrorContext(error)}`);
         return safeRedirect(res, `${frontend}/login?error=server`);
       }
     })(req, res, next);
@@ -311,7 +328,8 @@ export class AuthController {
         const { accessToken, refreshToken } = await this.authService.issueTokens(user);
         this.setTokenCookies(res, accessToken, refreshToken);
         return safeRedirect(res, `${frontend}/${resolvedClientId}/dashboard`);
-      } catch {
+      } catch (error) {
+        this.logger.error(`Apple OAuth callback internal failure: ${buildInternalAuthErrorContext(error)}`);
         return safeRedirect(res, `${frontend}/login?error=server`);
       }
     })(req, res, next);

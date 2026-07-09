@@ -175,6 +175,30 @@ describe('AuthController', () => {
       expect(res.redirect).not.toHaveBeenCalledWith('http://localhost:5173/login?error=server');
     });
 
+    it('logs the internal callback error before redirecting with server error', async () => {
+      const req = { cookies: { oauth_state: 'nonce-1' } } as unknown as Request;
+      const res = mockRes();
+      const next = jest.fn();
+      const state = buildSignedState(fakeUser.clientId, 'nonce-1');
+      const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
+      (passport.authenticate as jest.Mock).mockImplementation(
+        (_strategy: string, _options: unknown, callback: (err: unknown, profile?: unknown) => void) =>
+          () => callback(null, { email: 'user@example.com', name: 'User', googleId: 'g-1' }),
+      );
+
+      mockAuthService.findOrCreateUser.mockRejectedValue(new Error('db write failed'));
+
+      await controller.googleCallback(state, req, res as unknown as Response, next);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Google OAuth callback internal failure: Error: db write failed'),
+      );
+      expect(res.redirect).toHaveBeenCalledWith('http://localhost:5173/login?error=server');
+
+      errorSpy.mockRestore();
+    });
+
     it('extracts nested oauth error details from the token exchange failure', async () => {
       const req = { cookies: {} } as unknown as Request;
       const res = mockRes();
