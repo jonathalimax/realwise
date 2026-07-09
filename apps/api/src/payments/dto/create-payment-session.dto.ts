@@ -19,4 +19,12 @@ export class CreatePaymentSessionDto {
   @IsOptional()
   @IsString()
   utmSource?: string;
+
+  @IsOptional()
+  @IsString()
+  clientId?: string;
+
+  @IsOptional()
+  @IsString()
+  plan?: string;
 }

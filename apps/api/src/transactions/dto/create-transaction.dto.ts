@@ -1,4 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
@@ -11,7 +12,30 @@ import {
   Min,
 } from 'class-validator';
 
+function normalizeAmountInput(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toFixed(2);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    const parsed = Number(trimmed);
+    if (Number.isFinite(parsed)) {
+      return parsed.toFixed(2);
+    }
+
+    return trimmed;
+  }
+
+  return value;
+}
+
 export class CreateTransactionDto {
+  @Transform(({ value }) => normalizeAmountInput(value))
   @IsString()
   amount: string;
 

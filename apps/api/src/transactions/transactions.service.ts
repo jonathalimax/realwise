@@ -15,9 +15,36 @@ type CreateTransactionPayload = Omit<typeof transactions.$inferInsert, 'clientId
 export class TransactionsService {
   constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
 
+  private normalizeAmount(amount: unknown): string | undefined {
+    if (amount == null) {
+      return undefined;
+    }
+
+    if (typeof amount === 'number' && Number.isFinite(amount)) {
+      return amount.toFixed(2);
+    }
+
+    if (typeof amount === 'string') {
+      const trimmed = amount.trim();
+      if (!trimmed) {
+        return trimmed;
+      }
+
+      const parsed = Number(trimmed);
+      if (Number.isFinite(parsed)) {
+        return parsed.toFixed(2);
+      }
+
+      return trimmed;
+    }
+
+    return String(amount);
+  }
+
   private normalizePayload(dto: UpdateTransactionDto): TransactionPayload {
     return {
       ...dto,
+      amount: dto.amount != null ? this.normalizeAmount(dto.amount) : undefined,
       date: dto.date ? dto.date.slice(0, 10) : undefined,
       recurrenceEndDate: dto.recurrenceEndDate ? new Date(dto.recurrenceEndDate) : null,
     };
@@ -26,6 +53,7 @@ export class TransactionsService {
   private normalizeCreatePayload(dto: CreateTransactionDto): CreateTransactionPayload {
     return {
       ...dto,
+      amount: this.normalizeAmount(dto.amount),
       date: dto.date.slice(0, 10),
       recurrenceEndDate: dto.recurrenceEndDate ? new Date(dto.recurrenceEndDate) : null,
     };

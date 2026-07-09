@@ -65,4 +65,18 @@ describe('TransactionsService', () => {
     );
     expect(result).toEqual(mockRow);
   });
+
+  it('normalizes numeric amounts before insert', async () => {
+    await service.create(
+      { amount: 126 as unknown as string, type: 'income', date: '2026-06-15' },
+      'jonathalimax',
+      'user-1',
+    );
+
+    expect(mockDb.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: '126.00',
+      }),
+    );
+  });
 });

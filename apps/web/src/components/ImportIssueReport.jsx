@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { submitImportIssue } from '../services/importIssueService';
-import { useClientConfig } from '../contexts/ClientConfigContext';
 import { useAccess } from '../contexts/AccessContext';
-import { extractClientId } from '../config/clientConfig';
 
 /**
  * Opt-in banner shown when an import returns 0 transactions or errors.
@@ -20,16 +18,13 @@ export default function ImportIssueReport({
   file, bankType, parserUsed, detectedHeaders,
   errorMessage, onDone,
 }) {
-  const config = useClientConfig();
   const { currentUser } = useAccess();
   const [note, setNote] = useState('');
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  // useClientConfig() returns the raw JSON config (no clientId field).
-  // Derive clientId from hostname or path as the app itself does.
-  const clientId = extractClientId(window.location.hostname)
+  const clientId = currentUser?.clientId
     || window.location.pathname.split('/').filter(Boolean)[0]
     || 'unknown';
 

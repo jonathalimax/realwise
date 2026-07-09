@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Realwise** is a multi-client personal finance SaaS app built with React 19, Vite, Tailwind CSS v4, and a NestJS API. The browser apps talk to the API with cookie auth; Firebase browser bootstrap is no longer the active architecture.
+**Realwise** is a personal finance app built with React 19, Vite, Tailwind CSS v4, and a NestJS API. The browser apps talk to the API with cookie auth; Firebase browser bootstrap is no longer the active architecture.
 
-- URL pattern: `realwise.com.br/{clientId}/dashboard` (path-based routing — no subdomains)
-- Client config is fetched at runtime from `public/clients/{clientId}.json`
+- URL pattern: `realwise.com.br/{clientId}/dashboard` (legacy path-based routing still present in the SPA)
+- Shared client config is fetched at runtime from `public/clients/app.json` or `public/clients/app.dev.json`
 - `apps/web` is the customer app, `apps/admin` is the standalone admin SPA, and `apps/api` serves both
 
 ## Commands
@@ -25,12 +25,11 @@ npx vitest run src/  # Run unit tests (pure functions only)
 - Dev server runs at `http://localhost:5173` (uses Vite env vars — no real tenant)
 - To test a specific tenant locally: `http://localhost:5173/{clientId}/dashboard`
 
-### Adding a new client
+### Shared client config
 
-1. Create their Firebase project
-2. Copy `public/clients/_template.json` → `public/clients/{clientId}.json`
-3. Fill in client config and enable desired feature flags
-4. Deploy the apps/API with the repo's current deployment workflow
+- `public/clients/app.json` is the production shared config
+- `public/clients/app.dev.json` is the development shared config
+- Both currently control feature flags; checkout endpoint URLs also live here until checkout is migrated off Firebase-hosted functions
 
 ## Architecture
 
@@ -39,14 +38,14 @@ See **README.md** for the current architecture overview.
 ### Multi-Client Routing
 
 - `src/config/clientConfig.js` — `extractClientId(hostname)` for subdomains (`jonathalimax.realwise.com.br` → `jonathalimax`); pathname fallback uses first segment (`/jonathalimax/dashboard`)
-- `src/contexts/ClientConfigContext.jsx` — fetches `/clients/{id}.json` and loads client config
+- `src/contexts/ClientConfigContext.jsx` — fetches the shared client config
 - `src/firebase.js` — removed
 - `src/App.jsx` — sets `BrowserRouter basename="/{clientId}"` so all internal routes resolve correctly
 
 ### Backend split
 
 - Tenant data lives behind the API and shared database/storage services.
-- Firebase runtime functions and browser SDK bootstrapping have been retired from the active app path.
+- Firebase runtime functions and browser SDK bootstrapping have been retired from the active app path, except for legacy checkout endpoints that still live outside this monorepo.
 
 ### Feature Flags
 
@@ -68,8 +67,7 @@ Usage: `const hasX = useFeature('x')` from `ClientConfigContext`.
 |---------|-----------|
 | API cookies / database / object storage | Core app |
 | SMTP (secrets `EMAIL_*`) | Bill reminders, purchase/admin/import emails |
-| Stripe (`createCheckoutSession`, `stripeWebhook`, `createDiscountCheckout`) | Checkout, webhook, admin discount links |
-| Mercado Pago (`createPayment`, `processPayment`, `mercadoPagoWebhook`) | Alt. payment path; `functions.config().mercadopago` |
+| Legacy Firebase-hosted payment endpoints | Checkout bootstrapping still referenced by `app.json` / `app.dev.json` |
 | Brapi (B3) | `b3Sync.js` — investment sync |
 | SMS | Not used |
 | WhatsApp Cloud API | **Not** exported as a webhook in current `index.js` |
@@ -78,7 +76,7 @@ Usage: `const hasX = useFeature('x')` from `ClientConfigContext`.
 
 - **Routing**: React Router v7 with dynamic `basename`. Login at `/{clientId}/login`, app at `/{clientId}/dashboard`
 - **State Management**: React Context providers nested in `App.jsx`:
-  - `ClientConfigContext` — runtime Firebase config + feature flags (outermost)
+  - `ClientConfigContext` — shared runtime config + feature flags (outermost)
   - `AccessContext` — user access/permissions, shared account support via `ownerId`
   - `SettingsContext` — currency, language, categories, dark mode
   - `BillsContext`, `BudgetContext`, `CardsContext`, `GoalsContext`, `InvestmentContext`
@@ -97,38 +95,13 @@ Three tabs: **Renda** / **Alocação** / **Carteira**
 
 - `src/config/onboardingSteps.js` — 3-step definitions with `isComplete(profile)` predicates
 - `src/components/OnboardingWizard.jsx` — dismissible progress banner rendered in Layout
-- `src/hooks/useOnboardingProfile.js` — reads `userBanks`, transactions, and planner from Firestore
 
 ### Key Data Patterns
 
-- All user data is scoped by `userId` field in Firestore collections
+- API session payloads carry `clientId` and `sub`; backend queries scope by both where needed
 - Shared accounts use `ownerId` from `AccessContext` instead of `auth.currentUser.uid`
 - Transactions support credit card payment date logic via `getPaymentMonthKey()` from `CardsContext`
 - Bank statement imports auto-detect bank format (Nubank, Itaú, Bradesco) in `src/services/importers/`
-
-### Firebase Functions (`/functions`)
-
-- `scheduledBillReminders` — Daily 9 AM (Brazil time) bill reminder **emails** (`clientScheduledBillReminders.js` loads SMTP secrets from a shared Secret Manager project). Respects `settings/{userId}.billReminders === false`. Logs to `reminder_logs` with `sentVia: 'email'`.
-- `syncB3Investments` / `syncB3InvestmentsCallable` — B3 price/dividend sync (`b3Sync.js`)
-- `processImport` / `onTransactionReviewed` — Storage-triggered import pipeline
-- `createCheckoutSession` / `stripeWebhook` — Stripe
-- `createPayment` / `processPayment` / `mercadoPagoWebhook` / `checkPaymentStatus` — Mercado Pago
-- `getCustomToken`, `onboardUser`, `sendAdminEmail`, `updateLeadState`, `transferClient`, `createDiscountCheckout`, `submitImportIssue`, `sendImportIssueEmail` — Admin / onboarding / support
-
-### Firestore Collections
-
-- `transactions` — Income/expenses with `userId`, `date`, `amount`, `type`, `category`, `bankId`
-- `bills` — Recurring bills with `status` (pending/paid), `dueDate`
-- `userBanks` — Banks/cards metadata (`CardsContext`)
-- `budgets` — Budget documents
-- `goals` — Goal documents (when feature enabled)
-- `investments` — Investment positions (B3 and manual)
-- `settings` — Per-user preferences (currency, language, categories, `billReminders` opt-out, etc.)
-- `reminder_logs` — Sent bill reminders audit
-- `planner` — Planner state (salary, deductions, allocation)
-- `userCategorizationRules` — Import categorization rules
-- `bill_reminders` — Bill reminder scheduling helpers (see `BillsContext`)
-- Admin / sales (central project): `leads`, `purchases`, `pending_payments`, `coupons`, `importIssues`, etc.
 
 ## Styling
 
@@ -138,7 +111,7 @@ Three tabs: **Renda** / **Alocação** / **Carteira**
 
 ## Testing
 
-Vitest in `node` environment — only pure functions (no Firebase, no React). Test files sit next to the modules they test.
+Vitest in `node` environment — only pure functions (no React runtime). Test files sit next to the modules they test.
 
 - `src/config/clientConfig.test.js` — `extractClientId`, `fetchClientConfig`
 - `src/config/onboardingSteps.test.js` — step predicates and helpers
@@ -146,8 +119,7 @@ Vitest in `node` environment — only pure functions (no Firebase, no React). Te
 
 ## Environment Variables
 
-Frontend (`.env`) — only used in dev. Production uses runtime config from `public/clients/{id}.json`.
-- `VITE_FIREBASE_*` — Firebase configuration (dev only)
+Frontend (`.env`) — only used in dev. Production uses runtime config from `public/clients/app.json`.
 
 Backend runtime env vars live in the API service. Check `apps/api/.env` and the Nest modules for the current contract.
 
