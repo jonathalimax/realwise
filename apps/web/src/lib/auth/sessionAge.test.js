@@ -18,18 +18,18 @@ describe('login session age', () => {
     expect(store.get('__rw_login_at')).toBe('1000');
   });
 
-  it('keeps sessions active before 60 days', () => {
+  it('keeps sessions active before 15 days', () => {
     markLoginSession(1000);
-    const fiftyNineDays = 59 * 24 * 60 * 60 * 1000;
+    const fourteenDays = 14 * 24 * 60 * 60 * 1000;
 
-    expect(isLoginSessionExpired(1000 + fiftyNineDays)).toBe(false);
+    expect(isLoginSessionExpired(1000 + fourteenDays)).toBe(false);
   });
 
-  it('expires sessions at 60 days', () => {
+  it('expires sessions at 15 days', () => {
     markLoginSession(1000);
-    const sixtyDays = 60 * 24 * 60 * 60 * 1000;
+    const fifteenDays = 15 * 24 * 60 * 60 * 1000;
 
-    expect(isLoginSessionExpired(1000 + sixtyDays)).toBe(true);
+    expect(isLoginSessionExpired(1000 + fifteenDays)).toBe(true);
   });
 
   it('clears the marker on logout', () => {

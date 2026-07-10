@@ -352,6 +352,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
           type: t.type,
           description: t.description,
           amount: t.amount,
+          ignored: Boolean(t.ignored),
           category: t.category,
           date: t.date,
           imported: true,

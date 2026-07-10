@@ -15,6 +15,7 @@ import {
   BellIcon,
   BuildingLibraryIcon,
   CalendarDaysIcon,
+  ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
 
 function getUserInitials(name) {
@@ -150,6 +151,7 @@ export default function Sidebar() {
       labelPt: 'Acompanhar',
       items: [
         { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
+        { name: 'Import', namePt: 'Importar', href: '/import', icon: ArrowUpTrayIcon },
         { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
         { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon }

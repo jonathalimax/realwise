@@ -1,5 +1,5 @@
 const LOGIN_AT_KEY = '__rw_login_at';
-const MAX_SESSION_AGE_MS = 60 * 24 * 60 * 60 * 1000;
+const MAX_SESSION_AGE_MS = 15 * 24 * 60 * 60 * 1000;
 
 export function markLoginSession(now = Date.now()) {
   localStorage.setItem(LOGIN_AT_KEY, String(now));

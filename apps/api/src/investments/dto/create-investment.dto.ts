@@ -1,5 +1,26 @@
 import { PartialType } from '@nestjs/mapped-types';
+import { Transform } from 'class-transformer';
 import { IsString, IsOptional, IsIn, IsDateString } from 'class-validator';
+
+function normalizeNumericInput(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toFixed(2);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return trimmed;
+    }
+
+    const parsed = Number(trimmed);
+    if (Number.isFinite(parsed)) {
+      return parsed.toFixed(2);
+    }
+  }
+
+  return value;
+}
 
 export class CreateInvestmentDto {
   @IsString()
@@ -13,14 +34,17 @@ export class CreateInvestmentDto {
   bank?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNumericInput(value))
   @IsString()
   initialAmount?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNumericInput(value))
   @IsString()
   currentAmount?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNumericInput(value))
   @IsString()
   expectedReturn?: string;
 
@@ -49,14 +73,17 @@ export class CreateInvestmentDto {
   ticker?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNumericInput(value))
   @IsString()
   quantity?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNumericInput(value))
   @IsString()
   avgPrice?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNumericInput(value))
   @IsString()
   currentPrice?: string;
 
@@ -85,6 +112,7 @@ export class CreateInvestmentDto {
   notes?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNumericInput(value))
   @IsString()
   totalWithdrawn?: string;
 
