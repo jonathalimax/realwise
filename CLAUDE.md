@@ -10,6 +10,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Shared client config is fetched at runtime from `public/clients/app.json` or `public/clients/app.dev.json`
 - `apps/web` is the customer app, `apps/admin` is the standalone admin SPA, and `apps/api` serves both
 
+## Ship Pipeline & Branching
+
+- `main` is the production branch. Any merge into `main` deploys production.
+- `develop` is the day-to-day integration branch and deploys staging.
+- Start new work from `develop`: create a feature/fix branch, commit there, and open a PR back to `develop`.
+- Do not push work directly to `main` or `develop`; the end of the ship pipeline is always a pull request.
+- Production releases should be PRs from `develop` into `main`.
+- Feature branches may contain detailed incremental commits for review/debugging.
+- Merges into `develop` and `main` should be squash merges with one clear commit.
+- Squash commit messages should be simple and complete:
+
+```txt
+<type>(<scope>): <short outcome>
+
+Summary:
+- Added/changed/fixed ...
+- Added/changed/fixed ...
+
+Validation:
+- <commands/checks run>
+```
+
 ## Commands
 
 ```bash
