@@ -1,0 +1,117 @@
+<h2>Final layout — Portfólio first</h2>
+<p class="subtitle">Confirme se este layout faz sentido antes de implementar</p>
+
+<div class="mockup">
+  <div class="mockup-header">Investimentos — Tab: Portfólio (default)</div>
+  <div class="mockup-body">
+    <div style="font-family:sans-serif;font-size:12px;background:#f9fafb;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+      <!-- Sticky header -->
+      <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:700;font-size:14px;color:#111">Investimentos</span>
+        <!-- No + button on Portfolio tab -->
+      </div>
+      <!-- Tabs -->
+      <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:0 16px;display:flex;gap:0">
+        <div style="padding:8px 18px;border-bottom:2px solid #3b82f6;color:#3b82f6;font-weight:600;font-size:11px">Portfólio</div>
+        <div style="padding:8px 18px;border-bottom:2px solid transparent;color:#9ca3af;font-size:11px">Investimentos</div>
+      </div>
+      <!-- Portfolio content -->
+      <div style="padding:10px">
+        <!-- Total card -->
+        <div style="background:#111827;border-radius:10px;padding:12px;color:#fff;margin-bottom:10px">
+          <div style="font-size:9px;color:#9ca3af;margin-bottom:3px">Total investido</div>
+          <div style="font-size:18px;font-weight:700">R$ 12.500,00</div>
+          <div style="font-size:9px;color:#6b7280;margin-top:3px">2 ativos · 0 transações vinculadas</div>
+        </div>
+        <!-- Donut chart -->
+        <div style="background:#fff;border-radius:10px;padding:10px;border:1px solid #e5e7eb;margin-bottom:10px">
+          <div style="font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Alocação por camada</div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:52px;height:52px;border-radius:50%;background:conic-gradient(#3b82f6 0% 55%, #10b981 55% 100%);flex-shrink:0;position:relative">
+              <div style="position:absolute;inset:10px;background:#fff;border-radius:50%"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;flex:1">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;display:inline-block"></span><span style="font-size:10px;color:#374151">💧 Liquidez</span></div>
+                <span style="font-size:10px;font-weight:700">55%</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block"></span><span style="font-size:10px;color:#374151">🌱 Crescimento</span></div>
+                <span style="font-size:10px;font-weight:700">45%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer group -->
+        <div style="border-radius:10px;overflow:hidden;border:1px solid #dbeafe">
+          <div style="background:#eff6ff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dbeafe">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span>💧</span>
+              <span style="font-size:11px;font-weight:600;color:#1d4ed8">Liquidez</span>
+              <span style="background:#dbeafe;color:#2563eb;font-size:9px;padding:1px 6px;border-radius:999px;font-weight:500">1 item</span>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:#1d4ed8">R$ 5.200,00</span>
+          </div>
+          <div style="background:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;color:#111;font-weight:500">CDB XP 120% CDI</span>
+              <span style="background:#dbeafe;color:#1d4ed8;font-size:9px;padding:1px 6px;border-radius:4px">Renda Fixa</span>
+            </div>
+            <span style="font-size:11px;font-weight:600;color:#111">R$ 5.200,00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:24px">
+  <div class="mockup-header">Investimentos — Tab: Investimentos</div>
+  <div class="mockup-body">
+    <div style="font-family:sans-serif;font-size:12px;background:#f9fafb;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+      <!-- Sticky header — shows + button only on this tab -->
+      <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:700;font-size:14px;color:#111">Investimentos</span>
+        <div style="background:#3b82f6;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px">+ Adicionar</div>
+      </div>
+      <!-- Tabs -->
+      <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:0 16px;display:flex;gap:0">
+        <div style="padding:8px 18px;border-bottom:2px solid transparent;color:#9ca3af;font-size:11px">Portfólio</div>
+        <div style="padding:8px 18px;border-bottom:2px solid #3b82f6;color:#3b82f6;font-weight:600;font-size:11px">Investimentos</div>
+      </div>
+      <!-- Summary gradient -->
+      <div style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin:10px;border-radius:8px;padding:10px;color:#fff;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div><div style="font-size:9px;opacity:.8">INVESTIDO</div><div style="font-weight:700;font-size:13px">R$ 12.500</div></div>
+        <div><div style="font-size:9px;opacity:.8">ATUAL</div><div style="font-weight:700;font-size:13px">R$ 13.200</div></div>
+        <div><div style="font-size:9px;opacity:.8">RENDIMENTO</div><div style="font-weight:700;font-size:13px;color:#6ee7b7">+R$ 700</div></div>
+        <div><div style="font-size:9px;opacity:.8">RENTABILIDADE</div><div style="font-weight:700;font-size:13px;color:#6ee7b7">+5,6%</div></div>
+      </div>
+      <!-- Search + filters -->
+      <div style="padding:0 10px 8px;display:flex;gap:6px">
+        <div style="flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:5px 8px;font-size:10px;color:#9ca3af">🔍 Buscar...</div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:5px 8px;font-size:10px;color:#6b7280">Filtros</div>
+      </div>
+      <!-- List items -->
+      <div style="padding:0 10px 10px">
+        <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb;margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">CDB XP 120% CDI</span><span style="font-weight:700;font-size:11px">R$ 5.200</span></div>
+          <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 200 (+4,0%)</div>
+        </div>
+        <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb">
+          <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">Tesouro Selic</span><span style="font-weight:700;font-size:11px">R$ 8.000</span></div>
+          <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 500 (+6,7%)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;background:#f8fafc;border-radius:12px;padding:16px;border:1px solid #e2e8f0">
+  <h3 style="margin:0 0 10px">Other changes</h3>
+  <ul style="margin:0;padding-left:18px;line-height:1.9;color:#374151;font-size:13px">
+    <li><strong>Sidebar:</strong> Remove "Portfólio" entry — only "Investimentos" remains</li>
+    <li><strong>/portfolio route:</strong> Redirect to /investments</li>
+    <li><strong>+ Adicionar button:</strong> Only visible on the "Investimentos" tab</li>
+    <li><strong>Default tab:</strong> Portfólio (first tab, loaded on /investments)</li>
+  </ul>
+</div>

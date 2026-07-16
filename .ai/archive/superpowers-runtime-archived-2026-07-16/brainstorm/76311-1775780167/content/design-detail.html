@@ -1,0 +1,269 @@
+<style>
+  body { font-family: system-ui, sans-serif; }
+  .phone {
+    width: 320px;
+    border: 2px solid #6366f1;
+    border-radius: 36px;
+    background: #111827;
+    font-size: 12px;
+    color: #f9fafb;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .phone-scroll { padding: 0 0 0 0; max-height: 580px; overflow-y: auto; }
+  .phone-inner { padding: 8px 8px; }
+  .section-block { background: #1f2937; border-radius: 10px; margin-bottom: 6px; padding: 8px 10px; border: 1px solid #374151; }
+  .input-mock { background: #374151; border-radius: 7px; padding: 6px 9px; font-size: 11px; color: #d1d5db; border: 1px solid #4b5563; }
+  .progress-bar { height: 5px; background: #374151; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .compact-header { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px; background: #111827; }
+  .month-nav { display: flex; align-items: center; gap: 3px; }
+  .nav-btn { width: 24px; height: 24px; background: #374151; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #9ca3af; }
+  .month-label { font-size: 11px; font-weight: 700; color: #a78bfa; min-width: 68px; text-align: center; }
+  .gear-btn { width: 28px; height: 28px; background: #374151; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .bottom-nav { display: flex; background: #1f2937; border-top: 1px solid #374151; padding: 6px 4px 16px; position: sticky; bottom: 0; }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; font-weight: 600; color: #6b7280; }
+  .nav-item.active { color: #818cf8; }
+  .nav-icon { font-size: 20px; line-height: 1; }
+  .inner-tabs { display: flex; gap: 4px; background: #0f172a; border-radius: 10px; padding: 4px; margin: 0 0 8px; }
+  .inner-tab { flex: 1; padding: 5px; border-radius: 7px; font-size: 10px; font-weight: 700; text-align: center; color: #6b7280; }
+  .inner-tab.active { background: #1f2937; color: #a78bfa; }
+  .cat-row { border-bottom: 1px solid #374151; padding: 8px 0; }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .cat-row-bottom { display: flex; align-items: center; gap: 6px; }
+  .rule-btn { width: 20px; height: 20px; border-radius: 50%; background: #374151; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; color: #9ca3af; flex-shrink: 0; }
+  .rule-btn.n { background: #1e3a8a; color: #93c5fd; }
+  .rule-btn.d { background: #78350f; color: #fcd34d; }
+  .rule-btn.p { background: #14532d; color: #6ee7b7; }
+  .summary-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #1f2937; border-radius: 10px; margin-bottom: 6px; }
+  .annotation-box { background: #1e1b4b; border-left: 3px solid #6366f1; border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 12px; color: #c7d2fe; line-height: 1.6; margin: 8px 0; }
+  .green { color: #6ee7b7; } .yellow { color: #fcd34d; } .red { color: #f87171; }
+  .badge { display: inline-block; border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: 700; }
+  .badge-new { background: #7c3aed; color: white; }
+  .badge-same { background: #374151; color: #9ca3af; }
+  .section-title { font-size: 13px; font-weight: 800; color: #f9fafb; margin: 20px 0 6px; border-bottom: 1px solid #374151; padding-bottom: 6px; }
+</style>
+
+<h2>Design: Option A — Mobile Planner</h2>
+<p class="subtitle">Three changes — header · bottom nav · 2-line category rows</p>
+
+<!-- ─── SECTION 1: Header ──────────────────────────────────────────────── -->
+<div class="section-title">① Compact Header <span class="badge badge-new">CHANGED</span></div>
+<div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-bottom:8px;">
+  <div>
+    <p class="label" style="margin-bottom:6px; text-align:center;">Before (mobile)</p>
+    <div class="phone" style="width:260px;">
+      <div style="padding:10px 12px; background:#111827;">
+        <div style="font-size:14px;font-weight:800;">Planejador Financeiro</div>
+        <div style="font-size:9px;color:#9ca3af;margin-top:2px;">Planejamento pessoal PJ — modele sua renda...</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+          <span style="font-size:9px;color:#9ca3af;">Início do plano</span>
+          <div class="input-mock" style="padding:4px 8px;font-size:10px;width:80px;">2025-01</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+          <span style="font-size:9px;color:#9ca3af;">Mês selecionado</span>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="nav-btn" style="width:20px;height:20px;">‹</div>
+            <div style="font-size:10px;font-weight:700;color:#a78bfa;width:64px;text-align:center;">abr. 2026</div>
+            <div class="nav-btn" style="width:20px;height:20px;">›</div>
+          </div>
+        </div>
+        <div style="margin-top:6px;font-size:9px;color:#f87171;">↑ ~110px before any content</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="label" style="margin-bottom:6px; text-align:center;">After (mobile)</p>
+    <div class="phone" style="width:260px;">
+      <div class="compact-header" style="padding:10px 12px 8px;">
+        <span style="font-size:14px;font-weight:800;flex:1;">Planejador</span>
+        <div class="month-nav">
+          <div class="nav-btn">‹</div>
+          <div class="month-label">abr. 2026</div>
+          <div class="nav-btn">›</div>
+        </div>
+        <div class="gear-btn">⚙️</div>
+      </div>
+      <div style="padding:0 12px 8px;font-size:9px;color:#6ee7b7;">↑ ~44px — saves 66px of vertical space</div>
+      <div style="padding:0 12px 10px;font-size:10px;color:#9ca3af;background:#1f2937;margin:0 8px 8px;border-radius:8px;padding:8px 10px;border:1px dashed #374151;">
+        ⚙️ Tap gear → small bottom sheet with "Início do plano" date input
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation-box">
+  <strong>Desktop is unchanged</strong> — the existing flex header with all controls stays on <code>sm:</code> and above. The compact header + gear icon only render on mobile (<code>sm:hidden</code>). No regression on larger screens.
+</div>
+
+<!-- ─── SECTION 2: Bottom Nav ─────────────────────────────────────────── -->
+<div class="section-title">② Bottom Tab Bar <span class="badge badge-new">CHANGED</span></div>
+<div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-bottom:8px;">
+
+  <div>
+    <p class="label" style="margin-bottom:6px; text-align:center;">Mobile — fixed bottom nav</p>
+    <div class="phone" style="width:280px; display:flex; flex-direction:column; height:480px;">
+      <div class="compact-header">
+        <span style="font-size:14px;font-weight:800;flex:1;">Planejador</span>
+        <div class="month-nav">
+          <div class="nav-btn">‹</div>
+          <div class="month-label">abr. 2026</div>
+          <div class="nav-btn">›</div>
+        </div>
+        <div class="gear-btn">⚙️</div>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:0 8px;">
+        <div class="inner-tabs">
+          <div class="inner-tab active">Regra</div>
+          <div class="inner-tab">Rastreamento</div>
+          <div class="inner-tab">Limite</div>
+        </div>
+        <div class="section-block" style="margin-top:0;">
+          <div style="font-size:10px;color:#a78bfa;font-weight:700;margin-bottom:6px;">REGRA 64/28/8</div>
+          <div style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:10px;color:#9ca3af;">🏠 Necessidades</span><span style="font-weight:700;color:#60a5fa;">64%</span></div>
+            <div style="height:6px;background:#374151;border-radius:3px;"><div style="height:6px;width:64%;background:#3b82f6;border-radius:3px;"></div></div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:10px;color:#9ca3af;">💰 Poupança</span><span style="font-weight:700;color:#34d399;">28%</span></div>
+            <div style="height:6px;background:#374151;border-radius:3px;"><div style="height:6px;width:28%;background:#10b981;border-radius:3px;"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:10px;color:#9ca3af;">🎯 Desejos</span><span style="font-weight:700;color:#fb923c;">8%</span></div>
+            <div style="height:6px;background:#374151;border-radius:3px;"><div style="height:6px;width:8%;background:#f97316;border-radius:3px;"></div></div>
+          </div>
+        </div>
+        <div class="section-block">
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;background:#1e3a8a;border-radius:8px;padding:8px;text-align:center;">
+              <div style="font-size:9px;color:#93c5fd;font-weight:700;">🏠 Necessidades</div>
+              <div style="font-size:13px;font-weight:800;color:#60a5fa;margin-top:2px;">R$ 17.682</div>
+            </div>
+            <div style="flex:1;background:#14532d;border-radius:8px;padding:8px;text-align:center;">
+              <div style="font-size:9px;color:#6ee7b7;font-weight:700;">💰 Poupança</div>
+              <div style="font-size:13px;font-weight:800;color:#34d399;margin-top:2px;">R$ 7.736</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="nav-item"><div class="nav-icon">🧭</div>Sistema</div>
+        <div class="nav-item"><div class="nav-icon">💼</div>Carteira</div>
+        <div class="nav-item"><div class="nav-icon">📊</div>Dashboard</div>
+        <div class="nav-item active"><div class="nav-icon">📐</div>Alocação</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:260px;">
+    <div class="annotation-box">
+      <strong>Desktop unchanged</strong> — top tab bar stays on <code>sm:</code> and above. Bottom nav is <code>sm:hidden</code>. Tab content area on mobile gains bottom padding so content doesn't hide under the nav bar.
+    </div>
+    <div class="annotation-box" style="margin-top:8px;">
+      <strong>Icons chosen:</strong><br>
+      🧭 Sistema · 💼 Carteira · 📊 Dashboard · 📐 Alocação<br><br>
+      Active tab gets violet colour, inactive grey. No badge/count needed.
+    </div>
+  </div>
+</div>
+
+<!-- ─── SECTION 3: Limite rows ────────────────────────────────────────── -->
+<div class="section-title">③ Limite — 2-line Category Rows <span class="badge badge-new">CHANGED</span></div>
+<div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-bottom:8px;">
+
+  <div>
+    <p class="label" style="margin-bottom:6px; text-align:center;">Before (cramped single row)</p>
+    <div class="phone" style="width:280px;">
+      <div class="phone-inner">
+        <div class="section-block">
+          <div style="display:flex;align-items:center;gap:4px;font-size:10px;overflow:hidden;">
+            <span style="flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Alimentação</span>
+            <div style="display:flex;gap:2px;flex-shrink:0;">
+              <div class="rule-btn n" style="width:16px;height:16px;font-size:8px;">N</div>
+              <div class="rule-btn" style="width:16px;height:16px;font-size:8px;">D</div>
+              <div class="rule-btn" style="width:16px;height:16px;font-size:8px;">P</div>
+            </div>
+            <div class="input-mock" style="width:40px;padding:3px 5px;font-size:10px;flex-shrink:0;">15%</div>
+            <span style="font-size:9px;color:#6b7280;white-space:nowrap;flex-shrink:0;">=R$4.1k</span>
+            <span style="font-size:9px;color:#9ca3af;white-space:nowrap;flex-shrink:0;">R$1.2k</span>
+            <div class="progress-bar" style="width:28px;flex-shrink:0;"><div style="height:5px;width:30%;background:#10b981;border-radius:3px;"></div></div>
+            <span style="font-size:9px;color:#10b981;flex-shrink:0;">30%</span>
+          </div>
+          <div style="margin-top:4px;font-size:9px;color:#f87171;">↑ clips on narrow phones</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="label" style="margin-bottom:6px; text-align:center;">After (2-line)</p>
+    <div class="phone" style="width:280px;">
+      <div class="phone-inner">
+        <div class="section-block">
+          <div class="cat-row">
+            <div class="cat-row-top">
+              <span style="font-weight:700;font-size:12px;">Alimentação</span>
+              <div style="display:flex;gap:4px;">
+                <div class="rule-btn n">N</div>
+                <div class="rule-btn">D</div>
+                <div class="rule-btn">P</div>
+              </div>
+            </div>
+            <div class="cat-row-bottom">
+              <div class="input-mock" style="width:60px;padding:5px 8px;">15 %</div>
+              <span style="font-size:10px;color:#6b7280;">= R$ 4.144</span>
+              <div style="flex:1;"></div>
+              <span style="font-size:10px;color:#9ca3af;">R$ 1.2k gasto</span>
+              <div class="progress-bar" style="width:44px;"><div style="height:5px;width:30%;background:#10b981;border-radius:3px;"></div></div>
+              <span style="font-size:10px;color:#10b981;width:26px;text-align:right;">30%</span>
+            </div>
+          </div>
+          <div class="cat-row">
+            <div class="cat-row-top">
+              <span style="font-weight:700;font-size:12px;">Transporte</span>
+              <div style="display:flex;gap:4px;">
+                <div class="rule-btn n">N</div>
+                <div class="rule-btn">D</div>
+                <div class="rule-btn">P</div>
+              </div>
+            </div>
+            <div class="cat-row-bottom">
+              <div class="input-mock" style="width:60px;padding:5px 8px;">5 %</div>
+              <span style="font-size:10px;color:#6b7280;">= R$ 1.381</span>
+              <div style="flex:1;"></div>
+              <span style="font-size:10px;color:#9ca3af;">R$ 890 gasto</span>
+              <div class="progress-bar" style="width:44px;"><div style="height:5px;width:80%;background:#f59e0b;border-radius:3px;"></div></div>
+              <span style="font-size:10px;color:#f59e0b;width:26px;text-align:right;">80%</span>
+            </div>
+          </div>
+          <div style="margin-top:4px;font-size:9px;color:#6ee7b7;">↑ breathes on all screen sizes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── What stays the same ───────────────────────────────────────────── -->
+<div class="section-title">What stays the same <span class="badge badge-same">UNCHANGED</span></div>
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; max-width:600px;">
+  <div style="background:#1f2937;border-radius:10px;padding:10px 14px;border:1px solid #374151;font-size:12px;color:#d1d5db;line-height:1.8;">
+    <div>✓ Desktop top tab bar</div>
+    <div>✓ Inner tabs (Regra / Rastreamento / Limite)</div>
+    <div>✓ Dashboard 2-col input grid</div>
+    <div>✓ All data, calculations, state</div>
+  </div>
+  <div style="background:#1f2937;border-radius:10px;padding:10px 14px;border:1px solid #374151;font-size:12px;color:#d1d5db;line-height:1.8;">
+    <div>✓ Dark mode</div>
+    <div>✓ Firestore persistence</div>
+    <div>✓ AllocationTab inner 3-tab structure</div>
+    <div>✓ All other pages (Home, Expenses…)</div>
+  </div>
+</div>
+
+<div style="max-width: 620px; margin: 20px auto 0; background: #312e81; border-radius: 12px; padding: 14px 16px; border: 1px solid #4338ca;">
+  <p style="color:#e0e7ff; font-size:13px; margin:0; line-height:1.7;">
+    <strong>Does this design look right?</strong> If yes I'll write the spec doc and then the implementation plan. If you'd like to adjust anything — icons, header behaviour, whether the gear opens a sheet or inline — just say so.
+  </p>
+</div>

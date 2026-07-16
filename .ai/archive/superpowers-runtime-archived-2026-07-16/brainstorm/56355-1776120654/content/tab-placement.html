@@ -1,0 +1,115 @@
+<h2>Where should the tabs live?</h2>
+<p class="subtitle">Three ways to place the Investimentos / Portfólio tabs</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:12px;background:#f9fafb;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+        <!-- Header bar -->
+        <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-weight:700;color:#111">Investimentos</span>
+          <div style="background:#3b82f6;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px">+ Adicionar</div>
+        </div>
+        <!-- Tabs below header -->
+        <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:0 16px;display:flex;gap:0">
+          <div style="padding:8px 16px;border-bottom:2px solid #3b82f6;color:#3b82f6;font-weight:600;font-size:11px">Investimentos</div>
+          <div style="padding:8px 16px;border-bottom:2px solid transparent;color:#9ca3af;font-size:11px">Portfólio</div>
+        </div>
+        <!-- Summary banner -->
+        <div style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin:10px;border-radius:8px;padding:10px;color:#fff;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div><div style="font-size:9px;opacity:.8">INVESTIDO</div><div style="font-weight:700;font-size:13px">R$ 12.500</div></div>
+          <div><div style="font-size:9px;opacity:.8">ATUAL</div><div style="font-weight:700;font-size:13px">R$ 13.200</div></div>
+        </div>
+        <!-- List items -->
+        <div style="padding:0 10px 10px">
+          <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb;margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">CDB XP 120% CDI</span><span style="font-weight:700;font-size:11px">R$ 5.200</span></div>
+            <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 200 (+4,0%)</div>
+          </div>
+          <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">Tesouro Selic</span><span style="font-weight:700;font-size:11px">R$ 8.000</span></div>
+            <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 500 (+6,7%)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Tabs under the page header</h3>
+      <p>Tabs sit right below the "Investimentos" title bar, above the summary card. Clean separation between navigation and content.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:12px;background:#f9fafb;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+        <!-- Header bar with tabs inline -->
+        <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:0">
+            <div style="padding:4px 12px;background:#3b82f6;color:#fff;border-radius:6px;font-size:11px;font-weight:700">Investimentos</div>
+            <div style="padding:4px 12px;color:#9ca3af;font-size:11px;font-weight:600">Portfólio</div>
+          </div>
+          <div style="background:#3b82f6;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px">+ Adicionar</div>
+        </div>
+        <!-- Summary banner -->
+        <div style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin:10px;border-radius:8px;padding:10px;color:#fff;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div><div style="font-size:9px;opacity:.8">INVESTIDO</div><div style="font-weight:700;font-size:13px">R$ 12.500</div></div>
+          <div><div style="font-size:9px;opacity:.8">ATUAL</div><div style="font-weight:700;font-size:13px">R$ 13.200</div></div>
+        </div>
+        <!-- List items -->
+        <div style="padding:0 10px 10px">
+          <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb;margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">CDB XP 120% CDI</span><span style="font-weight:700;font-size:11px">R$ 5.200</span></div>
+            <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 200 (+4,0%)</div>
+          </div>
+          <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">Tesouro Selic</span><span style="font-weight:700;font-size:11px">R$ 8.000</span></div>
+            <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 500 (+6,7%)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Tabs as pill toggles in the header</h3>
+      <p>The title itself becomes the tab toggle — compact, saves vertical space. Works well on mobile.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="font-family:sans-serif;font-size:12px;background:#f9fafb;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+        <!-- Header bar -->
+        <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-weight:700;color:#111">Investimentos</span>
+          <div style="background:#3b82f6;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px">+ Adicionar</div>
+        </div>
+        <!-- Summary banner -->
+        <div style="background:linear-gradient(135deg,#3b82f6,#6366f1);margin:10px;border-radius:8px;padding:10px;color:#fff;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div><div style="font-size:9px;opacity:.8">INVESTIDO</div><div style="font-weight:700;font-size:13px">R$ 12.500</div></div>
+          <div><div style="font-size:9px;opacity:.8">ATUAL</div><div style="font-weight:700;font-size:13px">R$ 13.200</div></div>
+        </div>
+        <!-- Tabs inside content -->
+        <div style="padding:0 10px;display:flex;gap:6px;margin-bottom:8px">
+          <div style="flex:1;text-align:center;padding:6px;background:#3b82f6;color:#fff;border-radius:8px;font-size:11px;font-weight:600">Lista</div>
+          <div style="flex:1;text-align:center;padding:6px;background:#f3f4f6;color:#6b7280;border-radius:8px;font-size:11px;font-weight:600">Portfólio</div>
+        </div>
+        <!-- List items -->
+        <div style="padding:0 10px 10px">
+          <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb;margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">CDB XP 120% CDI</span><span style="font-weight:700;font-size:11px">R$ 5.200</span></div>
+            <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 200 (+4,0%)</div>
+          </div>
+          <div style="background:#fff;border-radius:6px;padding:8px;border:1px solid #e5e7eb">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:600;font-size:11px">Tesouro Selic</span><span style="font-weight:700;font-size:11px">R$ 8.000</span></div>
+            <div style="color:#10b981;font-size:10px;margin-top:2px">+R$ 500 (+6,7%)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Tabs inside the content area</h3>
+      <p>Tabs appear below the summary banner, above the list. Summary stats always visible regardless of which tab is active.</p>
+    </div>
+  </div>
+
+</div>

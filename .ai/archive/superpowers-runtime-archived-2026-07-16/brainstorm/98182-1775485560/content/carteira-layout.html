@@ -1,0 +1,214 @@
+<h2>Carteira Tab — Proposed Layout</h2>
+<p class="subtitle">Review the overall structure. Does this flow make sense?</p>
+
+<div style="max-width: 720px; margin: 0 auto; font-family: system-ui, sans-serif; font-size: 13px; color: #1f2937;">
+
+  <!-- DASHBOARD STRIP -->
+  <div style="background:#111827; border-radius:16px; padding:16px; display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+    <div>
+      <div style="color:#9ca3af;font-size:11px;margin-bottom:4px;">Patrimônio total</div>
+      <div style="color:#fff;font-size:18px;font-weight:700;">R$ 87.430</div>
+      <div style="color:#6b7280;font-size:10px;margin-top:2px;">investimentos + reservas</div>
+    </div>
+    <div style="background:#1f2937;border-radius:12px;padding:12px;">
+      <div style="color:#9ca3af;font-size:11px;margin-bottom:4px;">Disponível p/ investir</div>
+      <div style="color:#fff;font-size:16px;font-weight:700;">R$ 6.240</div>
+      <div style="color:#6b7280;font-size:10px;margin-top:2px;">20% da renda líquida</div>
+    </div>
+    <div style="background:#1f2937;border-radius:12px;padding:12px;">
+      <div style="color:#9ca3af;font-size:11px;margin-bottom:4px;">Fundo emergência</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:4px;">
+        <span style="color:#f59e0b;font-size:16px;font-weight:700;">3</span>
+        <span style="color:#6b7280;font-size:10px;">/ 6 meses</span>
+      </div>
+      <div style="height:4px;background:#374151;border-radius:4px;"><div style="width:50%;height:4px;background:#f59e0b;border-radius:4px;"></div></div>
+    </div>
+    <div style="background:#1f2937;border-radius:12px;padding:12px;">
+      <div style="color:#9ca3af;font-size:11px;margin-bottom:4px;">Foco atual</div>
+      <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:2px;">🛡️ Fundo emergência</div>
+      <div style="color:#6b7280;font-size:10px;">R$ 60k / R$ 120k</div>
+      <div style="height:4px;background:#374151;border-radius:4px;margin-top:4px;"><div style="width:50%;height:4px;background:#3b82f6;border-radius:4px;"></div></div>
+    </div>
+  </div>
+
+  <!-- ANALYSE BUTTON -->
+  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:16px;padding:16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="color:#fff;font-weight:700;font-size:14px;">✨ Analisar Carteira</div>
+      <div style="color:#c4b5fd;font-size:11px;margin-top:2px;">IA analisa seus objetivos e sugere rebalanceamento completo</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.2);border-radius:10px;padding:8px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Analisar →</div>
+  </div>
+
+  <!-- PENDING SUGGESTIONS (shown after analysis runs) -->
+  <div style="background:#ede9fe;border:1px solid #c4b5fd;border-radius:12px;padding:12px;margin-bottom:12px;">
+    <div style="color:#6d28d9;font-weight:600;font-size:12px;margin-bottom:8px;">3 sugestões pendentes — aceite ou rejeite cada uma</div>
+    <div style="background:#fff;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;border:1px solid #e5e7eb;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#374151;">Aumentar Crescimento de 40% → 50%</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">Fundo emergência já em 50% — você pode acelerar independência financeira</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:12px;flex-shrink:0;">
+        <div style="background:#ecfdf5;color:#059669;border:1px solid #6ee7b7;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;">✓ Aceitar</div>
+        <div style="background:#fff1f2;color:#e11d48;border:1px solid #fda4af;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;">✕</div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:8px;padding:10px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;border:1px solid #e5e7eb;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#374151;">Adicionar IVVB11 em Crescimento → Exterior ETFs</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">Exposição ao S&P 500 com hedge cambial natural</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:12px;flex-shrink:0;">
+        <div style="background:#ecfdf5;color:#059669;border:1px solid #6ee7b7;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;">✓ Aceitar</div>
+        <div style="background:#fff1f2;color:#e11d48;border:1px solid #fda4af;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;">✕</div>
+      </div>
+    </div>
+    <div style="text-align:right;margin-top:8px;">
+      <div style="display:inline-block;background:#7c3aed;color:#fff;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:600;">Salvar mudanças aceitas →</div>
+    </div>
+  </div>
+
+  <!-- LAYER ALLOCATION EDITOR -->
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;">Alocação por Camada</div>
+      <div style="font-size:11px;color:#9ca3af;">Total: R$ 6.240/mês</div>
+    </div>
+    <div style="height:8px;border-radius:8px;overflow:hidden;display:flex;margin-bottom:12px;">
+      <div style="width:30%;background:#3b82f6;"></div>
+      <div style="width:40%;background:#10b981;"></div>
+      <div style="width:20%;background:#8b5cf6;"></div>
+      <div style="width:10%;background:#f97316;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#eff6ff;border-radius:8px;">
+        <span>💧</span>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:600;color:#1d4ed8;">Liquidez</div>
+          <div style="font-size:10px;color:#6b7280;">R$ 1.872/mês</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="number" value="30" style="width:42px;border:1px solid #bfdbfe;border-radius:6px;padding:3px 6px;font-size:12px;font-weight:700;color:#1d4ed8;text-align:center;" />
+          <span style="font-size:11px;color:#6b7280;">%</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#ecfdf5;border-radius:8px;">
+        <span>📈</span>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:600;color:#065f46;">Crescimento</div>
+          <div style="font-size:10px;color:#6b7280;">R$ 2.496/mês</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="number" value="40" style="width:42px;border:1px solid #a7f3d0;border-radius:6px;padding:3px 6px;font-size:12px;font-weight:700;color:#065f46;text-align:center;" />
+          <span style="font-size:11px;color:#6b7280;">%</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#f5f3ff;border-radius:8px;">
+        <span>🏠</span>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:600;color:#5b21b6;">Patrimônio</div>
+          <div style="font-size:10px;color:#6b7280;">R$ 1.248/mês</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="number" value="20" style="width:42px;border:1px solid #ddd6fe;border-radius:6px;padding:3px 6px;font-size:12px;font-weight:700;color:#5b21b6;text-align:center;" />
+          <span style="font-size:11px;color:#6b7280;">%</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#fff7ed;border-radius:8px;">
+        <span>👨‍👩‍👧‍👦</span>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:600;color:#9a3412;">Legado</div>
+          <div style="font-size:10px;color:#6b7280;">R$ 624/mês</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="number" value="10" style="width:42px;border:1px solid #fed7aa;border-radius:6px;padding:3px 6px;font-size:12px;font-weight:700;color:#9a3412;text-align:center;" />
+          <span style="font-size:11px;color:#6b7280;">%</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:10px;text-align:center;">
+      <span style="font-size:11px;color:#9ca3af;cursor:pointer;border:1px dashed #d1d5db;padding:4px 14px;border-radius:8px;">+ Adicionar camada</span>
+    </div>
+  </div>
+
+  <!-- LAYER SECTION EXAMPLE: Liquidez -->
+  <div style="margin-bottom:12px;">
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">💧</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.05em;">Liquidez</div>
+          <div style="font-size:10px;color:#6b7280;">Reservas líquidas — acesso imediato · R$ 1.872/mês</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="background:#fff;border:1px solid #bfdbfe;border-radius:6px;padding:4px 10px;font-size:11px;color:#374151;">✨ Pesquisar</div>
+        <div style="background:#fff;border:1px solid #bfdbfe;border-radius:6px;padding:4px 8px;font-size:11px;color:#374151;">✏️</div>
+        <div style="background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:4px 8px;font-size:11px;color:#ef4444;">🗑</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-left:8px;">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>🛡️</span>
+            <span style="font-size:12px;font-weight:600;color:#111827;">Fundo Emergência</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;font-weight:600;">Renda Fixa</span>
+            <span style="color:#9ca3af;font-size:11px;cursor:pointer;">✏️</span>
+            <span style="color:#fca5a5;font-size:11px;cursor:pointer;">✕</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:8px;">CDB liq. diária / Tesouro Selic</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+          <span style="color:#6b7280;">Aporte mensal</span>
+          <span style="font-weight:600;">R$ 1.123/mês</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+          <span style="color:#6b7280;">Retorno bruto</span>
+          <span>1.0% a.m.</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px;">
+          <span style="color:#6b7280;">Líquido (IRPF 15%)</span>
+          <span style="color:#10b981;font-weight:600;">0.85% a.m.</span>
+        </div>
+        <div style="height:4px;background:#f3f4f6;border-radius:4px;margin-bottom:4px;"><div style="width:50%;height:4px;background:#3b82f6;border-radius:4px;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#6b7280;">
+          <span>R$ 60k / R$ 120k meta</span><span>50%</span>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>❤️</span>
+            <span style="font-size:12px;font-weight:600;color:#111827;">Reserva Mãe</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;font-weight:600;">Renda Fixa</span>
+            <span style="color:#9ca3af;font-size:11px;cursor:pointer;">✏️</span>
+            <span style="color:#fca5a5;font-size:11px;cursor:pointer;">✕</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:8px;">AstroPay / CDB liq. diária</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+          <span style="color:#6b7280;">Aporte mensal</span>
+          <span style="font-weight:600;">R$ 500/mês</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+          <span style="color:#6b7280;">Retorno bruto</span>
+          <span>1.0% a.m.</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px;">
+          <span style="color:#6b7280;">Líquido (IRPF 15%)</span>
+          <span style="color:#10b981;font-weight:600;">0.85% a.m.</span>
+        </div>
+        <div style="font-size:10px;color:#9ca3af;font-style:italic;">Reserva contínua (sem meta)</div>
+      </div>
+      <div style="border:2px dashed #e5e7eb;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9ca3af;font-size:12px;gap:6px;grid-column:1/-1;max-height:48px;">
+        <span style="font-size:16px;">+</span> Adicionar sublayer
+      </div>
+    </div>
+  </div>
+
+</div>

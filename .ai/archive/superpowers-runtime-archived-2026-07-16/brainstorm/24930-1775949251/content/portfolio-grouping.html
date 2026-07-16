@@ -1,0 +1,49 @@
+<h2>How should your portfolio be grouped?</h2>
+<p class="subtitle">Items come from both investment records and tagged transactions</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>By asset type</h3>
+      <p>Group by what the money is invested <em>in</em> — Renda Fixa, Ações, FIIs, Cripto, etc. The donut chart slices are asset types. Great for seeing your allocation by risk profile.</p>
+      <div style="margin-top:10px;padding:10px;background:var(--bg-secondary);border-radius:8px;font-size:12px;color:var(--text-secondary);line-height:1.8">
+        📈 <strong>Renda Fixa</strong> — R$ 28,000 (62%)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;CDB Nubank · R$ 15,000<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;Tesouro Selic · R$ 13,000<br>
+        📊 <strong>Ações</strong> — R$ 10,000 (22%)<br>
+        🏢 <strong>FIIs</strong> — R$ 7,000 (16%)
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>By wallet layer</h3>
+      <p>Group by the planner bucket it's linked to — Liquidez, Crescimento, Patrimônio, Legado. Matches the Carteira structure. Great for seeing how much you've actually put into each goal.</p>
+      <div style="margin-top:10px;padding:10px;background:var(--bg-secondary);border-radius:8px;font-size:12px;color:var(--text-secondary);line-height:1.8">
+        💧 <strong>Liquidez</strong> — R$ 18,000 (40%)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;CDB liq. diária · R$ 18,000<br>
+        📈 <strong>Crescimento</strong> — R$ 20,000 (44%)<br>
+        🏠 <strong>Patrimônio</strong> — R$ 7,000 (16%)<br>
+        📦 <strong>Sem vínculo</strong> — R$ 0
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Flat list, no grouping</h3>
+      <p>Just show everything in a single list sorted by amount invested. The donut chart at the top still breaks down by asset type for a quick overview, but the list itself is ungrouped.</p>
+      <div style="margin-top:10px;padding:10px;background:var(--bg-secondary);border-radius:8px;font-size:12px;color:var(--text-secondary);line-height:1.8">
+        CDB Nubank · Renda Fixa · R$ 15,000<br>
+        Tesouro Selic · Renda Fixa · R$ 13,000<br>
+        MXRF11 · FII · R$ 7,000<br>
+        BOVA11 · Ações · R$ 5,500<br>
+        <em>...sorted by value</em>
+      </div>
+    </div>
+  </div>
+</div>
