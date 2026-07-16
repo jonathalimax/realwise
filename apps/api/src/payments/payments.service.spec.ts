@@ -1,268 +1,192 @@
 import { Test } from '@nestjs/testing';
-import axios from 'axios';
 import { DRIZZLE } from '../db/drizzle.module';
 import { PaymentsService } from './payments.service';
-import { PremiumEntitlementsService } from './premium-entitlements.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { MercadoPagoClient } from './mercadopago.client';
 
-jest.mock('axios');
-
-const fakeUser = {
-  id: '00000000-0000-0000-0000-000000000101',
-  clientId: 'jonathalimax',
-  email: 'buyer@example.com',
-  name: 'Buyer Example',
-  role: 'user' as const,
-  firebaseUid: null,
-  appleId: null,
-  profileImageUrl: null,
-  refreshTokenHash: null,
-  premiumAccessStartedAt: new Date('2026-07-02T12:00:00.000Z'),
-  premiumAccessEndsAt: new Date('2026-08-16T12:00:00.000Z'),
-  premiumPurchasedAt: null,
-  premiumStatus: 'trialing' as const,
-  premiumPaymentProvider: null,
-  premiumProviderPaymentId: null,
-  createdAt: new Date('2026-07-02T12:00:00.000Z'),
-  updatedAt: new Date('2026-07-02T12:00:00.000Z'),
-};
+const now = new Date('2026-06-30T12:00:00.000Z');
 
 const mockDb = {
-  select: jest.fn(),
-  insert: jest.fn(),
-  update: jest.fn(),
+  select: jest.fn().mockReturnThis(),
+  from: jest.fn().mockReturnThis(),
+  where: jest.fn(),
+  insert: jest.fn().mockReturnThis(),
+  values: jest.fn().mockReturnThis(),
+  returning: jest.fn(),
+  update: jest.fn().mockReturnThis(),
+  set: jest.fn().mockReturnThis(),
 };
 
-const mockEntitlements = {
-  unlockPremiumAccess: jest.fn(),
+const mockNotifications = {
+  sendAdminEmail: jest.fn(),
+};
+
+const mockMercadoPago = {
+  createPayment: jest.fn(),
+  getPayment: jest.fn(),
 };
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-    process.env.MERCADOPAGO_PUBLIC_KEY = 'TEST-public-key';
-    delete process.env.MP_PUBLIC_KEY;
+    process.env.MP_PUBLIC_KEY = 'test-public-key';
 
     const module = await Test.createTestingModule({
       providers: [
         PaymentsService,
-        { provide: PremiumEntitlementsService, useValue: mockEntitlements },
         { provide: DRIZZLE, useValue: mockDb },
+        { provide: NotificationsService, useValue: mockNotifications },
+        { provide: MercadoPagoClient, useValue: mockMercadoPago },
       ],
     }).compile();
 
     service = module.get(PaymentsService);
-    mockEntitlements.unlockPremiumAccess.mockResolvedValue({
-      user: fakeUser,
-      purchase: { id: 'purchase-1' },
-      alreadyProcessed: false,
-    });
-    mockDb.select.mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([]),
-      }),
-    });
-    mockDb.update.mockReturnValue({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([]),
-      }),
-    });
-    mockDb.insert.mockReturnValue({
-      values: jest.fn().mockResolvedValue(undefined),
-    });
+    jest.useFakeTimers().setSystemTime(now);
+    jest.resetAllMocks();
+    mockDb.select.mockReturnThis();
+    mockDb.from.mockReturnThis();
+    mockDb.insert.mockReturnThis();
+    mockDb.values.mockReturnThis();
+    mockDb.update.mockReturnThis();
+    mockDb.set.mockReturnThis();
+    mockNotifications.sendAdminEmail.mockResolvedValue(undefined);
+    mockMercadoPago.createPayment.mockResolvedValue(undefined);
+    mockMercadoPago.getPayment.mockResolvedValue(undefined);
   });
 
-  it('activates premium from a Stripe checkout session and records the provider payment id', async () => {
-    await service.handleStripeCheckoutCompleted({
-      id: 'cs_test_123',
-      payment_intent: 'pi_123',
-      amount_total: 23900,
-      customer_details: { email: 'buyer@example.com' },
-      metadata: {
-        clientId: 'jonathalimax',
-        name: 'Buyer Example',
-      },
-    });
-
-    expect(mockEntitlements.unlockPremiumAccess).toHaveBeenCalledWith(
-      expect.objectContaining({
-        clientId: 'jonathalimax',
-        email: 'buyer@example.com',
-        name: 'Buyer Example',
-        paymentProvider: 'stripe',
-        providerPaymentId: 'cs_test_123',
-      }),
-    );
+  afterEach(() => {
+    jest.useRealTimers();
+    delete process.env.MP_PUBLIC_KEY;
   });
 
-  it('activates premium from an approved Mercado Pago payment', async () => {
-    await service.handleMercadoPagoPaymentApproved({
-      id: 998877,
-      status: 'approved',
-      transaction_amount: 239,
-      payer: { email: 'buyer@example.com' },
-      metadata: {
-        clientId: 'jonathalimax',
-        name: 'Buyer Example',
-      },
-    });
+  it('builds a payment session using pricing config and coupon rules', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([{ configKey: 'landing-pricing', basePriceCents: 23880, installments: 12 }])
+      .mockResolvedValueOnce([{ code: 'SAVE10', discountType: 'percentage', discountValue: '10', maxUses: 10, useCount: 0, enabled: true, expiresAt: null }]);
 
-    expect(mockEntitlements.unlockPremiumAccess).toHaveBeenCalledWith(
-      expect.objectContaining({
-        clientId: 'jonathalimax',
-        email: 'buyer@example.com',
-        name: 'Buyer Example',
-        paymentProvider: 'mercadopago',
-        providerPaymentId: '998877',
-      }),
-    );
-  });
-
-  it('builds a Mercado Pago quote from pricing config and a percentage coupon', async () => {
-    mockDb.select
-      .mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([{
-            configKey: 'landing-pricing',
-            basePriceCents: 23880,
-            compareAtPriceCents: 47988,
-            installments: 12,
-            stripeWalletEnabled: true,
-            mercadopagoEnabled: true,
-          }]),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([{
-            code: 'VIP45',
-            discountType: 'percentage',
-            discountValue: '45',
-            maxUses: 100,
-            useCount: 0,
-            enabled: true,
-            expiresAt: null,
-          }]),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([]),
-        }),
-      });
-
-    await expect(service.createMercadoPagoQuote({
+    await expect(service.createSession({
       email: 'buyer@example.com',
-      couponCode: 'vip45',
-    })).resolves.toEqual({
-      publicKey: 'TEST-public-key',
-      amount: 131.34,
-      baseAmount: 238.8,
-      couponCode: 'VIP45',
-      installments: 12,
-    });
-  });
-
-  it('supports the legacy session endpoint wrapper', async () => {
-    mockDb.select
-      .mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([{
-            configKey: 'landing-pricing',
-            basePriceCents: 23880,
-            compareAtPriceCents: 47988,
-            installments: 12,
-            stripeWalletEnabled: true,
-            mercadopagoEnabled: true,
-          }]),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([]),
-        }),
-      })
-      .mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([]),
-        }),
-      });
-
-    const result = await service.createSession({
-      email: 'buyer@example.com',
-      name: 'Buyer Example',
-      whatsapp: '5511999999999',
-      couponCode: undefined,
+      couponCode: 'save10',
       utmSource: 'instagram',
-    });
-
-    expect(result).toEqual({
-      publicKey: 'TEST-public-key',
-      amount: 238.8,
-      baseAmount: 238.8,
-      couponCode: null,
+    })).resolves.toEqual({
+      publicKey: 'test-public-key',
+      amount: 21492,
+      couponCode: 'SAVE10',
       installments: 12,
     });
   });
 
-  it('converts cents for the legacy process endpoint wrapper', async () => {
-    process.env.MP_ACCESS_TOKEN = 'test-access-token';
-    mockDb.select.mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([{
-          configKey: 'landing-pricing',
-          basePriceCents: 23880,
-          compareAtPriceCents: 47988,
-          installments: 12,
-          stripeWalletEnabled: true,
-          mercadopagoEnabled: true,
-        }]),
-      }),
+  it('rejects a disabled coupon during payment session bootstrap', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([{ configKey: 'landing-pricing', basePriceCents: 23880, installments: 12 }])
+      .mockResolvedValueOnce([{ code: 'SAVE10', discountType: 'percentage', discountValue: '10', maxUses: 10, useCount: 0, enabled: false, expiresAt: null }]);
+
+    await expect(service.createSession({
+      email: 'buyer@example.com',
+      couponCode: 'save10',
+    })).rejects.toThrow('Cupom desabilitado.');
+  });
+
+  it('approves free checkout without calling Mercado Pago', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([{ configKey: 'landing-pricing', basePriceCents: 23880, installments: 12 }])
+      .mockResolvedValueOnce([{ code: 'FREE100', discountType: 'percentage', discountValue: '100', maxUses: 1, useCount: 0, enabled: true, expiresAt: null }]);
+    mockDb.returning.mockResolvedValueOnce([{ id: 'purchase-1' }]);
+
+    await expect(service.processPayment({
+      transaction_amount: 0,
+      email: 'buyer@example.com',
+      name: 'Buyer',
+      couponCode: 'FREE100',
+    })).resolves.toEqual({
+      status: 'approved',
+      pending_doc_id: 'purchase-1',
     });
+    expect(mockMercadoPago.createPayment).not.toHaveBeenCalled();
+    expect(mockNotifications.sendAdminEmail).toHaveBeenCalledWith(
+      'buyer@example.com',
+      'welcome',
+      expect.objectContaining({ name: 'Buyer' }),
+    );
+  });
 
-    jest.mocked(axios.post).mockResolvedValue({
-      data: {
-        id: 12345,
-        status: 'pending',
-        status_detail: null,
-        point_of_interaction: { transaction_data: {} },
+  it('creates a pending Mercado Pago purchase and returns pix payload data', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([{ configKey: 'landing-pricing', basePriceCents: 23880, installments: 12 }])
+      .mockResolvedValueOnce([]);
+    mockMercadoPago.createPayment.mockResolvedValue({
+      id: 'mp-1',
+      status: 'pending',
+      status_detail: 'pending_waiting_transfer',
+      point_of_interaction: {
+        transaction_data: {
+          qr_code: 'pix-code',
+          qr_code_base64: 'pix-base64',
+        },
       },
-    } as unknown as Awaited<ReturnType<typeof axios.post>>);
+    });
+    mockDb.returning.mockResolvedValueOnce([{ id: 'purchase-2' }]);
 
-    await service.processPayment({
+    await expect(service.processPayment({
       transaction_amount: 23880,
       installments: 1,
+      payment_method_id: 'pix',
       email: 'buyer@example.com',
-      name: 'Buyer Example',
-      whatsapp: '5511999999999',
-      couponCode: undefined,
-      payer: {},
+      name: 'Buyer',
+    })).resolves.toEqual({
+      status: 'pending',
+      status_detail: 'pending_waiting_transfer',
+      pix_code: 'pix-code',
+      pix_qr_base64: 'pix-base64',
+      pending_doc_id: 'purchase-2',
     });
+  });
 
-    expect(jest.mocked(axios.post)).toHaveBeenCalledWith(
-      'https://api.mercadopago.com/v1/payments',
-      expect.objectContaining({
-        transaction_amount: 238.8,
-      }),
-      expect.any(Object),
+  it('reconciles a webhook approval and increments coupon usage once', async () => {
+    mockMercadoPago.getPayment.mockResolvedValue({
+      id: 'mp-1',
+      status: 'approved',
+      status_detail: 'accredited',
+      additional_info: {
+        payer: { first_name: 'Buyer' },
+      },
+    });
+    mockDb.where
+      .mockResolvedValueOnce([{
+        id: 'purchase-2',
+        email: 'buyer@example.com',
+        status: 'pending',
+        providerPaymentId: 'mp-1',
+        metadata: { couponCode: 'SAVE10', welcomeEmailSentAt: null },
+      }])
+      .mockResolvedValueOnce([{ id: 'purchase-2' }])
+      .mockResolvedValueOnce([{ id: 'coupon-1', code: 'SAVE10', useCount: 0 }]);
+
+    await expect(service.handleWebhook({
+      paymentId: 'mp-1',
+    })).resolves.toEqual({ ok: true, status: 'approved' });
+
+    expect(mockNotifications.sendAdminEmail).toHaveBeenCalledWith(
+      'buyer@example.com',
+      'welcome',
+      expect.objectContaining({ name: 'Buyer' }),
     );
   });
 
-  it('stores partial leads through the compatibility endpoint', async () => {
-    mockDb.select.mockReturnValue({
-      from: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue([]),
-      }),
-    });
+  it('upserts a partial lead by email', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([{
+        id: 'lead-1',
+        email: 'buyer@example.com',
+        status: 'new',
+        metadata: { utmSource: 'google' },
+      }]);
 
     await expect(service.savePartialLead({
       email: 'buyer@example.com',
-      name: 'Buyer Example',
-      whatsapp: '5511999999999',
+      whatsapp: '(41) 99999-1111',
       utmSource: 'instagram',
     })).resolves.toEqual({ ok: true });
-
-    expect(mockDb.insert).toHaveBeenCalled();
   });
 });

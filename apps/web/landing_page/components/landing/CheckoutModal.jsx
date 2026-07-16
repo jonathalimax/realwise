@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { extractClientId, fetchClientConfig } from '@/config/clientConfig';
 import { ArrowRight, Loader2, Lock, ChevronLeft, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { paymentsResource } from '@/lib/api/resources/payments';
 import { landingAnalytics } from '../../landingAnalytics';
+import { resolveApiBaseUrl } from '@/lib/api/client';
 
-const PARTIAL_LEAD_URL = import.meta.env.VITE_PARTIAL_LEAD_URL || '';
+const API_BASE_URL = resolveApiBaseUrl();
+const CREATE_PAYMENT_URL = `${API_BASE_URL}/payments/session`;
+const PROCESS_PAYMENT_URL = `${API_BASE_URL}/payments/process`;
+const PARTIAL_LEAD_URL = `${API_BASE_URL}/payments/partial-lead`;
 
 // BASE_PRICE / PROMO_PRICE are local fallbacks used when remote config is unavailable.
 const FALLBACK_BASE_PRICE = 479;
@@ -38,7 +40,7 @@ function maskPhone(value) {
   return digits.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
 }
 
-export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'landing' }) {
+export default function CheckoutModal({ open, onClose, prefill = {} }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -49,10 +51,8 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
   const [bricksLoading, setBricksLoading] = useState(false);
   const [error, setError] = useState('');
   const [amount, setAmount] = useState(FALLBACK_PROMO_PRICE);
-  const [installmentsLimit, setInstallmentsLimit] = useState(12);
   const basePrice = FALLBACK_BASE_PRICE;
   const promoPrice = FALLBACK_PROMO_PRICE;
-  const [partialLeadUrl, setPartialLeadUrl] = useState(PARTIAL_LEAD_URL);
   const autoSubmittedRef = useRef(false);
   const savedPartialRef = useRef(false);
   const bricksControllerRef = useRef(null);
@@ -62,6 +62,8 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
   useEffect(() => { formRef.current = form; }, [form]);
   const amountRef = useRef(amount);
   useEffect(() => { amountRef.current = amount; }, [amount]);
+  const processPaymentUrlRef = useRef(PROCESS_PAYMENT_URL);
+
   // Mount/unmount with CSS transition
   useEffect(() => {
     if (open) {
@@ -89,19 +91,6 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
   }, [open]);
 
   useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const hostname = window.location.hostname;
-        const rawId = extractClientId(hostname);
-        const clientId = rawId === 'realwise-dev' ? 'app.dev' : (rawId || 'app');
-        const config = await fetchClientConfig(clientId);
-        if (config.partialLeadUrl) setPartialLeadUrl(config.partialLeadUrl);
-      } catch { /* fallback to env vars */ }
-    };
-    loadConfig();
-  }, []);
-
-  useEffect(() => {
     if (open) {
       setStep(1);
       setForm({
@@ -123,6 +112,7 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
   useEffect(() => {
     if (!open) { autoSubmittedRef.current = false; return; }
     if (step !== 1 || autoSubmittedRef.current) return;
+    if (!CREATE_PAYMENT_URL) return;
     const { name, email, whatsapp, coupon } = prefill;
     if (!name || !email || !whatsapp) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
@@ -131,19 +121,22 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
     landingAnalytics.trackFormSubmitted();
     setLoading(true);
     setError('');
-    paymentsResource
-      .createMercadoPagoQuote({
+    fetch(CREATE_PAYMENT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         whatsapp: whatsapp.trim(),
         couponCode: coupon?.trim().toUpperCase() || undefined,
-        clientId: extractClientId(window.location.hostname) || undefined,
         utmSource: landingAnalytics.getUtmSource(),
-      })
-      .then((data) => {
+      }),
+    })
+      .then(res => res.json().then(data => ({ res, data })))
+      .then(({ res, data }) => {
+        if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento.');
         window.__MP_PUBLIC_KEY__ = data.publicKey;
         setAmount(data.amount);
-        setInstallmentsLimit(data.installments || 12);
         setLoading(false);
         setStep(2);
       })
@@ -223,17 +216,20 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
 
           let res, data;
           try {
-            data = await paymentsResource.processMercadoPagoPayment({
-              ...formData,
-              transaction_amount: formData.transaction_amount ?? amountRef.current,
-              installments: formData.installments || installments,
-              email: formRef.current.email,
-              name: formRef.current.name,
-              whatsapp: formRef.current.whatsapp,
-              couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
-              clientId: extractClientId(window.location.hostname) || undefined,
+            res = await fetch(processPaymentUrlRef.current, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...formData,
+                transaction_amount: formData.transaction_amount ?? amountRef.current,
+                installments: formData.installments || installments,
+                email: formRef.current.email,
+                name: formRef.current.name,
+                whatsapp: formRef.current.whatsapp,
+                couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
+              }),
             });
-            res = { ok: true };
+            data = await res.json().catch(() => ({}));
           } catch {
             setError('__WPP__');
             setLoading(false);
@@ -289,14 +285,19 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
     setLoading(true);
     setError('');
     try {
-      const data = await paymentsResource.processMercadoPagoPayment({
-        transaction_amount: 0,
-        email: formRef.current.email,
-        name: formRef.current.name,
-        whatsapp: formRef.current.whatsapp,
-        couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
-        clientId: extractClientId(window.location.hostname) || undefined,
+      const res = await fetch(processPaymentUrlRef.current, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_amount: 0,
+          email: formRef.current.email,
+          name: formRef.current.name,
+          whatsapp: formRef.current.whatsapp,
+          couponCode: formRef.current.coupon.trim().toUpperCase() || undefined,
+        }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Erro ao processar acesso.');
       if (data.status === 'approved') {
         const baseUrl = window.location.origin;
         window.location.href = `${baseUrl}/purchase-success`;
@@ -333,19 +334,13 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
   }
 
   async function savePartialLead(payload) {
-    const body = { ...payload, utmSource: landingAnalytics.getUtmSource() };
-
+    if (!PARTIAL_LEAD_URL) return;
     try {
-      if (partialLeadUrl) {
-        await fetch(partialLeadUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        return;
-      }
-
-      await paymentsResource.savePartialLead(body);
+      await fetch(PARTIAL_LEAD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, utmSource: landingAnalytics.getUtmSource() }),
+      });
     } catch { /* never throw */ }
   }
 
@@ -367,18 +362,21 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
     setError('');
 
     try {
-      const data = await paymentsResource.createMercadoPagoQuote({
-        email: email.trim().toLowerCase(),
-        name: form.name.trim() || undefined,
-        whatsapp: form.whatsapp.trim() || undefined,
-        couponCode: form.coupon.trim().toUpperCase() || undefined,
-        clientId: extractClientId(window.location.hostname) || undefined,
-        utmSource: landingAnalytics.getUtmSource(),
+      const res = await fetch(CREATE_PAYMENT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          couponCode: form.coupon.trim().toUpperCase() || undefined,
+          utmSource: landingAnalytics.getUtmSource(),
+        }),
       });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Erro ao iniciar pagamento.');
 
       window.__MP_PUBLIC_KEY__ = data.publicKey;
       setAmount(data.amount);
-      setInstallmentsLimit(data.installments || 12);
       setLoading(false);
       setStep(2);
     } catch (err) {
@@ -397,10 +395,9 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
   const hasCouponDiscount = step === 2 && displayAmount < promoPrice;
   const fmt = (v) => `R$ ${v.toFixed(2).replace('.', ',')}`;
   const couponLabel = form.coupon?.trim().toUpperCase();
-  const isPremiumMode = mode === 'premium';
 
   // Calculate installment price (default 12x)
-  const INSTALLMENTS = installmentsLimit || 12;
+  const INSTALLMENTS = 12;
   const installmentAmount = displayAmount / INSTALLMENTS;
 
   if (!mounted) return null;
@@ -450,12 +447,10 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
               )}
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {step === 1 ? (isPremiumMode ? 'Ativar premium' : 'Quase la!') : 'Pagamento seguro'}
+                  {step === 1 ? 'Quase lá!' : 'Pagamento seguro'}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {step === 1
-                    ? (isPremiumMode ? 'So os recursos premium sao pagos' : 'Preencha seus dados para continuar')
-                    : (isPremiumMode ? 'Recursos premium pagos · nucleo gratis continua liberado' : 'Pagamento unico · acesso vitalicio')}
+                  {step === 1 ? 'Preencha seus dados para continuar' : 'Pagamento único · acesso vitalício'}
                 </p>
               </div>
             </div>
@@ -515,9 +510,7 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
                 {amount === 0 ? (
                   <div className="space-y-4">
                     <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
-                      {isPremiumMode
-                        ? 'Seu cupom cobre 100% do premium. Clique para liberar os recursos premium agora.'
-                        : 'Seu cupom cobre 100% do valor. Clique para ativar seu acesso gratuito.'}
+                      Seu cupom cobre 100% do valor. Clique para ativar seu acesso gratuito.
                     </p>
                     <Button
                       onClick={handleFreeCheckout}
@@ -527,7 +520,7 @@ export default function CheckoutModal({ open, onClose, prefill = {}, mode = 'lan
                       {loading ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Aguarde...</>
                       ) : (
-                        <>{isPremiumMode ? 'Liberar premium' : 'Ativar acesso gratuito'}<ArrowRight className="ml-2 h-4 w-4" /></>
+                        <>Ativar acesso gratuito<ArrowRight className="ml-2 h-4 w-4" /></>
                       )}
                     </Button>
                   </div>
