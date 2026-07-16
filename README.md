@@ -1,26 +1,40 @@
 # Realwise
 
-Realwise is a monorepo with two React apps and a NestJS API:
+Realwise is a pnpm monorepo for a personal finance platform.
 
-- `apps/web` is the customer-facing app at `/{clientId}/...`
-- `apps/admin` is the standalone admin SPA
-- `apps/api` is the cookie-authenticated backend that serves both apps
+## Apps and packages
 
-The active browser flow uses `fetch(..., { credentials: 'include' })` against the API. The browser no longer initializes Firebase directly.
+| Path | Purpose |
+|---|---|
+| `apps/web` | Customer-facing React/Vite app at `/{clientId}/...` |
+| `apps/admin` | Standalone admin React/Vite SPA |
+| `apps/api` | NestJS API for browser apps and integrations |
+| `packages/types` | Shared DTOs/domain types |
+| `infrastructure` | Migration/deployment/support scripts |
 
-## Current architecture
+## AI/project documentation
 
-- Browser auth uses httpOnly cookies: `access_token` and `refresh_token`
-- `apps/web` loads client config from `public/clients/*.json` and keeps the tenant URL shape
-- `apps/admin` uses `/admin/*` REST endpoints and no longer lives inside the web router
-- Shared DTOs live in `packages/types`
+Canonical agent-facing documentation lives in `.ai/`.
 
-## Repo layout
+Start here:
 
-- `apps/web` - customer app, routing, forms, dashboards, imports, planner
-- `apps/admin` - admin lead, coupon, pricing, onboarding, testimonial, and import-issue tools
-- `apps/api` - auth, CRUD, storage, imports, notifications, and admin endpoints
-- `functions` - removed
+```txt
+.ai/README.md
+.ai/project.md
+.ai/architecture.md
+.ai/feature-map.md
+```
+
+Feature docs live in `.ai/features/`; app/package docs live in `.ai/apps/`.
+
+## Current architecture summary
+
+- Browser auth uses httpOnly cookies: `access_token` and `refresh_token`.
+- Browser apps call the API with `fetch(..., { credentials: 'include' })`.
+- `apps/web` loads client config from `public/clients/*.json` and preserves path-based tenant URLs.
+- `apps/admin` uses `/admin/*` REST endpoints and is separate from the customer router.
+- Shared DTOs live in `packages/types`.
+- Firebase browser bootstrap is no longer the active architecture.
 
 ## Development
 
@@ -31,30 +45,13 @@ pnpm admin:dev
 pnpm api:dev
 ```
 
-## Build
+## Build and test
 
 ```bash
 pnpm web:build
 pnpm admin:build
 pnpm api:build
 pnpm build
-```
-
-## Tests
-
-```bash
+pnpm lint
 pnpm test
 ```
-
-## Payments
-
-- Stripe webhook endpoint: `https://api.realwise.com.br/webhooks/stripe`
-- Mercado Pago webhook endpoint: `https://api.realwise.com.br/webhooks/mercadopago`
-- Required API secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY`
-- The premium unlock path now converges inside `apps/api/src/payments/*` so both providers end in the same entitlement update.
-
-## Notes
-
-- The web app still supports the path-based tenant UX.
-- The admin SPA is now isolated from the web router.
-- Firebase-era browser/runtime files have been removed from the active app paths.
