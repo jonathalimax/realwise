@@ -192,8 +192,8 @@ export class AuthController {
 
   private setTokenCookies(res: Response, accessToken: string, refreshToken: string): void {
     const base = { httpOnly: true, secure: this.isProd, sameSite: 'lax' as const, path: '/' };
-    res.cookie('access_token', accessToken, { ...base, maxAge: 15 * 60 * 1000 });
-    res.cookie('refresh_token', refreshToken, { ...base, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('access_token', accessToken, { ...base, maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.cookie('refresh_token', refreshToken, { ...base, maxAge: 30 * 24 * 60 * 60 * 1000 });
   }
 
   private setNonceCookie(res: Response, nonce: string): void {
