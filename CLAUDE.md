@@ -66,7 +66,7 @@ Usage: `const hasX = useFeature('x')` from `ClientConfigContext`.
 | Service | Used for |
 |---------|-----------|
 | API cookies / database / object storage | Core app |
-| SMTP (secrets `EMAIL_*`) | Bill reminders, purchase/admin/import emails |
+| Resend (`RESEND_API_KEY`, `EMAIL_FROM`) | Bill reminders, purchase/admin/import emails |
 | Legacy Firebase-hosted payment endpoints | Checkout bootstrapping still referenced by `app.json` / `app.dev.json` |
 | Brapi (B3) | `b3Sync.js` — investment sync |
 | SMS | Not used |

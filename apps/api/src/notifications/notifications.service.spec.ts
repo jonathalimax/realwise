@@ -1,22 +1,26 @@
 import { Test } from '@nestjs/testing';
 import { NotificationsService } from './notifications.service';
-import { MailerService } from '@nestjs-modules/mailer';
 
-const mockMailer = { sendMail: jest.fn().mockResolvedValue({ messageId: 'abc' }) };
+const mockSend = jest.fn().mockResolvedValue({ data: { id: 'abc' }, error: null });
+
+jest.mock('resend', () => ({
+  Resend: jest.fn().mockImplementation(() => ({
+    emails: { send: mockSend },
+  })),
+}));
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
 
   beforeEach(async () => {
+    process.env.RESEND_API_KEY = 'test-key';
+    jest.clearAllMocks();
+    mockSend.mockResolvedValue({ data: { id: 'abc' }, error: null });
+
     const module = await Test.createTestingModule({
-      providers: [
-        NotificationsService,
-        { provide: MailerService, useValue: mockMailer },
-      ],
+      providers: [NotificationsService],
     }).compile();
     service = module.get(NotificationsService);
-    jest.clearAllMocks();
-    mockMailer.sendMail.mockResolvedValue({ messageId: 'abc' });
   });
 
   it('sendBillReminderEmail calls sendMail once', async () => {
@@ -25,14 +29,14 @@ describe('NotificationsService', () => {
       dueToday: [],
       dueSoon: [],
     });
-    expect(mockMailer.sendMail).toHaveBeenCalledTimes(1);
-    const args = mockMailer.sendMail.mock.calls[0][0];
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const args = mockSend.mock.calls[0][0];
     expect(args.to).toBe('user@example.com');
     expect(args.subject).toMatch(/conta/i);
   });
 
   it('does not send email when all groups empty', async () => {
     await service.sendBillReminderEmail('user@example.com', { overdue: [], dueToday: [], dueSoon: [] });
-    expect(mockMailer.sendMail).not.toHaveBeenCalled();
+    expect(mockSend).not.toHaveBeenCalled();
   });
 });
