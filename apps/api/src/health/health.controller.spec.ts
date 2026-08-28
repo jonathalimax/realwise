@@ -17,4 +17,10 @@ describe('HealthController', () => {
     expect(typeof result.timestamp).toBe('string');
     expect(new Date(result.timestamp).toISOString()).toBe(result.timestamp);
   });
+
+  it('returns uptime as a number >= 0', () => {
+    const result = controller.check();
+    expect(typeof result.uptime).toBe('number');
+    expect(result.uptime).toBeGreaterThanOrEqual(0);
+  });
 });
