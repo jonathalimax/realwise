@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { MailerModule } from '@nestjs-modules/mailer';
 
 import { HealthModule } from './health/health.module';
 import { DrizzleModule } from './db/drizzle.module';
@@ -34,22 +33,6 @@ import { PaymentsModule } from './payments/payments.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
-    MailerModule.forRootAsync({
-      useFactory: () => ({
-        transport: {
-          host: process.env.EMAIL_HOST,
-          port: Number(process.env.EMAIL_PORT ?? 587),
-          secure: Number(process.env.EMAIL_PORT) === 465,
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
-          },
-        },
-        defaults: {
-          from: process.env.EMAIL_FROM ?? 'noreply@realwise.com.br',
-        },
-      }),
-    }),
     DrizzleModule,
     HealthModule,
     AuthModule,

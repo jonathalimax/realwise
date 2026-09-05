@@ -77,9 +77,9 @@ export class AuthService {
       role: user.role as 'user' | 'admin',
     };
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '30d' });
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
+      expiresIn: '30d',
       secret: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET,
     });
 
