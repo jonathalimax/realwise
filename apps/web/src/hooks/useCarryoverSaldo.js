@@ -13,7 +13,7 @@ import { useMemo } from 'react';
  *   viewMode='purchase' → always use transaction date
  *   viewMode='payment'  → income uses transaction date; expenses use getPaymentMonthKey()
  */
-export function computeCarryoverSaldo(allTransactions, selectedMonth, viewMode, getPaymentMonthKey) {
+export function computeCarryoverSaldo(allTransactions, selectedMonth, viewMode, getPaymentMonthKey, { rollover = true } = {}) {
   const byMonth = {};
 
   for (const t of allTransactions) {
@@ -40,6 +40,15 @@ export function computeCarryoverSaldo(allTransactions, selectedMonth, viewMode, 
 
   const sortedMonths = Object.keys(byMonth).sort();
   const cumulativeByMonth = {};
+
+  if (!rollover) {
+    for (const month of sortedMonths) {
+      cumulativeByMonth[month] = byMonth[month].income - byMonth[month].expense;
+    }
+
+    return { carryoverSaldo: 0, cumulativeByMonth };
+  }
+
   let running = 0;
 
   for (const month of sortedMonths) {
@@ -61,9 +70,11 @@ export function computeCarryoverSaldo(allTransactions, selectedMonth, viewMode, 
  * React hook — memoizes computeCarryoverSaldo so it only recomputes
  * when transactions, selectedMonth, or viewMode actually change.
  */
-export default function useCarryoverSaldo(allTransactions, selectedMonth, viewMode, getPaymentMonthKey) {
+export default function useCarryoverSaldo(allTransactions, selectedMonth, viewMode, getPaymentMonthKey, options = {}) {
+  const { rollover = true } = options;
+
   return useMemo(
-    () => computeCarryoverSaldo(allTransactions, selectedMonth, viewMode, getPaymentMonthKey),
-    [allTransactions, selectedMonth, viewMode, getPaymentMonthKey]
+    () => computeCarryoverSaldo(allTransactions, selectedMonth, viewMode, getPaymentMonthKey, { rollover }),
+    [allTransactions, selectedMonth, viewMode, getPaymentMonthKey, rollover]
   );
 }

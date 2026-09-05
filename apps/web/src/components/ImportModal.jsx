@@ -177,6 +177,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [installmentCount, setInstallmentCount] = useState(0);
   const [aiCount, setAiCount] = useState(0);
   const [aiDuplicateCount, setAiDuplicateCount] = useState(0);
+  const [skippedRowCount, setSkippedRowCount] = useState(0);
   const [swipeSheetIndex, setSwipeSheetIndex] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc'); // desc = most recent first
   const contentScrollRef = useRef(null);
@@ -283,6 +284,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
     if (!file) return;
     setLoading(true);
     setError('');
+    setSkippedRowCount(0);
     try {
       const userId = requireOwnerId(ownerId);
       const aiOptions = geminiApiKey ? { apiKey: geminiApiKey, categories } : {};
@@ -290,6 +292,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       aiOptions.clientConfig = clientConfig;
 
       const parsed = await parseFile(file, bankType, userId, aiOptions);
+      setSkippedRowCount(parsed.skippedCount || 0);
 
       let hashDuplicates = 0;
       let installments = 0;
@@ -644,6 +647,14 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 </button>
               </div>
             </div>
+
+            {skippedRowCount > 0 && (
+              <div className="p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 text-xs font-bold text-amber-800 dark:text-amber-200">
+                {language === 'pt'
+                  ? `${skippedRowCount} linha(s) do arquivo foram ignoradas por não corresponderem ao período do extrato. Confira o arquivo se o número de transações parecer menor que o esperado.`
+                  : `${skippedRowCount} row(s) in the file were skipped because they didn't match the statement period. Double-check the file if the transaction count looks lower than expected.`}
+              </div>
+            )}
 
             <div ref={transactionsListRef} className="flex-1 overflow-y-auto min-h-0 pb-20">
               {groupByDate(sortedTransactions.main).map(({ date, transactions: group }) => (

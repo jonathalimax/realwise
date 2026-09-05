@@ -23,6 +23,7 @@ export const BANKS = [
   { id: 'next', name: 'Next', icon: '💚', color: 'emerald' },
   { id: 'original', name: 'Banco Original', icon: '💚', color: 'emerald' },
   { id: 'pan', name: 'Banco Pan', icon: '💙', color: 'blue' },
+  { id: 'astropay', name: 'AstroPay', icon: '💜', color: 'purple' },
   { id: 'other', name: 'Outro', icon: '🏦', color: 'slate' },
 ];
 

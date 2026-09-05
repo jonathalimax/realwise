@@ -32,13 +32,13 @@ export default function DashboardPage() {
   const [showFabMenu, setShowFabMenu] = useState(false);
   const { selectedMonth } = useMonth();
   const [viewMode] = useState('payment');
-  const { t, language } = useSettings();
+  const { t, language, monthlyRollover } = useSettings();
   const { canWrite, ownerId, loading: accessLoading } = useAccess();
   const { getPaymentMonthKey, loading: cardsLoading } = useCards();
   const { transactions, loading: transactionsLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const { profile: onboardingProfile } = useOnboardingProfile();
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
-    transactions, selectedMonth, viewMode, getPaymentMonthKey
+    transactions, selectedMonth, viewMode, getPaymentMonthKey, { rollover: monthlyRollover }
   );
   useInvestments();
 
@@ -137,6 +137,7 @@ export default function DashboardPage() {
                 selectedMonth={selectedMonth}
                 viewMode={viewMode}
                 cumulativeByMonth={cumulativeByMonth}
+                rollover={monthlyRollover}
               />
             </div>
           </div>

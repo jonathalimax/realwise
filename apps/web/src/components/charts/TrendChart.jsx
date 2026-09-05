@@ -9,7 +9,7 @@ import {
   ChartsYAxis,
 } from '@mui/x-charts';
 
-export default function TrendChart({ transactions, selectedMonth, viewMode, cumulativeByMonth = {} }) {
+export default function TrendChart({ transactions, selectedMonth, viewMode, cumulativeByMonth = {}, rollover = true }) {
   const scrollContainerRef = useRef(null);
   const { formatCurrency, t, language, darkMode } = useSettings();
   const [tappedBar, setTappedBar] = useState(null); // { label, income, expense, balance }
@@ -43,8 +43,15 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
     ? (() => {
         let last = null;
         return monthsRange.map(({ key }) => {
-          if (cumulativeByMonth[key] !== undefined) last = cumulativeByMonth[key];
-          return key > lastDataMonth ? null : last;
+          if (cumulativeByMonth[key] !== undefined) {
+            last = cumulativeByMonth[key];
+            return last;
+          }
+          if (key > lastDataMonth) return null;
+          // rollover disabled: each month is computed independently, so a gap
+          // month with no transactions has zero net — do not carry the
+          // previous month's balance forward into it.
+          return rollover ? last : 0;
         });
       })()
     : null;

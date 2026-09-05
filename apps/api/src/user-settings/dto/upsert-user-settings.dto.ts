@@ -19,6 +19,10 @@ export class UpsertUserSettingsDto {
 
   @IsOptional()
   @IsBoolean()
+  monthlyRollover?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   tutorialCompleted?: boolean;
 
   @IsOptional()
