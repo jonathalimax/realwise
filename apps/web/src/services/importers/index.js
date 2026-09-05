@@ -21,6 +21,7 @@ import { parseInterStatement, detectInter } from './bankParsers/inter';
 import { parseOfx } from './bankParsers/ofx';
 import { parseItauPdf, detectItauPdf } from './bankParsers/itauPdf';
 import { parseBradescoPdf, detectBradescoPdf } from './bankParsers/bradescoPdf';
+import { parseAstroPayPdf, detectAstroPayPdf } from './bankParsers/astropayPdf';
 import { extractPdfText } from './pdfLoader';
 
 /**
@@ -63,6 +64,12 @@ export async function parseFile(file, bankType = 'auto', userId = null, options 
       transactions = parseInterPdf(text);
     } else if (bankType === 'mercadopagoPdf' || (bankType === 'auto' && detectMercadoPagoPdf(text))) {
       transactions = parseMercadoPagoPdf(text);
+    } else if (bankType === 'astropayPdf' || (bankType === 'auto' && detectAstroPayPdf(text))) {
+      const astropayResult = parseAstroPayPdf(text);
+      transactions = astropayResult.transactions;
+      const categorized = await categorizeParsedTransactions(transactions, userId, options);
+      if (astropayResult.skippedCount > 0) categorized.skippedCount = astropayResult.skippedCount;
+      return categorized;
     }
     // else: no parser matched, transactions stays [] so failed-import UI can kick in
     return await categorizeParsedTransactions(transactions, userId, options);
@@ -202,7 +209,7 @@ async function loadUserCategorizationRulesSafely(userId) {
   }
 }
 
-async function categorizeParsedTransactions(transactions, userId, options) {
+export async function categorizeParsedTransactions(transactions, userId, options) {
   const { apiKey, categories: availableCategories } = options;
 
   const userRules = await loadUserCategorizationRulesSafely(userId);
@@ -213,21 +220,30 @@ async function categorizeParsedTransactions(transactions, userId, options) {
   const processedInstallmentGroups = new Set();
 
   for (const t of transactions) {
-    const categorization = categorizeTransaction(t.description, allRules);
+    // Parsers may already set an explicit category (e.g. AstroPay cashback rows
+    // categorized as "Investimentos"). Respect that instead of overwriting it
+    // via keyword matching.
+    const hasParserCategory = !!t.category;
+    const categorization = hasParserCategory ? null : categorizeTransaction(t.description, allRules);
     const installmentInfo = detectInstallment(t.description);
 
     const isUncategorized =
-      !categorization ||
-      categorization.category === 'Diversos' ||
-      categorization.category === 'Other' ||
-      categorization.category === 'Outros' ||
-      categorization.category === 'Sem categoria';
+      !hasParserCategory &&
+      (!categorization ||
+        categorization.category === 'Diversos' ||
+        categorization.category === 'Other' ||
+        categorization.category === 'Outros' ||
+        categorization.category === 'Sem categoria');
 
     const baseTransaction = {
       ...t,
-      category: isUncategorized ? 'Sem categoria' : categorization.category,
+      category: hasParserCategory
+        ? t.category
+        : isUncategorized
+          ? 'Sem categoria'
+          : categorization.category,
       type: t.type || categorization?.type,
-      autoCategory: !!categorization && !isUncategorized,
+      autoCategory: hasParserCategory || (!!categorization && !isUncategorized),
       isUserRule: categorization?.isUserRule || false,
       needsAI: isUncategorized,
       hash: generateTransactionHash(t),
@@ -350,6 +366,7 @@ export const BANK_LABELS = {
   interPdf: 'Inter (PDF)',
   interFaturaPdf: 'Inter Fatura (PDF)',
   mercadopagoPdf: 'Mercado Pago (PDF)',
+  astropayPdf: 'AstroPay (PDF)',
   ofx: 'OFX',
   generic: 'Formato genérico',
   unknown: 'Banco desconhecido',
@@ -366,6 +383,7 @@ export async function detectBankFromFile(file) {
       if (detectInterFaturaPdf(text)) return 'interFaturaPdf';
       if (detectInterPdf(text)) return 'interPdf';
       if (detectMercadoPagoPdf(text)) return 'mercadopagoPdf';
+      if (detectAstroPayPdf(text)) return 'astropayPdf';
     } catch {
       // password-protected or unreadable
     }
@@ -399,6 +417,7 @@ export const BANK_OPTIONS = [
   { value: 'inter',         label: 'Banco Inter',              status: 'auto' },
   { value: 'interFaturaPdf', label: 'Banco Inter — Fatura',   status: 'auto' },
   { value: 'mercadopago',   label: 'Mercado Pago',             status: 'auto' },
+  { value: 'astropayPdf',  label: 'AstroPay',                 status: 'auto' },
   { value: 'bancodobrasil', label: 'Banco do Brasil',          status: 'manual' },
   { value: 'caixa',         label: 'Caixa Econômica Federal',  status: 'manual' },
   { value: 'santander',     label: 'Santander',                status: 'manual' },

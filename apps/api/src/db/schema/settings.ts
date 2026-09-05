@@ -11,6 +11,7 @@ export const settings = pgTable(
     language: varchar('language').default('pt-BR').notNull(),
     darkMode: boolean('dark_mode').default(false).notNull(),
     billReminders: boolean('bill_reminders').default(true).notNull(),
+    monthlyRollover: boolean('monthly_rollover').default(true).notNull(),
     tutorialCompleted: boolean('tutorial_completed').default(false).notNull(),
     geminiApiKey: varchar('gemini_api_key'),
     expenseCategories: jsonb('expense_categories'),

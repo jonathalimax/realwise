@@ -41,11 +41,18 @@ describe('normalizeSettings', () => {
         language: 'pt',
         darkMode: false,
         billReminders: true,
+        monthlyRollover: true,
         tutorialCompleted: false,
         geminiApiKey: '',
         expenseCategories: expect.any(Array),
         incomeCategories: expect.any(Array),
       }),
+    );
+  });
+
+  it('preserves explicit monthlyRollover false', () => {
+    expect(normalizeSettings({ monthlyRollover: false })).toEqual(
+      expect.objectContaining({ monthlyRollover: false }),
     );
   });
 
@@ -55,6 +62,7 @@ describe('normalizeSettings', () => {
       language: 'en',
       darkMode: true,
       billReminders: false,
+      monthlyRollover: false,
       tutorialCompleted: true,
       geminiApiKey: 'abc',
       expenseCategories: ['Housing'],
@@ -65,6 +73,7 @@ describe('normalizeSettings', () => {
         language: 'en',
         darkMode: true,
         billReminders: false,
+        monthlyRollover: false,
         tutorialCompleted: true,
         geminiApiKey: 'abc',
         expenseCategories: ['Housing'],

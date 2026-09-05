@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { UserSettingsService } from './user-settings.service';
 import { DRIZZLE } from '../db/drizzle.module';
 
-const mockRow = { id: 'set-1', clientId: 'jonathalimax', userId: 'user-1', currency: 'BRL', language: 'pt-BR', darkMode: false, billReminders: true, createdAt: new Date(), updatedAt: new Date() };
+const mockRow = { id: 'set-1', clientId: 'jonathalimax', userId: 'user-1', currency: 'BRL', language: 'pt-BR', darkMode: false, billReminders: true, monthlyRollover: true, createdAt: new Date(), updatedAt: new Date() };
 const mockDb = {
   select: jest.fn().mockReturnThis(),
   from: jest.fn().mockReturnThis(),

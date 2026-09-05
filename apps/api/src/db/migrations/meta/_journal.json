@@ -134,6 +134,13 @@
       "when": 1783383600000,
       "tag": "0018_pricing_config_premium_offer",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788552000000,
+      "tag": "0019_settings_monthly_rollover",
+      "breakpoints": true
     }
   ]
 }
