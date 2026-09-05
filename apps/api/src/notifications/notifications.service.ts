@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { Injectable, Logger } from '@nestjs/common';
+import { Resend } from 'resend';
 
 interface BillEntry {
   id: string;
@@ -149,7 +149,32 @@ function buildCheckoutUrl({ email, name, couponCode }: { email?: string; name?: 
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly mailer: MailerService) {}
+  private readonly logger = new Logger(NotificationsService.name);
+  private readonly resend: Resend | null;
+  private readonly from = process.env.EMAIL_FROM ?? 'noreply@realwise.com.br';
+
+  constructor() {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      this.logger.warn('RESEND_API_KEY not configured — email delivery disabled');
+      this.resend = null;
+      return;
+    }
+    this.resend = new Resend(apiKey);
+  }
+
+  private async sendMail(params: { to: string; subject: string; html: string }): Promise<void> {
+    if (!this.resend) return;
+    const { error } = await this.resend.emails.send({
+      from: this.from,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    });
+    if (error) {
+      throw new Error(`Resend send failed: ${error.message}`);
+    }
+  }
 
   async sendBillReminderEmail(to: string, groups: BillGroups): Promise<void> {
     const total = groups.overdue.length + groups.dueToday.length + groups.dueSoon.length;
@@ -181,7 +206,7 @@ export class NotificationsService {
       <p style="font-size:12px;color:#888">Realwise — gestão financeira pessoal</p>
     `;
 
-    await this.mailer.sendMail({
+    await this.sendMail({
       to,
       subject: `Realwise — lembrete de conta${total > 1 ? 's' : ''}`,
       html,
@@ -209,7 +234,7 @@ export class NotificationsService {
     } as const;
 
     const selected = templates[template];
-    await this.mailer.sendMail({
+    await this.sendMail({
       to,
       subject: selected.subject,
       html: selected.html,
@@ -226,7 +251,7 @@ export class NotificationsService {
   ): Promise<void> {
     const displayName = name || to.split('@')[0];
     if (stage === 1) {
-      await this.mailer.sendMail({
+      await this.sendMail({
         to,
         subject: `${displayName}, você esqueceu algo 👀`,
         html: getBaseTemplate({
@@ -255,7 +280,7 @@ export class NotificationsService {
       ? expiresAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
       : 'em breve';
     const isLastChance = stage === 3;
-    await this.mailer.sendMail({
+    await this.sendMail({
       to,
       subject: isLastChance
         ? `⏰ Última chance: cupom ${couponCode.toUpperCase()} expira hoje`
@@ -324,7 +349,7 @@ export class NotificationsService {
       </table>
     `;
 
-    await this.mailer.sendMail({
+    await this.sendMail({
       to: recipient,
       subject: `Realwise import issue: ${issue.fileName}`,
       html: getBaseTemplate({
