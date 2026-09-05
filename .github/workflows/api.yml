@@ -97,6 +97,7 @@ jobs:
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
 
       - name: Trigger Coolify deploy
+        if: steps.meta.outputs.is_production == 'true'
         run: |
           curl -s -f -X POST \
             "${{ secrets.COOLIFY_BASE_URL }}/api/v1/deploy?uuid=${{ steps.meta.outputs.coolify_uuid }}&force=false" \

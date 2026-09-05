@@ -103,8 +103,8 @@ jobs:
             echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
             echo "env_tag=staging" >> $GITHUB_OUTPUT
-            echo "coolify_uuid=${{ secrets.COOLIFY_WEB_STAGING_UUID }}" >> $GITHUB_OUTPUT
-            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "coolify_uuid=" >> $GITHUB_OUTPUT
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
           fi
           echo "sha_tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "image=ghcr.io/jonathalimax/realwise-web" >> $GITHUB_OUTPUT

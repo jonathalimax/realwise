@@ -24,6 +24,7 @@ export function normalizeSettings(data) {
     language,
     darkMode: data?.darkMode ?? false,
     billReminders: data?.billReminders ?? true,
+    monthlyRollover: data?.monthlyRollover ?? true,
     tutorialCompleted: data?.tutorialCompleted === true,
     geminiApiKey: data?.geminiApiKey || '',
     expenseCategories: data?.expenseCategories || defaults.expense,

@@ -118,6 +118,7 @@ export function SettingsProvider({ children }) {
   const [tutorialCompleted, setTutorialCompletedState] = useState(true); // Default true to avoid flash
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [billReminders, setBillRemindersState] = useState(true);
+  const [monthlyRollover, setMonthlyRolloverState] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem(DARK_MODE_STORAGE_KEY);
     if (saved === 'true') return true;
@@ -157,6 +158,7 @@ export function SettingsProvider({ children }) {
         setTutorialCompletedState(normalized.tutorialCompleted);
         setGeminiApiKey(normalized.geminiApiKey);
         setBillRemindersState(normalized.billReminders);
+        setMonthlyRolloverState(normalized.monthlyRollover);
       })
       .catch((error) => {
         console.error('Error loading settings:', error);
@@ -170,6 +172,7 @@ export function SettingsProvider({ children }) {
         setTutorialCompletedState(normalized.tutorialCompleted);
         setGeminiApiKey(normalized.geminiApiKey);
         setBillRemindersState(normalized.billReminders);
+        setMonthlyRolloverState(normalized.monthlyRollover);
       })
       .finally(() => {
         setLoading(false);
@@ -218,6 +221,11 @@ export function SettingsProvider({ children }) {
   const updateBillReminders = async (enabled) => {
     setBillRemindersState(enabled);
     await settingsResource.update({ billReminders: enabled });
+  };
+
+  const updateMonthlyRollover = async (enabled) => {
+    setMonthlyRolloverState(enabled);
+    await settingsResource.update({ monthlyRollover: enabled });
   };
 
   const updateGeminiApiKey = async (apiKey) => {
@@ -318,6 +326,8 @@ export function SettingsProvider({ children }) {
       updateGeminiApiKey,
       billReminders,
       updateBillReminders,
+      monthlyRollover,
+      updateMonthlyRollover,
       loading
     }}>
       {children}

@@ -13,6 +13,8 @@ export default function SettingsPage() {
     language,
     billReminders,
     updateBillReminders,
+    monthlyRollover,
+    updateMonthlyRollover,
     darkMode,
     toggleDarkMode,
     t
@@ -95,6 +97,31 @@ export default function SettingsPage() {
                   className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${billReminders ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
                   <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              {/* Monthly rollover */}
+              <div className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <svg className={`w-5 h-5 ${monthlyRollover ? 'text-violet-500' : 'text-gray-500 dark:text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                      {t('balance.monthlyRollover')}
+                    </span>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {t('balance.monthlyRolloverHelper')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={monthlyRollover}
+                  onClick={() => updateMonthlyRollover(!monthlyRollover)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${monthlyRollover ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${monthlyRollover ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
               </div>
             </div>

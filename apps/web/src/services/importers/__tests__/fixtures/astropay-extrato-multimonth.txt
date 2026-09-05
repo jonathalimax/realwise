@@ -1,0 +1,13 @@
+AstroPay - Instituição de Pagamento
+astropay.com
+Extrato de conta - período: 28 julho 2026 - 27 agosto 2026
+
+Este extrato é um documento informativo e não substitui os documentos oficiais emitidos pela instituição.
+
+Histórico de transações
+Data Descrição Quantia Equilíbrio
+07/28 Saldo Inicial 0,00 1.000,00
+07/29 Cashback compra internacional 25,50 1.025,50
+07/31 Pix enviado Maria Silva -150,00 875,50
+08/05 Câmbio de moeda BRL → EUR -500,00 375,50
+08/27 Saldo Final 0,00 375,50

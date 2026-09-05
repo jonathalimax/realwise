@@ -100,4 +100,42 @@ describe('computeCarryoverSaldo', () => {
     expect(result.cumulativeByMonth['2026-01']).toBe(5000);
     expect(result.cumulativeByMonth['2026-99']).toBeUndefined();
   });
+
+  it('with no options passed, is byte-identical to current behavior', () => {
+    const txs = [
+      { date: '2026-01-02', type: 'income', amount: 5000 },
+      { date: '2026-01-15', type: 'expense', amount: 4000 },
+      { date: '2026-02-02', type: 'income', amount: 5000 },
+      { date: '2026-02-15', type: 'expense', amount: 4500 },
+    ];
+    const withoutOptions = computeCarryoverSaldo(txs, '2026-04', 'purchase', dateKey);
+    const withDefaultOptions = computeCarryoverSaldo(txs, '2026-04', 'purchase', dateKey, { rollover: true });
+    expect(withoutOptions).toEqual(withDefaultOptions);
+    expect(withoutOptions.carryoverSaldo).toBe(1500);
+  });
+
+  it('rollover false: carryoverSaldo is always 0', () => {
+    const txs = [
+      { date: '2026-01-02', type: 'income', amount: 5000 },
+      { date: '2026-01-15', type: 'expense', amount: 4000 },
+      { date: '2026-02-02', type: 'income', amount: 5000 },
+      { date: '2026-02-15', type: 'expense', amount: 4500 },
+    ];
+    const result = computeCarryoverSaldo(txs, '2026-04', 'purchase', dateKey, { rollover: false });
+    expect(result.carryoverSaldo).toBe(0);
+  });
+
+  it('rollover false: cumulativeByMonth holds each month\'s own net, not a running total', () => {
+    const txs = [
+      { date: '2026-01-02', type: 'income', amount: 5000 },
+      { date: '2026-01-15', type: 'expense', amount: 4000 }, // Jan net: +1000
+      { date: '2026-02-02', type: 'income', amount: 5000 },
+      { date: '2026-02-15', type: 'expense', amount: 4500 }, // Feb net: +500 (not 1500)
+    ];
+    const result = computeCarryoverSaldo(txs, '2026-04', 'purchase', dateKey, { rollover: false });
+    expect(result.cumulativeByMonth).toEqual({
+      '2026-01': 1000,
+      '2026-02': 500,
+    });
+  });
 });

@@ -1,127 +1,19 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Claude/OpenHarness agents must read `.ai/README.md` first.
 
-## Project Overview
+The canonical project context is organized under `.ai/`:
 
-**Realwise** is a personal finance app built with React 19, Vite, Tailwind CSS v4, and a NestJS API. The browser apps talk to the API with cookie auth; Firebase browser bootstrap is no longer the active architecture.
+- `.ai/project.md`
+- `.ai/architecture.md`
+- `.ai/conventions.md`
+- `.ai/commands.md`
+- `.ai/feature-map.md`
+- `.ai/features/`
+- `.ai/apps/`
+- `.ai/pipelines/handoff-template.md`
 
-- URL pattern: `realwise.com.br/{clientId}/dashboard` (legacy path-based routing still present in the SPA)
-- Shared client config is fetched at runtime from `public/clients/app.json` or `public/clients/app.dev.json`
-- `apps/web` is the customer app, `apps/admin` is the standalone admin SPA, and `apps/api` serves both
-
-## Commands
-
-```bash
-npm run dev      # Start dev server at http://localhost:5173
-npm run build    # Production build to dist/
-npm run lint     # Run ESLint
-npm run preview  # Preview production build
-npx vitest run src/  # Run unit tests (pure functions only)
-```
-
-### Local tenant testing
-
-- Dev server runs at `http://localhost:5173` (uses Vite env vars — no real tenant)
-- To test a specific tenant locally: `http://localhost:5173/{clientId}/dashboard`
-
-### Shared client config
-
-- `public/clients/app.json` is the production shared config
-- `public/clients/app.dev.json` is the development shared config
-- Both currently control feature flags; checkout endpoint URLs also live here until checkout is migrated off Firebase-hosted functions
-
-## Architecture
-
-See **README.md** for the current architecture overview.
-
-### Multi-Client Routing
-
-- `src/config/clientConfig.js` — `extractClientId(hostname)` for subdomains (`jonathalimax.realwise.com.br` → `jonathalimax`); pathname fallback uses first segment (`/jonathalimax/dashboard`)
-- `src/contexts/ClientConfigContext.jsx` — fetches the shared client config
-- `src/firebase.js` — removed
-- `src/App.jsx` — sets `BrowserRouter basename="/{clientId}"` so all internal routes resolve correctly
-
-### Backend split
-
-- Tenant data lives behind the API and shared database/storage services.
-- Firebase runtime functions and browser SDK bootstrapping have been retired from the active app path, except for legacy checkout endpoints that still live outside this monorepo.
-
-### Feature Flags
-
-Defined in each client's JSON under `features`:
-
-| Flag | Default | Controls |
-|------|---------|----------|
-| `investments` | false | Investments routes (`App.jsx`); nav may still link — verify UX |
-| `goals` | false | Goals route + dashboard goal UI (`Dashboard.jsx`) |
-| `b3Sync` | false | B3 sync toggle in `ImportModal.jsx`; backend `syncB3Investments` + callable |
-| `whatsapp` | false | **Not wired** via `useFeature('whatsapp')` in `src/` today. Landing/checkout collects WhatsApp as **contact** (Stripe metadata); optional `WhatsAppButton` uses a fixed support number. Flag reserved for future server/UI gating |
-| `salaryBreakdown` | false | `RendaTab.jsx`: gross + deductions vs simple net |
-
-Usage: `const hasX = useFeature('x')` from `ClientConfigContext`.
-
-### Integrations (quick reference)
-
-| Service | Used for |
-|---------|-----------|
-| API cookies / database / object storage | Core app |
-| Resend (`RESEND_API_KEY`, `EMAIL_FROM`) | Bill reminders, purchase/admin/import emails |
-| Legacy Firebase-hosted payment endpoints | Checkout bootstrapping still referenced by `app.json` / `app.dev.json` |
-| Brapi (B3) | `b3Sync.js` — investment sync |
-| SMS | Not used |
-| WhatsApp Cloud API | **Not** exported as a webhook in current `index.js` |
-
-### Frontend Structure
-
-- **Routing**: React Router v7 with dynamic `basename`. Login at `/{clientId}/login`, app at `/{clientId}/dashboard`
-- **State Management**: React Context providers nested in `App.jsx`:
-  - `ClientConfigContext` — shared runtime config + feature flags (outermost)
-  - `AccessContext` — user access/permissions, shared account support via `ownerId`
-  - `SettingsContext` — currency, language, categories, dark mode
-  - `BillsContext`, `BudgetContext`, `CardsContext`, `GoalsContext`, `InvestmentContext`
-- **Localization**: Custom i18n in `src/locales/` using dot-notation paths (`t('auth.welcomeBack')`)
-- **Path Aliases**: `@` → `src/`, `@landing` → `landing_page/` (configured in vite.config.js)
-
-### Planner
-
-Three tabs: **Renda** / **Alocação** / **Carteira**
-
-- `RendaTab.jsx` — salary input (simple net or gross+deductions based on `salaryBreakdown` flag)
-- `rendaCalc.js` — pure functions: `resolveDeduction`, `computeDeductionTotal`, `computeNetSalary`
-- `usePlannerState.js` — `liquidezFinal` = `computeNetSalary(salarioBruto, salarioDeductions)`
-
-### Onboarding
-
-- `src/config/onboardingSteps.js` — 3-step definitions with `isComplete(profile)` predicates
-- `src/components/OnboardingWizard.jsx` — dismissible progress banner rendered in Layout
-
-### Key Data Patterns
-
-- API session payloads carry `clientId` and `sub`; backend queries scope by both where needed
-- Shared accounts use `ownerId` from `AccessContext` instead of `auth.currentUser.uid`
-- Transactions support credit card payment date logic via `getPaymentMonthKey()` from `CardsContext`
-- Bank statement imports auto-detect bank format (Nubank, Itaú, Bradesco) in `src/services/importers/`
-
-## Styling
-
-- Tailwind CSS v4 with dark mode via `dark:` prefix
-- Dark mode toggles `dark` class on `document.documentElement`
-- UI components in `src/components/ui/` (button, input, badge, tabs, shimmer)
-
-## Testing
-
-Vitest in `node` environment — only pure functions (no React runtime). Test files sit next to the modules they test.
-
-- `src/config/clientConfig.test.js` — `extractClientId`, `fetchClientConfig`
-- `src/config/onboardingSteps.test.js` — step predicates and helpers
-- `src/pages/planner/rendaCalc.test.js` — salary deduction math
-
-## Environment Variables
-
-Frontend (`.env`) — only used in dev. Production uses runtime config from `public/clients/app.json`.
-
-Backend runtime env vars live in the API service. Check `apps/api/.env` and the Nest modules for the current contract.
+Historical docs under `docs/archive/` and `.ai/archive/` are reference only and do not override `.ai/`.
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands

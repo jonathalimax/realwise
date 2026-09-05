@@ -69,6 +69,8 @@ export default {
     expenses: 'Expenses',
     thisMonth: 'this month',
     previousBalance: 'Previous balance',
+    monthlyRollover: 'Carry over previous month balance',
+    monthlyRolloverHelper: 'When off, each month is calculated independently (income minus expenses only, no carryover).',
   },
 
   // Transaction Form

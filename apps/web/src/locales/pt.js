@@ -69,6 +69,8 @@ export default {
     expenses: 'Saída',
     thisMonth: 'este mês',
     previousBalance: 'Saldo anterior',
+    monthlyRollover: 'Acumular saldo do mês anterior',
+    monthlyRolloverHelper: 'Quando desativado, cada mês é calculado de forma independente (apenas entradas menos saídas, sem acumular saldo).',
   },
 
   // Transaction Form
