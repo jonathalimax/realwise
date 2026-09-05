@@ -57,9 +57,11 @@ jobs:
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then
             echo "env_tag=latest" >> $GITHUB_OUTPUT
             echo "coolify_uuid=${{ secrets.COOLIFY_ADMIN_PROD_UUID }}" >> $GITHUB_OUTPUT
+            echo "is_production=true" >> $GITHUB_OUTPUT
           else
             echo "env_tag=staging" >> $GITHUB_OUTPUT
-            echo "coolify_uuid=${{ secrets.COOLIFY_ADMIN_STAGING_UUID }}" >> $GITHUB_OUTPUT
+            echo "coolify_uuid=" >> $GITHUB_OUTPUT
+            echo "is_production=false" >> $GITHUB_OUTPUT
           fi
           echo "sha_tag=sha-${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "image=ghcr.io/jonathalimax/realwise-admin" >> $GITHUB_OUTPUT
@@ -82,6 +84,7 @@ jobs:
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
 
       - name: Trigger Coolify deploy
+        if: steps.meta.outputs.is_production == 'true'
         run: |
           curl -s -f -X POST \
             "${{ secrets.COOLIFY_BASE_URL }}/api/v1/deploy?uuid=${{ steps.meta.outputs.coolify_uuid }}&force=false" \
