@@ -80,6 +80,7 @@ export default function PlanningPage() {
     liquidezFinal,
     updateSalarioBruto,
     updateSalarioDeductions,
+    updateSalarioBenefits,
     categoryBudgetsPct,
     updateCategoryBudgetPct,
     necessidadesValue,
@@ -115,6 +116,7 @@ export default function PlanningPage() {
                 liquidezFinal={liquidezFinal}
                 updateSalarioBruto={updateSalarioBruto}
                 updateSalarioDeductions={updateSalarioDeductions}
+                updateSalarioBenefits={updateSalarioBenefits}
                 copyFromPreviousMonth={copyFromPreviousMonth}
               />
             </CollapsibleSection>
