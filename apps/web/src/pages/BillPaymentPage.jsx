@@ -1,10 +1,86 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient, ApiError } from '../lib/api/client';
-import CurrencyInput from '../components/ui/CurrencyInput';
 
 function formatCurrency(value) {
   const numeric = Number(value || 0);
   return numeric.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+const MAX_CENTS = 9999999999; // R$ 99.999.999,99
+
+function formatCents(cents) {
+  if (cents === 0) return '';
+  const intPart = Math.floor(cents / 100);
+  const decPart = (cents % 100).toString().padStart(2, '0');
+  const formattedInt = intPart.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `R$ ${formattedInt},${decPart}`;
+}
+
+/**
+ * Standalone BRL currency input for this page only.
+ *
+ * BillPaymentPage is rendered outside the app's provider tree (public
+ * magic-link page, no auth/access/settings context), so it can't reuse the
+ * shared CurrencyInput component — that one requires SettingsContext.
+ */
+function BillCurrencyInput({ value, onChange }) {
+  const [cents, setCents] = useState(() => (value && value > 0 ? Math.round(value * 100) : 0));
+  const skipSync = useRef(false);
+
+  useEffect(() => {
+    if (skipSync.current) { skipSync.current = false; return; }
+    const incoming = value && value > 0 ? Math.round(value * 100) : 0;
+    if (incoming !== cents) setCents(incoming);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commit = (newCents) => {
+    const clamped = Math.min(Math.max(0, newCents), MAX_CENTS);
+    skipSync.current = true;
+    setCents(clamped);
+    onChange(clamped / 100);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key >= '0' && e.key <= '9') {
+      e.preventDefault();
+      commit(cents * 10 + parseInt(e.key, 10));
+    } else if (e.key === 'Backspace') {
+      e.preventDefault();
+      commit(Math.floor(cents / 10));
+    } else if (e.key === 'Delete') {
+      e.preventDefault();
+      commit(0);
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const digits = e.clipboardData.getData('text').replace(/\D/g, '');
+    if (digits) commit(Math.min(parseInt(digits, 10), MAX_CENTS));
+  };
+
+  const handleClick = (e) => {
+    const len = e.target.value.length;
+    e.target.setSelectionRange(len, len);
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={formatCents(cents)}
+      onChange={() => {}}
+      onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
+      onClick={handleClick}
+      onFocus={handleClick}
+      placeholder="R$ 0,00"
+      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-lg
+        text-gray-900 dark:text-white placeholder-gray-400
+        focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
+        transition-all duration-200"
+    />
+  );
 }
 
 export default function BillPaymentPage() {
@@ -102,7 +178,7 @@ export default function BillPaymentPage() {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Valor pago
           </label>
-          <CurrencyInput value={paidAmount || 0} onChange={(value) => setPaidAmount(value)} />
+          <BillCurrencyInput value={paidAmount || 0} onChange={(value) => setPaidAmount(value)} />
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             Valor planejado: {formatCurrency(bill?.amount)}
           </p>
