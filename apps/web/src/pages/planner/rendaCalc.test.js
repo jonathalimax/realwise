@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { resolveDeduction, computeDeductionTotal, computeNetSalary } from './rendaCalc.js';
+import {
+  resolveDeduction,
+  computeDeductionTotal,
+  computeNetSalary,
+  resolveBenefit,
+  computeBenefitsTotal,
+  computeTotalIncome,
+} from './rendaCalc.js';
 
 describe('resolveDeduction', () => {
   it('returns fixed value for type "value"', () => {
@@ -89,5 +96,55 @@ describe('computeNetSalary', () => {
 
   it('can return negative if deductions exceed salary', () => {
     expect(computeNetSalary(1000, [{ type: 'value', amount: 1500 }])).toBe(-500);
+  });
+});
+
+describe('resolveBenefit', () => {
+  it('returns fixed value for type "value"', () => {
+    expect(resolveBenefit(10000, { type: 'value', amount: 600 })).toBe(600);
+  });
+
+  it('returns percentage of salarioBruto for type "pct"', () => {
+    expect(resolveBenefit(10000, { type: 'pct', amount: 5 })).toBe(500);
+  });
+});
+
+describe('computeBenefitsTotal', () => {
+  it('returns 0 for empty benefits array', () => {
+    expect(computeBenefitsTotal(10000, [])).toBe(0);
+  });
+
+  it('sums multiple benefits (meal allowance + transport voucher)', () => {
+    const benefits = [
+      { id: 'meal', label: 'Vale-refeição', type: 'value', amount: 800 },
+      { id: 'transport', label: 'Vale-transporte', type: 'value', amount: 200 },
+    ];
+    expect(computeBenefitsTotal(10000, benefits)).toBe(1000);
+  });
+
+  it('handles non-array input defensively', () => {
+    expect(computeBenefitsTotal(10000, undefined)).toBe(0);
+  });
+});
+
+describe('computeTotalIncome', () => {
+  it('equals net salary when there are no benefits', () => {
+    const deductions = [{ type: 'pct', amount: 10 }];
+    expect(computeTotalIncome(10000, deductions, [])).toBe(9000);
+  });
+
+  it('adds benefits on top of net salary, unaffected by deductions', () => {
+    const deductions = [{ type: 'pct', amount: 10 }]; // 1000
+    const benefits = [
+      { id: 'meal', label: 'Vale-refeição', type: 'value', amount: 800 },
+      { id: 'transport', label: 'Vale-transporte', type: 'value', amount: 200 },
+    ];
+    // net = 10000 - 1000 = 9000; + benefits 1000 = 10000
+    expect(computeTotalIncome(10000, deductions, benefits)).toBe(10000);
+  });
+
+  it('supports percentage-based benefits relative to salarioBruto', () => {
+    const benefits = [{ type: 'pct', amount: 5 }];
+    expect(computeTotalIncome(10000, [], benefits)).toBe(10500);
   });
 });
