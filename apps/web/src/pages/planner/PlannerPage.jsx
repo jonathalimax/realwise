@@ -54,6 +54,7 @@ export default function PlannerPage() {
     liquidezFinal,
     updateSalarioBruto,
     updateSalarioDeductions,
+    updateSalarioBenefits,
     categoryBudgetsPct,
     updateCategoryBudgetPct,
     necessidadesValue,
@@ -81,6 +82,7 @@ export default function PlannerPage() {
                 liquidezFinal={liquidezFinal}
                 updateSalarioBruto={updateSalarioBruto}
                 updateSalarioDeductions={updateSalarioDeductions}
+                updateSalarioBenefits={updateSalarioBenefits}
                 copyFromPreviousMonth={copyFromPreviousMonth}
               />
             )}

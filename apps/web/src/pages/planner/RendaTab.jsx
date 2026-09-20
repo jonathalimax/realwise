@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 import { formatBRL } from './usePlannerState';
-import { computeDeductionTotal } from './rendaCalc.js';
+import { computeDeductionTotal, computeBenefitsTotal } from './rendaCalc.js';
 import { useFeature } from '@/contexts/ClientConfigContext';
 
 function SummaryRow({ label, value, highlight, negative }) {
@@ -24,20 +24,24 @@ function SummaryRow({ label, value, highlight, negative }) {
   );
 }
 
-const EMPTY_DEDUCTION = { label: '', type: 'value', amount: 0 };
+const EMPTY_ENTRY = { label: '', type: 'value', amount: 0 };
 
-export default function RendaTab({ state, update, liquidezFinal, activeVersion, updateSalarioBruto, updateSalarioDeductions, copyFromPreviousMonth }) {
+export default function RendaTab({ state, update, liquidezFinal, activeVersion, updateSalarioBruto, updateSalarioDeductions, updateSalarioBenefits, copyFromPreviousMonth }) {
   const hasSalaryBreakdown = useFeature('salaryBreakdown');
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
+  const [benefitEditingId, setBenefitEditingId] = useState(null);
+  const [benefitDraft, setBenefitDraft] = useState(null);
 
   const salarioBruto = activeVersion?.salarioBruto ?? 0;
   const deductions = activeVersion?.salarioDeductions ?? [];
   const deductionTotal = computeDeductionTotal(salarioBruto, deductions);
+  const benefits = activeVersion?.salarioBenefits ?? [];
+  const benefitsTotal = computeBenefitsTotal(salarioBruto, benefits);
 
   function startAdd() {
     const id = `custom-${Date.now()}`;
-    setDraft({ id, ...EMPTY_DEDUCTION });
+    setDraft({ id, ...EMPTY_ENTRY });
     setEditingId(id);
   }
 
@@ -64,6 +68,37 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
 
   function removeDeduction(id) {
     updateSalarioDeductions(deductions.filter(d => d.id !== id));
+  }
+
+  function startAddBenefit() {
+    const id = `custom-${Date.now()}`;
+    setBenefitDraft({ id, ...EMPTY_ENTRY });
+    setBenefitEditingId(id);
+  }
+
+  function startEditBenefit(b) {
+    setBenefitDraft({ ...b });
+    setBenefitEditingId(b.id);
+  }
+
+  function cancelEditBenefit() {
+    setBenefitEditingId(null);
+    setBenefitDraft(null);
+  }
+
+  function saveEditBenefit() {
+    if (!benefitDraft) return;
+    const exists = benefits.some(b => b.id === benefitDraft.id);
+    const next = exists
+      ? benefits.map(b => b.id === benefitDraft.id ? benefitDraft : b)
+      : [...benefits, benefitDraft];
+    updateSalarioBenefits(next);
+    setBenefitEditingId(null);
+    setBenefitDraft(null);
+  }
+
+  function removeBenefit(id) {
+    updateSalarioBenefits(benefits.filter(b => b.id !== id));
   }
 
   /* When salaryBreakdown is off, show a single net salary input (CLT mode). */
@@ -203,6 +238,88 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
         </div>
       </div>
 
+      {/* Benefits */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Benefícios
+          </h3>
+          <button
+            onClick={startAddBenefit}
+            className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+          >
+            + Adicionar
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+          Valores adicionados após o salário líquido, sem incidência de descontos (ex.: vale-refeição, vale-transporte).
+        </p>
+
+        <div className="space-y-2">
+          {benefits.map(b => (
+            <div key={b.id}>
+              {benefitEditingId === b.id ? (
+                <DeductionEditRow
+                  draft={benefitDraft}
+                  setDraft={setBenefitDraft}
+                  onSave={saveEditBenefit}
+                  onCancel={cancelEditBenefit}
+                  salarioBruto={salarioBruto}
+                />
+              ) : (
+                <div className="flex items-center justify-between py-1.5">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-gray-800 dark:text-gray-200 truncate block">{b.label || '—'}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      {b.type === 'pct' ? `${b.amount}%` : formatBRL.format(b.amount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 ml-2">
+                    <span className="text-sm font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
+                      + {formatBRL.format(
+                        b.type === 'pct'
+                          ? salarioBruto * b.amount / 100
+                          : b.amount
+                      )}
+                    </span>
+                    <button
+                      onClick={() => startEditBenefit(b)}
+                      className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                      aria-label="Editar"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => removeBenefit(b.id)}
+                      className="text-xs text-gray-400 hover:text-red-500"
+                      aria-label="Remover"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {benefitEditingId && !benefits.some(b => b.id === benefitEditingId) && (
+            <DeductionEditRow
+              draft={benefitDraft}
+              setDraft={setBenefitDraft}
+              onSave={saveEditBenefit}
+              onCancel={cancelEditBenefit}
+              salarioBruto={salarioBruto}
+            />
+          )}
+
+          {benefits.length === 0 && !benefitEditingId && (
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
+              Nenhum benefício cadastrado.
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
         <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
@@ -210,6 +327,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
         </h3>
         <SummaryRow label="Renda Bruta" value={salarioBruto} />
         <SummaryRow label="Total de Deduções" value={deductionTotal} negative />
+        <SummaryRow label="Total de Benefícios" value={benefitsTotal} />
         <SummaryRow label="Renda Líquida" value={liquidezFinal} highlight />
       </div>
     </div>

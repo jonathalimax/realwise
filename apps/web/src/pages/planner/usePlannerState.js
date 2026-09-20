@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAccess } from '@/contexts/AccessContext';
 import { useMonth } from '@/contexts/MonthContext';
-import { computeNetSalary } from './rendaCalc.js';
+import { computeTotalIncome } from './rendaCalc.js';
 import { plannerResource } from '@/lib/api/resources/planner';
 
 export function countWeekdays(year, month) {
@@ -21,6 +21,7 @@ const DEFAULT_STATE = {
     { id: 'inss', label: 'INSS', type: 'pct', amount: 7.5 },
     { id: 'irpf', label: 'IRPF', type: 'pct', amount: 27.5 },
   ],
+  salarioBenefits: [],
 
   // Legacy fields (will be migrated to plannerVersions)
   rendaBruta: 10000,
@@ -191,6 +192,7 @@ function migrateState(saved) {
       from: startMonth,
       salarioBruto: merged.salarioBruto ?? 10000,
       salarioDeductions: merged.salarioDeductions ?? DEFAULT_STATE.salarioDeductions,
+      salarioBenefits: merged.salarioBenefits ?? DEFAULT_STATE.salarioBenefits,
       allocation: {
         necessidades: merged.necessidades ?? 70,
         poupanca: merged.poupanca ?? 20,
@@ -309,6 +311,7 @@ function migrateState(saved) {
 const DEFAULT_MONTH_DATA = {
   salarioBruto: 0,
   salarioDeductions: [],
+  salarioBenefits: [],
   allocation: { necessidades: 70, poupanca: 20, desejos: 10 },
   categoryBudgetsPct: {}
 };
@@ -430,6 +433,10 @@ export default function usePlannerState() {
     updatePlannerVersion(() => ({ salarioDeductions: next }));
   };
 
+  const updateSalarioBenefits = (next) => {
+    updatePlannerVersion(() => ({ salarioBenefits: next }));
+  };
+
   const updateCategoryBudgetPct = (category, pct) => {
     updatePlannerVersion(v => ({
       categoryBudgetsPct: { ...v.categoryBudgetsPct, [category]: pct }
@@ -453,6 +460,7 @@ export default function usePlannerState() {
       updatePlannerVersion(() => ({
         salarioBruto: prevData.salarioBruto,
         salarioDeductions: JSON.parse(JSON.stringify(prevData.salarioDeductions ?? [])),
+        salarioBenefits: JSON.parse(JSON.stringify(prevData.salarioBenefits ?? [])),
         allocation: JSON.parse(JSON.stringify(prevData.allocation ?? {})),
         categoryBudgetsPct: JSON.parse(JSON.stringify(prevData.categoryBudgetsPct ?? {})),
       }));
@@ -486,7 +494,7 @@ export default function usePlannerState() {
   // ── Dashboard computed (Version-aware) ──────────────────────────────────
   const liquidezFinal = useMemo(() => {
     if (!activeVersion) return 0;
-    return computeNetSalary(activeVersion.salarioBruto, activeVersion.salarioDeductions);
+    return computeTotalIncome(activeVersion.salarioBruto, activeVersion.salarioDeductions, activeVersion.salarioBenefits);
   }, [activeVersion]);
 
   const monthAllocation = useMemo(() => {
@@ -661,6 +669,7 @@ export default function usePlannerState() {
     liquidezFinal,
     updateSalarioBruto,
     updateSalarioDeductions,
+    updateSalarioBenefits,
     // Legacy dashboard computed
     simplesValue,
     despesasPJ,
