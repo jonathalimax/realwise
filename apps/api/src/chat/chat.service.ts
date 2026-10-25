@@ -9,11 +9,15 @@ import type { LlmContentPart, LlmMessage } from '../llm/llm.types';
 import { prepareFile, toContentPart, type PreparedFile } from './attachments';
 import { buildSystemPrompt } from './chat.prompt';
 import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.service';
-import { TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
+import { MAX_REVIEW_ITEMS, TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
 
 const HISTORY_LIMIT = 16;
+/** Messages older than this are neither shown nor sent to the model (keeps the context, and token cost, small). Rows are kept, not destroyed. */
+const CHAT_RETENTION_DAYS = 3;
 const MAX_TOOL_ROUNDS = 8;
 const FILE_TTL_MS = 24 * 60 * 60 * 1000;
+/** Upper bound (base64 chars ≈ bytes) of document data sent to the model in one request. */
+const MAX_ATTACHED_BYTES = 24 * 1024 * 1024;
 export const MAX_FILES_PER_MESSAGE = 6;
 
 type ChatMessageRow = typeof chatMessages.$inferSelect;
@@ -35,7 +39,13 @@ export class ChatService {
     const rows = await this.db
       .select()
       .from(chatMessages)
-      .where(and(eq(chatMessages.userId, scope.userId), eq(chatMessages.clientId, scope.clientId)))
+      .where(
+        and(
+          eq(chatMessages.userId, scope.userId),
+          eq(chatMessages.clientId, scope.clientId),
+          gte(chatMessages.createdAt, new Date(Date.now() - CHAT_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
+        ),
+      )
       .orderBy(desc(chatMessages.createdAt))
       .limit(limit);
     return rows.reverse();
@@ -69,16 +79,28 @@ export class ChatService {
     onEvent?.({ type: 'user', message: userMessage });
 
     if (prepared.length) {
+      // A re-upload (e.g. retrying after an error) replaces the earlier copy instead of piling up next to it.
+      await this.db
+        .delete(chatFiles)
+        .where(and(eq(chatFiles.userId, scope.userId), inArray(chatFiles.name, prepared.map((p) => p.name))));
       await this.db.insert(chatFiles).values(prepared.map((p) => ({ ...p, ...scope })));
     }
 
     // Files still pending from earlier turns (the assistant asked a question before saving them).
     await this.db.delete(chatFiles).where(and(eq(chatFiles.userId, scope.userId), lt(chatFiles.createdAt, new Date(Date.now() - FILE_TTL_MS))));
-    const pendingFiles = await this.db
+    const allPending = await this.db
       .select()
       .from(chatFiles)
       .where(and(eq(chatFiles.userId, scope.userId), eq(chatFiles.clientId, scope.clientId), gte(chatFiles.createdAt, new Date(Date.now() - FILE_TTL_MS))))
       .orderBy(asc(chatFiles.createdAt));
+    // Never send an unbounded pile: keep the newest files that fit the budget (this turn's uploads are the newest).
+    const pendingFiles: typeof allPending = [];
+    let budget = MAX_ATTACHED_BYTES;
+    for (const f of [...allPending].reverse()) {
+      if (pendingFiles.length >= MAX_FILES_PER_MESSAGE || f.data.length > budget) continue;
+      budget -= f.data.length;
+      pendingFiles.unshift(f);
+    }
 
     const system = await this.systemPrompt(scope);
     const messages: LlmMessage[] = [{ role: 'system', content: system }];
@@ -132,6 +154,14 @@ export class ChatService {
 
     if (!reply) reply = saved.length ? 'Pronto! Salvei as transações.' : 'Não consegui concluir agora. Pode tentar de novo?';
 
+    // The turn saved data and asked nothing, so John has dealt with whatever was attached: clear it, so it is never
+    // re-sent with later messages. (If he asked something, or saved nothing, the files stay for the user's answer.)
+    if (questions.length === 0 && saved.length > 0 && pendingFiles.length > 0) {
+      await this.db
+        .delete(chatFiles)
+        .where(and(eq(chatFiles.userId, scope.userId), inArray(chatFiles.id, pendingFiles.map((f) => f.id))));
+    }
+
     const review = await this.reviewPayload(scope, [...reviewByKey.values()]);
 
     const [assistantMessage] = await this.db
@@ -158,6 +188,7 @@ export class ChatService {
     existing.count += g.count;
     existing.total = Number((existing.total + g.total).toFixed(2));
     existing.transactionIds.push(...g.transactionIds);
+    existing.items.push(...g.items.slice(0, Math.max(0, MAX_REVIEW_ITEMS - existing.items.length)));
     for (const s of g.suggestionIds) if (!existing.suggestionIds.includes(s) && existing.suggestionIds.length < 3) existing.suggestionIds.push(s);
   }
 

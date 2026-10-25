@@ -23,7 +23,7 @@ export default function AskChatBar() {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         maxLength={500}
-        placeholder={pt ? 'Pergunte ao John qualquer coisa sobre suas finanças…' : 'Ask John anything about your finances…'}
+        placeholder={pt ? 'Pergunte qualquer coisa sobre suas finanças…' : 'Ask anything about your finances…'}
         className="flex-1 min-w-0 bg-transparent px-1 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
       />
       <button
