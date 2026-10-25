@@ -51,6 +51,8 @@ export interface LlmProvider {
   readonly name: string;
   isConfigured(): boolean;
   generate(req: LlmRequest): Promise<LlmResult>;
+  /** Optional: stream text deltas while generating. Falls back to generate() when absent. */
+  generateStream?(req: LlmRequest, onText: (delta: string) => void): Promise<LlmResult>;
 }
 
 export const LLM_PROVIDER = 'LLM_PROVIDER';
