@@ -11,6 +11,8 @@ export const categories = pgTable('categories', {
   color: varchar('color'),
   icon: varchar('icon'),
   type: transactionTypeEnum('type'),
+  // Soft delete: rows are hidden, never destroyed. Every read path must filter on this.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

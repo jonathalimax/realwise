@@ -93,15 +93,15 @@ describe('BillsService', () => {
     expect(mockDb.insert).toHaveBeenCalled();
   });
 
-  it('removes dependent reminders and action tokens before deleting the bill', async () => {
+  it('soft-deletes the bill and never hard-deletes it or its reminders/action tokens', async () => {
     mockDb.where
       .mockResolvedValueOnce([mockRow])
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(undefined);
 
     await service.remove('bill-1', 'jonathalimax', 'user-1');
 
-    expect(mockDb.delete).toHaveBeenCalledTimes(3);
+    expect(mockDb.delete).not.toHaveBeenCalled();
+    expect(mockDb.update).toHaveBeenCalledTimes(1);
+    expect(mockDb.set).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: expect.any(Date) }));
   });
 });

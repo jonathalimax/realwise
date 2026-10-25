@@ -52,7 +52,9 @@ export class LlmService {
   }
 
   private async assertWithinBudget(userId: string): Promise<void> {
-    const budget = Number(process.env.LLM_MONTHLY_BUDGET_USD ?? DEFAULT_MONTHLY_BUDGET_USD);
+    // Unset or blank falls back to the default; an explicit 0 disables the cap.
+    const raw = process.env.LLM_MONTHLY_BUDGET_USD?.trim();
+    const budget = raw ? Number(raw) : DEFAULT_MONTHLY_BUDGET_USD;
     if (!Number.isFinite(budget) || budget <= 0) return;
     if ((await this.monthToDateUsd(userId)) >= budget) {
       throw new HttpException('Monthly AI usage limit reached.', HttpStatus.TOO_MANY_REQUESTS);

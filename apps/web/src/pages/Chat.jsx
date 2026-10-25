@@ -97,7 +97,9 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
             className="mt-2 w-full rounded-xl bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-700"
           >
             {pending === 'questions'
-              ? pt ? 'Responder perguntas' : 'Answer questions'
+              ? message.questions.every((q) => q.answer || q.kind === 'confirm')
+                ? pt ? 'Revisar e confirmar' : 'Review and confirm'
+                : pt ? 'Responder perguntas' : 'Answer questions'
               : pt
                 ? `Confirmar categorias (${message.review.groups.length})`
                 : `Confirm categories (${message.review.groups.length})`}

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -57,7 +57,7 @@ export class ImportsService {
       const owned = await this.db
         .select({ id: categories.id })
         .from(categories)
-        .where(and(inArray(categories.id, catIds), eq(categories.clientId, clientId), eq(categories.userId, userId)));
+        .where(and(inArray(categories.id, catIds), eq(categories.clientId, clientId), eq(categories.userId, userId), isNull(categories.deletedAt)));
       if (owned.length !== catIds.length) throw new ForbiddenException('Invalid categoryId');
     }
 
@@ -66,7 +66,7 @@ export class ImportsService {
       const owned = await this.db
         .select({ id: accounts.id })
         .from(accounts)
-        .where(and(inArray(accounts.id, accIds), eq(accounts.clientId, clientId), eq(accounts.userId, userId)));
+        .where(and(inArray(accounts.id, accIds), eq(accounts.clientId, clientId), eq(accounts.userId, userId), isNull(accounts.deletedAt)));
       if (owned.length !== accIds.length) throw new ForbiddenException('Invalid accountId');
     }
 

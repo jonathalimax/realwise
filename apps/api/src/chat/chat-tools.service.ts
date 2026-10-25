@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gte, ilike, inArray, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { createHash } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
@@ -8,6 +8,7 @@ import { accounts, bills, categories, categorizationRules, chatFiles, imports, t
 import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
 import { PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
+import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
 
 export interface ToolContext {
   clientId: string;
@@ -154,7 +155,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
   },
   {
     name: 'query_transactions',
-    description: 'List individual transactions, newest first. Use for questions about specific purchases.',
+    description: 'List individual transactions, newest first, with their ids (needed to update/delete/restore them). Use for questions about specific purchases.',
     parameters: {
       type: 'object',
       properties: {
@@ -164,6 +165,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
         categoryId: { type: 'string' },
         accountId: { type: 'string' },
         search: { type: 'string', description: 'Case-insensitive text in the description.' },
+        deleted: { type: 'boolean', description: 'true to list soft-deleted transactions (to restore them).' },
         limit: { type: 'number', description: 'Max rows, default 30, max 100.' },
       },
     },
@@ -183,11 +185,24 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
       required: ['from', 'to', 'groupBy'],
     },
   },
+  ...EDIT_TOOLS,
 ];
 
 @Injectable()
 export class ChatToolsService {
-  constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
+    private readonly edit: ChatEditService,
+  ) {}
+
+  /** Runs a previously previewed update/delete that the user explicitly confirmed. The action comes from the stored message, never from the client. */
+  async executeConfirmed(action: NonNullable<ChatQuestion['action']>, ctx: ToolContext): Promise<unknown> {
+    const outcome =
+      action.tool === 'delete_records'
+        ? await this.edit.remove(action.args, ctx, true)
+        : await this.edit.update(action.args, ctx, true);
+    return outcome.result;
+  }
 
   async execute(name: string, rawArgs: string, ctx: ToolContext): Promise<ToolOutcome> {
     let args: ToolArgs;
@@ -203,6 +218,14 @@ export class ChatToolsService {
           return await this.saveTransactions(args, ctx);
         case 'ask_user':
           return await this.askUser(args, ctx);
+        case 'find_records':
+          return await this.edit.find(args, ctx);
+        case 'update_records':
+          return await this.edit.update(args, ctx);
+        case 'delete_records':
+          return await this.edit.remove(args, ctx);
+        case 'restore_records':
+          return await this.edit.restore(args, ctx);
         case 'create_account':
           return { result: await this.createAccount(args, ctx) };
         case 'create_category':
@@ -231,13 +254,13 @@ export class ChatToolsService {
     const [account] = await this.db
       .select()
       .from(accounts)
-      .where(and(eq(accounts.id, String(args.accountId)), eq(accounts.clientId, ctx.clientId), eq(accounts.userId, ctx.userId)));
+      .where(and(eq(accounts.id, String(args.accountId)), eq(accounts.clientId, ctx.clientId), eq(accounts.userId, ctx.userId), isNull(accounts.deletedAt)));
     if (!account) return { result: { error: 'accountId does not match any of the user\'s accounts.' } };
 
     const cats = await this.db
       .select()
       .from(categories)
-      .where(and(eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId)));
+      .where(and(eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId), isNull(categories.deletedAt)));
     const catById = new Map(cats.map((c) => [c.id, c]));
 
     const seen = new Map<string, number>();
@@ -287,7 +310,7 @@ export class ChatToolsService {
     const existing = await this.db
       .select({ h: transactions.dedupHash })
       .from(transactions)
-      .where(and(eq(transactions.userId, ctx.userId), inArray(transactions.dedupHash, prepared.map((p) => p.dedupHash!))));
+      .where(and(eq(transactions.userId, ctx.userId), isNull(transactions.deletedAt), inArray(transactions.dedupHash, prepared.map((p) => p.dedupHash!))));
     const existingHashes = new Set(existing.map((e) => e.h));
     const fresh = prepared.filter((p) => !existingHashes.has(p.dedupHash!));
 
@@ -378,7 +401,7 @@ export class ChatToolsService {
     const accs = await this.db
       .select()
       .from(accounts)
-      .where(and(eq(accounts.clientId, ctx.clientId), eq(accounts.userId, ctx.userId)));
+      .where(and(eq(accounts.clientId, ctx.clientId), eq(accounts.userId, ctx.userId), isNull(accounts.deletedAt)));
     const labels: Record<string, string> = { credit: 'Cartão de crédito', debit: 'Débito', pix: 'PIX', transfer: 'Transferência', boleto: 'Boleto', cash: 'Dinheiro', other: 'Outro' };
 
     const questions: ChatQuestion[] = raw.map((q, i) => {
@@ -410,7 +433,7 @@ export class ChatToolsService {
     const rules = await this.db
       .select()
       .from(categorizationRules)
-      .where(and(eq(categorizationRules.userId, ctx.userId), inArray(categorizationRules.keyword, [...patterns.keys()])));
+      .where(and(eq(categorizationRules.userId, ctx.userId), isNull(categorizationRules.deletedAt), inArray(categorizationRules.keyword, [...patterns.keys()])));
     const hit = rules.filter((r) => r.categoryId && patterns.get(r.keyword) === r.categoryId).map((r) => r.id);
     if (hit.length) {
       await this.db
@@ -453,7 +476,7 @@ export class ChatToolsService {
       [cat] = await this.db
         .select()
         .from(categories)
-        .where(and(eq(categories.id, String(args.categoryId)), eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId)));
+        .where(and(eq(categories.id, String(args.categoryId)), eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId), isNull(categories.deletedAt)));
     }
     const [bill] = await this.db
       .insert(bills)
@@ -476,7 +499,7 @@ export class ChatToolsService {
     const [cat] = await this.db
       .select()
       .from(categories)
-      .where(and(eq(categories.id, String(args.categoryId)), eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId)));
+      .where(and(eq(categories.id, String(args.categoryId)), eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId), isNull(categories.deletedAt)));
     if (!cat) return { error: 'categoryId does not match any of the user\'s categories.' };
 
     const keyword = merchantKey(String(args.description ?? ''));
@@ -494,6 +517,7 @@ export class ChatToolsService {
           category: cat.name,
           type: cat.type,
           isActive: true,
+          deletedAt: null,
           usedCount: sql`${categorizationRules.usedCount} + 1`,
           updatedAt: new Date(),
         })
@@ -524,7 +548,7 @@ export class ChatToolsService {
   }
 
   private filters(args: ToolArgs, ctx: ToolContext) {
-    const c = [eq(transactions.clientId, ctx.clientId), eq(transactions.userId, ctx.userId), eq(transactions.ignored, false)];
+    const c = [eq(transactions.clientId, ctx.clientId), eq(transactions.userId, ctx.userId), eq(transactions.ignored, false), args.deleted ? isNotNull(transactions.deletedAt) : isNull(transactions.deletedAt)];
     if (DATE_RE.test(args.from ?? '')) c.push(gte(transactions.date, args.from));
     if (DATE_RE.test(args.to ?? '')) c.push(lte(transactions.date, args.to));
     if (args.type === 'income' || args.type === 'expense') c.push(eq(transactions.type, args.type));
@@ -542,6 +566,7 @@ export class ChatToolsService {
     const limit = Math.min(Math.max(Number(args.limit) || 30, 1), 100);
     const rows = await this.db
       .select({
+        id: transactions.id,
         date: transactions.date,
         amount: transactions.amount,
         type: transactions.type,

@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, desc, eq, gte, inArray, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lt, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -160,7 +160,7 @@ export class ChatService {
     const cats = await this.db
       .select()
       .from(categories)
-      .where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId)));
+      .where(and(eq(categories.userId, scope.userId), isNull(categories.deletedAt), eq(categories.clientId, scope.clientId)));
     return { groups, categories: cats.map((c) => ({ id: c.id, name: c.name, type: c.type })), resolved: false };
   }
 
@@ -184,23 +184,38 @@ export class ChatService {
     if (questions.length === 0 || questions.every((q) => q.answer)) throw new BadRequestException('Nothing to answer.');
 
     const lines: string[] = [];
-    const updated = questions.map((q) => {
+    const updated: ChatQuestion[] = [];
+    for (const q of questions) {
       const a = answers.find((x) => x.questionId === q.id);
-      if (!a) return q;
+      if (!a || q.answer) {
+        updated.push(q);
+        continue;
+      }
       const isNew = a.value.startsWith('new:');
       const valid = isNew || q.options.some((o) => o.value === a.value);
       if (!valid) throw new BadRequestException('Invalid answer.');
       const label = isNew ? a.value.slice(4).trim().slice(0, 80) : (q.options.find((o) => o.value === a.value)?.label ?? a.label);
       if (!label) throw new BadRequestException('Invalid answer.');
-      lines.push(
-        isNew
-          ? `${q.title}${q.fileName ? ` (${q.fileName})` : ''}: é uma conta NOVA chamada "${label}" (crie-a e use-a).`
-          : q.kind === 'account'
-            ? `${q.title}${q.fileName ? ` (${q.fileName})` : ''}: ${label} (accountId ${a.value}).`
-            : `${q.title}${q.fileName ? ` (${q.fileName})` : ''}: ${label}${q.kind === 'payment_method' ? ` (paymentMethod ${a.value})` : ''}.`,
-      );
-      return { ...q, answer: { value: a.value, label } };
-    });
+      const where = `${q.title}${q.fileName ? ` (${q.fileName})` : ''}`;
+
+      if (q.kind === 'confirm') {
+        // Execute (or drop) the operation the user was shown. The action is read from the stored message,
+        // so it is exactly what the preview described.
+        if (a.value === 'yes' && q.action) {
+          const result = await this.tools.executeConfirmed(q.action, scope);
+          lines.push(`${where}: o usuário CONFIRMOU e a ação foi executada. Resultado: ${JSON.stringify(result)}`);
+        } else {
+          lines.push(`${where}: o usuário CANCELOU. Nada foi alterado.`);
+        }
+      } else if (isNew) {
+        lines.push(`${where}: é uma conta NOVA chamada "${label}" (crie-a e use-a).`);
+      } else if (q.kind === 'account') {
+        lines.push(`${where}: ${label} (accountId ${a.value}).`);
+      } else {
+        lines.push(`${where}: ${label}${q.kind === 'payment_method' ? ` (paymentMethod ${a.value})` : ''}.`);
+      }
+      updated.push({ ...q, answer: { value: a.value, label } });
+    }
     if (lines.length === 0) throw new BadRequestException('No answers provided.');
 
     await this.db.update(chatMessages).set({ questions: updated }).where(eq(chatMessages.id, msg.id));
@@ -224,7 +239,7 @@ export class ChatService {
     const owned = await this.db
       .select()
       .from(categories)
-      .where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId)));
+      .where(and(eq(categories.userId, scope.userId), isNull(categories.deletedAt), eq(categories.clientId, scope.clientId)));
     const catById = new Map(owned.map((c) => [c.id, c]));
 
     let updated = 0;
@@ -255,22 +270,23 @@ export class ChatService {
       .from(imports)
       .where(and(eq(imports.id, importId), eq(imports.userId, scope.userId), eq(imports.clientId, scope.clientId)));
     if (!imp) throw new NotFoundException('Import not found');
+    // Soft delete only: the rows are hidden, never destroyed (they can be restored with John's restore tool).
     const removed = await this.db
-      .delete(transactions)
-      .where(and(eq(transactions.importId, importId), eq(transactions.userId, scope.userId)))
+      .update(transactions)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(transactions.importId, importId), eq(transactions.userId, scope.userId), isNull(transactions.deletedAt)))
       .returning({ id: transactions.id });
-    await this.db.delete(imports).where(eq(imports.id, importId));
     return { removed: removed.length };
   }
 
   private async systemPrompt(scope: ChatScope): Promise<string> {
     const [accs, cats, rules] = await Promise.all([
-      this.db.select().from(accounts).where(and(eq(accounts.userId, scope.userId), eq(accounts.clientId, scope.clientId))),
-      this.db.select().from(categories).where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId))),
+      this.db.select().from(accounts).where(and(eq(accounts.userId, scope.userId), isNull(accounts.deletedAt), eq(accounts.clientId, scope.clientId))),
+      this.db.select().from(categories).where(and(eq(categories.userId, scope.userId), isNull(categories.deletedAt), eq(categories.clientId, scope.clientId))),
       this.db
         .select()
         .from(categorizationRules)
-        .where(and(eq(categorizationRules.userId, scope.userId), eq(categorizationRules.clientId, scope.clientId), eq(categorizationRules.isActive, true)))
+        .where(and(eq(categorizationRules.userId, scope.userId), isNull(categorizationRules.deletedAt), eq(categorizationRules.clientId, scope.clientId), eq(categorizationRules.isActive, true)))
         .orderBy(desc(categorizationRules.usedCount), desc(categorizationRules.updatedAt))
         .limit(150),
     ]);

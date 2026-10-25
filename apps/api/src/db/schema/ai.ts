@@ -75,3 +75,20 @@ export const chatFiles = pgTable(
   },
   (t) => ({ byUser: index('chat_files_user_created_idx').on(t.userId, t.createdAt) }),
 );
+
+/** Audit trail of everything John changed or soft-deleted, with the previous values. */
+export const chatChangeLog = pgTable(
+  'chat_change_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clientId: varchar('client_id').notNull(),
+    userId: uuid('user_id').notNull().references(() => users.id),
+    entity: varchar('entity').notNull(),
+    recordId: uuid('record_id').notNull(),
+    action: varchar('action').notNull(), // 'update' | 'delete' | 'restore'
+    before: jsonb('before'),
+    after: jsonb('after'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({ byUser: index('chat_change_log_user_created_idx').on(t.userId, t.createdAt) }),
+);

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, eq, gte, lte, sql, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -60,7 +60,7 @@ export class TransactionsService {
   }
 
   findAll(clientId: string, userId: string, filters: ListTransactionsDto): Promise<Transaction[]> {
-    const conditions = [eq(transactions.clientId, clientId), eq(transactions.userId, userId)];
+    const conditions = [eq(transactions.clientId, clientId), eq(transactions.userId, userId), isNull(transactions.deletedAt)];
 
     if (filters.month) {
       const [year, month] = filters.month.split('-');
@@ -90,7 +90,7 @@ export class TransactionsService {
     const rows = await this.db
       .select()
       .from(transactions)
-      .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId)));
+      .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId), isNull(transactions.deletedAt)));
     if (rows.length === 0) throw new NotFoundException();
     return rows[0];
   }
@@ -108,7 +108,7 @@ export class TransactionsService {
     const rows = await this.db
       .update(transactions)
       .set({ ...this.normalizePayload(dto), updatedAt: new Date() })
-      .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId)))
+      .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
       .returning();
     return rows[0];
   }
@@ -116,7 +116,8 @@ export class TransactionsService {
   async remove(id: string, clientId: string, userId: string): Promise<void> {
     await this.findOne(id, clientId, userId);
     await this.db
-      .delete(transactions)
-      .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId)));
+      .update(transactions)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId), isNull(transactions.deletedAt)));
   }
 }

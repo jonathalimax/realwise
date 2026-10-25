@@ -27,6 +27,8 @@ apps/api  chat/ChatService  (tool-calling loop, max 8 rounds)
   - *Question sheet* — when John can't tell the account (or payment method) of a document he calls `ask_user` and the turn ends. Account options always come from the database (never the model) plus a "new account" text field; the answers are posted to `POST /chat/messages/:id/answers`, become the next user message, and John continues with the documents still attached.
   - *Review sheet* — `save_transactions` saves **every** row immediately; rows with `confidence: "low"` (or no category) are grouped by merchant (`UBER ×7`) with up to 3 suggested categories. `POST /chat/messages/:id/review` updates the already-saved rows directly (no model call) and, with "remember" on, upserts the categorization rule.
   - Payment method (`credit|debit|pix|transfer|boleto|cash|other`) is inferred by John and stored in `transactions.payment_method`; asked only when unclear.
+- **Editing and deleting** (`chat/chat-edit.service.ts`): tools `find_records`, `update_records`, `delete_records`, `restore_records` over a strict per-entity allowlist (transaction, account incl. closing/payment day, category, bill, budget, categorization rule, settings). Fields are type/range-validated and category/account references must belong to the user. A single-record update applies immediately; **every delete and any multi-record update is parked as a `confirm` question** (the exact action is stored server-side in `chat_messages.questions[].action`) and runs only when the user taps Confirm (`POST /chat/messages/:id/answers`), so the model cannot skip the gate. Every change is written to `chat_change_log` with the previous values.
+- **Soft delete is a global rule**: `deleted_at` on transactions, accounts, categories, bills, budgets and categorization_rules. All existing services (`remove`) and all read paths filter `deleted_at IS NULL`; undo-import and John's deletes are soft too and recoverable via `restore_records`. New queries on these tables MUST add `isNull(table.deletedAt)`. (Not covered: investments and admin coupons/testimonials still hard-delete.)
 - **Memory**: `categorization_rules` (merchant key → category) are injected in the system prompt (top 150 by `used_count`). `set_category_rule` upserts a rule keyed by `merchantKey()` (`chat/pattern.ts`) and can re-categorize past transactions. Saved rows matching a rule bump its `used_count`.
 - **Dedup**: `transactions.dedup_hash` = sha1(user, account, date, amount, merchant pattern) + occurrence index, so re-uploading overlapping statements never double-counts while identical same-day purchases are kept.
 - **Undo**: every AI save creates an `imports` row; `POST /chat/imports/:id/undo` deletes its transactions.
@@ -45,7 +47,7 @@ apps/api  chat/ChatService  (tool-calling loop, max 8 rounds)
 
 ## Runtime variables
 
-`OPENROUTER_API_KEY` (required, otherwise 503), `LLM_MODEL_CHAT`, `LLM_MODEL_INSIGHTS` (default `anthropic/claude-sonnet-5.5` — verify the slug on OpenRouter), `LLM_MONTHLY_BUDGET_USD` (default 5, per user), `OPENROUTER_API_URL`.
+`OPENROUTER_API_KEY` (required, otherwise 503), `LLM_MODEL_CHAT`, `LLM_MODEL_INSIGHTS` (default `anthropic/claude-sonnet-5.5` — verify the slug on OpenRouter), `LLM_MONTHLY_BUDGET_USD` (per user; blank/unset = 5, `0` = no cap), `OPENROUTER_API_URL`.
 
 ## Disabled / hidden
 

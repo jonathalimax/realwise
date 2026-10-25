@@ -1,7 +1,7 @@
 /** A multiple-choice question John shows the user as a sheet (account, payment method, free choice). */
 export interface ChatQuestion {
   id: string;
-  kind: 'account' | 'payment_method' | 'choice';
+  kind: 'account' | 'payment_method' | 'choice' | 'confirm';
   title: string;
   subtitle?: string;
   /** Attachment this question is about, if any. */
@@ -9,6 +9,15 @@ export interface ChatQuestion {
   options: { value: string; label: string; hint?: string }[];
   /** Lets the user type a new account name instead of picking one. */
   allowNew?: boolean;
+  /** Human-readable lines describing what a `confirm` question will change. */
+  preview?: string[];
+  /** Renders the confirm button as destructive (deletes). */
+  danger?: boolean;
+  /**
+   * For `confirm`: the exact operation to run if the user agrees. Kept server-side and re-read from the
+   * stored message when answered, so neither the model nor the client can alter it after the user saw the preview.
+   */
+  action?: { tool: 'update_records' | 'delete_records'; args: Record<string, unknown> };
   /** Set once the user has answered. */
   answer?: { value: string; label: string };
 }

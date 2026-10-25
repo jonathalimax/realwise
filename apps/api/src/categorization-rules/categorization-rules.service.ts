@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -18,7 +18,7 @@ export class CategorizationRulesService {
       .from(categorizationRules)
       .where(and(
         eq(categorizationRules.clientId, clientId),
-        eq(categorizationRules.userId, userId),
+        eq(categorizationRules.userId, userId), isNull(categorizationRules.deletedAt),
         eq(categorizationRules.isActive, true),
       ))
       .orderBy(desc(categorizationRules.usedCount), desc(categorizationRules.updatedAt));
@@ -31,7 +31,7 @@ export class CategorizationRulesService {
       .where(and(
         eq(categorizationRules.id, id),
         eq(categorizationRules.clientId, clientId),
-        eq(categorizationRules.userId, userId),
+        eq(categorizationRules.userId, userId), isNull(categorizationRules.deletedAt),
       ));
     if (rows.length === 0) throw new NotFoundException();
     return rows[0];
@@ -44,7 +44,7 @@ export class CategorizationRulesService {
       .where(and(
         eq(categorizationRules.keyword, keyword),
         eq(categorizationRules.clientId, clientId),
-        eq(categorizationRules.userId, userId),
+        eq(categorizationRules.userId, userId), isNull(categorizationRules.deletedAt),
       ));
     return rows[0] ?? null;
   }
@@ -70,7 +70,7 @@ export class CategorizationRulesService {
       .where(and(
         eq(categorizationRules.id, id),
         eq(categorizationRules.clientId, clientId),
-        eq(categorizationRules.userId, userId),
+        eq(categorizationRules.userId, userId), isNull(categorizationRules.deletedAt),
       ))
       .returning();
     return rows[0];
@@ -87,7 +87,7 @@ export class CategorizationRulesService {
       .where(and(
         eq(categorizationRules.id, id),
         eq(categorizationRules.clientId, clientId),
-        eq(categorizationRules.userId, userId),
+        eq(categorizationRules.userId, userId), isNull(categorizationRules.deletedAt),
       ))
       .returning();
     return rows[0];
