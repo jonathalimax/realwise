@@ -23,7 +23,8 @@
       gtag('js', new Date());
       gtag('config', 'G-4S1ME4WCMY');
     </script>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <!-- async: a classic script in <head> blocks the whole page (blank screen) until its server answers. Nothing needs this SDK at startup. -->
+    <script async src="https://sdk.mercadopago.com/js/v2"></script>
   </head>
   <body>
     <div id="root"></div>
