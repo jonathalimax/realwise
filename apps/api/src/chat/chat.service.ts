@@ -9,7 +9,7 @@ import type { LlmContentPart, LlmMessage } from '../llm/llm.types';
 import { prepareFile, toContentPart, type PreparedFile } from './attachments';
 import { buildSystemPrompt } from './chat.prompt';
 import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.service';
-import type { ChatQuestion, ReviewGroup, ReviewPayload } from './chat.types';
+import { TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
 
 const HISTORY_LIMIT = 16;
 const MAX_TOOL_ROUNDS = 8;
@@ -45,6 +45,7 @@ export class ChatService {
     scope: ChatScope,
     text: string,
     uploads: { originalname: string; buffer: Buffer; mimetype?: string }[],
+    onEvent?: (event: ChatStreamEvent) => void,
   ): Promise<{ userMessage: ChatMessageRow; assistantMessage: ChatMessageRow }> {
     const trimmed = text.trim();
     if (!trimmed && uploads.length === 0) throw new BadRequestException('Send a message or attach a file.');
@@ -64,6 +65,8 @@ export class ChatService {
         attachments: prepared.length ? prepared.map((p) => ({ name: p.name, kind: p.kind })) : null,
       })
       .returning();
+
+    onEvent?.({ type: 'user', message: userMessage });
 
     if (prepared.length) {
       await this.db.insert(chatFiles).values(prepared.map((p) => ({ ...p, ...scope })));
@@ -101,6 +104,7 @@ export class ChatService {
       const result = await this.llm.generate(
         { purpose: 'chat', messages, tools: CHAT_TOOLS, maxTokens: 16000 },
         scope,
+        onEvent ? (text) => onEvent({ type: 'delta', text }) : undefined,
       );
 
       if (result.toolCalls.length === 0) {
@@ -109,7 +113,10 @@ export class ChatService {
       }
 
       messages.push({ role: 'assistant', content: result.text || null, tool_calls: result.toolCalls });
+      // Text written before tool calls is a preamble; clear it from the live bubble unless it is the question text.
+      if (!result.toolCalls.some((c) => c.function.name === 'ask_user')) onEvent?.({ type: 'reset' });
       for (const call of result.toolCalls) {
+        onEvent?.({ type: 'status', label: TOOL_STATUS[call.function.name] ?? 'Trabalhando nisso…' });
         const outcome = await this.tools.execute(call.function.name, call.function.arguments, scope);
         if (outcome.saved) saved.push(outcome.saved);
         for (const g of outcome.review ?? []) this.mergeReviewGroup(reviewByKey, g);
@@ -178,6 +185,7 @@ export class ChatService {
     scope: ChatScope,
     messageId: string,
     answers: { questionId: string; value: string; label: string }[],
+    onEvent?: (event: ChatStreamEvent) => void,
   ) {
     const msg = await this.ownMessage(scope, messageId);
     const questions = (msg.questions ?? []) as ChatQuestion[];
@@ -219,7 +227,7 @@ export class ChatService {
     if (lines.length === 0) throw new BadRequestException('No answers provided.');
 
     await this.db.update(chatMessages).set({ questions: updated }).where(eq(chatMessages.id, msg.id));
-    const turn = await this.send(scope, lines.join('\n'), []);
+    const turn = await this.send(scope, lines.join('\n'), [], onEvent);
     return { ...turn, questionsMessage: { ...msg, questions: updated } };
   }
 

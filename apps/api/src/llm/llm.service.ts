@@ -23,7 +23,11 @@ export class LlmService {
   }
 
   /** Runs one model call for a user, enforcing the monthly budget and logging usage/cost. */
-  async generate(req: LlmRequest, scope: { clientId: string; userId: string }): Promise<LlmResult> {
+  async generate(
+    req: LlmRequest,
+    scope: { clientId: string; userId: string },
+    onText?: (delta: string) => void,
+  ): Promise<LlmResult> {
     if (!this.provider.isConfigured()) {
       throw new ServiceUnavailableException('AI assistant is not configured');
     }
@@ -31,7 +35,10 @@ export class LlmService {
     const request = await this.applyBudget(req, scope.userId);
 
     try {
-      const result = await this.provider.generate(request);
+      const result =
+        onText && this.provider.generateStream
+          ? await this.provider.generateStream(request, onText)
+          : await this.provider.generate(request);
       const usd = estimateCostUsd(result.provider, result.model, result.inputTokens, result.outputTokens);
       await this.log(scope, request, result, usd);
       return result;
