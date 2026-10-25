@@ -4,6 +4,10 @@
 
 The chat (`/chat`) is the **only** way for customers to add data (transactions, bills, accounts, categories) and the place to ask questions about their finances. The home screen shows AI insight cards and an "ask anything" bar that opens the chat.
 
+## Persona
+
+The assistant is **John**, a financial specialist: polite but relaxed, happy, inspiring, confident and empathetic. The persona lives in `chat/chat.prompt.ts` (and the insights prompt); keep numbers factual and advice general (not licensed advice).
+
 ## Architecture
 
 ```txt

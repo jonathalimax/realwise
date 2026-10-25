@@ -188,18 +188,18 @@ export default function ChatPage() {
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
     >
-      <PageHeader title={pt ? 'Assistente' : 'Assistant'} />
+      <PageHeader title="John" />
 
       <div className="flex-1 w-full max-w-3xl mx-auto px-4 py-4 pb-44 space-y-3">
         {!loading && messages.length === 0 && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
             <p className="font-bold text-gray-900 dark:text-white">
-              {pt ? 'Envie seus extratos, faturas e comprovantes.' : 'Send your statements, invoices and receipts.'}
+              {pt ? 'Oi, eu sou o John! Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm John! Let's take good care of your money 💜"}
             </p>
             <p>
               {pt
-                ? 'Anexe PDFs, planilhas ou fotos (vários de uma vez) e eu organizo tudo, descobrindo a conta de cada um. Você também pode escrever "gastei 45 no mercado" ou perguntar sobre suas finanças.'
-                : 'Attach PDFs, spreadsheets or photos (several at once) and I will organise everything, working out which account each belongs to. You can also type "spent 45 at the market" or ask about your finances.'}
+                ? 'Envie seus extratos, faturas e comprovantes (PDFs, planilhas ou fotos, vários de uma vez) que eu organizo tudo e descubro a conta de cada um. Você também pode escrever "gastei 45 no mercado", cadastrar uma conta a pagar ou me perguntar qualquer coisa sobre suas finanças.'
+                : 'Send your statements, invoices and receipts (PDFs, spreadsheets or photos, several at once) and I will organise everything and work out which account each belongs to. You can also type "spent 45 at the market", add a bill, or ask me anything about your finances.'}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               {suggestions.map((s) => (
@@ -228,7 +228,7 @@ export default function ChatPage() {
 
         {sending && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-md bg-white dark:bg-gray-800 px-4 py-3 shadow-sm flex gap-1" aria-label={pt ? 'Pensando' : 'Thinking'}>
+            <div className="rounded-2xl rounded-bl-md bg-white dark:bg-gray-800 px-4 py-3 shadow-sm flex gap-1" aria-label={pt ? 'John está pensando' : 'John is thinking'}>
               {[0, 1, 2].map((i) => (
                 <span key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
               ))}
@@ -279,7 +279,7 @@ export default function ChatPage() {
               onKeyDown={onKeyDown}
               rows={1}
               maxLength={4000}
-              placeholder={pt ? 'Escreva, pergunte ou anexe um extrato…' : 'Type, ask, or attach a statement…'}
+              placeholder={pt ? 'Fale com o John ou anexe um extrato…' : 'Talk to John or attach a statement…'}
               className="flex-1 resize-none bg-transparent px-1 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none max-h-32"
             />
             <button

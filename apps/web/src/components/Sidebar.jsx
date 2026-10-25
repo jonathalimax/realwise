@@ -151,7 +151,7 @@ export default function Sidebar() {
       labelPt: 'Acompanhar',
       items: [
         { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
-        { name: 'Assistant', namePt: 'Assistente', href: '/chat', icon: SparklesIcon },
+        { name: 'John (AI)', namePt: 'John (IA)', href: '/chat', icon: SparklesIcon },
         { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
         { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon }
