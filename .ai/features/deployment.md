@@ -19,3 +19,7 @@ GitHub workflows exist for admin, API, business-admin, and web. Claude Code revi
 - Update `.env.example` when required variables change.
 - Update app build/deploy workflow if service boundaries change.
 - Add rollback notes for risky deployment changes.
+
+## Page-head rule (blank-screen incident)
+
+Never add a plain `<script src=...>` (no `async`/`defer`) for a third party in `apps/web/index.html`. A classic script in `<head>` blocks the browser from reading the rest of the page until that server answers, so a slow or blocked host leaves a blank screen (only the `html` background shows; navy `#020617` in dark mode). The Mercado Pago SDK is `async` for this reason. Use `async` (not `defer`): deferred scripts run in order with the app's module script and would still delay the app.
