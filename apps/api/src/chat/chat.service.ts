@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, desc, eq, gte, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lt } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -9,6 +9,7 @@ import type { LlmContentPart, LlmMessage } from '../llm/llm.types';
 import { prepareFile, toContentPart, type PreparedFile } from './attachments';
 import { buildSystemPrompt } from './chat.prompt';
 import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.service';
+import type { ChatQuestion, ReviewGroup, ReviewPayload } from './chat.types';
 
 const HISTORY_LIMIT = 16;
 const MAX_TOOL_ROUNDS = 8;
@@ -92,6 +93,8 @@ export class ChatService {
     messages.push({ role: 'user', content: parts });
 
     const saved: SavedSummary[] = [];
+    const reviewByKey = new Map<string, ReviewGroup>();
+    let questions: ChatQuestion[] = [];
     let reply = '';
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -109,18 +112,140 @@ export class ChatService {
       for (const call of result.toolCalls) {
         const outcome = await this.tools.execute(call.function.name, call.function.arguments, scope);
         if (outcome.saved) saved.push(outcome.saved);
+        for (const g of outcome.review ?? []) this.mergeReviewGroup(reviewByKey, g);
+        if (outcome.questions) questions = outcome.questions;
         messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(outcome.result) });
+      }
+      // A question sheet ends the turn: the user's answers start the next one.
+      if (questions.length) {
+        reply = result.text || 'Preciso de uma ajudinha para continuar:';
+        break;
       }
     }
 
     if (!reply) reply = saved.length ? 'Pronto! Salvei as transações.' : 'Não consegui concluir agora. Pode tentar de novo?';
 
+    const review = await this.reviewPayload(scope, [...reviewByKey.values()]);
+
     const [assistantMessage] = await this.db
       .insert(chatMessages)
-      .values({ ...scope, role: 'assistant', content: reply, saved: saved.length ? saved : null })
+      .values({
+        ...scope,
+        role: 'assistant',
+        content: reply,
+        saved: saved.length ? saved : null,
+        questions: questions.length ? questions : null,
+        review,
+      })
       .returning();
 
     return { userMessage, assistantMessage };
+  }
+
+  private mergeReviewGroup(into: Map<string, ReviewGroup>, g: ReviewGroup) {
+    const existing = into.get(g.key);
+    if (!existing) {
+      into.set(g.key, { ...g });
+      return;
+    }
+    existing.count += g.count;
+    existing.total = Number((existing.total + g.total).toFixed(2));
+    existing.transactionIds.push(...g.transactionIds);
+    for (const s of g.suggestionIds) if (!existing.suggestionIds.includes(s) && existing.suggestionIds.length < 3) existing.suggestionIds.push(s);
+  }
+
+  /** Attaches the category list so the sheet is self-contained (includes categories created during this turn). */
+  private async reviewPayload(scope: ChatScope, groups: ReviewGroup[]): Promise<ReviewPayload | null> {
+    if (groups.length === 0) return null;
+    const cats = await this.db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId)));
+    return { groups, categories: cats.map((c) => ({ id: c.id, name: c.name, type: c.type })), resolved: false };
+  }
+
+  private async ownMessage(scope: ChatScope, id: string): Promise<ChatMessageRow> {
+    const [msg] = await this.db
+      .select()
+      .from(chatMessages)
+      .where(and(eq(chatMessages.id, id), eq(chatMessages.userId, scope.userId), eq(chatMessages.clientId, scope.clientId)));
+    if (!msg) throw new NotFoundException('Message not found');
+    return msg;
+  }
+
+  /** Turns the user's picks in a question sheet into their next message, so John continues with the documents still attached. */
+  async answerQuestions(
+    scope: ChatScope,
+    messageId: string,
+    answers: { questionId: string; value: string; label: string }[],
+  ) {
+    const msg = await this.ownMessage(scope, messageId);
+    const questions = (msg.questions ?? []) as ChatQuestion[];
+    if (questions.length === 0 || questions.every((q) => q.answer)) throw new BadRequestException('Nothing to answer.');
+
+    const lines: string[] = [];
+    const updated = questions.map((q) => {
+      const a = answers.find((x) => x.questionId === q.id);
+      if (!a) return q;
+      const isNew = a.value.startsWith('new:');
+      const valid = isNew || q.options.some((o) => o.value === a.value);
+      if (!valid) throw new BadRequestException('Invalid answer.');
+      const label = isNew ? a.value.slice(4).trim().slice(0, 80) : (q.options.find((o) => o.value === a.value)?.label ?? a.label);
+      if (!label) throw new BadRequestException('Invalid answer.');
+      lines.push(
+        isNew
+          ? `${q.title}${q.fileName ? ` (${q.fileName})` : ''}: é uma conta NOVA chamada "${label}" (crie-a e use-a).`
+          : q.kind === 'account'
+            ? `${q.title}${q.fileName ? ` (${q.fileName})` : ''}: ${label} (accountId ${a.value}).`
+            : `${q.title}${q.fileName ? ` (${q.fileName})` : ''}: ${label}${q.kind === 'payment_method' ? ` (paymentMethod ${a.value})` : ''}.`,
+      );
+      return { ...q, answer: { value: a.value, label } };
+    });
+    if (lines.length === 0) throw new BadRequestException('No answers provided.');
+
+    await this.db.update(chatMessages).set({ questions: updated }).where(eq(chatMessages.id, msg.id));
+    const turn = await this.send(scope, lines.join('\n'), []);
+    return { ...turn, questionsMessage: { ...msg, questions: updated } };
+  }
+
+  /**
+   * Applies the user's category confirmations to rows that were already saved. No model call:
+   * the choice is deterministic, and "remember" feeds the categorization memory.
+   */
+  async applyReview(
+    scope: ChatScope,
+    messageId: string,
+    decisions: { key: string; categoryId: string; remember: boolean }[],
+  ): Promise<{ updated: number; message: ChatMessageRow }> {
+    const msg = await this.ownMessage(scope, messageId);
+    const review = msg.review as ReviewPayload | null;
+    if (!review || review.resolved) throw new BadRequestException('Nothing to review.');
+
+    const owned = await this.db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId)));
+    const catById = new Map(owned.map((c) => [c.id, c]));
+
+    let updated = 0;
+    for (const d of decisions) {
+      const group = review.groups.find((g) => g.key === d.key);
+      const cat = catById.get(d.categoryId);
+      if (!group || !cat) continue;
+      const res = await this.db
+        .update(transactions)
+        .set({ categoryId: cat.id, category: cat.name, updatedAt: new Date() })
+        .where(and(inArray(transactions.id, group.transactionIds), eq(transactions.userId, scope.userId), eq(transactions.clientId, scope.clientId)))
+        .returning({ id: transactions.id });
+      updated += res.length;
+      if (d.remember) {
+        await this.tools.setCategoryRule({ description: group.merchant, categoryId: cat.id, applyToExisting: false }, scope);
+      }
+    }
+
+    const resolved: ReviewPayload = { ...review, resolved: true };
+    const [message] = await this.db.update(chatMessages).set({ review: resolved }).where(eq(chatMessages.id, msg.id)).returning();
+    return { updated, message };
   }
 
   /** Reverts everything a single AI import saved. */

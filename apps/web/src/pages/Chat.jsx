@@ -2,11 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import PageHeader from '../components/PageHeader';
+import QuestionSheet from '../components/chat/QuestionSheet';
+import ReviewSheet from '../components/chat/ReviewSheet';
 import { useSettings } from '../contexts/SettingsContext';
 import { chatResource } from '../lib/api/resources/chat';
 
 const ACCEPT = '.pdf,.csv,.xlsx,.xls,.ofx,.txt,.png,.jpg,.jpeg,.webp';
 const MAX_FILES = 6;
+
+/** Which sheet (if any) a message is still waiting on. */
+function pendingSheet(message) {
+  if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer)) return 'questions';
+  if (message.review && !message.review.resolved && message.review.groups?.length) return 'review';
+  return null;
+}
 
 const brl = (value) =>
   Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -54,8 +63,10 @@ function SavedCard({ saved, onUndo, language }) {
   );
 }
 
-function Bubble({ message, onUndo, language }) {
+function Bubble({ message, onUndo, onOpenSheet, language }) {
   const mine = message.role === 'user';
+  const pt = language === 'pt';
+  const pending = pendingSheet(message);
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -80,6 +91,21 @@ function Bubble({ message, onUndo, language }) {
           message.saved.map((saved) => (
             <SavedCard key={saved.importId} saved={saved} onUndo={onUndo} language={language} />
           ))}
+        {pending && (
+          <button
+            onClick={() => onOpenSheet(message.id, pending)}
+            className="mt-2 w-full rounded-xl bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-700"
+          >
+            {pending === 'questions'
+              ? pt ? 'Responder perguntas' : 'Answer questions'
+              : pt
+                ? `Confirmar categorias (${message.review.groups.length})`
+                : `Confirm categories (${message.review.groups.length})`}
+          </button>
+        )}
+        {message.review?.resolved && (
+          <p className="mt-2 text-xs font-semibold text-emerald-600">{pt ? '✓ Categorias confirmadas' : '✓ Categories confirmed'}</p>
+        )}
       </div>
     </div>
   );
@@ -99,6 +125,9 @@ export default function ChatPage() {
   const fileInput = useRef(null);
   const bottom = useRef(null);
   const autoSent = useRef(false);
+  const [manualSheet, setManualSheet] = useState(null); // { id, type } opened from a button
+  const [dismissed, setDismissed] = useState(() => new Set()); // message ids whose sheet the user closed
+  const [sheetBusy, setSheetBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -119,6 +148,50 @@ export default function ChatPage() {
   const addFiles = useCallback((list) => {
     setFiles((prev) => [...prev, ...Array.from(list)].slice(0, MAX_FILES));
   }, []);
+
+  // The latest assistant message waiting on the user opens its sheet automatically, unless it was closed.
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+  const autoType = lastAssistant ? pendingSheet(lastAssistant) : null;
+  const sheet =
+    manualSheet ??
+    (lastAssistant && autoType && !dismissed.has(lastAssistant.id) ? { id: lastAssistant.id, type: autoType } : null);
+  const sheetMessage = sheet ? messages.find((m) => m.id === sheet.id) : null;
+
+  const closeSheet = () => {
+    if (sheet) setDismissed((prev) => new Set(prev).add(sheet.id));
+    setManualSheet(null);
+  };
+
+  const replaceMessage = (updated) =>
+    setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+
+  const submitAnswers = async (answers) => {
+    setSheetBusy(true);
+    setError('');
+    try {
+      const { userMessage, assistantMessage, questionsMessage } = await chatResource.answer(sheetMessage.id, answers);
+      setManualSheet(null);
+      setMessages((prev) => [...prev.map((m) => (m.id === questionsMessage.id ? questionsMessage : m)), userMessage, assistantMessage]);
+    } catch (e) {
+      setError(e?.message || (pt ? 'Não consegui enviar as respostas.' : 'Could not send your answers.'));
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
+  const submitReview = async (decisions) => {
+    setSheetBusy(true);
+    setError('');
+    try {
+      const { message } = await chatResource.applyReview(sheetMessage.id, decisions);
+      setManualSheet(null);
+      replaceMessage(message);
+    } catch (e) {
+      setError(e?.message || (pt ? 'Não consegui salvar as categorias.' : 'Could not save the categories.'));
+    } finally {
+      setSheetBusy(false);
+    }
+  };
 
   const submit = useCallback(
     async (overrideText) => {
@@ -220,6 +293,7 @@ export default function ChatPage() {
             key={m.id}
             message={m}
             language={language}
+            onOpenSheet={(id, type) => setManualSheet({ id, type })}
             onUndo={async (importId) => {
               await chatResource.undoImport(importId);
             }}
@@ -293,6 +367,13 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+
+      {sheetMessage && sheet.type === 'questions' && (
+        <QuestionSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAnswers} onClose={closeSheet} />
+      )}
+      {sheetMessage && sheet.type === 'review' && (
+        <ReviewSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onApply={submitReview} onClose={closeSheet} />
+      )}
 
       {dragging && (
         <div className="fixed inset-0 z-50 bg-violet-600/20 border-4 border-dashed border-violet-500 flex items-center justify-center pointer-events-none">

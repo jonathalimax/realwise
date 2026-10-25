@@ -33,6 +33,9 @@ export const chatMessages = pgTable(
     // Display metadata: attached file names and a summary of what was saved (drives the "undo" card).
     attachments: jsonb('attachments'),
     saved: jsonb('saved'),
+    // Interactive sheets: unanswered multiple-choice questions, and categories awaiting confirmation.
+    questions: jsonb('questions'),
+    review: jsonb('review'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({ byUser: index('chat_messages_user_created_idx').on(t.userId, t.createdAt) }),

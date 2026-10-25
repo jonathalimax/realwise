@@ -7,6 +7,7 @@ import * as schema from '../db/schema';
 import { accounts, bills, categories, categorizationRules, chatFiles, imports, transactions } from '../db/schema';
 import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
+import { PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
 
 export interface ToolContext {
   clientId: string;
@@ -27,6 +28,10 @@ export interface ToolOutcome {
   /** JSON-serialisable result returned to the model. */
   result: unknown;
   saved?: SavedSummary;
+  /** Rows saved with a doubtful category; shown to the user as a confirmation sheet. */
+  review?: ReviewGroup[];
+  /** Multiple-choice questions to show the user; the turn ends so they can answer. */
+  questions?: ChatQuestion[];
 }
 
 // Model-produced JSON: untrusted and untyped by nature. Every field is validated before use.
@@ -42,12 +47,13 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
   {
     name: 'save_transactions',
     description:
-      'Save extracted transactions to ONE account. Only call when you are confident which account the document belongs to; otherwise ask the user first. Send at most 100 rows per call (call repeatedly for longer statements). Duplicates already in the database are skipped automatically.',
+      'Save extracted transactions to ONE account. Only call when you are confident which account the document belongs to; otherwise use ask_user first. Send at most 100 rows per call (call repeatedly for longer statements). ALL rows are saved immediately, including ones whose category you are unsure about (mark those confidence "low" so the user is asked to confirm them afterwards). Duplicates already in the database are skipped automatically.',
     parameters: {
       type: 'object',
       properties: {
         accountId: { type: 'string', description: 'UUID of an existing account from the context.' },
         sourceFile: { type: 'string', description: 'Exact filename of the attachment these rows came from, if any.' },
+        paymentMethod: { type: ['string', 'null'], enum: [...PAYMENT_METHODS, null], description: 'How these were paid, for every row unless a row overrides it. null if unknown.' },
         transactions: {
           type: 'array',
           items: {
@@ -57,13 +63,41 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
               amount: { type: 'number', description: 'Always positive. Direction is given by type.' },
               type: { type: 'string', enum: ['income', 'expense'] },
               description: { type: 'string', description: 'Merchant/description as printed, cleaned of noise.' },
-              categoryId: { type: ['string', 'null'], description: 'UUID of an existing category, or null if unsure.' },
+              categoryId: { type: ['string', 'null'], description: 'Your best-guess existing category UUID, or null if you have no idea.' },
+              confidence: { type: 'string', enum: ['high', 'low'], description: '"low" when the category is a guess the user should confirm.' },
+              suggestedCategoryIds: { type: 'array', items: { type: 'string' }, description: 'Up to 3 plausible category UUIDs, best first (for low confidence).' },
+              paymentMethod: { type: ['string', 'null'], enum: [...PAYMENT_METHODS, null] },
             },
             required: ['date', 'amount', 'type', 'description'],
           },
         },
       },
       required: ['accountId', 'transactions'],
+    },
+  },
+  {
+    name: 'ask_user',
+    description:
+      'Show the user a sheet of multiple-choice questions and END your turn to wait for the answers. Use it when you cannot determine, with confidence, which ACCOUNT a document belongs to or how it was paid (payment method). Ask about all documents in one call (one question per document). Do not use it for categories: save the rows and mark them confidence "low" instead. Write one short friendly sentence in the same message.',
+    parameters: {
+      type: 'object',
+      properties: {
+        questions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              kind: { type: 'string', enum: ['account', 'payment_method', 'choice'], description: 'account and payment_method options are filled in by the app; for choice you provide options.' },
+              title: { type: 'string', description: 'Short question, e.g. "Qual conta é essa fatura?"' },
+              subtitle: { type: 'string', description: 'What you saw that makes you unsure, e.g. "Final 4821, vence dia 10".' },
+              fileName: { type: 'string', description: 'Exact filename this question is about, if any.' },
+              options: { type: 'array', items: { type: 'string' }, description: 'Only for kind "choice".' },
+            },
+            required: ['kind', 'title'],
+          },
+        },
+      },
+      required: ['questions'],
     },
   },
   {
@@ -167,6 +201,8 @@ export class ChatToolsService {
       switch (name) {
         case 'save_transactions':
           return await this.saveTransactions(args, ctx);
+        case 'ask_user':
+          return await this.askUser(args, ctx);
         case 'create_account':
           return { result: await this.createAccount(args, ctx) };
         case 'create_category':
@@ -205,6 +241,7 @@ export class ChatToolsService {
     const catById = new Map(cats.map((c) => [c.id, c]));
 
     const seen = new Map<string, number>();
+    const meta = new Map<string, { low: boolean; suggestions: string[] }>();
     const prepared: (typeof transactions.$inferInsert)[] = [];
     const rejected: string[] = [];
 
@@ -222,6 +259,13 @@ export class ChatToolsService {
       const n = (seen.get(base) ?? 0) + 1;
       seen.set(base, n);
       const cat = r.categoryId ? catById.get(String(r.categoryId)) : undefined;
+      const dedupHash = `${base}#${n}`;
+      const suggestions = (Array.isArray(r.suggestedCategoryIds) ? r.suggestedCategoryIds : [])
+        .map(String)
+        .filter((id) => catById.has(id))
+        .slice(0, 3);
+      if (cat && !suggestions.includes(cat.id)) suggestions.unshift(cat.id);
+      meta.set(dedupHash, { low: r.confidence === 'low' || !cat, suggestions: suggestions.slice(0, 3) });
       prepared.push({
         clientId: ctx.clientId,
         userId: ctx.userId,
@@ -232,8 +276,9 @@ export class ChatToolsService {
         accountId: account.id,
         categoryId: cat?.id ?? null,
         category: cat?.name ?? null,
+        paymentMethod: this.paymentMethod(r.paymentMethod ?? args.paymentMethod),
         source: 'ai-chat',
-        dedupHash: `${base}#${n}`,
+        dedupHash,
       });
     });
 
@@ -247,14 +292,19 @@ export class ChatToolsService {
     const fresh = prepared.filter((p) => !existingHashes.has(p.dedupHash!));
 
     let importId = '';
+    let review: ReviewGroup[] = [];
     if (fresh.length > 0) {
       const [imp] = await this.db
         .insert(imports)
         .values({ clientId: ctx.clientId, userId: ctx.userId, bank: args.sourceFile ?? 'chat', status: 'complete', rowCount: fresh.length })
         .returning();
       importId = imp.id;
-      await this.db.insert(transactions).values(fresh.map((f) => ({ ...f, importId })));
+      const inserted = await this.db
+        .insert(transactions)
+        .values(fresh.map((f) => ({ ...f, importId })))
+        .returning({ id: transactions.id, dedupHash: transactions.dedupHash });
       await this.bumpMatchedRules(fresh, ctx);
+      review = this.buildReview(fresh, inserted, meta);
     }
 
     if (args.sourceFile) {
@@ -280,6 +330,72 @@ export class ChatToolsService {
     return {
       result: { saved: fresh.length, duplicatesSkipped: prepared.length - fresh.length, rejected, account: account.name },
       saved,
+      review: review.length ? review : undefined,
+    };
+  }
+
+  private paymentMethod(value: unknown): string | null {
+    return typeof value === 'string' && (PAYMENT_METHODS as readonly string[]).includes(value) ? value : null;
+  }
+
+  /** Groups the doubtful rows by merchant so a big statement becomes a handful of cards. */
+  private buildReview(
+    rows: (typeof transactions.$inferInsert)[],
+    inserted: { id: string; dedupHash: string | null }[],
+    meta: Map<string, { low: boolean; suggestions: string[] }>,
+  ): ReviewGroup[] {
+    const idByHash = new Map(inserted.map((i) => [i.dedupHash, i.id]));
+    const groups = new Map<string, ReviewGroup>();
+    for (const row of rows) {
+      const m = meta.get(row.dedupHash!);
+      const id = idByHash.get(row.dedupHash!);
+      if (!m?.low || !id) continue;
+      const description = row.description ?? '';
+      const key = `${row.type}:${merchantKey(description) || description.toLowerCase()}`;
+      const g = groups.get(key) ?? {
+        key,
+        merchant: merchantKey(description) || description,
+        type: row.type as 'income' | 'expense',
+        count: 0,
+        total: 0,
+        transactionIds: [],
+        currentCategoryId: row.categoryId ?? null,
+        suggestionIds: [],
+      };
+      g.count += 1;
+      g.total = Number((g.total + Number(row.amount)).toFixed(2));
+      g.transactionIds.push(id);
+      for (const s of m.suggestions) if (!g.suggestionIds.includes(s) && g.suggestionIds.length < 3) g.suggestionIds.push(s);
+      groups.set(key, g);
+    }
+    return [...groups.values()];
+  }
+
+  /** Turns the model's question list into a sheet. Account options always come from the database, never the model. */
+  private async askUser(args: ToolArgs, ctx: ToolContext): Promise<ToolOutcome> {
+    const raw: ToolArgs[] = Array.isArray(args.questions) ? args.questions.slice(0, 8) : [];
+    if (raw.length === 0) return { result: { error: 'questions is required.' } };
+    const accs = await this.db
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.clientId, ctx.clientId), eq(accounts.userId, ctx.userId)));
+    const labels: Record<string, string> = { credit: 'Cartão de crédito', debit: 'Débito', pix: 'PIX', transfer: 'Transferência', boleto: 'Boleto', cash: 'Dinheiro', other: 'Outro' };
+
+    const questions: ChatQuestion[] = raw.map((q, i) => {
+      const kind = ['account', 'payment_method', 'choice'].includes(q.kind) ? (q.kind as ChatQuestion['kind']) : 'choice';
+      const base = { id: `q${i + 1}`, kind, title: String(q.title ?? '').slice(0, 140), subtitle: q.subtitle ? String(q.subtitle).slice(0, 200) : undefined, fileName: q.fileName ? String(q.fileName) : undefined };
+      if (kind === 'account') {
+        return { ...base, allowNew: true, options: accs.map((a) => ({ value: a.id, label: a.name, hint: a.type ?? undefined })) };
+      }
+      if (kind === 'payment_method') {
+        return { ...base, options: PAYMENT_METHODS.map((m) => ({ value: m, label: labels[m] })) };
+      }
+      const opts: unknown[] = Array.isArray(q.options) ? q.options.slice(0, 8) : [];
+      return { ...base, options: opts.map((o) => ({ value: String(o), label: String(o) })) };
+    });
+    return {
+      result: { shownToUser: questions.length, note: 'The sheet is on screen. End your turn now and wait for the answers.' },
+      questions,
     };
   }
 
@@ -356,7 +472,7 @@ export class ChatToolsService {
     return { billId: bill.id, name: bill.name, dueDate: bill.dueDate, recurrence: bill.recurrence };
   }
 
-  private async setCategoryRule(args: ToolArgs, ctx: ToolContext) {
+  async setCategoryRule(args: ToolArgs, ctx: ToolContext) {
     const [cat] = await this.db
       .select()
       .from(categories)

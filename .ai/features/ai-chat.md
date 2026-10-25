@@ -23,6 +23,10 @@ apps/api  chat/ChatService  (tool-calling loop, max 8 rounds)
 - **LLM provider** (`apps/api/src/llm`): `LlmProvider` interface, `OpenRouterProvider` implementation (same approach as the `realwise-aichat` inference gateway: OpenRouter, `provider: { zdr: true, data_collection: 'deny' }`). `LlmService` enforces `LLM_MONTHLY_BUDGET_USD` per user and logs tokens/cost in `llm_call_log`. Model per purpose: `chat` and `insights`.
 - **Documents**: PDF (sent natively as `file` parts), images, CSV/TSV/TXT/OFX/QIF (text) and XLSX (converted to CSV text). Up to 6 files × 15 MB per message.
 - **Account detection**: the system prompt lists the user's accounts; the model must pick one with confidence or ask the user a question. Files stay in `chat_files` (24h TTL, deleted when saved via `sourceFile`) so the follow-up answer still has the documents.
+- **Interactive sheets** (bottom sheets in `pages/Chat.jsx`, state on `chat_messages.questions` / `.review`):
+  - *Question sheet* — when John can't tell the account (or payment method) of a document he calls `ask_user` and the turn ends. Account options always come from the database (never the model) plus a "new account" text field; the answers are posted to `POST /chat/messages/:id/answers`, become the next user message, and John continues with the documents still attached.
+  - *Review sheet* — `save_transactions` saves **every** row immediately; rows with `confidence: "low"` (or no category) are grouped by merchant (`UBER ×7`) with up to 3 suggested categories. `POST /chat/messages/:id/review` updates the already-saved rows directly (no model call) and, with "remember" on, upserts the categorization rule.
+  - Payment method (`credit|debit|pix|transfer|boleto|cash|other`) is inferred by John and stored in `transactions.payment_method`; asked only when unclear.
 - **Memory**: `categorization_rules` (merchant key → category) are injected in the system prompt (top 150 by `used_count`). `set_category_rule` upserts a rule keyed by `merchantKey()` (`chat/pattern.ts`) and can re-categorize past transactions. Saved rows matching a rule bump its `used_count`.
 - **Dedup**: `transactions.dedup_hash` = sha1(user, account, date, amount, merchant pattern) + occurrence index, so re-uploading overlapping statements never double-counts while identical same-day purchases are kept.
 - **Undo**: every AI save creates an `imports` row; `POST /chat/imports/:id/undo` deletes its transactions.
@@ -34,6 +38,8 @@ apps/api  chat/ChatService  (tool-calling loop, max 8 rounds)
 |---|---|---|
 | GET | `/chat/messages` | last 50 messages |
 | POST | `/chat/messages` | multipart: `message`, `files[]` |
+| POST | `/chat/messages/:id/answers` | answers to a question sheet → `{ userMessage, assistantMessage, questionsMessage }` |
+| POST | `/chat/messages/:id/review` | `{ decisions: [{ key, categoryId, remember }] }` → `{ updated, message }` |
 | POST | `/chat/imports/:id/undo` | revert one AI import |
 | GET | `/chat/insights?month=` | `{ items: [{ title, body, tone }] }` |
 

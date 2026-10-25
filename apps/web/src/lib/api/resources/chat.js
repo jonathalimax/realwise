@@ -18,6 +18,19 @@ export function createChatResource({ client = apiClient } = {}) {
       notifyBillsChanged();
       return result;
     },
+    /** Answers a question sheet; John continues and replies. */
+    async answer(messageId, answers) {
+      const result = await client.post(`/chat/messages/${messageId}/answers`, { answers });
+      notifyTransactionsChanged();
+      notifyBillsChanged();
+      return result;
+    },
+    /** Confirms categories for rows that were already saved. No model call. */
+    async applyReview(messageId, decisions) {
+      const result = await client.post(`/chat/messages/${messageId}/review`, { decisions });
+      notifyTransactionsChanged();
+      return result;
+    },
     async undoImport(importId) {
       const result = await client.post(`/chat/imports/${importId}/undo`);
       notifyTransactionsChanged();
