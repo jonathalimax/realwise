@@ -78,6 +78,7 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
             : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md shadow-sm'
         }`}
       >
+        {!mine && <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">John</p>}
         {Array.isArray(message.attachments) && message.attachments.length > 0 && (
           <div className="mb-1.5 flex flex-wrap gap-1.5">
             {message.attachments.map((file, i) => (
@@ -160,8 +161,9 @@ function LiveBubble({ target, status, finished, onRevealed, language }) {
       <div
         className="max-w-[88%] sm:max-w-[75%] rounded-2xl rounded-bl-md bg-white dark:bg-gray-800 px-4 py-2.5 text-sm leading-relaxed text-gray-900 dark:text-gray-100 shadow-sm"
         aria-live="polite"
-        aria-label={pt ? 'John está escrevendo' : 'John is typing'}
+        aria-label={pt ? 'O assistente está escrevendo' : 'The assistant is typing'}
       >
+        <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">John</p>
         {visible ? (
           <div>
             <Markdown text={visible} streaming={!finished} />
@@ -413,7 +415,7 @@ export default function ChatPage() {
         setSending(false);
         if (delivered.current) {
           // The server already saved the message: keep it and don't refill the composer (it would be sent twice).
-          setError(pt ? 'O John não conseguiu responder agora. Tente enviar de novo em instantes.' : 'John could not reply right now. Please try again shortly.');
+          setError(pt ? 'Não consegui responder agora. Tente enviar de novo em instantes.' : 'I could not reply right now. Please try again shortly.');
         } else {
           setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
           setText(message);
@@ -461,18 +463,21 @@ export default function ChatPage() {
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
     >
-      <PageHeader title="John" />
+      <PageHeader title={pt ? 'Assistente IA' : 'AI Assistant'} />
 
       <div ref={listRef} className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 space-y-3" style={{ paddingBottom: 16 }}>
         {!loading && messages.length === 0 && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
             <p className="font-bold text-gray-900 dark:text-white">
-              {pt ? 'Oi, eu sou o John! Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm John! Let's take good care of your money 💜"}
+              {pt ? 'Oi, eu sou o John, seu assistente financeiro. Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm John, your financial assistant. Let's take good care of your money 💜"}
             </p>
             <p>
               {pt
                 ? 'Envie seus extratos, faturas e comprovantes (PDFs, planilhas ou fotos, vários de uma vez) que eu organizo tudo e descubro a conta de cada um. Você também pode escrever "gastei 45 no mercado", cadastrar uma conta a pagar ou me perguntar qualquer coisa sobre suas finanças.'
                 : 'Send your statements, invoices and receipts (PDFs, spreadsheets or photos, several at once) and I will organise everything and work out which account each belongs to. You can also type "spent 45 at the market", add a bill, or ask me anything about your finances.'}
+            </p>
+            <p className="text-xs text-gray-400">
+              {pt ? 'Para economizar, esta conversa é limpa a cada 3 dias. Seus dados continuam salvos.' : 'To save resources, this conversation clears every 3 days. Your data stays saved.'}
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               {suggestions.map((s) => (
@@ -568,7 +573,7 @@ export default function ChatPage() {
               onKeyDown={onKeyDown}
               rows={1}
               maxLength={4000}
-              placeholder={pt ? 'Fale com o John ou anexe um extrato…' : 'Talk to John or attach a statement…'}
+              placeholder={pt ? 'Como posso te ajudar?' : 'How can I help you?'}
               className="flex-1 resize-none bg-transparent px-1 py-2 text-base sm:text-sm leading-snug text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none overflow-y-auto"
             />
             <button

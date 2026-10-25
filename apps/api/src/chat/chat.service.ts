@@ -12,6 +12,8 @@ import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.se
 import { MAX_REVIEW_ITEMS, TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
 
 const HISTORY_LIMIT = 16;
+/** Messages older than this are neither shown nor sent to the model (keeps the context, and token cost, small). Rows are kept, not destroyed. */
+const CHAT_RETENTION_DAYS = 3;
 const MAX_TOOL_ROUNDS = 8;
 const FILE_TTL_MS = 24 * 60 * 60 * 1000;
 /** Upper bound (base64 chars ≈ bytes) of document data sent to the model in one request. */
@@ -37,7 +39,13 @@ export class ChatService {
     const rows = await this.db
       .select()
       .from(chatMessages)
-      .where(and(eq(chatMessages.userId, scope.userId), eq(chatMessages.clientId, scope.clientId)))
+      .where(
+        and(
+          eq(chatMessages.userId, scope.userId),
+          eq(chatMessages.clientId, scope.clientId),
+          gte(chatMessages.createdAt, new Date(Date.now() - CHAT_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
+        ),
+      )
       .orderBy(desc(chatMessages.createdAt))
       .limit(limit);
     return rows.reverse();
