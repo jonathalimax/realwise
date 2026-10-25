@@ -1,10 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { billActionTokens, billReminders, bills } from '../db/schema';
+import { bills } from '../db/schema';
 import { CreateBillDto, UpdateBillDto, MarkBillPaidDto } from './dto/create-bill.dto';
 
 type Bill = typeof bills.$inferSelect;
@@ -104,7 +104,7 @@ export class BillsService {
     return this.db
       .select()
       .from(bills)
-      .where(and(eq(bills.clientId, clientId), eq(bills.userId, userId)));
+      .where(and(eq(bills.clientId, clientId), eq(bills.userId, userId), isNull(bills.deletedAt)));
   }
 
   private getSeriesKey(bill: Bill): string {
@@ -191,7 +191,7 @@ export class BillsService {
     const rows = await this.db
       .select()
       .from(bills)
-      .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId)));
+      .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId), isNull(bills.deletedAt)));
     if (rows.length === 0) throw new NotFoundException();
     return rows[0];
   }
@@ -209,7 +209,7 @@ export class BillsService {
     const rows = await this.db
       .update(bills)
       .set({ ...this.mapUpdateBillDto(dto), updatedAt: new Date() })
-      .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId)))
+      .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId), isNull(bills.deletedAt)))
       .returning();
     return rows[0];
   }
@@ -227,7 +227,7 @@ export class BillsService {
       const rows = await this.db
         .update(bills)
         .set({ status: 'paid', paidDate, paidAt: paidDate, paidAmount, updatedAt: new Date() })
-        .where(and(eq(bills.id, paidBill.id), eq(bills.clientId, clientId), eq(bills.userId, userId)))
+        .where(and(eq(bills.id, paidBill.id), eq(bills.clientId, clientId), eq(bills.userId, userId), isNull(bills.deletedAt)))
         .returning();
       const updatedBill = rows[0];
       await this.maybeCreateNextOccurrence(updatedBill, clientId, userId);
@@ -258,14 +258,10 @@ export class BillsService {
 
   async remove(id: string, clientId: string, userId: string): Promise<void> {
     await this.findOne(id, clientId, userId);
+    // Soft delete only: reminders/action tokens stay (they resolve to "not found" once the bill is hidden).
     await this.db
-      .delete(billActionTokens)
-      .where(and(eq(billActionTokens.billId, id), eq(billActionTokens.clientId, clientId), eq(billActionTokens.userId, userId)));
-    await this.db
-      .delete(billReminders)
-      .where(and(eq(billReminders.billId, id), eq(billReminders.clientId, clientId), eq(billReminders.userId, userId)));
-    await this.db
-      .delete(bills)
-      .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId)));
+      .update(bills)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(bills.id, id), eq(bills.clientId, clientId), eq(bills.userId, userId), isNull(bills.deletedAt)));
   }
 }

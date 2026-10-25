@@ -20,3 +20,4 @@ export * from './coupons';
 export * from './import-issues';
 export * from './testimonials';
 export * from './pricing-config';
+export * from './ai';

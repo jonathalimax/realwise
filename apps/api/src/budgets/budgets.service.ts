@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -22,14 +22,14 @@ export class BudgetsService {
   }
 
   findAll(clientId: string, userId: string): Promise<Budget[]> {
-    return this.db.select().from(budgets).where(and(eq(budgets.clientId, clientId), eq(budgets.userId, userId)));
+    return this.db.select().from(budgets).where(and(eq(budgets.clientId, clientId), eq(budgets.userId, userId), isNull(budgets.deletedAt)));
   }
 
   async findOne(id: string, clientId: string, userId: string): Promise<Budget> {
     const rows = await this.db
       .select()
       .from(budgets)
-      .where(and(eq(budgets.id, id), eq(budgets.clientId, clientId), eq(budgets.userId, userId)));
+      .where(and(eq(budgets.id, id), eq(budgets.clientId, clientId), eq(budgets.userId, userId), isNull(budgets.deletedAt)));
     if (rows.length === 0) throw new NotFoundException();
     return rows[0];
   }
@@ -44,13 +44,13 @@ export class BudgetsService {
     const rows = await this.db
       .update(budgets)
       .set({ ...this.mapBudgetDto(dto), updatedAt: new Date() })
-      .where(and(eq(budgets.id, id), eq(budgets.clientId, clientId), eq(budgets.userId, userId)))
+      .where(and(eq(budgets.id, id), eq(budgets.clientId, clientId), eq(budgets.userId, userId), isNull(budgets.deletedAt)))
       .returning();
     return rows[0];
   }
 
   async remove(id: string, clientId: string, userId: string): Promise<void> {
     await this.findOne(id, clientId, userId);
-    await this.db.delete(budgets).where(and(eq(budgets.id, id), eq(budgets.clientId, clientId), eq(budgets.userId, userId)));
+    await this.db.update(budgets).set({ deletedAt: new Date(), updatedAt: new Date() }).where(and(eq(budgets.id, id), eq(budgets.clientId, clientId), eq(budgets.userId, userId), isNull(budgets.deletedAt)));
   }
 }

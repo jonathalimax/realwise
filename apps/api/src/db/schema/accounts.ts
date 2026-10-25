@@ -18,6 +18,8 @@ export const accounts = pgTable('accounts', {
   color: varchar('color'),
   icon: varchar('icon'),
   balance: numeric('balance', { precision: 12, scale: 2 }).default('0'),
+  // Soft delete: rows are hidden, never destroyed. Every read path must filter on this.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

@@ -29,6 +29,10 @@ import { BillActionsModule } from './bill-actions/bill-actions.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
 
+// AI assistant
+import { LlmModule } from './llm/llm.module';
+import { ChatModule } from './chat/chat.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -55,6 +59,9 @@ import { PaymentsModule } from './payments/payments.module';
     BillActionsModule,
     AdminModule,
     PaymentsModule,
+    // AI assistant
+    LlmModule,
+    ChatModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })

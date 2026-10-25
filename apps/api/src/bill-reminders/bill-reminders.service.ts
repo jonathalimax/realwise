@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq, gte, lte, inArray } from 'drizzle-orm';
+import { and, eq, gte, lte, inArray, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -77,6 +77,7 @@ export class BillRemindersService {
       .where(
         and(
           eq(bills.status, 'pending'),
+          isNull(bills.deletedAt),
           gte(bills.dueDate, thirtyDaysAgo.toISOString().slice(0, 10)),
           lte(bills.dueDate, in3Days.toISOString().slice(0, 10)),
         ),

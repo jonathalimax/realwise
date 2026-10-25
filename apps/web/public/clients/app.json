@@ -9,10 +9,10 @@
     "appId": "1:111194799118:web:5d45ee9a03b54f0b36105f"
   },
   "features": {
-    "investments": true,
+    "investments": false,
     "b3Sync": false,
     "whatsapp": false,
-    "goals": true,
+    "goals": false,
     "salaryBreakdown": true
   }
 }

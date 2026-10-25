@@ -15,5 +15,7 @@ export const categorizationRules = pgTable('categorization_rules', {
   usedCount: integer('used_count').default(1).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   isActive: boolean('is_active').default(true).notNull(),
+  // Soft delete: rows are hidden, never destroyed. Every read path must filter on this.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

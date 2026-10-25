@@ -9,7 +9,7 @@ import {
 const STEP_ROUTES = {
   renda: '/planning',
   account: '/banks',
-  transaction: '/import',
+  transaction: '/chat',
 };
 
 function StepIndicator({ steps, currentIndex }) {

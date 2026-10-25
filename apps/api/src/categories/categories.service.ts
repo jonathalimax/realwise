@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -16,14 +16,14 @@ export class CategoriesService {
     return this.db
       .select()
       .from(categories)
-      .where(and(eq(categories.clientId, clientId), eq(categories.userId, userId)));
+      .where(and(eq(categories.clientId, clientId), eq(categories.userId, userId), isNull(categories.deletedAt)));
   }
 
   async findOne(id: string, clientId: string, userId: string): Promise<Category> {
     const rows = await this.db
       .select()
       .from(categories)
-      .where(and(eq(categories.id, id), eq(categories.clientId, clientId), eq(categories.userId, userId)));
+      .where(and(eq(categories.id, id), eq(categories.clientId, clientId), eq(categories.userId, userId), isNull(categories.deletedAt)));
     if (rows.length === 0) throw new NotFoundException();
     return rows[0];
   }
@@ -41,7 +41,7 @@ export class CategoriesService {
     const rows = await this.db
       .update(categories)
       .set({ ...dto, updatedAt: new Date() })
-      .where(and(eq(categories.id, id), eq(categories.clientId, clientId), eq(categories.userId, userId)))
+      .where(and(eq(categories.id, id), eq(categories.clientId, clientId), eq(categories.userId, userId), isNull(categories.deletedAt)))
       .returning();
     return rows[0];
   }
@@ -49,7 +49,8 @@ export class CategoriesService {
   async remove(id: string, clientId: string, userId: string): Promise<void> {
     await this.findOne(id, clientId, userId);
     await this.db
-      .delete(categories)
-      .where(and(eq(categories.id, id), eq(categories.clientId, clientId), eq(categories.userId, userId)));
+      .update(categories)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(categories.id, id), eq(categories.clientId, clientId), eq(categories.userId, userId), isNull(categories.deletedAt)));
   }
 }
