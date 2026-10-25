@@ -23,6 +23,16 @@ export interface ChatQuestion {
 }
 
 /** Rows saved with a doubtful category, grouped by merchant, awaiting the user's confirmation. */
+/** One saved transaction inside a review group, with what the user needs to recognise it. */
+export interface ReviewItem {
+  id: string;
+  date: string;
+  /** Full description as printed on the statement. */
+  description: string;
+  amount: number;
+  paymentMethod: string | null;
+}
+
 export interface ReviewGroup {
   key: string;
   merchant: string;
@@ -30,6 +40,10 @@ export interface ReviewGroup {
   count: number;
   total: number;
   transactionIds: string[];
+  /** Up to MAX_REVIEW_ITEMS of the group's transactions, for display (count/total/ids cover all of them). */
+  items: ReviewItem[];
+  /** Name of the account these were saved to. */
+  account: string | null;
   /** The category the row was saved with, if any. */
   currentCategoryId: string | null;
   /** Up to 3 categories John considers plausible, best first. */
@@ -68,3 +82,5 @@ export const TOOL_STATUS: Record<string, string> = {
   restore_records: 'Restaurando…',
   ask_user: 'Preparando uma pergunta…',
 };
+
+export const MAX_REVIEW_ITEMS = 40;

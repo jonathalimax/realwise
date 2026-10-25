@@ -7,7 +7,7 @@ import * as schema from '../db/schema';
 import { accounts, bills, categories, categorizationRules, chatFiles, imports, transactions } from '../db/schema';
 import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
-import { PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
+import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
 import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
 
 export interface ToolContext {
@@ -327,7 +327,7 @@ export class ChatToolsService {
         .values(fresh.map((f) => ({ ...f, importId })))
         .returning({ id: transactions.id, dedupHash: transactions.dedupHash });
       await this.bumpMatchedRules(fresh, ctx);
-      review = this.buildReview(fresh, inserted, meta);
+      review = this.buildReview(fresh, inserted, meta, account.name);
     }
 
     if (args.sourceFile) {
@@ -366,6 +366,7 @@ export class ChatToolsService {
     rows: (typeof transactions.$inferInsert)[],
     inserted: { id: string; dedupHash: string | null }[],
     meta: Map<string, { low: boolean; suggestions: string[] }>,
+    accountName: string,
   ): ReviewGroup[] {
     const idByHash = new Map(inserted.map((i) => [i.dedupHash, i.id]));
     const groups = new Map<string, ReviewGroup>();
@@ -382,12 +383,17 @@ export class ChatToolsService {
         count: 0,
         total: 0,
         transactionIds: [],
+        items: [],
+        account: accountName,
         currentCategoryId: row.categoryId ?? null,
         suggestionIds: [],
       };
       g.count += 1;
       g.total = Number((g.total + Number(row.amount)).toFixed(2));
       g.transactionIds.push(id);
+      if (g.items.length < MAX_REVIEW_ITEMS) {
+        g.items.push({ id, date: String(row.date), description, amount: Number(row.amount), paymentMethod: row.paymentMethod ?? null });
+      }
       for (const s of m.suggestions) if (!g.suggestionIds.includes(s) && g.suggestionIds.length < 3) g.suggestionIds.push(s);
       groups.set(key, g);
     }

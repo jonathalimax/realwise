@@ -4,6 +4,7 @@ import { ArrowDownIcon, ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon,
 import PageHeader from '../components/PageHeader';
 import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
+import Markdown from '../components/chat/Markdown';
 import { useSettings } from '../contexts/SettingsContext';
 import { chatResource } from '../lib/api/resources/chat';
 
@@ -87,7 +88,7 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
             ))}
           </div>
         )}
-        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {mine ? <p className="whitespace-pre-wrap break-words">{message.content}</p> : <Markdown text={message.content} />}
         {Array.isArray(message.saved) &&
           message.saved.map((saved) => (
             <SavedCard key={saved.importId} saved={saved} onUndo={onUndo} language={language} />
@@ -162,10 +163,10 @@ function LiveBubble({ target, status, finished, onRevealed, language }) {
         aria-label={pt ? 'John está escrevendo' : 'John is typing'}
       >
         {visible ? (
-          <p className="whitespace-pre-wrap break-words">
-            {visible}
-            {!finished && <span className="ml-0.5 inline-block w-[2px] h-4 -mb-0.5 bg-violet-500 animate-pulse" />}
-          </p>
+          <div>
+            <Markdown text={visible} streaming={!finished} />
+            {!finished && <span className="inline-block w-[2px] h-4 -mb-0.5 bg-violet-500 animate-pulse" />}
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <span className="flex gap-1">
@@ -202,7 +203,6 @@ export default function ChatPage() {
   const composerBox = useRef(null);
   const listRef = useRef(null);
   const stick = useRef(true); // follow the conversation only while the user is at the bottom
-  const [composerHeight, setComposerHeight] = useState(120);
   const [showJump, setShowJump] = useState(false);
   const delivered = useRef(false); // the server persisted the user's message for the current turn
   const [live, setLive] = useState(null); // { text, status, final } while John's reply streams
@@ -234,6 +234,7 @@ export default function ChatPage() {
   // Track whether the user is reading history (scrolled up) or following the conversation.
   useEffect(() => {
     const onScroll = () => {
+      if (document.body.style.position === 'fixed') return; // a sheet froze the page; scrollY is not meaningful
       const near = isNearBottom();
       stick.current = near;
       setShowJump((prev) => (prev === !near ? prev : !near));
@@ -242,13 +243,28 @@ export default function ChatPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // The fixed composer grows with its text/attachments; keep the list's bottom padding in step with it.
+  // iOS can leave the page laid out for a keyboard/picker that is already gone (blank or black area, composer floating
+  // mid-screen). When the visual viewport is much shorter than the window and nothing is focused, nudge a relayout.
   useEffect(() => {
-    const el = composerBox.current;
-    if (!el || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(() => setComposerHeight(el.offsetHeight));
-    ro.observe(el);
-    return () => ro.disconnect();
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    const recover = () => {
+      const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+      if (!typing && vv.height < window.innerHeight * 0.75) {
+        window.scrollTo(window.scrollX, window.scrollY);
+        if (stick.current) scrollToBottom('auto');
+      }
+    };
+    let t;
+    const onResize = () => {
+      clearTimeout(t);
+      t = setTimeout(recover, 350);
+    };
+    vv.addEventListener('resize', onResize);
+    return () => {
+      clearTimeout(t);
+      vv.removeEventListener('resize', onResize);
+    };
   }, []);
 
   // Open on the latest message, instantly.
@@ -447,7 +463,7 @@ export default function ChatPage() {
     >
       <PageHeader title="John" />
 
-      <div ref={listRef} className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 space-y-3" style={{ paddingBottom: composerHeight + 24 }}>
+      <div ref={listRef} className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 space-y-3" style={{ paddingBottom: 16 }}>
         {!loading && messages.length === 0 && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
             <p className="font-bold text-gray-900 dark:text-white">
@@ -495,7 +511,7 @@ export default function ChatPage() {
         )}
       </div>
 
-      <div ref={composerBox} className="fixed bottom-0 left-0 right-0 lg:left-64 z-30 bg-gradient-to-t from-gray-50 via-gray-50 dark:from-gray-900 dark:via-gray-900 to-transparent pt-6 pb-4 px-4">
+      <div ref={composerBox} className="sticky bottom-0 z-30 bg-gradient-to-t from-gray-50 via-gray-50 dark:from-gray-900 dark:via-gray-900 to-transparent pt-6 pb-4 px-4">
         <div className="max-w-3xl mx-auto relative">
           {showJump && (
             <button
@@ -528,6 +544,8 @@ export default function ChatPage() {
             <label
               className="p-2 rounded-xl text-gray-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30 cursor-pointer"
               aria-label={pt ? 'Anexar arquivos' : 'Attach files'}
+              // Close the keyboard before the native picker opens, so iOS has no keyboard state to get stuck on.
+              onClick={() => composer.current?.blur()}
             >
               <PaperClipIcon className="w-6 h-6" />
               <input
@@ -537,6 +555,9 @@ export default function ChatPage() {
                 onChange={(e) => {
                   addFiles(e.target.files);
                   e.target.value = '';
+                  composer.current?.blur();
+                  // Let the picker sheet finish closing, then re-sync the layout with the real viewport.
+                  setTimeout(() => window.scrollTo(window.scrollX, window.scrollY), 350);
                 }}
               />
             </label>
