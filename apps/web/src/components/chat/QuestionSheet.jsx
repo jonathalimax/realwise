@@ -114,7 +114,7 @@ export default function QuestionSheet({ message, language, busy, onSubmit, onClo
                     maxLength={80}
                     onChange={(e) => setPicks((prev) => ({ ...prev, [q.id]: { value: NEW, text: e.target.value } }))}
                     placeholder={pt ? 'Ex.: Itaú Conta, Nubank Cartão' : 'e.g. Itaú Checking, Nubank Card'}
-                    className="rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 )}
               </>

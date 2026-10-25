@@ -1,11 +1,61 @@
 import { useMemo, useState } from 'react';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import BottomSheet from './BottomSheet';
 
 const brl = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const METHOD_LABEL = {
+  credit: 'Crédito',
+  debit: 'Débito',
+  pix: 'PIX',
+  transfer: 'Transferência',
+  boleto: 'Boleto',
+  cash: 'Dinheiro',
+  other: 'Outro',
+};
+
+function shortDate(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function longDate(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** "12 de ago. de 2026 · Crédito · Nubank Cartão" — the extra detail, only shown when a row is tapped. */
+function detailLine(item, account) {
+  return [longDate(item.date), item.paymentMethod ? METHOD_LABEL[item.paymentMethod] : null, account].filter(Boolean).join(' · ');
+}
+
+/** One transaction in an expanded group: a compact line; tap to read the full description and details. */
+function ItemRow({ item, account, type }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full rounded-lg px-2 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
+      >
+        <span className="flex items-start gap-2 text-xs">
+          <span className="shrink-0 tabular-nums text-gray-400">{shortDate(item.date)}</span>
+          <span className={`min-w-0 flex-1 break-words text-gray-800 dark:text-gray-100 ${open ? '' : 'line-clamp-2'}`}>{item.description}</span>
+          <span className={`shrink-0 font-semibold tabular-nums ${type === 'income' ? 'text-emerald-600' : 'text-gray-700 dark:text-gray-200'}`}>
+            {brl(item.amount)}
+          </span>
+        </span>
+        {open && <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{detailLine(item, account)}</span>}
+      </button>
+    </li>
+  );
+}
+
 /**
- * Rows John already saved but is unsure how to categorize, one card per merchant ("UBER ×7").
- * Confirming updates the saved rows directly; "remember" teaches John for next time.
+ * Rows John already saved but is unsure how to categorize. One card per merchant; a lone transaction shows its
+ * full details up front, a group expands to its list. Confirming updates the saved rows directly, and
+ * "remember" teaches John for next time.
  */
 export default function ReviewSheet({ message, language, busy, onApply, onClose }) {
   const pt = language === 'pt';
@@ -16,6 +66,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
     Object.fromEntries(groups.map((g) => [g.key, g.currentCategoryId ?? g.suggestionIds[0] ?? ''])),
   );
   const [remember, setRemember] = useState(() => Object.fromEntries(groups.map((g) => [g.key, true])));
+  const [expanded, setExpanded] = useState(() => new Set());
 
   const apply = () => {
     const decisions = groups
@@ -24,6 +75,14 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
     onApply(decisions);
   };
 
+  const toggleGroup = (key) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
   const count = groups.reduce((acc, g) => acc + g.count, 0);
 
   return (
@@ -31,8 +90,8 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
       title={pt ? 'Confirme as categorias' : 'Confirm categories'}
       subtitle={
         pt
-          ? `${count} transações já foram salvas. Ajuste as que eu errei — ${groups.length} ${groups.length === 1 ? 'grupo' : 'grupos'}.`
-          : `${count} transactions are already saved. Fix the ones I got wrong — ${groups.length} ${groups.length === 1 ? 'group' : 'groups'}.`
+          ? `${count} transações já foram salvas. Ajuste as que eu errei.`
+          : `${count} transactions are already saved. Fix the ones I got wrong.`
       }
       onClose={onClose}
       footer={
@@ -52,20 +111,63 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
     >
       {groups.map((g) => {
         const sameType = categories.filter((c) => !c.type || c.type === g.type);
+        const items = g.items ?? [];
+        const single = g.count === 1 && items[0];
+        const isOpen = expanded.has(g.key);
         return (
           <div key={g.key} className="rounded-2xl border border-gray-200 dark:border-gray-700 p-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="min-w-0 truncate text-sm font-bold text-gray-900 dark:text-white">
-                {g.merchant}
-                {g.count > 1 && <span className="ml-1 text-gray-400">×{g.count}</span>}
-              </p>
-              <p className={`shrink-0 text-sm font-semibold ${g.type === 'income' ? 'text-emerald-600' : 'text-gray-700 dark:text-gray-200'}`}>
-                {brl(g.total)}
-              </p>
-            </div>
+            {single ? (
+              // One transaction: show everything needed to recognise it right away.
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 break-words text-sm font-bold text-gray-900 dark:text-white">{items[0].description}</p>
+                  <p className={`shrink-0 text-sm font-semibold tabular-nums ${g.type === 'income' ? 'text-emerald-600' : 'text-gray-800 dark:text-gray-100'}`}>
+                    {brl(items[0].amount)}
+                  </p>
+                </div>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{detailLine(items[0], g.account)}</p>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 line-clamp-2 break-words text-sm font-bold text-gray-900 dark:text-white">
+                    {g.merchant}
+                    <span className="ml-1 font-semibold text-gray-400">×{g.count}</span>
+                  </p>
+                  <p className={`shrink-0 text-sm font-semibold tabular-nums ${g.type === 'income' ? 'text-emerald-600' : 'text-gray-800 dark:text-gray-100'}`}>
+                    {brl(g.total)}
+                  </p>
+                </div>
+                {g.account && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{g.account}</p>}
+                {items.length > 0 && (
+                  <>
+                    <button
+                      onClick={() => toggleGroup(g.key)}
+                      aria-expanded={isOpen}
+                      className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-violet-600 dark:text-violet-400"
+                    >
+                      {isOpen ? (pt ? 'Ocultar lançamentos' : 'Hide transactions') : pt ? `Ver ${g.count} lançamentos` : `View ${g.count} transactions`}
+                      <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isOpen && (
+                      <ul className="mt-1 divide-y divide-gray-100 dark:divide-gray-800">
+                        {items.map((item) => (
+                          <ItemRow key={item.id} item={item} account={g.account} type={g.type} />
+                        ))}
+                        {g.count > items.length && (
+                          <li className="px-2 py-1.5 text-xs text-gray-400">
+                            {pt ? `+ ${g.count - items.length} lançamentos` : `+ ${g.count - items.length} more`}
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             {g.suggestionIds.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {g.suggestionIds.map((id) => (
                   <button
                     key={id}
@@ -83,10 +185,11 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
               </div>
             )}
 
+            {/* 16px on mobile: below that iOS zooms the whole page when a field is focused */}
             <select
               value={choice[g.key]}
               onChange={(e) => setChoice((prev) => ({ ...prev, [g.key]: e.target.value }))}
-              className="mt-2 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
               aria-label={pt ? `Categoria de ${g.merchant}` : `Category for ${g.merchant}`}
             >
               <option value="">{pt ? 'Deixar sem categoria' : 'Leave uncategorized'}</option>
