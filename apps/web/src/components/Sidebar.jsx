@@ -15,7 +15,7 @@ import {
   BellIcon,
   BuildingLibraryIcon,
   CalendarDaysIcon,
-  ArrowUpTrayIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 function getUserInitials(name) {
@@ -151,7 +151,7 @@ export default function Sidebar() {
       labelPt: 'Acompanhar',
       items: [
         { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
-        { name: 'Import', namePt: 'Importar', href: '/import', icon: ArrowUpTrayIcon },
+        { name: 'Assistant', namePt: 'Assistente', href: '/chat', icon: SparklesIcon },
         { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
         { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon }
@@ -162,7 +162,7 @@ export default function Sidebar() {
       labelPt: 'Planejar',
       items: [
         { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
-        { name: hasInvestments ? 'Investments' : 'Investments (Premium)', namePt: hasInvestments ? 'Investimentos' : 'Investimentos (Premium)', href: '/investments', icon: CalendarDaysIcon },
+        ...(hasInvestments ? [{ name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: CalendarDaysIcon }] : []),
         { name: 'Banks', namePt: 'Bancos', href: '/banks', icon: BuildingLibraryIcon },
       ],
     },

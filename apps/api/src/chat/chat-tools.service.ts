@@ -4,7 +4,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { createHash } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { accounts, categories, categorizationRules, chatFiles, imports, transactions } from '../db/schema';
+import { accounts, bills, categories, categorizationRules, chatFiles, imports, transactions } from '../db/schema';
 import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
 
@@ -102,6 +102,23 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     },
   },
   {
+    name: 'create_bill',
+    description:
+      'Create a bill/account payable (e.g. rent, internet, a boleto) with a due date. Use when the user mentions something they must pay later or that repeats, or when a document is a bill/boleto rather than a statement.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Short name, e.g. "Aluguel" or "Internet Vivo".' },
+        amount: { type: 'number', description: 'Positive amount in BRL.' },
+        dueDate: { type: 'string', description: 'First/next due date, YYYY-MM-DD.' },
+        recurrence: { type: ['string', 'null'], enum: ['monthly', 'weekly', 'yearly', null], description: 'null for a one-off bill.' },
+        categoryId: { type: ['string', 'null'] },
+        description: { type: 'string' },
+      },
+      required: ['name', 'amount', 'dueDate'],
+    },
+  },
+  {
     name: 'query_transactions',
     description: 'List individual transactions, newest first. Use for questions about specific purchases.',
     parameters: {
@@ -154,6 +171,8 @@ export class ChatToolsService {
           return { result: await this.createAccount(args, ctx) };
         case 'create_category':
           return { result: await this.createCategory(args, ctx) };
+        case 'create_bill':
+          return { result: await this.createBill(args, ctx) };
         case 'set_category_rule':
           return { result: await this.setCategoryRule(args, ctx) };
         case 'query_transactions':
@@ -305,6 +324,36 @@ export class ChatToolsService {
       .values({ clientId: ctx.clientId, userId: ctx.userId, name, type })
       .returning();
     return { categoryId: cat.id, name: cat.name, type: cat.type };
+  }
+
+  private async createBill(args: ToolArgs, ctx: ToolContext) {
+    const name = String(args.name ?? '').trim();
+    const amount = Number(args.amount);
+    if (!name || !Number.isFinite(amount) || amount <= 0 || !DATE_RE.test(String(args.dueDate))) {
+      return { error: 'name, a positive amount and dueDate (YYYY-MM-DD) are required.' };
+    }
+    let cat: typeof categories.$inferSelect | undefined;
+    if (args.categoryId) {
+      [cat] = await this.db
+        .select()
+        .from(categories)
+        .where(and(eq(categories.id, String(args.categoryId)), eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId)));
+    }
+    const [bill] = await this.db
+      .insert(bills)
+      .values({
+        clientId: ctx.clientId,
+        userId: ctx.userId,
+        name,
+        amount: amount.toFixed(2),
+        dueDate: String(args.dueDate),
+        recurrence: ['monthly', 'weekly', 'yearly'].includes(args.recurrence) ? args.recurrence : null,
+        categoryId: cat?.id ?? null,
+        category: cat?.name ?? null,
+        description: args.description ? String(args.description) : null,
+      })
+      .returning();
+    return { billId: bill.id, name: bill.name, dueDate: bill.dueDate, recurrence: bill.recurrence };
   }
 
   private async setCategoryRule(args: ToolArgs, ctx: ToolContext) {

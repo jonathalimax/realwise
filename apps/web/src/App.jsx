@@ -30,7 +30,7 @@ const IncomePage = lazy(() => import('./pages/Income'));
 const BillsPage = lazy(() => import('./pages/Bills'));
 const HelpPage = lazy(() => import('./pages/Help'));
 const NotificationsPage = lazy(() => import('./pages/Notifications'));
-const ImportPage = lazy(() => import('./pages/Import'));
+const ChatPage = lazy(() => import('./pages/Chat'));
 const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlanningPage = lazy(() => import('./pages/Planning'));
 const BanksPage = lazy(() => import('./pages/Banks'));
@@ -94,44 +94,16 @@ function AuthenticatedApp() {
                             <Route path="budget" element={<BudgetPage />} />
                             <Route path="help" element={<HelpPage />} />
                             <Route path="notifications" element={<NotificationsPage />} />
-                            <Route path="import" element={<ImportPage />} />
+                            <Route path="chat" element={<ChatPage />} />
+                            {/* Importing now happens in the chat */}
+                            <Route path="import" element={<Navigate to="/chat" replace />} />
                             <Route path="banks" element={<BanksPage />} />
-                            <Route
-                              path="goals"
-                              element={
-                                <PremiumFeatureGate
-                                  title="Metas avancadas fazem parte do Premium"
-                                  description="As metas e o acompanhamento mais profundo de objetivos financeiros ficam no Premium depois do periodo de acesso experimental."
-                                  featureName="Metas, objetivos e acompanhamento avancado"
-                                />
-                              }
-                            />
-                            <Route
-                              path="investments"
-                              element={
-                                hasInvestments ? (
-                                  <InvestmentsPage />
-                                ) : (
-                                  <PremiumFeatureGate
-                                    title="Investimentos agora fazem parte do Premium"
-                                    description="Acompanhamento de investimentos, carteira e analise mais profunda de patrimonio ficam no Premium."
-                                    featureName="Carteira e acompanhamento de investimentos"
-                                  />
-                                )
-                              }
-                            />
-                            <Route
-                              path="investments/new"
-                              element={hasInvestments ? <InvestmentForm /> : <Navigate to="/investments" replace />}
-                            />
-                            <Route
-                              path="investments/:id/edit"
-                              element={hasInvestments ? <InvestmentForm /> : <Navigate to="/investments" replace />}
-                            />
-                            <Route
-                              path="investments/:id/withdraw"
-                              element={hasInvestments ? <InvestmentForm /> : <Navigate to="/investments" replace />}
-                            />
+                            <Route path="goals" element={<Navigate to="/dashboard" replace />} />
+                            {/* Investments are disabled unless the client config turns the flag on */}
+                            <Route path="investments" element={hasInvestments ? <InvestmentsPage /> : <Navigate to="/dashboard" replace />} />
+                            <Route path="investments/new" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
+                            <Route path="investments/:id/edit" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
+                            <Route path="investments/:id/withdraw" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
                           </Route>
                           <Route path="*" element={<Navigate to="/dashboard" replace />} />
                         </Routes>

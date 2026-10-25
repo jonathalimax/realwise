@@ -6,10 +6,10 @@
   "partialLeadUrl": "https://us-central1-realwise-dev.cloudfunctions.net/savePartialLead",
   "mpPublicKey": "TEST-c2abae0c-c217-4ffd-8d5e-d8b714648057",
   "features": {
-    "investments": true,
+    "investments": false,
     "b3Sync": false,
     "whatsapp": false,
-    "goals": true,
+    "goals": false,
     "salaryBreakdown": true
   }
 }

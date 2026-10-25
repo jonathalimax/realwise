@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import PageHelp from '@/components/ui/PageHelp';
 import { useBills } from '../contexts/BillsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useMonth } from '../contexts/MonthContext';
 import BillsList from '../components/BillsList';
-import BillModal from '../components/BillModal';
 import PageHeader from '../components/PageHeader';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { SparklesIcon } from '@heroicons/react/24/outline';
 
 export default function BillsPage() {
   const { language, billReminders, updateBillReminders } = useSettings();
@@ -16,7 +15,7 @@ export default function BillsPage() {
   const { canWrite } = useAccess();
   const { selectedMonth } = useMonth();
   const [searchParams] = useSearchParams();
-  const [showBillModal, setShowBillModal] = useState(false);
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState(() => {
     const s = searchParams.get('status');
     return ['all', 'pending', 'paid', 'overdue'].includes(s) ? s : 'all';
@@ -76,20 +75,14 @@ export default function BillsPage() {
         </div>
       </main>
 
-      {/* Bill Modal */}
-      <BillModal
-        isOpen={showBillModal}
-        onClose={() => setShowBillModal(false)}
-      />
-
-      {/* FAB */}
+      {/* Bills are added through the assistant */}
       {canWrite && (
         <button
-          onClick={() => setShowBillModal(true)}
+          onClick={() => navigate('/chat')}
           className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
-          aria-label={language === 'pt' ? 'Nova Conta' : 'New Bill'}
+          aria-label={language === 'pt' ? 'Adicionar pelo assistente' : 'Add with the assistant'}
         >
-          <PlusIcon className="w-7 h-7" />
+          <SparklesIcon className="w-7 h-7" />
         </button>
       )}
       <PageHelp
