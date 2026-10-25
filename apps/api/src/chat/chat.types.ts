@@ -44,3 +44,27 @@ export interface ReviewPayload {
 
 export const PAYMENT_METHODS = ['credit', 'debit', 'pix', 'transfer', 'boleto', 'cash', 'other'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/** Live events for the streaming chat endpoints (Server-Sent Events). */
+export type ChatStreamEvent =
+  | { type: 'user'; message: unknown } // the persisted user message
+  | { type: 'delta'; text: string } // a piece of the reply, as the model writes it
+  | { type: 'reset' } // discard streamed text: the model moved on to run tools
+  | { type: 'status'; label: string } // what John is doing ("Salvando transações…")
+  | { type: 'done'; result: unknown } // final persisted result, same shape as the non-streaming JSON
+  | { type: 'error'; message: string };
+
+export const TOOL_STATUS: Record<string, string> = {
+  save_transactions: 'Salvando as transações…',
+  create_account: 'Criando a conta…',
+  create_category: 'Criando a categoria…',
+  create_bill: 'Cadastrando a conta a pagar…',
+  set_category_rule: 'Lembrando a categoria…',
+  query_transactions: 'Consultando seus lançamentos…',
+  summarize_transactions: 'Calculando os totais…',
+  find_records: 'Procurando os registros…',
+  update_records: 'Aplicando a alteração…',
+  delete_records: 'Preparando a exclusão…',
+  restore_records: 'Restaurando…',
+  ask_user: 'Preparando uma pergunta…',
+};

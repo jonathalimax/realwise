@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowDownIcon, ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 import PageHeader from '../components/PageHeader';
 import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
@@ -114,6 +114,79 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
   );
 }
 
+/**
+ * John's reply while it streams. Network chunks arrive in bursts, so the text is revealed by a
+ * frame loop that speeds up when it falls behind: steady character-by-character typing, never a wall of text.
+ */
+function LiveBubble({ target, status, finished, onRevealed, language }) {
+  const pt = language === 'pt';
+  const [shown, setShown] = useState(0);
+  const shownRef = useRef(0);
+  const targetRef = useRef(target);
+  const finishedRef = useRef(finished);
+  const onRevealedRef = useRef(onRevealed);
+  const revealedRef = useRef(false);
+
+  useEffect(() => {
+    targetRef.current = target;
+    finishedRef.current = finished;
+    onRevealedRef.current = onRevealed;
+  });
+
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const full = targetRef.current.length;
+      let next = Math.min(shownRef.current, full); // a reset (shorter target) pulls the reveal back
+      if (next < full) next += Math.max(1, Math.ceil((full - next) / 12)); // catch up faster the further behind
+      if (next !== shownRef.current) {
+        shownRef.current = next;
+        setShown(next);
+      } else if (finishedRef.current && !revealedRef.current && next >= full) {
+        revealedRef.current = true;
+        onRevealedRef.current();
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const visible = target.slice(0, shown);
+
+  return (
+    <div className="flex justify-start">
+      <div
+        className="max-w-[88%] sm:max-w-[75%] rounded-2xl rounded-bl-md bg-white dark:bg-gray-800 px-4 py-2.5 text-sm leading-relaxed text-gray-900 dark:text-gray-100 shadow-sm"
+        aria-live="polite"
+        aria-label={pt ? 'John está escrevendo' : 'John is typing'}
+      >
+        {visible ? (
+          <p className="whitespace-pre-wrap break-words">
+            {visible}
+            {!finished && <span className="ml-0.5 inline-block w-[2px] h-4 -mb-0.5 bg-violet-500 animate-pulse" />}
+          </p>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </span>
+            {status && <span className="text-xs text-gray-500 dark:text-gray-400">{status}</span>}
+          </div>
+        )}
+        {visible && status && !finished && <p className="mt-1 text-xs text-gray-400">{status}</p>}
+      </div>
+    </div>
+  );
+}
+
+const NEAR_BOTTOM_PX = 140;
+const isNearBottom = () => document.documentElement.scrollHeight - (window.scrollY + window.innerHeight) < NEAR_BOTTOM_PX;
+const scrollToBottom = (behavior = 'auto') =>
+  window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
+
 export default function ChatPage() {
   const { language } = useSettings();
   const pt = language === 'pt';
@@ -125,8 +198,14 @@ export default function ChatPage() {
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
-  const bottom = useRef(null);
   const composer = useRef(null);
+  const composerBox = useRef(null);
+  const listRef = useRef(null);
+  const stick = useRef(true); // follow the conversation only while the user is at the bottom
+  const [composerHeight, setComposerHeight] = useState(120);
+  const [showJump, setShowJump] = useState(false);
+  const delivered = useRef(false); // the server persisted the user's message for the current turn
+  const [live, setLive] = useState(null); // { text, status, final } while John's reply streams
   const autoSent = useRef(false);
   const [manualSheet, setManualSheet] = useState(null); // { id, type } opened from a button
   const [dismissed, setDismissed] = useState(() => new Set()); // message ids whose sheet the user closed
@@ -152,9 +231,42 @@ export default function ChatPage() {
     el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
   }, [text]);
 
+  // Track whether the user is reading history (scrolled up) or following the conversation.
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, sending]);
+    const onScroll = () => {
+      const near = isNearBottom();
+      stick.current = near;
+      setShowJump((prev) => (prev === !near ? prev : !near));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // The fixed composer grows with its text/attachments; keep the list's bottom padding in step with it.
+  useEffect(() => {
+    const el = composerBox.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setComposerHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Open on the latest message, instantly.
+  useEffect(() => {
+    if (!loading) scrollToBottom('auto');
+  }, [loading]);
+
+  // Follow the conversation as it grows, but only while the user is at the bottom. Watching the list's real
+  // height (not the incoming text) matters: the typewriter reveals characters a frame after they arrive.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => {
+      if (stick.current) scrollToBottom('auto');
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const addFiles = useCallback(
     (list) => {
@@ -179,8 +291,9 @@ export default function ChatPage() {
   // The latest assistant message waiting on the user opens its sheet automatically, unless it was closed.
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
   const autoType = lastAssistant ? pendingSheet(lastAssistant) : null;
-  const sheet =
-    manualSheet ??
+  const sheet = live
+    ? null
+    : manualSheet ??
     (lastAssistant && autoType && !dismissed.has(lastAssistant.id) ? { id: lastAssistant.id, type: autoType } : null);
   const sheetMessage = sheet ? messages.find((m) => m.id === sheet.id) : null;
 
@@ -192,14 +305,54 @@ export default function ChatPage() {
   const replaceMessage = (updated) =>
     setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
 
+  // Applies the persisted result once the typewriter has finished revealing the reply.
+  const finishLive = useCallback((final) => {
+    setMessages((prev) => {
+      let next = prev;
+      if (final.questionsMessage) next = next.map((m) => (m.id === final.questionsMessage.id ? final.questionsMessage : m));
+      if (!next.some((m) => m.id === final.assistantMessage.id)) next = [...next, final.assistantMessage];
+      return next;
+    });
+    setLive(null);
+    setSending(false);
+  }, []);
+
+  /** Runs one streamed turn: `start(onEvent)` performs the request; events drive the live bubble. */
+  const runTurn = useCallback(
+    async (start, optimisticId) => {
+      stick.current = true; // the user just acted: follow the reply
+      delivered.current = false;
+      setLive({ text: '', status: '', final: null });
+      const final = await start((event) => {
+        if (event.type === 'user') {
+          delivered.current = true;
+          setMessages((prev) => [...prev.filter((m) => m.id !== optimisticId), event.message]);
+        } else if (event.type === 'delta') {
+          setLive((prev) => (prev ? { ...prev, text: prev.text + event.text, status: '' } : prev)); // the answer started: drop the status line
+        } else if (event.type === 'reset') {
+          setLive((prev) => (prev ? { ...prev, text: '' } : prev));
+        } else if (event.type === 'status') {
+          setLive((prev) => (prev ? { ...prev, status: event.label } : prev));
+        }
+      });
+      // Show the persisted text (it may differ from what streamed, e.g. a default reply) and let it finish typing.
+      setLive((prev) => ({ ...(prev ?? { status: '' }), text: final.assistantMessage.content, status: '', final }));
+    },
+    [],
+  );
+
   const submitAnswers = async (answers) => {
     setSheetBusy(true);
+    setSending(true);
     setError('');
+    const id = sheetMessage.id;
+    setManualSheet(null);
     try {
-      const { userMessage, assistantMessage, questionsMessage } = await chatResource.answer(sheetMessage.id, answers);
-      setManualSheet(null);
-      setMessages((prev) => [...prev.map((m) => (m.id === questionsMessage.id ? questionsMessage : m)), userMessage, assistantMessage]);
+      await runTurn((onEvent) => chatResource.answerStream(id, answers, onEvent), null);
     } catch (e) {
+      setLive(null);
+      setSending(false);
+      setManualSheet({ id, type: 'questions' });
       setError(e?.message || (pt ? 'Não consegui enviar as respostas.' : 'Could not send your answers.'));
     } finally {
       setSheetBusy(false);
@@ -229,7 +382,7 @@ export default function ChatPage() {
       setSending(true);
       setText('');
       setFiles([]);
-      // Optimistic user bubble, replaced by the persisted one once the server answers.
+      // Optimistic user bubble, replaced by the persisted one when the server confirms it.
       const optimistic = {
         id: `tmp-${Date.now()}`,
         role: 'user',
@@ -238,18 +391,22 @@ export default function ChatPage() {
       };
       setMessages((prev) => [...prev, optimistic]);
       try {
-        const { userMessage, assistantMessage } = await chatResource.send({ message, files: attached });
-        setMessages((prev) => [...prev.filter((m) => m.id !== optimistic.id), userMessage, assistantMessage]);
+        await runTurn((onEvent) => chatResource.sendStream({ message, files: attached, onEvent }), optimistic.id);
       } catch (e) {
-        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-        setText(message);
-        setFiles(attached);
-        setError(e?.message || (pt ? 'Algo deu errado. Tente novamente.' : 'Something went wrong. Please try again.'));
-      } finally {
+        setLive(null);
         setSending(false);
+        if (delivered.current) {
+          // The server already saved the message: keep it and don't refill the composer (it would be sent twice).
+          setError(pt ? 'O John não conseguiu responder agora. Tente enviar de novo em instantes.' : 'John could not reply right now. Please try again shortly.');
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+          setText(message);
+          setFiles(attached);
+          setError(e?.message || (pt ? 'Algo deu errado. Tente novamente.' : 'Something went wrong. Please try again.'));
+        }
       }
     },
-    [text, files, sending, pt],
+    [text, files, sending, pt, runTurn],
   );
 
   // Question typed in the home "ask" bar arrives as ?q=...
@@ -290,7 +447,7 @@ export default function ChatPage() {
     >
       <PageHeader title="John" />
 
-      <div className="flex-1 w-full max-w-3xl mx-auto px-4 py-4 pb-44 space-y-3">
+      <div ref={listRef} className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 space-y-3" style={{ paddingBottom: composerHeight + 24 }}>
         {!loading && messages.length === 0 && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
             <p className="font-bold text-gray-900 dark:text-white">
@@ -327,20 +484,31 @@ export default function ChatPage() {
           />
         ))}
 
-        {sending && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-md bg-white dark:bg-gray-800 px-4 py-3 shadow-sm flex gap-1" aria-label={pt ? 'John está pensando' : 'John is thinking'}>
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-              ))}
-            </div>
-          </div>
+        {live && (
+          <LiveBubble
+            target={live.text}
+            status={live.status}
+            finished={Boolean(live.final)}
+            onRevealed={() => live.final && finishLive(live.final)}
+            language={language}
+          />
         )}
-        <div ref={bottom} />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-30 bg-gradient-to-t from-gray-50 via-gray-50 dark:from-gray-900 dark:via-gray-900 to-transparent pt-6 pb-4 px-4">
-        <div className="max-w-3xl mx-auto">
+      <div ref={composerBox} className="fixed bottom-0 left-0 right-0 lg:left-64 z-30 bg-gradient-to-t from-gray-50 via-gray-50 dark:from-gray-900 dark:via-gray-900 to-transparent pt-6 pb-4 px-4">
+        <div className="max-w-3xl mx-auto relative">
+          {showJump && (
+            <button
+              onClick={() => {
+                stick.current = true;
+                scrollToBottom('smooth');
+              }}
+              className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-gray-800 text-violet-600 shadow-lg ring-1 ring-black/5"
+              aria-label={pt ? 'Ir para a última mensagem' : 'Jump to latest message'}
+            >
+              <ArrowDownIcon className="w-5 h-5" />
+            </button>
+          )}
           {error && <p className="mb-2 text-xs font-semibold text-rose-600">{error}</p>}
           {files.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
