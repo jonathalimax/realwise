@@ -7,7 +7,8 @@ import ReviewSheet from '../components/chat/ReviewSheet';
 import { useSettings } from '../contexts/SettingsContext';
 import { chatResource } from '../lib/api/resources/chat';
 
-const ACCEPT = '.pdf,.csv,.xlsx,.xls,.ofx,.txt,.png,.jpg,.jpeg,.webp';
+const SUPPORTED = ['pdf', 'csv', 'tsv', 'txt', 'xlsx', 'xls', 'ofx', 'qif', 'png', 'jpg', 'jpeg', 'webp'];
+const MAX_FILE_BYTES = 15 * 1024 * 1024;
 const MAX_FILES = 6;
 
 /** Which sheet (if any) a message is still waiting on. */
@@ -124,8 +125,8 @@ export default function ChatPage() {
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
-  const fileInput = useRef(null);
   const bottom = useRef(null);
+  const composer = useRef(null);
   const autoSent = useRef(false);
   const [manualSheet, setManualSheet] = useState(null); // { id, type } opened from a button
   const [dismissed, setDismissed] = useState(() => new Set()); // message ids whose sheet the user closed
@@ -143,13 +144,37 @@ export default function ChatPage() {
     };
   }, [pt]);
 
+  // Grow the composer with its content (up to ~6 lines, then it scrolls) so long messages stay readable.
+  useEffect(() => {
+    const el = composer.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
+  }, [text]);
+
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, sending]);
 
-  const addFiles = useCallback((list) => {
-    setFiles((prev) => [...prev, ...Array.from(list)].slice(0, MAX_FILES));
-  }, []);
+  const addFiles = useCallback(
+    (list) => {
+      const picked = Array.from(list ?? []);
+      const ok = picked.filter(
+        (f) => SUPPORTED.includes(f.name.split('.').pop()?.toLowerCase() ?? '') && f.size <= MAX_FILE_BYTES,
+      );
+      if (ok.length < picked.length) {
+        setError(
+          pt
+            ? 'Alguns arquivos foram ignorados. Use PDF, imagem, CSV, XLSX ou OFX de até 15 MB.'
+            : 'Some files were skipped. Use PDF, image, CSV, XLSX or OFX up to 15 MB.',
+        );
+      } else {
+        setError('');
+      }
+      setFiles((prev) => [...prev, ...ok].slice(0, MAX_FILES));
+    },
+    [pt],
+  );
 
   // The latest assistant message waiting on the user opens its sheet automatically, unless it was closed.
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
@@ -331,32 +356,31 @@ export default function ChatPage() {
             </div>
           )}
           <div className="flex items-end gap-2 rounded-2xl bg-white dark:bg-gray-800 shadow-lg p-2">
-            <input
-              ref={fileInput}
-              type="file"
-              multiple
-              accept={ACCEPT}
-              className="hidden"
-              onChange={(e) => {
-                addFiles(e.target.files);
-                e.target.value = '';
-              }}
-            />
-            <button
-              onClick={() => fileInput.current?.click()}
-              className="p-2 rounded-xl text-gray-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30"
+            {/* A <label> around the input opens the picker in every browser (hidden-input .click() is unreliable on iOS and in-app browsers). No `accept` filter: some mobile pickers grey out unusual extensions; unsupported files are rejected below with a clear message. */}
+            <label
+              className="p-2 rounded-xl text-gray-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30 cursor-pointer"
               aria-label={pt ? 'Anexar arquivos' : 'Attach files'}
             >
               <PaperClipIcon className="w-6 h-6" />
-            </button>
+              <input
+                type="file"
+                multiple
+                className="sr-only"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+            </label>
             <textarea
+              ref={composer}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
               maxLength={4000}
               placeholder={pt ? 'Fale com o John ou anexe um extrato…' : 'Talk to John or attach a statement…'}
-              className="flex-1 resize-none bg-transparent px-1 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none max-h-32"
+              className="flex-1 resize-none bg-transparent px-1 py-2 text-base sm:text-sm leading-snug text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none overflow-y-auto"
             />
             <button
               onClick={() => submit()}
