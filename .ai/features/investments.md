@@ -20,3 +20,7 @@ Track investments and optionally sync Brazilian market/B3 data.
 - Check feature flags before exposing UI.
 - Avoid calling external services directly from browser code unless already established.
 - Document new provider credentials/runtime variables in deployment docs.
+
+## Status
+
+Disabled: `investments` and `b3Sync` are `false` in `apps/web/public/clients/app.json`, `app.dev.json` and the dev config; investment routes redirect to `/dashboard` and the nav item is hidden. Set the flags to re-enable.

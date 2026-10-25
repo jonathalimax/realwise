@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -16,14 +16,14 @@ export class AccountsService {
     return this.db
       .select()
       .from(accounts)
-      .where(and(eq(accounts.clientId, clientId), eq(accounts.userId, userId)));
+      .where(and(eq(accounts.clientId, clientId), eq(accounts.userId, userId), isNull(accounts.deletedAt)));
   }
 
   async findOne(id: string, clientId: string, userId: string): Promise<Account> {
     const rows = await this.db
       .select()
       .from(accounts)
-      .where(and(eq(accounts.id, id), eq(accounts.clientId, clientId), eq(accounts.userId, userId)));
+      .where(and(eq(accounts.id, id), eq(accounts.clientId, clientId), eq(accounts.userId, userId), isNull(accounts.deletedAt)));
     if (rows.length === 0) throw new NotFoundException();
     return rows[0];
   }
@@ -41,7 +41,7 @@ export class AccountsService {
     const rows = await this.db
       .update(accounts)
       .set({ ...dto, updatedAt: new Date() })
-      .where(and(eq(accounts.id, id), eq(accounts.clientId, clientId), eq(accounts.userId, userId)))
+      .where(and(eq(accounts.id, id), eq(accounts.clientId, clientId), eq(accounts.userId, userId), isNull(accounts.deletedAt)))
       .returning();
     return rows[0];
   }
@@ -49,7 +49,8 @@ export class AccountsService {
   async remove(id: string, clientId: string, userId: string): Promise<void> {
     await this.findOne(id, clientId, userId);
     await this.db
-      .delete(accounts)
-      .where(and(eq(accounts.id, id), eq(accounts.clientId, clientId), eq(accounts.userId, userId)));
+      .update(accounts)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(accounts.id, id), eq(accounts.clientId, clientId), eq(accounts.userId, userId), isNull(accounts.deletedAt)));
   }
 }

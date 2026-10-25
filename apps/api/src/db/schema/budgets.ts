@@ -15,6 +15,8 @@ export const budgets = pgTable('budgets', {
   month: varchar('month'),
   totalBudget: numeric('total_budget', { precision: 12, scale: 2 }),
   categoryBudgets: jsonb('category_budgets'),
+  // Soft delete: rows are hidden, never destroyed. Every read path must filter on this.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

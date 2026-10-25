@@ -26,6 +26,8 @@ export const bills = pgTable('bills', {
   postponeCount: integer('postpone_count').default(0),
   nextReminderAt: timestamp('next_reminder_at', { withTimezone: true }),
   categoryId: uuid('category_id').references(() => categories.id),
+  // Soft delete: rows are hidden, never destroyed. Every read path must filter on this.
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

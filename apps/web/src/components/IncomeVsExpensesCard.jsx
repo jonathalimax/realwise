@@ -9,7 +9,7 @@ function formatCompact(value) {
   return value.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
 }
 
-export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick, onIncomeClick, onExpensesClick, carryoverSaldo = 0 }) {
+export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick, onIncomeClick, onExpensesClick, carryoverSaldo = 0, showInvestments = true }) {
   const { language, formatCurrency } = useSettings();
   const { investments, getTotalCurrentValue } = useInvestments();
 
@@ -33,7 +33,7 @@ export default function IncomeVsExpensesCard({ transactions, onInvestmentsClick,
   const expensesRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 0;
 
   const portfolioValue = getTotalCurrentValue();
-  const hasInvestments = investments.length > 0;
+  const hasInvestments = showInvestments && investments.length > 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">

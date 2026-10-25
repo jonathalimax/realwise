@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
@@ -5,9 +6,8 @@ import { useCards } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
-import TransactionModal from '../components/TransactionModal';
 import PageHeader from '../components/PageHeader';
-import { AdjustmentsHorizontalIcon, PlusIcon, ListBulletIcon, ChartPieIcon } from '@heroicons/react/24/outline';
+import { AdjustmentsHorizontalIcon, SparklesIcon, ListBulletIcon, ChartPieIcon } from '@heroicons/react/24/outline';
 
 const ExpensesChartsView = lazy(() => import('../components/expenses/ExpensesChartsView'));
 
@@ -25,7 +25,7 @@ export default function ExpensesPage() {
   const [sortBy, setSortBy] = useState(() => sessionStorage.getItem('expenses_sortBy') ?? 'date');
   const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem('expenses_sortOrder') ?? 'desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const navigate = useNavigate();
   const [displayMode, setDisplayMode] = useState(() => sessionStorage.getItem('expenses_displayMode') ?? 'charts');
 
   const handleSetDisplayMode = (v) => { sessionStorage.setItem('expenses_displayMode', v); setDisplayMode(v); };
@@ -342,18 +342,13 @@ export default function ExpensesPage() {
         </div>
       </main>
 
-      <TransactionModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        defaultType="expense"
-      />
-
       {canWrite && (
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => navigate('/chat')}
           className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl shadow-xl shadow-violet-600/20 flex items-center justify-center transition-all active:scale-90"
+          aria-label="Assistente"
         >
-          <PlusIcon className="w-8 h-8" />
+          <SparklesIcon className="w-8 h-8" />
         </button>
       )}
     </div>
