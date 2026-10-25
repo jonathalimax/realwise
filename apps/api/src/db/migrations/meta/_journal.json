@@ -141,6 +141,13 @@
       "when": 1788552000000,
       "tag": "0019_settings_monthly_rollover",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792000000000,
+      "tag": "0020_ai_chat",
+      "breakpoints": true
     }
   ]
 }
