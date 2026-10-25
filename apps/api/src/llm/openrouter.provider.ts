@@ -11,6 +11,27 @@ function modelFor(purpose: LlmRequest['purpose']): string {
   return process.env.LLM_MODEL_CHAT ?? 'anthropic/claude-sonnet-5.5';
 }
 
+/**
+ * Providers behind OpenRouter (Google, Bedrock, Azure) are stricter than Anthropic's own API about tool
+ * schemas: JSON-Schema type unions (["string","null"]) and null enum members get rejected. Collapse them
+ * to the plain type; the tool descriptions already say when a value may be omitted/null.
+ */
+export function simplifySchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(simplifySchema);
+  if (!node || typeof node !== 'object') return node;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+    if (k === 'type' && Array.isArray(v)) {
+      out[k] = v.find((t) => t !== 'null') ?? 'string';
+    } else if (k === 'enum' && Array.isArray(v)) {
+      out[k] = v.filter((x) => x !== null);
+    } else {
+      out[k] = simplifySchema(v);
+    }
+  }
+  return out;
+}
+
 @Injectable()
 export class OpenRouterProvider implements LlmProvider {
   readonly name = 'openrouter';
@@ -36,7 +57,7 @@ export class OpenRouterProvider implements LlmProvider {
         model,
         messages: req.messages,
         tools: req.tools?.length
-          ? req.tools.map((t) => ({ type: 'function', function: t }))
+          ? req.tools.map((t) => ({ type: 'function', function: { ...t, parameters: simplifySchema(t.parameters) } }))
           : undefined,
         max_tokens: req.maxTokens ?? 4096,
         temperature: req.temperature ?? 0.2,

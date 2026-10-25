@@ -36,7 +36,10 @@ export class LlmService {
       await this.log(scope, request, result, usd);
       return result;
     } catch (e) {
-      await this.log(scope, req, null, 0, e instanceof Error ? e.message : String(e));
+      const reason = e instanceof Error ? e.message : String(e);
+      // The real cause goes to the server log and llm_call_log; users only get a generic message.
+      console.error(`[llm] ${request.purpose} call failed for model ${request.model ?? 'default'}: ${reason}`);
+      await this.log(scope, req, null, 0, reason);
       throw new ServiceUnavailableException('The AI assistant is temporarily unavailable. Please try again.');
     }
   }
