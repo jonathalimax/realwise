@@ -23,7 +23,7 @@ export class OpenRouterProvider implements LlmProvider {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 
-    const model = modelFor(req.purpose);
+    const model = req.model ?? modelFor(req.purpose);
     const hasPdf = req.messages.some(
       (m) => m.role === 'user' && Array.isArray(m.content) && m.content.some((p) => p.type === 'file'),
     );

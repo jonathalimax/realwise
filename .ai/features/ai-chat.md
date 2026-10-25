@@ -47,7 +47,7 @@ apps/api  chat/ChatService  (tool-calling loop, max 8 rounds)
 
 ## Runtime variables
 
-`OPENROUTER_API_KEY` (required, otherwise 503), `LLM_MODEL_CHAT`, `LLM_MODEL_INSIGHTS` (default `anthropic/claude-sonnet-5.5` — verify the slug on OpenRouter), `LLM_MONTHLY_BUDGET_USD` (per user; blank/unset = 5, `0` = no cap), `OPENROUTER_API_URL`.
+`OPENROUTER_API_KEY` (required, otherwise 503), `LLM_MODEL_CHAT`, `LLM_MODEL_INSIGHTS` (default `anthropic/claude-sonnet-5.5` — verify the slug on OpenRouter), `LLM_MONTHLY_BUDGET_USD` (per user; blank/unset = 5, `0` = no caps), `LLM_MODEL_FALLBACK` (e.g. `anthropic/claude-haiku-5.5`: used once a user passes the budget, until budget × `LLM_HARD_CAP_MULTIPLIER` (default 3), then 429; unset = stop at the budget). Fallback models need an entry in `llm/model-pricing.ts` or their spend counts as $0, `OPENROUTER_API_URL`.
 
 ## Disabled / hidden
 

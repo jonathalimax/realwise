@@ -9,6 +9,7 @@ import { LLM_PROVIDER } from './llm.types';
 import type { LlmProvider, LlmRequest, LlmResult } from './llm.types';
 
 const DEFAULT_MONTHLY_BUDGET_USD = 5;
+const DEFAULT_HARD_CAP_MULTIPLIER = 3;
 
 @Injectable()
 export class LlmService {
@@ -26,12 +27,13 @@ export class LlmService {
     if (!this.provider.isConfigured()) {
       throw new ServiceUnavailableException('AI assistant is not configured');
     }
-    await this.assertWithinBudget(scope.userId);
+    // Over the monthly budget: switch to the cheaper fallback model, until a hard cap (budget x multiplier) stops it.
+    const request = await this.applyBudget(req, scope.userId);
 
     try {
-      const result = await this.provider.generate(req);
+      const result = await this.provider.generate(request);
       const usd = estimateCostUsd(result.provider, result.model, result.inputTokens, result.outputTokens);
-      await this.log(scope, req, result, usd);
+      await this.log(scope, request, result, usd);
       return result;
     } catch (e) {
       await this.log(scope, req, null, 0, e instanceof Error ? e.message : String(e));
@@ -51,14 +53,21 @@ export class LlmService {
     return Number(rows[0]?.micro ?? 0) / 100 / 1_000_000;
   }
 
-  private async assertWithinBudget(userId: string): Promise<void> {
-    // Unset or blank falls back to the default; an explicit 0 disables the cap.
+  private async applyBudget(req: LlmRequest, userId: string): Promise<LlmRequest> {
+    // Unset or blank falls back to the default; an explicit 0 disables all caps.
     const raw = process.env.LLM_MONTHLY_BUDGET_USD?.trim();
     const budget = raw ? Number(raw) : DEFAULT_MONTHLY_BUDGET_USD;
-    if (!Number.isFinite(budget) || budget <= 0) return;
-    if ((await this.monthToDateUsd(userId)) >= budget) {
-      throw new HttpException('Monthly AI usage limit reached.', HttpStatus.TOO_MANY_REQUESTS);
-    }
+    if (!Number.isFinite(budget) || budget <= 0) return req;
+
+    const spent = await this.monthToDateUsd(userId);
+    if (spent < budget) return req;
+
+    const fallback = process.env.LLM_MODEL_FALLBACK?.trim();
+    const multiplier = Number(process.env.LLM_HARD_CAP_MULTIPLIER?.trim() || DEFAULT_HARD_CAP_MULTIPLIER);
+    const hardCap = budget * (Number.isFinite(multiplier) && multiplier > 1 ? multiplier : DEFAULT_HARD_CAP_MULTIPLIER);
+    if (fallback && spent < hardCap) return { ...req, model: fallback };
+
+    throw new HttpException('Monthly AI usage limit reached.', HttpStatus.TOO_MANY_REQUESTS);
   }
 
   private async log(

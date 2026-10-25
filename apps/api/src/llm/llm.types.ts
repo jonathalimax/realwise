@@ -30,6 +30,8 @@ export interface LlmRequest {
   purpose: LlmPurpose;
   messages: LlmMessage[];
   tools?: LlmToolDefinition[];
+  /** Overrides the model chosen for the purpose (used for the over-budget fallback). */
+  model?: string;
   maxTokens?: number;
   temperature?: number;
 }
