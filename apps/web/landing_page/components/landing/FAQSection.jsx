@@ -1,74 +1,54 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-const faqs = [
+const FAQS = [
   {
-    question: 'O que eu posso usar de graça?',
-    answer: 'Você pode começar sem pagar para lançar transações manualmente, importar extratos e entender o que entrou, saiu e em quais categorias seu dinheiro foi parar.',
+    q: 'Preciso de cartão para testar?',
+    a: 'Não. São 3 dias grátis com tudo liberado. Depois, você escolhe assinar. Se não assinar, o acesso fica pausado e seus dados continuam guardados.',
   },
   {
-    question: 'O que entra no Premium?',
-    answer: 'Premium é para quem quer ir além do histórico: planejamento, contas, investimentos e a visão de quanto ainda pode gastar com segurança no mês.',
+    q: 'Meus dados estão seguros?',
+    a: 'Seus dados são só seus e ficam protegidos conforme a LGPD. Para ler os extratos usamos IA com provedores configurados para não reter nem treinar com as suas informações.',
   },
   {
-    question: 'O que acontece depois dos 45 dias?',
-    answer: 'Depois dos 45 dias, apenas os recursos premium ficam bloqueados. O núcleo gratuito continua funcionando normalmente para entrada manual, importação e leitura do histórico.',
+    q: 'Quais bancos funcionam?',
+    a: 'Qualquer um. O John lê PDF, foto, planilha (CSV/XLSX) e OFX de qualquer banco ou cartão, sem precisar conectar sua conta.',
   },
   {
-    question: 'Isso quer dizer que o app inteiro vira pago depois?',
-    answer: 'Não. A janela de 45 dias vale só para os recursos premium. A proposta é você continuar usando o básico sem fricção e decidir depois se quer subir de nível.',
-  },
-  {
-    question: 'Funciona no celular?',
-    answer: 'Sim. É um PWA — você instala como um app normal no Android ou iPhone direto pelo navegador.',
-  },
-  {
-    question: 'Vocês acessam minha conta bancária?',
-    answer: 'Não. Realwise não faz Open Banking nem lê sua conta diretamente. Você importa seus extratos manualmente (CSV ou PDF do seu banco). Simples, seguro e sem nenhuma conexão direta com sua instituição financeira.',
-  },
-  {
-    question: 'Onde meus dados ficam?',
-    answer: 'Seus dados ficam protegidos na infraestrutura da Realwise e associados apenas à sua conta. O importante aqui é: não pedimos senha bancária, não conectamos direto ao seu banco e não vendemos seus dados para anúncio.',
-  },
-  {
-    question: 'Preciso conectar meu banco?',
-    answer: 'Não precisa. Você baixa o extrato direto no site do seu banco e importa no Realwise em segundos. Sem senhas de banco, sem Open Banking, sem permissões bancárias.',
-  },
-  {
-    question: 'Como eu decido se vale pagar pelo Premium?',
-    answer: 'Se o básico já resolve seu controle, continue grátis. Se você quer organizar contas, planejar o mês, acompanhar investimentos e enxergar o quanto ainda pode gastar, aí o Premium passa a fazer sentido.',
+    q: 'Como cancelo?',
+    a: 'Quando quiser, em Configurações → Assinatura, sem multa e sem burocracia.',
   },
 ];
 
-function FAQItem({ faq, isOpen, onToggle }) {
+function Item({ item, open, onToggle, id }) {
   return (
-    <div className="border-b border-slate-200 dark:border-slate-800 last:border-0">
-      <button
-        onClick={onToggle}
-        className="w-full py-6 flex items-center justify-between text-left group"
-      >
-        <span className="font-medium text-base pr-8 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-          {faq.question}
-        </span>
-        <ChevronDown className={cn(
-          'w-5 h-5 text-slate-400 transition-transform duration-300 flex-shrink-0',
-          isOpen && 'rotate-180'
-        )} />
-      </button>
-      <AnimatePresence>
-        {isOpen && (
+    <div className="border-b border-slate-200 dark:border-slate-800">
+      <h3>
+        <button
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls={`${id}-panel`}
+          id={`${id}-button`}
+          className="flex w-full items-center justify-between gap-4 py-5 text-left text-base font-semibold"
+        >
+          {item.q}
+          <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      </h3>
+      <AnimatePresence initial={false}>
+        {open && (
           <motion.div
+            id={`${id}-panel`}
+            role="region"
+            aria-labelledby={`${id}-button`}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <p className="pb-6 text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
-              {faq.answer}
-            </p>
+            <p className="pb-5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{item.a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -77,32 +57,14 @@ function FAQItem({ faq, isOpen, onToggle }) {
 }
 
 export default function FAQSection() {
-  const [openIndex, setOpenIndex] = useState(null);
-
+  const [openIndex, setOpenIndex] = useState(0);
   return (
-    <section id="faq" className="py-24 px-6 bg-slate-50/50 dark:bg-slate-900/30">
-      <div className="max-w-3xl mx-auto">
-        <div
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold">
-            Perguntas frequentes.
-          </h2>
-          <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">
-            Sem letra miúda: o que é grátis, o que é premium e quando cada parte faz sentido.
-          </p>
-        </div>
-
-        <div
-          className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 px-8"
-        >
-          {faqs.map((faq, index) => (
-            <FAQItem
-              key={index}
-              faq={faq}
-              isOpen={openIndex === index}
-              onToggle={() => setOpenIndex(openIndex === index ? null : index)}
-            />
+    <section id="faq" data-section="faq" className="px-6 py-20">
+      <div className="mx-auto max-w-2xl">
+        <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">Perguntas rápidas</h2>
+        <div className="mt-10 border-t border-slate-200 dark:border-slate-800">
+          {FAQS.map((item, i) => (
+            <Item key={item.q} id={`faq-${i}`} item={item} open={openIndex === i} onToggle={() => setOpenIndex(openIndex === i ? -1 : i)} />
           ))}
         </div>
       </div>

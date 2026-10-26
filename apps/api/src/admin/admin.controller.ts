@@ -2,8 +2,6 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@n
 import { AdminService } from './admin.service';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { UpdateLeadDto } from './dto/update-lead.dto';
-import { CreateCouponDto } from './dto/create-coupon.dto';
-import { UpdatePricingConfigDto } from './dto/update-pricing-config.dto';
 import { IsInt, IsOptional, IsString, Min, Max, IsIn, IsObject } from 'class-validator';
 
 class CreateTestimonialDto {
@@ -70,20 +68,6 @@ export class AdminController {
   @Get('purchases')
   listPurchases() { return this.service.listPurchases(); }
 
-  @Get('coupons')
-  listCoupons() { return this.service.listCoupons(); }
-
-  @Post('coupons')
-  createCoupon(@Body() dto: CreateCouponDto) { return this.service.createCoupon(dto); }
-
-  @Patch('coupons/:id')
-  updateCoupon(@Param('id') id: string, @Body() dto: Partial<CreateCouponDto>) {
-    return this.service.updateCoupon(id, dto);
-  }
-
-  @Delete('coupons/:id')
-  deleteCoupon(@Param('id') id: string) { return this.service.deleteCoupon(id); }
-
   @Get('testimonials')
   listTestimonials() { return this.service.listTestimonials(); }
 
@@ -99,14 +83,6 @@ export class AdminController {
   @Post('emails/send-abandoned-checkout')
   sendAbandonedCheckoutEmail(@Body() dto: SendAbandonedCheckoutEmailDto) {
     return this.service.sendAbandonedCheckoutEmail(dto);
-  }
-
-  @Get('pricing-config')
-  getPricingConfig() { return this.service.getPricingConfig(); }
-
-  @Patch('pricing-config')
-  updatePricingConfig(@Body() dto: UpdatePricingConfigDto) {
-    return this.service.updatePricingConfig(dto);
   }
 
   @Get('import-issues')

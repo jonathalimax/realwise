@@ -169,6 +169,13 @@
       "when": 1792300000000,
       "tag": "0023_account_holder_and_transfers",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792400000000,
+      "tag": "0024_stripe_subscriptions",
+      "breakpoints": true
     }
   ]
 }

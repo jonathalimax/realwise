@@ -4,6 +4,7 @@ import { useAccess } from '../contexts/AccessContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import PageHeader from '../components/PageHeader';
+import SubscriptionSettingsCard from '../components/billing/SubscriptionSettingsCard';
 import { getSettingsProfile } from './settingsProfile';
 
 export default function SettingsPage() {
@@ -125,6 +126,8 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+
+            <SubscriptionSettingsCard />
 
             {/* Navigation Cards */}
             <div className="space-y-3">

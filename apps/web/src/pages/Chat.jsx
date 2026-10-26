@@ -6,6 +6,8 @@ import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
 import AccountFormSheet from '../components/chat/AccountFormSheet';
 import Markdown from '../components/chat/Markdown';
+import { notifyTransactionsChanged } from '../lib/api/resources/transactions';
+import { notifyBillsChanged } from '../lib/api/resources/bills';
 import { useSettings } from '../contexts/SettingsContext';
 import { chatResource } from '../lib/api/resources/chat';
 
@@ -212,6 +214,7 @@ export default function ChatPage() {
   const stick = useRef(true); // follow the conversation only while the user is at the bottom
   const [showJump, setShowJump] = useState(false);
   const delivered = useRef(false); // the server persisted the user's message for the current turn
+  const deliveredId = useRef(null); // id of that persisted message
   const [live, setLive] = useState(null); // { text, status, final } while John's reply streams
   const autoSent = useRef(false);
   const onboardingStarted = useRef(false);
@@ -359,10 +362,12 @@ export default function ChatPage() {
     async (start, optimisticId) => {
       stick.current = true; // the user just acted: follow the reply
       delivered.current = false;
+      deliveredId.current = null;
       setLive({ text: '', status: '', final: null });
       const final = await start((event) => {
         if (event.type === 'user') {
           delivered.current = true;
+          deliveredId.current = event.message?.id ?? null;
           setMessages((prev) => [...prev.filter((m) => m.id !== optimisticId), event.message]);
         } else if (event.type === 'delta') {
           setLive((prev) => (prev ? { ...prev, text: prev.text + event.text, status: '' } : prev)); // the answer started: drop the status line
@@ -378,6 +383,35 @@ export default function ChatPage() {
     [],
   );
 
+  /**
+   * The connection broke after the server saved the user's message (long runs on mobile networks, or the app was
+   * backgrounded). The server finishes the work and saves the reply regardless, so wait for it instead of failing.
+   */
+  const recoverAfterDrop = useCallback(async () => {
+    setLive({ text: '', status: pt ? 'Ainda estou trabalhando nisso…' : 'Still working on it…', final: null });
+    const deadline = Date.now() + 4 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      try {
+        const rows = await chatResource.messages();
+        const at = rows.findIndex((m) => m.id === deliveredId.current);
+        if (at >= 0 && rows.slice(at + 1).some((m) => m.role === 'assistant')) {
+          setMessages(rows);
+          setLive(null);
+          setSending(false);
+          notifyTransactionsChanged();
+          notifyBillsChanged();
+          return;
+        }
+      } catch {
+        /* offline for a moment: keep trying */
+      }
+    }
+    setLive(null);
+    setSending(false);
+    setError(pt ? 'O John está demorando mais que o normal. Atualize a página em instantes para ver a resposta.' : 'John is taking longer than usual. Refresh in a moment to see the reply.');
+  }, [pt]);
+
   const submitAnswers = async (answers) => {
     setSheetBusy(true);
     setSending(true);
@@ -387,6 +421,10 @@ export default function ChatPage() {
     try {
       await runTurn((onEvent) => chatResource.answerStream(id, answers, onEvent), null);
     } catch (e) {
+      if (delivered.current) {
+        await recoverAfterDrop();
+        return;
+      }
       setLive(null);
       setSending(false);
       setManualSheet({ id, type: 'questions' });
@@ -404,6 +442,10 @@ export default function ChatPage() {
     try {
       await runTurn((onEvent) => chatResource.accountFormStream(id, form, onEvent), null);
     } catch (e) {
+      if (delivered.current) {
+        await recoverAfterDrop();
+        return;
+      }
       setLive(null);
       setSending(false);
       setError(e?.message || (pt ? 'Não consegui salvar a conta.' : 'Could not save the account.'));
@@ -446,20 +488,21 @@ export default function ChatPage() {
       try {
         await runTurn((onEvent) => chatResource.sendStream({ message, files: attached, onEvent }), optimistic.id);
       } catch (e) {
+        if (delivered.current) {
+          // The server already saved the message (and keeps working): wait for its reply, never refill the composer.
+          await recoverAfterDrop();
+          return;
+        }
+        // Never reached the server: put everything back so the user can retry.
         setLive(null);
         setSending(false);
-        if (delivered.current) {
-          // The server already saved the message: keep it and don't refill the composer (it would be sent twice).
-          setError(pt ? 'Não consegui responder agora. Tente enviar de novo em instantes.' : 'I could not reply right now. Please try again shortly.');
-        } else {
-          setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-          setText(message);
-          setFiles(attached);
-          setError(e?.message || (pt ? 'Algo deu errado. Tente novamente.' : 'Something went wrong. Please try again.'));
-        }
+        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+        setText(message);
+        setFiles(attached);
+        setError(e?.message || (pt ? 'Algo deu errado. Tente novamente.' : 'Something went wrong. Please try again.'));
       }
     },
-    [text, files, sending, pt, runTurn],
+    [text, files, sending, pt, runTurn, recoverAfterDrop],
   );
 
   // Question typed in the home "ask" bar arrives as ?q=...

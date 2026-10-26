@@ -302,6 +302,7 @@ describe('AuthController', () => {
         premiumStatus: fakeUser.premiumStatus,
         premiumPaymentProvider: fakeUser.premiumPaymentProvider,
         premiumProviderPaymentId: fakeUser.premiumProviderPaymentId,
+        access: expect.objectContaining({ state: expect.any(String), allowed: expect.any(Boolean) }),
       });
     });
   });

@@ -15,7 +15,7 @@ import { MonthProvider } from './contexts/MonthContext';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
-import PremiumFeatureGate from './components/premium/PremiumFeatureGate';
+import SubscriptionGate from './components/billing/SubscriptionGate';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -38,7 +38,6 @@ const InvestmentsPage = lazy(() => import('./pages/Investments'));
 const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
 
 import LandingPage from '../landing_page/pages/home';
-import PurchaseSuccessPage from '../landing_page/pages/PurchaseSuccess';
 const SharedLogin = lazy(() => import('./pages/SharedLogin'));
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 
@@ -67,55 +66,57 @@ function AuthenticatedApp() {
 
   return (
     <AccessProvider>
-      <SettingsProvider>
-        <AuthenticatedShell>
-          <MonthProvider>
-            <GoalsProvider>
-              <CardsProvider>
-                <BudgetProvider>
-                  <InvestmentProvider>
-                    <BillsProvider>
-                      <Suspense fallback={<PageLoader />}>
-                        <Routes>
-                          <Route element={<Layout />}>
-                            <Route index element={<Navigate to="/dashboard" replace />} />
-                            <Route path="dashboard" element={<DashboardPage />} />
-                            <Route path="planner" element={<Navigate to="../planning" replace />} />
-                            <Route path="planning" element={<PlanningPage />} />
-                            <Route path="expenses" element={<ExpensesPage />} />
-                            <Route path="income" element={<IncomePage />} />
-                            <Route path="bills" element={<BillsPage />} />
-                            <Route path="cards" element={<CardsPage />} />
-                            <Route path="transactions" element={<TransactionsPage />} />
-                            <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
-                            <Route path="settings" element={<SettingsPage />} />
-                            <Route path="settings/categories" element={<CategorySettingsPage />} />
-                            <Route path="settings/banks" element={<BanksSettingsPage />} />
-                            <Route path="budget" element={<BudgetPage />} />
-                            <Route path="help" element={<HelpPage />} />
-                            <Route path="notifications" element={<NotificationsPage />} />
-                            <Route path="chat" element={<ChatPage />} />
-                            {/* Importing now happens in the chat */}
-                            <Route path="import" element={<Navigate to="/chat" replace />} />
-                            <Route path="banks" element={<BanksPage />} />
-                            <Route path="goals" element={<Navigate to="/dashboard" replace />} />
-                            {/* Investments are disabled unless the client config turns the flag on */}
-                            <Route path="investments" element={hasInvestments ? <InvestmentsPage /> : <Navigate to="/dashboard" replace />} />
-                            <Route path="investments/new" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
-                            <Route path="investments/:id/edit" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
-                            <Route path="investments/:id/withdraw" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
-                          </Route>
-                          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                        </Routes>
-                      </Suspense>
-                    </BillsProvider>
-                  </InvestmentProvider>
-                </BudgetProvider>
-              </CardsProvider>
-            </GoalsProvider>
-          </MonthProvider>
-        </AuthenticatedShell>
-      </SettingsProvider>
+      <SubscriptionGate>
+        <SettingsProvider>
+          <AuthenticatedShell>
+            <MonthProvider>
+              <GoalsProvider>
+                <CardsProvider>
+                  <BudgetProvider>
+                    <InvestmentProvider>
+                      <BillsProvider>
+                        <Suspense fallback={<PageLoader />}>
+                          <Routes>
+                            <Route element={<Layout />}>
+                              <Route index element={<Navigate to="/dashboard" replace />} />
+                              <Route path="dashboard" element={<DashboardPage />} />
+                              <Route path="planner" element={<Navigate to="../planning" replace />} />
+                              <Route path="planning" element={<PlanningPage />} />
+                              <Route path="expenses" element={<ExpensesPage />} />
+                              <Route path="income" element={<IncomePage />} />
+                              <Route path="bills" element={<BillsPage />} />
+                              <Route path="cards" element={<CardsPage />} />
+                              <Route path="transactions" element={<TransactionsPage />} />
+                              <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
+                              <Route path="settings" element={<SettingsPage />} />
+                              <Route path="settings/categories" element={<CategorySettingsPage />} />
+                              <Route path="settings/banks" element={<BanksSettingsPage />} />
+                              <Route path="budget" element={<BudgetPage />} />
+                              <Route path="help" element={<HelpPage />} />
+                              <Route path="notifications" element={<NotificationsPage />} />
+                              <Route path="chat" element={<ChatPage />} />
+                              {/* Importing now happens in the chat */}
+                              <Route path="import" element={<Navigate to="/chat" replace />} />
+                              <Route path="banks" element={<BanksPage />} />
+                              <Route path="goals" element={<Navigate to="/dashboard" replace />} />
+                              {/* Investments are disabled unless the client config turns the flag on */}
+                              <Route path="investments" element={hasInvestments ? <InvestmentsPage /> : <Navigate to="/dashboard" replace />} />
+                              <Route path="investments/new" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
+                              <Route path="investments/:id/edit" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
+                              <Route path="investments/:id/withdraw" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
+                            </Route>
+                            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                          </Routes>
+                        </Suspense>
+                      </BillsProvider>
+                    </InvestmentProvider>
+                  </BudgetProvider>
+                </CardsProvider>
+              </GoalsProvider>
+            </MonthProvider>
+          </AuthenticatedShell>
+        </SettingsProvider>
+      </SubscriptionGate>
     </AccessProvider>
   );
 }
@@ -148,12 +149,6 @@ function App() {
     inner = (
       <Suspense fallback={<PageLoader />}>
         <LandingPage />
-      </Suspense>
-    );
-  } else if (window.location.pathname === '/purchase-success') {
-    inner = (
-      <Suspense fallback={<PageLoader />}>
-        <PurchaseSuccessPage />
       </Suspense>
     );
   } else if (window.location.pathname === '/login') {
