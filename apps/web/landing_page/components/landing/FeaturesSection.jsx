@@ -16,15 +16,15 @@ import {
 
 const clusters = [
   {
-    title: 'Sempre grátis',
+    title: 'Organize',
     features: [
       { icon: Upload, title: 'Importação simples', desc: 'Traga extratos e organize seu histórico em minutos.' },
-      { icon: BarChart3, title: 'Análise do que já aconteceu', desc: 'Veja gastos, entradas e categorias sem travas.' },
+      { icon: BarChart3, title: 'Análise do que já aconteceu', desc: 'Veja gastos, entradas e categorias.' },
       { icon: FileText, title: 'Entrada manual', desc: 'Registre tudo o que quiser, mesmo sem importar arquivos.' },
     ],
   },
   {
-    title: 'Premium',
+    title: 'Planeje',
     features: [
       { icon: PiggyBank, title: 'Planejamento', desc: 'Descubra quanto ainda pode gastar com segurança.' },
       { icon: CreditCard, title: 'Contas e acompanhamento', desc: 'Acompanhe vencimentos, recorrências e organização do mês.' },
@@ -54,10 +54,10 @@ export default function FeaturesSection() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-            Comece pelo essencial. Evolua quando precisar.
+            Do extrato ao planejamento do mês.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-            O núcleo gratuito mostra o que aconteceu. O Premium ajuda você a decidir o que fazer daqui para frente.
+            Veja o que aconteceu e decida o que fazer daqui para frente, tudo no mesmo app.
           </p>
         </motion.div>
 

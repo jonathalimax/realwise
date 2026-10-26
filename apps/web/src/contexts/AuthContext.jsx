@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { authApi } from '../lib/api/auth';
+import { SUBSCRIPTION_REQUIRED_EVENT } from '../lib/api/client';
 import { bootstrapAuthSession, logoutAuthSession } from './authSession';
 
 const AuthContext = createContext(null);
@@ -34,10 +35,38 @@ export function AuthProvider({ children, authClient = authApi }) {
     };
   }, [authClient]);
 
+  // Re-reads /auth/me (no token refresh) so `user.access` stays in sync with the server.
+  // Concurrent callers share one request: a blocked user can trigger many 402s at once.
+  const reloadInFlight = useRef(null);
+  const reloadUser = useCallback(() => {
+    if (!reloadInFlight.current) {
+      reloadInFlight.current = bootstrapAuthSession({ authClient })
+        .then((next) => {
+          setStatus(next.status);
+          setUser(next.user);
+          setError(null);
+          return next;
+        })
+        .finally(() => {
+          reloadInFlight.current = null;
+        });
+    }
+    return reloadInFlight.current;
+  }, [authClient]);
+
+  useEffect(() => {
+    const onSubscriptionRequired = () => {
+      reloadUser().catch(() => {});
+    };
+    window.addEventListener(SUBSCRIPTION_REQUIRED_EVENT, onSubscriptionRequired);
+    return () => window.removeEventListener(SUBSCRIPTION_REQUIRED_EVENT, onSubscriptionRequired);
+  }, [reloadUser]);
+
   const value = useMemo(() => ({
     status,
     user,
     error,
+    reloadUser,
     refreshSession: async () => {
       try {
         await authClient.refresh();
@@ -59,7 +88,7 @@ export function AuthProvider({ children, authClient = authApi }) {
       setError(null);
       return next;
     },
-  }), [status, user, error, authClient]);
+  }), [status, user, error, authClient, reloadUser]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -1,34 +1,5 @@
-export const OWNER_EMAIL = 'jonathalimax@gmail.com';
-
-function buildPremiumFeatureLocks(hasPremiumAccess) {
-  return {
-    bills: !hasPremiumAccess,
-    planning: !hasPremiumAccess,
-    investments: !hasPremiumAccess,
-    spendGuidance: !hasPremiumAccess,
-  };
-}
-
-function derivePremiumAccess(currentUser) {
-  const premiumAccessEndsAt = currentUser?.premiumAccessEndsAt ?? null;
-  const premiumStatus = currentUser?.premiumStatus ?? null;
-  const endsAtMs = premiumAccessEndsAt ? new Date(premiumAccessEndsAt).getTime() : Number.NaN;
-  const hasValidEndDate = Number.isFinite(endsAtMs);
-  const premiumDaysRemaining = hasValidEndDate
-    ? Math.max(0, Math.ceil((endsAtMs - Date.now()) / (24 * 60 * 60 * 1000)))
-    : 0;
-  const hasPremiumAccess =
-    (premiumStatus === 'trialing' || premiumStatus === 'active') &&
-    (!hasValidEndDate || endsAtMs >= Date.now());
-
-  return {
-    hasPremiumAccess,
-    premiumAccessEndsAt,
-    premiumDaysRemaining,
-    premiumFeatureLocks: buildPremiumFeatureLocks(hasPremiumAccess),
-  };
-}
-
+// Entitlement is decided by the API (`access` inside GET /auth/me); this only reflects it.
+// A missing `access` (older API) is treated as "not blocked": the server still enforces it.
 export function deriveAccessState(currentUser) {
   if (!currentUser) {
     return {
@@ -36,26 +7,23 @@ export function deriveAccessState(currentUser) {
       canWrite: true,
       isReadOnly: false,
       isOwner: false,
+      access: null,
       hasPremiumAccess: false,
       ownerId: null,
       loading: false,
-      premiumAccessEndsAt: null,
-      premiumDaysRemaining: 0,
-      premiumFeatureLocks: buildPremiumFeatureLocks(false),
       currentUser: null,
     };
   }
 
-  const isOwner = currentUser.email?.toLowerCase() === OWNER_EMAIL;
-  const userRole = 'write';
-  const premiumAccess = derivePremiumAccess(currentUser);
+  const access = currentUser.access ?? null;
 
   return {
-    userRole,
+    userRole: 'write',
     canWrite: true,
     isReadOnly: false,
-    isOwner,
-    ...premiumAccess,
+    isOwner: access?.state === 'owner',
+    access,
+    hasPremiumAccess: access?.allowed === true,
     ownerId: currentUser.sub,
     loading: false,
     currentUser,

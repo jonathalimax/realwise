@@ -36,6 +36,8 @@ async function readResponseBody(response) {
   return text ? { message: text } : null;
 }
 
+export const SUBSCRIPTION_REQUIRED_EVENT = 'rw:subscription-required';
+
 export class ApiError extends Error {
   constructor(message, { status, data } = {}) {
     super(message);
@@ -72,6 +74,12 @@ export function createApiClient({ baseUrl, defaultHeaders = {} } = {}) {
     const data = await readResponseBody(response);
 
     if (!response.ok) {
+      // The server blocks every non-billing route once the trial/subscription is over.
+      // Tell the auth layer so it re-reads /auth/me and the gate flips to the paywall.
+      if (response.status === 402 && data?.code === 'SUBSCRIPTION_REQUIRED' && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(SUBSCRIPTION_REQUIRED_EVENT));
+      }
+
       const message =
         data?.message ||
         data?.error ||

@@ -15,9 +15,9 @@ export default function GuaranteeSection() {
       <div className="rounded-2xl border border-violet-200 dark:border-violet-800/50 bg-violet-50 dark:bg-violet-950/30 p-6 flex items-start gap-4">
         <ShieldCheck className="w-8 h-8 text-violet-600 dark:text-violet-400 flex-shrink-0" />
         <div>
-          <h3 className="font-bold text-slate-900 dark:text-white mb-2">30 dias de garantia incondicional.</h3>
+          <h3 className="font-bold text-slate-900 dark:text-white mb-2">Cancele quando quiser.</h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            Não gostou? Devolvo seu dinheiro. <a href="mailto:suporte@realwise.com.br" className="underline font-medium">suporte@realwise.com.br</a>
+            Sem fidelidade: gerencie ou cancele a assinatura direto no app. Dúvidas? <a href="mailto:suporte@realwise.com.br" className="underline font-medium">suporte@realwise.com.br</a>
           </p>
         </div>
       </div>

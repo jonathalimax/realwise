@@ -5,6 +5,16 @@ import { settingsResource, normalizeSettings } from '../lib/api/resources/settin
 
 const SettingsContext = createContext();
 const DARK_MODE_STORAGE_KEY = 'realwise:darkMode';
+const LANGUAGE_STORAGE_KEY = 'realwise:language';
+
+// The paywall renders without settings (the endpoint is blocked too), so it reads this copy of the language.
+function rememberLanguage(language) {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch {
+    // storage unavailable: the paywall falls back to the browser language
+  }
+}
 
 export const CURRENCIES = {
   BRL: { symbol: 'R$', name: 'Brazilian Real', locale: 'pt-BR' },
@@ -150,6 +160,7 @@ export function SettingsProvider({ children }) {
         const normalized = normalizeSettings(data);
         setCurrency(normalized.currency);
         setLanguage(normalized.language);
+        rememberLanguage(normalized.language);
         setDarkMode(normalized.darkMode);
         setCategories({
           expense: normalized.expenseCategories,
@@ -189,6 +200,7 @@ export function SettingsProvider({ children }) {
 
     const oldLanguage = language;
     setLanguage(newLanguage);
+    rememberLanguage(newLanguage);
 
     // Translate existing categories
     const translatedCategories = translateCategories(categories, oldLanguage, newLanguage);

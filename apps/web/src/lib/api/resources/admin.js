@@ -26,12 +26,6 @@ export function createAdminResource({ client = apiClient } = {}) {
     sendAbandonedCheckoutEmail(data) {
       return client.post('/admin/emails/send-abandoned-checkout', data);
     },
-    getPricingConfig() {
-      return client.get('/admin/pricing-config');
-    },
-    updatePricingConfig(patch) {
-      return client.patch('/admin/pricing-config', patch);
-    },
     listImportIssues() {
       return client.get('/admin/import-issues');
     },

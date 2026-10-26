@@ -1,39 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 
-import { Check, ArrowRight, Lock, Shield, Smartphone, Database } from 'lucide-react';
+import { Check, ArrowRight, Lock, Shield, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
-import CouponInput from './CouponInput';
-import { calculatePrice, calculateInstallment } from '../../utils/couponValidator';
 
 const included = [
-  'Acesso vitalício',
+  'Importação de extratos e entrada manual',
+  'Planejamento do mês e contas a pagar',
+  'Investimentos e visão de patrimônio',
+  'Assistente de finanças no chat',
   'Suporte sempre que precisar',
-  'Melhorias e correções gratuitas',
-  'Base de dados 100% sua',
-  '30 dias de garantia de arrependimento',
+  'Melhorias e correções incluídas',
+];
+
+const plans = [
+  {
+    name: 'Mensal',
+    description: 'Flexibilidade total, mês a mês.',
+    highlight: false,
+  },
+  {
+    name: 'Anual',
+    description: 'Um pagamento por ano com desconto em relação ao mensal.',
+    highlight: true,
+    badge: 'Melhor custo-benefício',
+  },
 ];
 
 const trust = [
-  { icon: Lock, text: '100% seguro (Mercado Pago)' },
+  { icon: Lock, text: 'Pagamento seguro (Stripe)' },
   { icon: Shield, text: 'Dados 100% seus' },
   { icon: Smartphone, text: 'Desktop + Mobile' },
-  { icon: Database, text: 'Seu Firebase' },
 ];
 
-const FALLBACK_PRICING = { basePriceCents: 23880, installments: 12, activeCouponCode: null };
-
-function fmt(cents) {
-  return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
-}
-
-export default function PricingSection({ onBuy, couponCode = '' }) {
-  const [pricing] = useState(FALLBACK_PRICING);
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
-
-  const startFree = () => {
-    landingAnalytics.trackCtaClicked('Começar grátis pelo premium', 'pricing');
+export default function PricingSection({ onBuy }) {
+  const startTrial = () => {
+    landingAnalytics.trackCtaClicked('Teste grátis por 3 dias', 'pricing');
     if (onBuy) {
       onBuy();
       return;
@@ -41,29 +44,6 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
     sessionStorage.setItem('__rw_show_login', '1');
     window.location.href = '/login';
   };
-
-  // If couponCode is passed via URL, use it
-  useEffect(() => {
-    if (couponCode && !appliedCoupon) {
-      // Auto-apply coupon from URL
-      setAppliedCoupon({
-        code: couponCode,
-        discountPercent: 0, // Will be calculated on backend during checkout
-      });
-    }
-  }, [couponCode, appliedCoupon]);
-
-  const handleCouponApply = (coupon) => {
-    setAppliedCoupon(coupon);
-  };
-
-  // Calculate final price
-  const finalCents = appliedCoupon
-    ? calculatePrice(pricing.basePriceCents, appliedCoupon.discountPercent)
-    : pricing.basePriceCents;
-
-  const installmentCents = calculateInstallment(finalCents, pricing.installments);
-  const discountPercent = appliedCoupon ? appliedCoupon.discountPercent : 0;
 
   return (
     <section data-section="pricing" id="preco" className="py-32 px-6">
@@ -76,10 +56,10 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
-            Premium para quem quer ir além.
+            Teste grátis por 3 dias.
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Entrada manual e importação já ficam liberadas. O Premium entra quando você quiser planejamento, contas, investimentos e visão de saldo disponível.
+            Use o Realwise completo, sem cartão. Gostou? Escolha o plano mensal ou anual.
           </p>
         </motion.div>
 
@@ -92,35 +72,33 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           <div className="relative rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-900/10 dark:shadow-black/30 overflow-hidden">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-400 via-violet-400 to-cyan-400" />
 
-            <div className="p-10 sm:p-12 space-y-8">
-              <div className="text-center space-y-3">
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-800/50 text-sm font-medium text-violet-700 dark:text-violet-300">
-                    Premium opcional
-                  </span>
-                  {appliedCoupon && (
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-800/50 text-sm font-bold text-rose-600 dark:text-rose-400">
-                      {discountPercent}% OFF
-                    </span>
-                  )}
-                </div>
-                <div className="text-center space-y-2">
-                  <div className="text-lg text-slate-500 dark:text-slate-400">
-                    {pricing.installments}x de
+            <div className="p-6 sm:p-12 space-y-8">
+              <div className="grid sm:grid-cols-2 gap-4">
+                {plans.map((plan) => (
+                  <div
+                    key={plan.name}
+                    className={`rounded-2xl border-2 p-5 ${
+                      plan.highlight
+                        ? 'border-violet-400 bg-violet-50 dark:border-violet-500 dark:bg-violet-950/30'
+                        : 'border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-lg font-bold">{plan.name}</span>
+                      {plan.badge && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-900/50 text-xs font-medium text-violet-700 dark:text-violet-300">
+                          {plan.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{plan.description}</p>
                   </div>
-                  <div className="text-5xl font-bold tracking-tight">
-                    {fmt(installmentCents)}
-                  </div>
-                  <div className="text-sm text-slate-400 dark:text-slate-500">
-                    sem juros
-                  </div>
-                </div>
+                ))}
               </div>
-
-              {/* Coupon Input */}
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                <CouponInput onCouponApply={handleCouponApply} currentCoupon={appliedCoupon} />
-              </div>
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                Você vê os valores atualizados dos planos dentro do app.
+                Cupons de desconto podem ser aplicados na tela de pagamento.
+              </p>
 
               <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
                 {included.map((item) => (
@@ -133,25 +111,19 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
 
               <div className="rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 p-5 space-y-2">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                  O que continua grátis
+                  E quando o teste terminar?
                 </p>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Entrada manual, importação de extratos e visão do que entrou, saiu e em quais categorias.
-                </p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white pt-2">
-                  O que o Premium desbloqueia
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Planejamento, contas, investimentos e a resposta para “quanto ainda posso gastar?”.
+                  O acesso é pausado até você assinar. Seus dados ficam guardados e voltam assim que a assinatura é confirmada.
                 </p>
               </div>
 
               <Button
                 size="lg"
-                onClick={startFree}
+                onClick={startTrial}
                 className="w-full h-14 px-8 text-base bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl transition-all duration-300 hover:scale-105"
               >
-                Começar grátis
+                Teste grátis por 3 dias
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
@@ -177,7 +149,7 @@ export default function PricingSection({ onBuy, couponCode = '' }) {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8"
         >
-          Os recursos premium ficam liberados por 45 dias para você experimentar sem bloquear o uso básico do app.
+          Sem fidelidade: cancele quando quiser, direto no app.
         </motion.p>
       </div>
     </section>

@@ -5,20 +5,20 @@ import { cn } from '@/lib/utils';
 
 const faqs = [
   {
-    question: 'O que eu posso usar de graça?',
-    answer: 'Você pode começar sem pagar para lançar transações manualmente, importar extratos e entender o que entrou, saiu e em quais categorias seu dinheiro foi parar.',
+    question: 'Como funciona o teste grátis?',
+    answer: 'Ao criar sua conta você usa o Realwise completo por 3 dias, sem cartão. Lance transações, importe extratos, planeje o mês e veja tudo funcionando antes de decidir.',
   },
   {
-    question: 'O que entra no Premium?',
-    answer: 'Premium é para quem quer ir além do histórico: planejamento, contas, investimentos e a visão de quanto ainda pode gastar com segurança no mês.',
+    question: 'O que acontece quando o teste termina?',
+    answer: 'O acesso ao app é pausado até você assinar. Seus dados continuam guardados e voltam assim que a assinatura é confirmada.',
   },
   {
-    question: 'O que acontece depois dos 45 dias?',
-    answer: 'Depois dos 45 dias, apenas os recursos premium ficam bloqueados. O núcleo gratuito continua funcionando normalmente para entrada manual, importação e leitura do histórico.',
+    question: 'Quais são os planos?',
+    answer: 'Há um plano mensal e um plano anual com desconto. O pagamento é feito de forma segura pelo Stripe e você pode usar um código promocional na tela de pagamento.',
   },
   {
-    question: 'Isso quer dizer que o app inteiro vira pago depois?',
-    answer: 'Não. A janela de 45 dias vale só para os recursos premium. A proposta é você continuar usando o básico sem fricção e decidir depois se quer subir de nível.',
+    question: 'Posso cancelar quando quiser?',
+    answer: 'Sim. Você gerencia ou cancela a assinatura direto no app, em Configurações. Ao cancelar, o acesso continua até o fim do período já pago.',
   },
   {
     question: 'Funciona no celular?',
@@ -35,10 +35,6 @@ const faqs = [
   {
     question: 'Preciso conectar meu banco?',
     answer: 'Não precisa. Você baixa o extrato direto no site do seu banco e importa no Realwise em segundos. Sem senhas de banco, sem Open Banking, sem permissões bancárias.',
-  },
-  {
-    question: 'Como eu decido se vale pagar pelo Premium?',
-    answer: 'Se o básico já resolve seu controle, continue grátis. Se você quer organizar contas, planejar o mês, acompanhar investimentos e enxergar o quanto ainda pode gastar, aí o Premium passa a fazer sentido.',
   },
 ];
 
@@ -89,7 +85,7 @@ export default function FAQSection() {
             Perguntas frequentes.
           </h2>
           <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">
-            Sem letra miúda: o que é grátis, o que é premium e quando cada parte faz sentido.
+            Sem letra miúda: como funciona o teste, os planos e o que acontece depois.
           </p>
         </div>
 
