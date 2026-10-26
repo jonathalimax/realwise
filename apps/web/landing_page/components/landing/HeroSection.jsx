@@ -11,7 +11,7 @@ const ROTATING_BENEFITS = [
   'que você controla 100%',
 ];
 
-export default function HeroSection({ onBuy, couponCode = '' }) {
+export default function HeroSection({ onBuy }) {
   const [currentBenefit, setCurrentBenefit] = useState(0);
 
   const startFree = () => {
@@ -65,15 +65,6 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          {couponCode && (
-            <div className="flex justify-center mb-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400 text-sm font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
-                Cupom <span className="font-mono font-bold text-violet-300 ml-0.5">{couponCode}</span> ativo
-              </div>
-            </div>
-          )}
-
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
             Seu financeiro começa
             <br />
@@ -94,11 +85,11 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Entrada manual e importação ficam grátis desde o primeiro dia. Premium libera planejamento, contas, investimentos e quanto ainda você pode gastar.
+            Importação de extratos, planejamento, contas, investimentos e quanto ainda você pode gastar, tudo em um só lugar.
           </p>
 
           <p className="text-sm sm:text-base text-slate-500 dark:text-slate-500 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Você começa usando o núcleo grátis e decide depois se quer desbloquear os recursos premium.
+            Teste grátis por 3 dias, sem cartão. Depois, assinatura mensal ou anual que você cancela quando quiser.
           </p>
 
           <Button
@@ -106,7 +97,7 @@ export default function HeroSection({ onBuy, couponCode = '' }) {
             onClick={startFree}
             className="h-14 px-8 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105 mb-16"
           >
-            Começar grátis
+            Teste grátis por 3 dias
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </motion.div>

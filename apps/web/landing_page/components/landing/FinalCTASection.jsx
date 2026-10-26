@@ -1,22 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { landingAnalytics } from '../../landingAnalytics';
 
-const FALLBACK_PRICING = { basePriceCents: 23880, installments: 12, activeCouponCode: null };
-
 export default function FinalCTASection() {
-  const [pricing] = useState(FALLBACK_PRICING);
-
-  // Calculate installment price
-  const INSTALLMENTS = 12;
-  const installmentCents = Math.round(pricing.basePriceCents / INSTALLMENTS);
-
-  function fmt(cents) {
-    return `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
-  }
-
   return (
     <section data-section="final-cta" className="py-32 px-6">
       <div className="max-w-3xl mx-auto text-center">
@@ -27,25 +15,25 @@ export default function FinalCTASection() {
           transition={{ duration: 0.7 }}
         >
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-            Comece de graça.
+            Teste grátis por 3 dias.
             <br />
             <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">
-              Desbloqueie o Premium quando fizer sentido.
+              Assine só se fizer sentido.
             </span>
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-10 max-w-md mx-auto">
-            Entrada manual e importação ficam liberadas. Premium entra quando você quiser planejamento, contas e investimentos.
+            Crie sua conta, importe seus extratos e veja seu mês com clareza antes de decidir. Sem cartão para começar.
           </p>
           <Button
             size="lg"
             onClick={() => { landingAnalytics.trackCtaClicked('Começar grátis', 'final-cta'); window.location.href = '/login'; }}
             className="h-14 px-10 text-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 rounded-full shadow-xl shadow-slate-900/10 dark:shadow-white/10 transition-all duration-300 hover:scale-105"
           >
-            Começar grátis
+            Começar teste grátis
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
           <p className="mt-4 text-sm text-slate-400 dark:text-slate-500">
-            Premium: {INSTALLMENTS}x de {fmt(installmentCents)} · Core gratuito para começar
+            Planos mensal e anual · cancele quando quiser
           </p>
         </motion.div>
       </div>

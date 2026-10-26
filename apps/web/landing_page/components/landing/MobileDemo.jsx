@@ -27,7 +27,7 @@ export default function MobileDemo({ onBuy }) {
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-3">Veja como funciona.</h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Você já entra vendo movimentações, categorias e histórico. Premium fica para quem quer organizar o próximo passo.
+            Você já entra vendo movimentações, categorias e histórico. Depois é só planejar o próximo passo.
           </p>
         </motion.div>
 
