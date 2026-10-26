@@ -176,6 +176,58 @@ export class NotificationsService {
     }
   }
 
+  async sendEngagementEmail(
+    to: string,
+    kind: 'trial_import' | 'trial_ending' | 'trial_expired' | 'monthly_import',
+    ctx: { name: string; trialDaysRemaining: number; unsubscribeUserId: string; unsubscribeToken: string; now: Date },
+  ): Promise<void> {
+    const web = process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br';
+    const api = process.env.API_BASE_URL ?? 'https://api.realwise.com.br';
+    const unsub = `${api}/reminders/unsubscribe?u=${ctx.unsubscribeUserId}&t=${ctx.unsubscribeToken}`;
+    const prevMonth = new Date(ctx.now.getFullYear(), ctx.now.getMonth() - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
+    const p = (t: string) => `<div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:14px;">${t}</div>`;
+
+    const copy = {
+      trial_import: {
+        subject: `${ctx.name}, falta só o seu extrato`,
+        title: `Falta só um passo, ${ctx.name} 👋`,
+        body: p('Você ainda não mandou nenhum extrato. É rápido: abra o chat, anexe o PDF ou CSV do seu banco e o John organiza tudo em segundos.') + p('Seu teste é grátis, sem cartão e sem cobrança.'),
+        cta: 'Abrir o chat e importar',
+        url: `${web}/chat`,
+      },
+      trial_ending: {
+        subject: 'Seu teste grátis termina amanhã',
+        title: 'Seu teste termina amanhã',
+        body: p('Aproveite as últimas horas: importe o extrato mais recente e veja o resumo do mês.') + p('Nada será cobrado automaticamente. Se quiser continuar depois, é só escolher um plano; se não, seus dados ficam guardados.'),
+        cta: 'Importar meu extrato',
+        url: `${web}/chat`,
+      },
+      trial_expired: {
+        subject: 'Seu teste acabou, mas seus dados estão guardados',
+        title: 'Seu teste terminou',
+        body: p('Seus dados continuam guardados. Para voltar a usar o John, escolha um plano a partir de R$ 8,99 por mês. Cancele quando quiser.'),
+        cta: 'Ver planos',
+        url: `${web}/`,
+      },
+      monthly_import: {
+        subject: `Hora de importar o extrato de ${prevMonth}`,
+        title: `Seu extrato de ${prevMonth} já saiu`,
+        body: p('Leva menos de um minuto: anexe o PDF ou CSV no chat e o John categoriza tudo, detecta transferências entre suas contas e atualiza seu resumo.'),
+        cta: 'Importar agora',
+        url: `${web}/chat`,
+      },
+    }[kind];
+
+    const html = getBaseTemplate({
+      title: copy.title,
+      body: copy.body,
+      cta: copy.cta,
+      ctaUrl: copy.url,
+      footerNote: `Não quer mais lembretes? <a href="${unsub}" style="color:#9ca3af;">Cancelar inscrição</a>`,
+    });
+    await this.sendMail({ to, subject: copy.subject, html });
+  }
+
   async sendBillReminderEmail(to: string, groups: BillGroups): Promise<void> {
     const total = groups.overdue.length + groups.dueToday.length + groups.dueSoon.length;
     if (total === 0) return;
