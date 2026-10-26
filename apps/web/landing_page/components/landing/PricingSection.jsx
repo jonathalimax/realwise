@@ -14,8 +14,16 @@ const INCLUDED = [
 
 const brl = (cents) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-function PlanCard({ plan, highlight, loading, onStart }) {
+// The API rounds the discount to a whole number, so "mais de X%" is only claimed when the number is strictly above a
+// multiple of ten (31 → "mais de 30%"); exactly 30 stays "Economize 30%". The claim therefore stays true if prices change.
+const discountLabel = (percent) =>
+  percent >= 21 && percent % 10 !== 0 ? `Mais de ${Math.floor(percent / 10) * 10}% de desconto` : `Economize ${percent}%`;
+
+function PlanCard({ plan, monthlyPlan, highlight, loading, onStart }) {
   const monthlyEquivalent = plan?.interval === 'year' ? plan.amount / 12 : null;
+  // What the same 12 months cost paying month by month: shown struck through, only when the annual plan really is cheaper.
+  const payingMonthly = plan?.interval === 'year' && monthlyPlan ? monthlyPlan.amount * 12 : null;
+  const showComparison = payingMonthly && payingMonthly > plan.amount;
   const isAnnual = plan?.interval === 'year';
   return (
     <div
@@ -27,12 +35,12 @@ function PlanCard({ plan, highlight, loading, onStart }) {
     >
       {isAnnual && plan?.savingsPercent ? (
         <span className="absolute -top-3 right-6 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
-          Economize {plan.savingsPercent}%
+          {discountLabel(plan.savingsPercent)}
         </span>
       ) : null}
       <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{isAnnual ? 'Anual' : 'Mensal'}</h3>
 
-      <div className="mt-3 min-h-[4.5rem]">
+      <div className="mt-3 min-h-[6rem]">
         {loading ? (
           <div className="h-10 w-40 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
         ) : plan ? (
@@ -42,6 +50,11 @@ function PlanCard({ plan, highlight, loading, onStart }) {
               <span className="ml-1 text-base font-medium text-slate-500">/{isAnnual ? 'ano' : 'mês'}</span>
             </p>
             {monthlyEquivalent ? <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">equivale a {brl(monthlyEquivalent)} por mês</p> : null}
+            {showComparison ? (
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                <span className="line-through">{brl(payingMonthly)}</span> pagando mês a mês
+              </p>
+            ) : null}
           </>
         ) : (
           <p className="text-lg font-semibold text-slate-500">Valores ao entrar no app</p>
@@ -99,7 +112,7 @@ export default function PricingSection() {
         {/* No scroll-reveal here on purpose: pricing must always be visible, even if an animation never fires. */}
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           <PlanCard plan={monthly} loading={loading} onStart={start} />
-          <PlanCard plan={annual} loading={loading} highlight onStart={start} />
+          <PlanCard plan={annual} monthlyPlan={monthly} loading={loading} highlight onStart={start} />
         </div>
       </div>
     </section>
