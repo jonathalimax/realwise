@@ -15,6 +15,8 @@ import * as crypto from 'crypto';
 import passport from 'passport';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
+import { AllowWithoutSubscription } from '../billing/allow-without-subscription.decorator';
+import { computeAccess } from '../billing/access';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { GoogleProfile } from './strategies/google.strategy';
@@ -180,6 +182,7 @@ function buildInternalAuthErrorContext(error: unknown): string {
   }
 }
 
+@AllowWithoutSubscription()
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
@@ -382,6 +385,7 @@ export class AuthController {
       premiumStatus: currentUser?.premiumStatus ?? null,
       premiumPaymentProvider: currentUser?.premiumPaymentProvider ?? null,
       premiumProviderPaymentId: currentUser?.premiumProviderPaymentId ?? null,
+      access: computeAccess(currentUser, new Date()),
     };
   }
 

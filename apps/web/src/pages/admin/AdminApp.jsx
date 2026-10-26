@@ -8,8 +8,6 @@ const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
 const ImportIssues = lazy(() => import('./ImportIssues'));
 const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 const GuidePage = lazy(() => import('./GuidePage'));
-const CouponsPage = lazy(() => import('./CouponsPage'));
-const PricingConfigPage = lazy(() => import('./PricingConfigPage'));
 const TestimonialManagementPage = lazy(() => import('./TestimonialManagementPage'));
 
 const PageLoader = () => (
@@ -73,8 +71,6 @@ export default function AdminApp() {
             <span className="font-bold text-emerald-400 text-base sm:text-lg">Realwise Admin</span>
           </div>
           <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
-          <NavLink to="coupons" className={navLinkClass}>Cupons</NavLink>
-          <NavLink to="pricing" className={navLinkClass}>Preço</NavLink>
           <NavLink to="guia" className={navLinkClass}>Guia</NavLink>
           <NavLink to="testimonials" className={navLinkClass}>Testimonials</NavLink>
           <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
@@ -92,8 +88,6 @@ export default function AdminApp() {
           <Routes>
             <Route index element={<Navigate to="leads" replace />} />
             <Route path="leads" element={<LeadsDashboard />} />
-            <Route path="coupons" element={<CouponsPage />} />
-            <Route path="pricing" element={<PricingConfigPage />} />
             <Route path="guia" element={<GuidePage />} />
             <Route path="testimonials" element={<TestimonialManagementPage />} />
             <Route path="import-issues" element={<ImportIssues />} />

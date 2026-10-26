@@ -4,7 +4,6 @@ import { DRIZZLE } from '../db/drizzle.module';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const mockLead = { id: 'lead-1', email: 'test@example.com', name: 'Test', plan: 'basic', status: 'new', metadata: null, createdAt: new Date(), updatedAt: new Date(), firebaseDocId: null };
-const mockCoupon = { id: 'coup-1', code: 'SAVE20', discountType: 'percent', discountValue: '20', maxUses: 100, useCount: 0, expiresAt: null, createdAt: new Date(), updatedAt: new Date(), firebaseDocId: null };
 
 const mockDb = {
   select: jest.fn().mockReturnThis(),
@@ -13,7 +12,7 @@ const mockDb = {
   orderBy: jest.fn().mockResolvedValue([mockLead]),
   insert: jest.fn().mockReturnThis(),
   values: jest.fn().mockReturnThis(),
-  returning: jest.fn().mockResolvedValue([mockCoupon]),
+  returning: jest.fn().mockResolvedValue([mockLead]),
   update: jest.fn().mockReturnThis(),
   set: jest.fn().mockReturnThis(),
   delete: jest.fn().mockReturnThis(),
@@ -34,7 +33,7 @@ describe('AdminService', () => {
     jest.clearAllMocks();
     mockDb.select.mockReturnThis(); mockDb.from.mockReturnThis();
     mockDb.where.mockResolvedValue([mockLead]); mockDb.orderBy.mockResolvedValue([mockLead]);
-    mockDb.insert.mockReturnThis(); mockDb.values.mockReturnThis(); mockDb.returning.mockResolvedValue([mockCoupon]);
+    mockDb.insert.mockReturnThis(); mockDb.values.mockReturnThis(); mockDb.returning.mockResolvedValue([mockLead]);
     mockDb.update.mockReturnThis(); mockDb.set.mockReturnThis(); mockDb.delete.mockReturnThis();
   });
 
@@ -43,8 +42,4 @@ describe('AdminService', () => {
     expect(result).toEqual([mockLead]);
   });
 
-  it('createCoupon inserts and returns coupon', async () => {
-    const result = await service.createCoupon({ code: 'SAVE20', discountType: 'percent', discountValue: '20' });
-    expect(result.code).toBe('SAVE20');
-  });
 });

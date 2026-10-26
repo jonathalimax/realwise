@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import TrialBanner from './billing/TrialBanner';
 
 export default function Layout() {
   return (
@@ -8,6 +9,7 @@ export default function Layout() {
 
       {/* Main content area */}
       <main className="lg:ml-64">
+        <TrialBanner />
         <Outlet />
       </main>
     </div>
