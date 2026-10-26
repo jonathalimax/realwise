@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useBudget } from '../contexts/BudgetContext';
 import { useMonth } from '../contexts/MonthContext';
-import { useAccess } from '../contexts/AccessContext';
 import usePlannerState, { getActivePlannerVersion } from '../pages/planner/usePlannerState';
 import { computeNetSalary } from '../pages/planner/rendaCalc';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
@@ -45,7 +44,6 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
   const { language, formatCurrency, categories } = useSettings();
   const { getTemplateBudget } = useBudget();
   const { selectedMonth: contextMonth } = useMonth();
-  const { premiumFeatureLocks } = useAccess();
   const { state: plannerStateData } = usePlannerState();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
@@ -118,7 +116,6 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
 
   const visibleRows = expanded ? rows : rows.slice(0, MAX_VISIBLE);
   const hasMore = rows.length > MAX_VISIBLE;
-  const isSpendGuidanceLocked = premiumFeatureLocks?.spendGuidance ?? false;
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm">
@@ -170,7 +167,7 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
                         {row.pct.toFixed(0)}% de {formatCurrency(row.limit)}
                       </span>
                     ) : <span />}
-                    {!isSpendGuidanceLocked && row.hasLimit && row.hasSpending && (
+                    {row.hasLimit && row.hasSpending && (
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums ${
                         isOver
                           ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
@@ -181,7 +178,7 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
                           : `↓ ${formatCurrency(remaining)} livres`}
                       </span>
                     )}
-                    {!isSpendGuidanceLocked && row.hasLimit && !row.hasSpending && (
+                    {row.hasLimit && !row.hasSpending && (
                       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20">
                         {formatCurrency(row.limit)} disponíveis
                       </span>
@@ -193,19 +190,6 @@ export default function ExpensesByCategoryCard({ transactions, selectedMonth }) 
           );
         })}
       </div>
-
-      {isSpendGuidanceLocked && (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
-          <p className="font-semibold">
-            {language === 'pt' ? 'Planejamento Premium' : 'Premium Planning'}
-          </p>
-          <p className="mt-1">
-            {language === 'pt'
-              ? 'Você pode ver quanto já gastou por categoria. Desbloqueie o Premium para ver quanto ainda pode gastar com segurança.'
-              : 'You can see how much you already spent by category. Unlock Premium to see how much you can still safely spend.'}
-          </p>
-        </div>
-      )}
 
       {hasMore && (
         <button

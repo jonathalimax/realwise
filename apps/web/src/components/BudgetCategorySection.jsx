@@ -44,9 +44,8 @@ const COLORS = [
 export default function BudgetCategorySection({ transactions, selectedMonth, onConfigure, onCategoryClick }) {
   const { language, formatCurrency, categories } = useSettings();
   const { getBudgetForMonth, getBudgetStatus, getStatusColor } = useBudget();
-  const { canWrite, premiumFeatureLocks } = useAccess();
+  const { canWrite } = useAccess();
   const { state: plannerStateData } = usePlannerState();
-  const isSpendGuidanceLocked = premiumFeatureLocks?.spendGuidance ?? false;
 
   const budget = getBudgetForMonth(selectedMonth);
   const categoryBudgets = useMemo(
@@ -138,7 +137,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
       </div>
 
       {/* Summary bar */}
-      {totalBudget > 0 && !isSpendGuidanceLocked && (
+      {totalBudget > 0 && (
         <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -208,7 +207,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                         <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap">
                           {formatCurrency(category.spent)}
                         </span>
-                        {category.hasLimit && !isSpendGuidanceLocked && (
+                        {category.hasLimit && (
                           <span className="text-[9px] sm:text-xs text-gray-400">
                             / {formatCurrency(category.limit)}
                           </span>
@@ -219,7 +218,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                     {/* Progress bar */}
                     <div className="flex items-center gap-1.5 sm:gap-2">
                       <div className="flex-1 h-1.5 sm:h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                        {category.hasLimit && !isSpendGuidanceLocked ? (
+                        {category.hasLimit ? (
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${statusColors.bg}`}
                             style={{ width: `${category.budgetPercentage}%` }}
@@ -235,7 +234,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                         ) : null}
                       </div>
 
-                      {category.hasLimit && !isSpendGuidanceLocked && (
+                      {category.hasLimit && (
                         <span className={`text-[9px] sm:text-xs font-bold ${statusColors.text} min-w-[45px] sm:min-w-[70px] text-right`}>
                           {category.budgetPercentage.toFixed(0)}%
                         </span>
@@ -246,19 +245,6 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
               </button>
             );
           })}
-        </div>
-      )}
-
-      {isSpendGuidanceLocked && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
-          <p className="font-semibold">
-            {language === 'pt' ? 'Disponível para gastar é Premium' : 'Available-to-spend is Premium'}
-          </p>
-          <p className="mt-1 text-xs sm:text-sm">
-            {language === 'pt'
-              ? 'No plano gratuito você vê quanto gastou em cada categoria. O Premium libera limites, orçamento restante e orientação de gasto.'
-              : 'On the free plan you can see how much you spent in each category. Premium unlocks limits, remaining budget, and spending guidance.'}
-          </p>
         </div>
       )}
 

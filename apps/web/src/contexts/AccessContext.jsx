@@ -13,6 +13,7 @@ export function AccessProvider({ children }) {
         canWrite: true,
         isReadOnly: false,
         isOwner: false,
+        access: null,
         ownerId: null,
         loading: true,
         currentUser: null,
