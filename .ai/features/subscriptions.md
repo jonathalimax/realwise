@@ -1,6 +1,6 @@
 # Feature: Stripe-only subscriptions with a 3-day trial and a hard paywall
 
-Status: being built (branch `feat/stripe-subscriptions`). This file is the **contract** between the API, web and admin workstreams and, once shipped, the feature documentation.
+Status: built and verified end to end on branch `feat/stripe-subscriptions` (PR open, not yet deployed). This file is the **contract** between the API, web and admin workstreams and, once shipped, the feature documentation.
 
 ## Product rules (decided)
 
@@ -86,3 +86,29 @@ Webhook signature always verified; never trust a redirect or client state for en
 ## Verification (no new unit-test files per repo owner's rule)
 
 Existing tests broken by the change are fixed (tests of deleted code are deleted). The orchestrator verifies with scratch-database scripts: state machine table above, guard 402 vs allowed, migration data step, webhook signature + idempotent sync with a stubbed Stripe client, and the paywall flow in the browser.
+
+## Decisions taken at build time
+
+- **Pricing (owner's choice):** monthly **R$ 8,99**, annual about **30% off** (≈ R$ 75,48/year, ≈ R$ 6,29/month). Created in Stripe, never hard-coded; the paywall shows the real Stripe amounts.
+- **AI inside the plan (fair use):** every subscriber gets John. After the per-user monthly AI budget (`LLM_MONTHLY_BUDGET_USD`) John continues on the cheaper `LLM_MODEL_FALLBACK` until `LLM_HARD_CAP_MULTIPLIER` × the budget, then stops until next month. At R$ 8,99 the budget must stay small (see "Unit economics").
+- `POST /billing/checkout` answers **409** for `lifetime` users (their legacy access must not be replaced by a subscription that can end) and for users with a live Stripe subscription; the owner can still check out.
+- The Stripe webhook **never edits `premium_status`**: access comes only from the `subscription_*` columns; trial fields are left alone.
+- An event for an old, ended subscription cannot overwrite a live one; handlers re-fetch the subscription (state-based, idempotent, order-tolerant); a purchase row is written once per session under an advisory lock; e-mail failures are logged, not thrown (so Stripe does not replay).
+- Webhook responses: bad/missing signature or secret → 400; processing error → 500 (Stripe retries); unknown events/users → 200.
+- The paywall is rendered **above** every data provider, so a blocked user fires no data requests; it reads the language/dark mode from localStorage because `/settings` is blocked too.
+- Admin: coupon/pricing screens and the abandoned-checkout offer actions (stages 2 and 3) were removed; the API returns 400 for those stages.
+
+## Stripe setup (production)
+
+1. Product with two recurring BRL prices (monthly, annual). Put their ids in `STRIPE_PRICE_MONTHLY` / `STRIPE_PRICE_ANNUAL`.
+2. Customer portal enabled (Settings → Billing → Customer portal), promotion codes allowed.
+3. Webhook endpoint `https://api.realwise.com.br/webhooks/stripe` with events `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`, **created with API version `2025-08-27.basil`** (the version the installed `stripe@18.5` SDK pins; another version can move `current_period_end` and null the renewal date / past-due grace).
+4. Env on the API: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL`, `FRONTEND_BASE_URL`. Remove `MP_*` / `MERCADOPAGO_*`.
+
+## Unit economics (estimates, to be replaced by the data in `llm_call_log`)
+
+Stripe card fees + taxes take roughly 10–12% of a Brazilian subscription. At R$ 8,99 the net is about R$ 7,7 (≈ US$ 1,4); at the annual price about R$ 5,5 per month. A typical active user costs about US$ 1,5–2,5 per month with Sonnet for everything, so the price only works with a **small AI budget (≈ US$ 0,5–0,7 per user per month), the cheaper model for plain questions and insights, and Sonnet only for document extraction**. The 3-day trial is also metered by the same per-user budget.
+
+## Verified
+
+API: 79 scenario checks by the API workstream (state table, migration data step, guard, signature verification, idempotent replays, billing endpoints) with a stubbed Stripe; integration run of the real API + real web with an in-memory Stripe stand-in: blocked user gets 402 on data/chat and still reaches billing, trial and lifetime pass, subscribe → success page → webhook → unlocked (+ onboarding), trial banner, and a trial that expires mid-session flips to the paywall without a reload. Not verified against real Stripe (no keys here).
