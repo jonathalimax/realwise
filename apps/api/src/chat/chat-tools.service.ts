@@ -4,10 +4,11 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { createHash, randomUUID } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { accounts, bills, categories, categorizationRules, chatFiles, imports, transactions } from '../db/schema';
+import { accounts, bills, categories, categorizationRules, chatFiles, imports, planner, transactions } from '../db/schema';
 import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
 import { looksLikeInvoicePayment, matchesHolder, pairTransfers } from './transfer';
+import { BANKS } from './onboarding';
 import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
 import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
 
@@ -92,7 +93,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              kind: { type: 'string', enum: ['account', 'payment_method', 'choice'], description: 'account and payment_method options are filled in by the app; for choice you provide options.' },
+              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day).' },
               title: { type: 'string', description: 'Short question, e.g. "Qual conta é essa fatura?"' },
               subtitle: { type: 'string', description: 'What you saw that makes you unsure, e.g. "Final 4821, vence dia 10".' },
               fileName: { type: 'string', description: 'Exact filename this question is about, if any.' },
@@ -103,6 +104,16 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
         },
       },
       required: ['questions'],
+    },
+  },
+  {
+    name: 'set_monthly_income',
+    description:
+      "Set up the user's planner with their monthly NET salary (after deductions) during onboarding. Only works when the planner has no income yet; if it is already configured, tell the user to adjust it in the Planejamento screen.",
+    parameters: {
+      type: 'object',
+      properties: { netSalary: { type: 'number', description: 'Monthly net income in BRL, positive.' } },
+      required: ['netSalary'],
     },
   },
   {
@@ -232,6 +243,8 @@ export class ChatToolsService {
           return await this.edit.remove(args, ctx);
         case 'restore_records':
           return await this.edit.restore(args, ctx);
+        case 'set_monthly_income':
+          return { result: await this.setMonthlyIncome(args, ctx) };
         case 'create_account':
           return { result: await this.createAccount(args, ctx) };
         case 'create_category':
@@ -457,10 +470,13 @@ export class ChatToolsService {
     const labels: Record<string, string> = { credit: 'Cartão de crédito', debit: 'Débito', pix: 'PIX', transfer: 'Transferência', boleto: 'Boleto', cash: 'Dinheiro', other: 'Outro' };
 
     const questions: ChatQuestion[] = raw.map((q, i) => {
-      const kind = ['account', 'payment_method', 'choice'].includes(q.kind) ? (q.kind as ChatQuestion['kind']) : 'choice';
+      const kind = ['account', 'payment_method', 'choice', 'account_form'].includes(q.kind) ? (q.kind as ChatQuestion['kind']) : 'choice';
       const base = { id: `q${i + 1}`, kind, title: String(q.title ?? '').slice(0, 140), subtitle: q.subtitle ? String(q.subtitle).slice(0, 200) : undefined, fileName: q.fileName ? String(q.fileName) : undefined };
       if (kind === 'account') {
         return { ...base, allowNew: true, options: accs.map((a) => ({ value: a.id, label: a.name, hint: a.type ?? undefined })) };
+      }
+      if (kind === 'account_form') {
+        return { ...base, options: BANKS.map((b) => ({ value: b.id, label: b.name })) };
       }
       if (kind === 'payment_method') {
         return { ...base, options: PAYMENT_METHODS.map((m) => ({ value: m, label: labels[m] })) };
@@ -540,22 +556,95 @@ export class ChatToolsService {
     }
   }
 
-  private async createAccount(args: ToolArgs, ctx: ToolContext) {
-    const name = String(args.name ?? '').trim();
-    if (!name) return { error: 'name is required' };
-    const type = ['checking', 'savings', 'credit', 'wallet'].includes(args.type) ? args.type : 'checking';
+  /** One place that creates an account, used by John's create_account tool and by the onboarding form. */
+  async createAccountFull(
+    ctx: ToolContext,
+    data: {
+      bankId?: string;
+      customBankName?: string | null;
+      cardName?: string | null;
+      type: 'checking' | 'savings' | 'credit' | 'wallet';
+      holderName?: string | null;
+      closingDay?: number | null;
+      paymentDay?: number | null;
+      name?: string;
+    },
+  ) {
+    const bank = BANKS.find((b) => b.id === data.bankId);
+    const name =
+      (data.name ?? '').trim() ||
+      (data.cardName ?? '').trim() ||
+      (data.bankId === 'other' ? (data.customBankName ?? '').trim() : (bank?.name ?? '')) ||
+      'Conta';
+    const credit = data.type === 'credit';
     const [acc] = await this.db
       .insert(accounts)
       .values({
         clientId: ctx.clientId,
         userId: ctx.userId,
-        name,
-        type,
-        hasCredit: type === 'credit',
-        holderName: args.holderName ? String(args.holderName).trim().slice(0, 120) : null,
+        name: name.slice(0, 80),
+        type: data.type,
+        bankId: data.bankId ?? null,
+        cardName: data.cardName ? data.cardName.trim().slice(0, 80) : null,
+        customBankName: data.bankId === 'other' && data.customBankName ? data.customBankName.trim().slice(0, 80) : null,
+        hasCredit: credit,
+        closingDay: credit ? (data.closingDay ?? null) : null,
+        paymentDay: credit ? (data.paymentDay ?? null) : null,
+        holderName: data.holderName ? data.holderName.trim().slice(0, 120) : null,
+        balance: '0',
       })
       .returning();
+    return acc;
+  }
+
+  private async createAccount(args: ToolArgs, ctx: ToolContext) {
+    const name = String(args.name ?? '').trim();
+    if (!name) return { error: 'name is required' };
+    const type = ['checking', 'savings', 'credit', 'wallet'].includes(args.type) ? args.type : 'checking';
+    const acc = await this.createAccountFull(ctx, { name, type, holderName: args.holderName ? String(args.holderName) : null });
     return { accountId: acc.id, name: acc.name, type: acc.type };
+  }
+
+  /**
+   * Onboarding income step. The planner keeps income as versioned per-month state, so this only writes when nothing
+   * is configured yet: it must never overwrite a planner the user already set up.
+   */
+  private async setMonthlyIncome(args: ToolArgs, ctx: ToolContext) {
+    const amount = Number(args.netSalary);
+    if (!Number.isFinite(amount) || amount <= 0) return { error: 'netSalary must be a positive number.' };
+
+    const [row] = await this.db
+      .select()
+      .from(planner)
+      .where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    const state = ((row?.state ?? {}) as Record<string, unknown>) ?? {};
+    const versions = Array.isArray(state.plannerVersions) ? (state.plannerVersions as Record<string, unknown>[]) : [];
+    const alreadyConfigured = Number(row?.salaryGross ?? 0) > 0 || versions.some((v) => Number(v.salarioBruto) > 0);
+    if (alreadyConfigured) return { error: 'The planner already has an income configured. Ask the user to change it in the Planejamento screen.' };
+
+    const now = new Date();
+    const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const nextState = {
+      ...state,
+      plannerVersions: [
+        {
+          from: month,
+          salarioBruto: amount,
+          salarioDeductions: [],
+          salarioBenefits: [],
+          allocation: { necessidades: 70, poupanca: 20, desejos: 10 },
+          categoryBudgetsPct: {},
+        },
+      ],
+    };
+    await this.db
+      .insert(planner)
+      .values({ clientId: ctx.clientId, userId: ctx.userId, salaryGross: amount.toFixed(2), state: nextState })
+      .onConflictDoUpdate({
+        target: [planner.clientId, planner.userId],
+        set: { salaryGross: amount.toFixed(2), state: nextState, updatedAt: new Date() },
+      });
+    return { monthlyNetIncome: amount, fromMonth: month };
   }
 
   private async createCategory(args: ToolArgs, ctx: ToolContext) {

@@ -3,13 +3,14 @@ import { and, asc, desc, eq, gte, inArray, lt, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { accounts, categories, categorizationRules, chatFiles, chatMessages, imports, transactions } from '../db/schema';
+import { accounts, categories, categorizationRules, chatFiles, chatMessages, imports, planner, settings, transactions } from '../db/schema';
 import { LlmService } from '../llm/llm.service';
 import type { LlmContentPart, LlmMessage } from '../llm/llm.types';
 import { prepareFile, toContentPart, type PreparedFile } from './attachments';
 import { buildSystemPrompt } from './chat.prompt';
 import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.service';
 import { MAX_REVIEW_ITEMS, TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
+import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, welcomeMessage } from './onboarding';
 
 const HISTORY_LIMIT = 16;
 /** Messages older than this are neither shown nor sent to the model (keeps the context, and token cost, small). Rows are kept, not destroyed. */
@@ -179,6 +180,107 @@ export class ChatService {
     return { userMessage, assistantMessage };
   }
 
+  // ───────────────────────────── onboarding ─────────────────────────────
+
+  private async hasIncomeConfigured(scope: ChatScope): Promise<boolean> {
+    const [row] = await this.db
+      .select()
+      .from(planner)
+      .where(and(eq(planner.clientId, scope.clientId), eq(planner.userId, scope.userId)));
+    const raw = (row?.state as { plannerVersions?: unknown } | null)?.plannerVersions;
+    const versions = Array.isArray(raw) ? (raw as { salarioBruto?: unknown }[]) : [];
+    return Number(row?.salaryGross ?? 0) > 0 || versions.some((v) => Number(v.salarioBruto) > 0);
+  }
+
+  /** A user needs setup until they have at least one account: the chat then leads them through it. */
+  async onboardingStatus(scope: ChatScope): Promise<{ needsSetup: boolean; accountCount: number; categoryCount: number }> {
+    const [accs, cats] = await Promise.all([
+      this.db.select({ id: accounts.id }).from(accounts).where(and(eq(accounts.userId, scope.userId), eq(accounts.clientId, scope.clientId), isNull(accounts.deletedAt))),
+      this.db.select({ id: categories.id }).from(categories).where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId), isNull(categories.deletedAt))),
+    ]);
+    return { needsSetup: accs.length === 0, accountCount: accs.length, categoryCount: cats.length };
+  }
+
+  /**
+   * First chat open for a user with no accounts: creates the default categories (once) and posts John's scripted
+   * welcome with the account form. Idempotent: it does nothing if the welcome is already in the recent conversation.
+   */
+  async startOnboarding(scope: ChatScope): Promise<{ needsSetup: boolean; message: ChatMessageRow | null }> {
+    const status = await this.onboardingStatus(scope);
+    if (!status.needsSetup) return { needsSetup: false, message: null };
+
+    if (status.categoryCount === 0) {
+      await this.db.insert(categories).values(DEFAULT_CATEGORIES.map((c) => ({ ...scope, name: c.name, type: c.type, color: c.color, icon: c.icon })));
+    }
+
+    const recent = await this.history(scope, 50);
+    const alreadyWelcomed = recent.some(
+      (m) => m.role === 'assistant' && Array.isArray(m.questions) && (m.questions as ChatQuestion[]).some((q) => q.kind === 'account_form'),
+    );
+    if (alreadyWelcomed) return { needsSetup: true, message: null };
+
+    const [s] = await this.db.select().from(settings).where(and(eq(settings.userId, scope.userId), eq(settings.clientId, scope.clientId)));
+    const w = welcomeMessage(String(s?.language ?? 'pt-BR').toLowerCase().startsWith('en') ? 'en' : 'pt');
+    const question: ChatQuestion = {
+      id: 'q1',
+      kind: 'account_form',
+      title: w.formTitle,
+      subtitle: w.formSubtitle,
+      options: BANKS.map((b) => ({ value: b.id, label: b.name })),
+    };
+    const [message] = await this.db
+      .insert(chatMessages)
+      .values({ ...scope, role: 'assistant', content: w.content, questions: [question] })
+      .returning();
+    return { needsSetup: true, message };
+  }
+
+  /** Saves the onboarding account form, then lets John continue the conversation (next: more accounts, income, first statement). */
+  async submitAccountForm(
+    scope: ChatScope,
+    messageId: string,
+    form: {
+      bankId: string;
+      customBankName?: string;
+      cardName?: string;
+      type: string;
+      holderName: string;
+      closingDay?: number;
+      paymentDay?: number;
+    },
+    onEvent?: (event: ChatStreamEvent) => void,
+  ) {
+    const msg = await this.ownMessage(scope, messageId);
+    const questions = (msg.questions ?? []) as ChatQuestion[];
+    const target = questions.find((q) => q.kind === 'account_form' && !q.answer);
+    if (!target) throw new BadRequestException('There is no account form waiting to be filled.');
+
+    if (!BANKS.some((b) => b.id === form.bankId)) throw new BadRequestException('Choose a bank from the list.');
+    if (!(ACCOUNT_TYPES as readonly string[]).includes(form.type)) throw new BadRequestException('Invalid account type.');
+    if (form.bankId === 'other' && !form.customBankName?.trim()) throw new BadRequestException('Type the bank name.');
+    if (!form.holderName?.trim()) throw new BadRequestException('Enter the account holder name.');
+    if (form.type === 'credit' && (!form.closingDay || !form.paymentDay)) throw new BadRequestException('Enter the closing and due day of the card.');
+
+    const acc = await this.tools.createAccountFull(scope, {
+      bankId: form.bankId,
+      customBankName: form.customBankName,
+      cardName: form.cardName,
+      type: form.type as 'checking' | 'savings' | 'credit' | 'wallet',
+      holderName: form.holderName,
+      closingDay: form.closingDay ?? null,
+      paymentDay: form.paymentDay ?? null,
+    });
+
+    const updated = questions.map((q) => (q === target ? { ...q, answer: { value: acc.id, label: acc.name } } : q));
+    await this.db.update(chatMessages).set({ questions: updated }).where(eq(chatMessages.id, msg.id));
+
+    const bank = BANKS.find((b) => b.id === form.bankId)?.name ?? form.customBankName;
+    const kind = form.type === 'credit' ? 'cartão de crédito' : form.type === 'wallet' ? 'carteira' : form.type === 'savings' ? 'poupança' : 'conta corrente';
+    const text = `Cadastrei a conta "${acc.name}" (${bank}, ${kind}, titular ${form.holderName.trim()}).`;
+    const turn = await this.send(scope, text, [], onEvent);
+    return { ...turn, questionsMessage: { ...msg, questions: updated } };
+  }
+
   private mergeReviewGroup(into: Map<string, ReviewGroup>, g: ReviewGroup) {
     const existing = into.get(g.key);
     if (!existing) {
@@ -343,7 +445,9 @@ export class ChatService {
         .orderBy(desc(categorizationRules.usedCount), desc(categorizationRules.updatedAt))
         .limit(150),
     ]);
+    const hasIncome = await this.hasIncomeConfigured(scope);
     return buildSystemPrompt({
+      setup: { accountCount: accs.length, categoryCount: cats.length, hasIncome },
       today: new Date().toISOString().slice(0, 10),
       accounts: accs.map((a) => ({ id: a.id, name: a.name, type: a.type, cardName: a.cardName, holderName: a.holderName })),
       categories: cats.map((c) => ({ id: c.id, name: c.name, type: c.type })),

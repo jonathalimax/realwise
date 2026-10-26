@@ -1,7 +1,7 @@
 /** A multiple-choice question John shows the user as a sheet (account, payment method, free choice). */
 export interface ChatQuestion {
   id: string;
-  kind: 'account' | 'payment_method' | 'choice' | 'confirm';
+  kind: 'account' | 'payment_method' | 'choice' | 'confirm' | 'account_form';
   title: string;
   subtitle?: string;
   /** Attachment this question is about, if any. */

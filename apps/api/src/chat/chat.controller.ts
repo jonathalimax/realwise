@@ -2,7 +2,8 @@ import { Body, Controller, Get, Headers, Param, Query, Res, ParseUUIDPipe, Post,
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ACCOUNT_TYPES, BANK_IDS } from './onboarding';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ChatService, MAX_FILES_PER_MESSAGE } from './chat.service';
@@ -35,6 +36,40 @@ class AnswersDto {
   @ValidateNested({ each: true })
   @Type(() => AnswerDto)
   answers: AnswerDto[];
+}
+
+class AccountFormDto {
+  @IsIn(BANK_IDS)
+  bankId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  customBankName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  cardName?: string;
+
+  @IsIn([...ACCOUNT_TYPES])
+  type: string;
+
+  @IsString()
+  @MaxLength(120)
+  holderName: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  closingDay?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  paymentDay?: number;
 }
 
 class ReviewDecisionDto {
@@ -143,6 +178,29 @@ export class ChatController {
       clearInterval(ping);
       res.end();
     }
+  }
+
+  @Get('onboarding')
+  onboardingStatus(@CurrentUser() user: JwtPayload) {
+    return this.service.onboardingStatus({ clientId: user.clientId, userId: user.sub });
+  }
+
+  /** First chat open for a user with no accounts: seeds categories and posts John's welcome + account form (idempotent). */
+  @Post('onboarding/start')
+  startOnboarding(@CurrentUser() user: JwtPayload) {
+    return this.service.startOnboarding({ clientId: user.clientId, userId: user.sub });
+  }
+
+  @Post('messages/:id/account-form')
+  accountForm(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AccountFormDto,
+    @CurrentUser() user: JwtPayload,
+    @Headers('accept') accept: string | undefined,
+    @Res() res: Response,
+  ) {
+    const scope = { clientId: user.clientId, userId: user.sub };
+    return this.respond(res, accept, (emit) => this.service.submitAccountForm(scope, id, dto, emit));
   }
 
   @Post('messages/:id/review')
