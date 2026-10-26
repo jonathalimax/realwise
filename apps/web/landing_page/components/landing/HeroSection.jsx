@@ -45,7 +45,7 @@ export default function HeroSection() {
             {...rise(0)}
             className="inline-flex items-center gap-2 rounded-full border border-violet-200 dark:border-violet-800 bg-white/70 dark:bg-slate-800/60 px-3.5 py-1.5 text-xs font-semibold text-violet-700 dark:text-violet-300"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Teste grátis por 3 dias
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> 3 dias grátis · sem cartão e sem pagar nada
           </motion.span>
 
           <motion.h1 {...rise(0.08)} className="mt-5 text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
@@ -72,7 +72,7 @@ export default function HeroSection() {
           </motion.div>
 
           <motion.p {...rise(0.32)} className="mt-5 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400 lg:justify-start">
-            <ShieldCheck className="h-4 w-4 text-emerald-500" /> Sem cartão para testar · Cancele quando quiser · Seus dados são só seus
+            <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" /> Você só paga se quiser continuar depois dos 3 dias. Cancele quando quiser.
           </motion.p>
         </div>
 

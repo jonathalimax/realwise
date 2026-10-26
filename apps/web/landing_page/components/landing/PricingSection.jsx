@@ -73,7 +73,7 @@ function PlanCard({ plan, monthlyPlan, highlight, loading, onStart }) {
       <CtaButton onClick={onStart} tone={highlight ? 'primary' : 'dark'} className="mt-7 w-full">
         Começar teste grátis
       </CtaButton>
-      <p className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">3 dias grátis · sem cartão</p>
+      <p className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">3 dias grátis, sem cartão · você só paga depois do teste</p>
     </div>
   );
 }
@@ -106,7 +106,7 @@ export default function PricingSection() {
       <div className="mx-auto max-w-4xl">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Um plano simples</h2>
-          <p className="mt-3 text-slate-600 dark:text-slate-300">Teste 3 dias de graça, sem cartão. Depois, escolha como pagar. Cancele quando quiser.</p>
+          <p className="mt-3 text-slate-600 dark:text-slate-300">Teste 3 dias sem cadastrar cartão e sem pagar nada. Só depois do teste você escolhe um plano e paga. Cancele quando quiser.</p>
         </div>
 
         {/* No scroll-reveal here on purpose: pricing must always be visible, even if an animation never fires. */}
