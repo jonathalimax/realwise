@@ -27,8 +27,8 @@ export default function FooterSection() {
           <div className="flex flex-col gap-3">
             <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Navegação</span>
             <nav className="flex flex-col gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <button onClick={() => scrollTo('funcionalidades')} className="text-left hover:text-slate-900 dark:hover:text-white transition-colors">
-                Funcionalidades
+              <button onClick={() => scrollTo('como-funciona')} className="text-left hover:text-slate-900 dark:hover:text-white transition-colors">
+                Como funciona
               </button>
               <button onClick={() => scrollTo('preco')} className="text-left hover:text-slate-900 dark:hover:text-white transition-colors">
                 Preço
