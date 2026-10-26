@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
 import { premiumStatusEnum, userRoleEnum } from './enums';
 
 export const users = pgTable(
@@ -19,10 +19,17 @@ export const users = pgTable(
     premiumStatus: premiumStatusEnum('premium_status').default('trialing'),
     premiumPaymentProvider: varchar('premium_payment_provider'),
     premiumProviderPaymentId: varchar('premium_provider_payment_id'),
+    stripeCustomerId: varchar('stripe_customer_id'),
+    stripeSubscriptionId: varchar('stripe_subscription_id'),
+    subscriptionStatus: varchar('subscription_status'),
+    subscriptionPlan: varchar('subscription_plan'),
+    subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end', { withTimezone: true }),
+    subscriptionCancelAtPeriodEnd: boolean('subscription_cancel_at_period_end').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex('users_client_email_idx').on(table.clientId, table.email),
+    uniqueIndex('users_stripe_customer_id_idx').on(table.stripeCustomerId),
   ],
 );
