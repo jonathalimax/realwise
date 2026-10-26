@@ -38,8 +38,8 @@ Paying users needed signups = paying / conversion. Net revenue: 10 → 13, 100 �
 ## Recommended levers (in order)
 1. Env now: `LLM_MONTHLY_BUDGET_USD=0.6`, `LLM_MODEL_FALLBACK=anthropic/claude-haiku-5.5` (default budget is US$5/user, which loses money on every heavy user).
 2. Trial AI cap of ~US$0,15–0,25 per user (budget by access state) — not built.
-3. Route plain Q&A/insights to Haiku, keep Sonnet for documents/onboarding — not built.
-4. Enable prompt caching for the system prompt (resent every tool round) — not built.
+3. Route plain Q&A/insights to Haiku, Sonnet for turns with attached documents — **built** (`tier` on `LlmRequest`; env `LLM_MODEL_CHAT` strong, `LLM_MODEL_CHAT_LIGHT`, `LLM_MODEL_INSIGHTS`).
+4. Prompt caching (Anthropic `cache_control` on the system prompt and last user message; cache reads/writes priced in the budget guard) — **built**; disable with `LLM_PROMPT_CACHE=off`. Check `llm_call_log` cost per turn after deploy to confirm cache hits.
 5. Reminder emails to lift trial→paid conversion (built, `engagement-reminders`).
 
 ## Scalability (1.000 users at the same time)

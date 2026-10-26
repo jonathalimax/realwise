@@ -39,7 +39,14 @@ export class LlmService {
         onText && this.provider.generateStream
           ? await this.provider.generateStream(request, onText)
           : await this.provider.generate(request);
-      const usd = estimateCostUsd(result.provider, result.model, result.inputTokens, result.outputTokens);
+      const usd = estimateCostUsd(
+        result.provider,
+        result.model,
+        result.inputTokens,
+        result.outputTokens,
+        result.cachedInputTokens,
+        result.cacheWriteTokens,
+      );
       await this.log(scope, request, result, usd);
       return result;
     } catch (e) {

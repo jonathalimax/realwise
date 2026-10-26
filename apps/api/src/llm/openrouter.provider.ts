@@ -3,12 +3,39 @@ import type { LlmProvider, LlmRequest, LlmResult, LlmToolCall } from './llm.type
 
 const API_URL = process.env.OPENROUTER_API_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
 
-/** Model per purpose. Override per environment; defaults favour accuracy for chat/extraction. */
-function modelFor(purpose: LlmRequest['purpose']): string {
-  if (purpose === 'insights') {
-    return process.env.LLM_MODEL_INSIGHTS ?? process.env.LLM_MODEL_CHAT ?? 'anthropic/claude-sonnet-5.5';
-  }
-  return process.env.LLM_MODEL_CHAT ?? 'anthropic/claude-sonnet-5.5';
+const STRONG_DEFAULT = 'anthropic/claude-sonnet-5.5';
+const LIGHT_DEFAULT = 'anthropic/claude-haiku-5.5';
+
+/**
+ * Model per request. Documents (statements) use the strong model; plain Q&A, edits and insights use the light one.
+ * Override per environment with LLM_MODEL_CHAT (strong), LLM_MODEL_CHAT_LIGHT and LLM_MODEL_INSIGHTS.
+ */
+export function modelFor(req: Pick<LlmRequest, 'purpose' | 'tier'>): string {
+  if (req.purpose === 'insights') return process.env.LLM_MODEL_INSIGHTS ?? process.env.LLM_MODEL_CHAT_LIGHT ?? LIGHT_DEFAULT;
+  if (req.tier === 'light') return process.env.LLM_MODEL_CHAT_LIGHT ?? LIGHT_DEFAULT;
+  return process.env.LLM_MODEL_CHAT ?? STRONG_DEFAULT;
+}
+
+/**
+ * Anthropic prompt caching through OpenRouter needs explicit breakpoints. The system prompt (accounts, categories,
+ * rules) and the last user message (history + any attached document) are the big stable prefix that is re-sent on
+ * every tool round, so cache up to both. Only Anthropic models take this; others get the messages untouched.
+ */
+export function withCacheBreakpoints(messages: LlmRequest['messages'], model: string): unknown[] {
+  if (!model.startsWith('anthropic/') || process.env.LLM_PROMPT_CACHE === 'off') return messages;
+  const mark = { cache_control: { type: 'ephemeral' } };
+  const lastUser = messages.map((m) => m.role).lastIndexOf('user');
+  return messages.map((m, i) => {
+    if (i !== lastUser && m.role !== 'system') return m;
+    if (m.role === 'system') return { ...m, content: [{ type: 'text', text: m.content, ...mark }] };
+    if (m.role !== 'user') return m;
+    const parts = typeof m.content === 'string' ? [{ type: 'text', text: m.content }] : [...m.content];
+    const last = parts[parts.length - 1];
+    // Breakpoints go on a text block (file/image parts may not carry one through the gateway).
+    if (last.type === 'text') parts[parts.length - 1] = { ...last, ...mark };
+    else parts.push({ type: 'text', text: '(fim dos anexos)', ...mark } as (typeof parts)[number]);
+    return { ...m, content: parts };
+  });
 }
 
 /**
@@ -39,8 +66,14 @@ interface SseChunk {
       tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[];
     };
   }[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  usage?: Usage;
   error?: { message?: string };
+}
+
+interface Usage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  prompt_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
 }
 
 @Injectable()
@@ -57,7 +90,7 @@ export class OpenRouterProvider implements LlmProvider {
     );
     return JSON.stringify({
       model,
-      messages: req.messages,
+      messages: withCacheBreakpoints(req.messages, model),
       tools: req.tools?.length
         ? req.tools.map((t) => ({ type: 'function', function: { ...t, parameters: simplifySchema(t.parameters) } }))
         : undefined,
@@ -88,13 +121,13 @@ export class OpenRouterProvider implements LlmProvider {
   }
 
   async generate(req: LlmRequest): Promise<LlmResult> {
-    const model = req.model ?? modelFor(req.purpose);
+    const model = req.model ?? modelFor(req);
     const start = Date.now();
     const res = await this.post(this.buildBody(req, model, false), 120_000);
 
     const data = (await res.json()) as {
       choices?: { message?: { content?: string | null; tool_calls?: LlmToolCall[] } }[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      usage?: Usage;
       error?: { message?: string };
     };
     if (data.error) throw new Error(`OpenRouter rejected request: ${data.error.message ?? 'unknown error'}`);
@@ -107,13 +140,15 @@ export class OpenRouterProvider implements LlmProvider {
       model,
       inputTokens: data.usage?.prompt_tokens ?? 0,
       outputTokens: data.usage?.completion_tokens ?? 0,
+      cachedInputTokens: data.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+      cacheWriteTokens: data.usage?.prompt_tokens_details?.cache_write_tokens ?? 0,
       latencyMs: Date.now() - start,
     };
   }
 
   /** Same as generate(), but calls `onText` with each piece of text as the model produces it. */
   async generateStream(req: LlmRequest, onText: (delta: string) => void): Promise<LlmResult> {
-    const model = req.model ?? modelFor(req.purpose);
+    const model = req.model ?? modelFor(req);
     const start = Date.now();
     const res = await this.post(this.buildBody(req, model, true), 180_000);
     if (!res.body) throw new Error('OpenRouter returned no stream body');
@@ -121,6 +156,8 @@ export class OpenRouterProvider implements LlmProvider {
     let text = '';
     let inputTokens = 0;
     let outputTokens = 0;
+    let cachedInputTokens = 0;
+    let cacheWriteTokens = 0;
     // Tool calls arrive as fragments keyed by index: id/name once, arguments in many small pieces.
     const calls = new Map<number, LlmToolCall>();
 
@@ -129,6 +166,8 @@ export class OpenRouterProvider implements LlmProvider {
       if (chunk.usage) {
         inputTokens = chunk.usage.prompt_tokens ?? inputTokens;
         outputTokens = chunk.usage.completion_tokens ?? outputTokens;
+        cachedInputTokens = chunk.usage.prompt_tokens_details?.cached_tokens ?? cachedInputTokens;
+        cacheWriteTokens = chunk.usage.prompt_tokens_details?.cache_write_tokens ?? cacheWriteTokens;
       }
       const delta = chunk.choices?.[0]?.delta;
       if (!delta) return;
@@ -176,6 +215,8 @@ export class OpenRouterProvider implements LlmProvider {
       model,
       inputTokens,
       outputTokens,
+      cachedInputTokens,
+      cacheWriteTokens,
       latencyMs: Date.now() - start,
     };
   }
