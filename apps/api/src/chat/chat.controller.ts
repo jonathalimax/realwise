@@ -170,9 +170,17 @@ export class ChatController {
     };
     // Keep-alive comment so idle proxies do not close the connection during long tool runs.
     const ping = setInterval(() => !res.writableEnded && res.write(': ping\n\n'), 15000);
+    // The turn keeps running on the server even if the phone drops the connection (the reply is saved either way).
+    const startedAt = Date.now();
+    let clientGone = false;
+    res.on('close', () => {
+      if (!res.writableEnded) clientGone = true;
+    });
     try {
       write({ type: 'done', result: await run(write) });
+      console.log(`[chat] turn finished in ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone before the end: ${clientGone})`);
     } catch (e) {
+      console.error(`[chat] turn failed after ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone: ${clientGone}):`, e);
       write({ type: 'error', message: e instanceof Error ? e.message : 'Request failed' });
     } finally {
       clearInterval(ping);
