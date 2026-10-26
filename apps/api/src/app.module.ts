@@ -7,6 +7,8 @@ import { HealthModule } from './health/health.module';
 import { DrizzleModule } from './db/drizzle.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { SubscriptionGuard } from './billing/subscription.guard';
+import { BillingModule } from './billing/billing.module';
 
 // Business modules (Plan 5)
 import { AccountsModule } from './accounts/accounts.module';
@@ -59,10 +61,15 @@ import { ChatModule } from './chat/chat.module';
     BillActionsModule,
     AdminModule,
     PaymentsModule,
+    BillingModule,
     // AI assistant
     LlmModule,
     ChatModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
+  // Order matters: JwtAuthGuard authenticates (sets request.user), SubscriptionGuard then enforces the paywall.
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: SubscriptionGuard },
+  ],
 })
 export class AppModule {}
