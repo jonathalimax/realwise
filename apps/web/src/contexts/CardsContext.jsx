@@ -119,6 +119,7 @@ export function CardsProvider({ children }) {
         bankId: bankData.bankId,
         cardName: bankData.cardName,
         customBankName: bankData.bankId === 'other' ? (bankData.customBankName || null) : null,
+        holderName: bankData.holderName || null,
         hasCredit: bankData.hasCredit || false,
         closingDay: bankData.hasCredit ? (bankData.closingDay || 10) : null,
         paymentDay: bankData.hasCredit ? (bankData.paymentDay || 15) : null,
@@ -159,6 +160,7 @@ export function CardsProvider({ children }) {
         type: updates.hasCredit ? 'credit' : (currentBank?.type || 'checking'),
         cardName: updates.cardName || null,
         customBankName: updates.bankId === 'other' ? (updates.customBankName || null) : null,
+        holderName: updates.holderName || null,
       };
       const updated = await accountsResource.update(docId, nextBank);
       setUserBanks((prev) => prev.map((bank) => (bank.id === docId ? updated : bank)));

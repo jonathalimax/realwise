@@ -4,6 +4,7 @@ import { ArrowDownIcon, ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon,
 import PageHeader from '../components/PageHeader';
 import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
+import AccountFormSheet from '../components/chat/AccountFormSheet';
 import Markdown from '../components/chat/Markdown';
 import { useSettings } from '../contexts/SettingsContext';
 import { chatResource } from '../lib/api/resources/chat';
@@ -14,6 +15,7 @@ const MAX_FILES = 6;
 
 /** Which sheet (if any) a message is still waiting on. */
 function pendingSheet(message) {
+  if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer && q.kind === 'account_form')) return 'account_form';
   if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer)) return 'questions';
   if (message.review && !message.review.resolved && message.review.groups?.length) return 'review';
   return null;
@@ -47,6 +49,7 @@ function SavedCard({ saved, onUndo, language }) {
           {saved.expense > 0 && saved.income > 0 && ' · '}
           {saved.income > 0 && `${pt ? 'Entradas' : 'Income'} ${brl(saved.income)}`}
           {saved.duplicatesSkipped > 0 && ` · ${saved.duplicatesSkipped} ${pt ? 'duplicadas ignoradas' : 'duplicates skipped'}`}
+          {saved.transfers > 0 && ` · ${saved.transfers} ${pt ? 'transferências entre contas (fora dos totais)' : 'transfers between accounts (not in totals)'}`}
         </p>
       </div>
       {state === 'undone' ? (
@@ -99,7 +102,9 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
             onClick={() => onOpenSheet(message.id, pending)}
             className="mt-2 w-full rounded-xl bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-700"
           >
-            {pending === 'questions'
+            {pending === 'account_form'
+              ? pt ? 'Cadastrar conta ou cartão' : 'Add account or card'
+              : pending === 'questions'
               ? message.questions.every((q) => q.answer || q.kind === 'confirm')
                 ? pt ? 'Revisar e confirmar' : 'Review and confirm'
                 : pt ? 'Responder perguntas' : 'Answer questions'
@@ -209,6 +214,7 @@ export default function ChatPage() {
   const delivered = useRef(false); // the server persisted the user's message for the current turn
   const [live, setLive] = useState(null); // { text, status, final } while John's reply streams
   const autoSent = useRef(false);
+  const onboardingStarted = useRef(false);
   const [manualSheet, setManualSheet] = useState(null); // { id, type } opened from a button
   const [dismissed, setDismissed] = useState(() => new Set()); // message ids whose sheet the user closed
   const [sheetBusy, setSheetBusy] = useState(false);
@@ -224,6 +230,19 @@ export default function ChatPage() {
       active = false;
     };
   }, [pt]);
+
+  // A user with no bank account is set up by John: the first open creates the default categories and posts his
+  // welcome with the account form. The server makes this idempotent; the ref avoids a duplicate call in StrictMode.
+  useEffect(() => {
+    if (loading || onboardingStarted.current) return;
+    onboardingStarted.current = true;
+    chatResource
+      .onboardingStart()
+      .then((res) => {
+        if (res?.message) setMessages((prev) => (prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]));
+      })
+      .catch(() => {});
+  }, [loading]);
 
   // Grow the composer with its content (up to ~6 lines, then it scrolls) so long messages stay readable.
   useEffect(() => {
@@ -372,6 +391,22 @@ export default function ChatPage() {
       setSending(false);
       setManualSheet({ id, type: 'questions' });
       setError(e?.message || (pt ? 'Não consegui enviar as respostas.' : 'Could not send your answers.'));
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
+  const submitAccountForm = async (form) => {
+    setSheetBusy(true);
+    setSending(true);
+    setError('');
+    const id = sheetMessage.id;
+    try {
+      await runTurn((onEvent) => chatResource.accountFormStream(id, form, onEvent), null);
+    } catch (e) {
+      setLive(null);
+      setSending(false);
+      setError(e?.message || (pt ? 'Não consegui salvar a conta.' : 'Could not save the account.'));
     } finally {
       setSheetBusy(false);
     }
@@ -590,6 +625,9 @@ export default function ChatPage() {
 
       {sheetMessage && sheet.type === 'questions' && (
         <QuestionSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAnswers} onClose={closeSheet} />
+      )}
+      {sheetMessage && sheet.type === 'account_form' && (
+        <AccountFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} error={error} onSubmit={submitAccountForm} onClose={closeSheet} />
       )}
       {sheetMessage && sheet.type === 'review' && (
         <ReviewSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onApply={submitReview} onClose={closeSheet} />

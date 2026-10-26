@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import PageHelp from '@/components/ui/PageHelp';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
@@ -18,8 +18,7 @@ import PlannerSummaryCard from '../components/PlannerSummaryCard';
 import ExpensesByCategoryCard from '../components/ExpensesByCategoryCard';
 import TrendChart from '../components/charts/TrendChart';
 import PageHeader from '../components/PageHeader';
-import OnboardingWizard from '../components/OnboardingWizard';
-import { useOnboardingProfile } from '../hooks/useOnboardingProfile';
+import { useNeedsSetup } from '../hooks/useNeedsSetup';
 import { SparklesIcon } from '@heroicons/react/24/outline';
 
 export default function DashboardPage() {
@@ -33,7 +32,8 @@ export default function DashboardPage() {
   const { getPaymentMonthKey, loading: cardsLoading } = useCards();
   const { transactions, loading: transactionsLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const investmentsEnabled = useFeature('investments');
-  const { profile: onboardingProfile } = useOnboardingProfile();
+  // No bank account yet: John (the chat) sets the user up, so the dashboard has nothing to show.
+  const needsSetup = useNeedsSetup();
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
     transactions, selectedMonth, viewMode, getPaymentMonthKey, { rollover: monthlyRollover }
   );
@@ -51,7 +51,7 @@ export default function DashboardPage() {
   // Dashboard is hydrating until access resolves an owner, cards finish loading,
   // and the first transactions snapshot lands. Gating here prevents the
   // "everything shows 0" flash where totals are computed from empty arrays.
-  const isHydrating = accessLoading || !ownerId || cardsLoading || transactionsLoading;
+  const isHydrating = accessLoading || !ownerId || cardsLoading || transactionsLoading || needsSetup === null;
 
   const last6Months = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d = new Date(`${selectedMonth}-01`);
@@ -82,6 +82,8 @@ export default function DashboardPage() {
   }, [transactions, selectedMonth, viewMode, getPaymentMonthKey]);
 
 
+  if (needsSetup === true) return <Navigate to="/chat" replace />;
+
   if (isHydrating) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -108,8 +110,6 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        <OnboardingWizard profile={onboardingProfile} />
-
         <AskChatBar />
 
         {/* Main Content Grid */}

@@ -64,6 +64,7 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
       accountId: { kind: 'ref', to: 'account', nullable: true },
       paymentMethod: { kind: 'enum', values: ['credit', 'debit', 'pix', 'transfer', 'boleto', 'cash', 'other'], nullable: true },
       ignored: { kind: 'bool' },
+      isTransfer: { kind: 'bool' },
     },
     describe: (r) => `${r.date} · ${r.description ?? '(sem descrição)'} · ${brl(r.amount)}`,
   },
@@ -77,6 +78,7 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
       type: { kind: 'enum', values: ['checking', 'savings', 'credit', 'investment', 'wallet'], nullable: true },
       cardName: { kind: 'string', max: 80, nullable: true },
       customBankName: { kind: 'string', max: 80, nullable: true },
+      holderName: { kind: 'string', max: 120, nullable: true },
       hasCredit: { kind: 'bool' },
       closingDay: { kind: 'int', min: 1, max: 31, nullable: true },
       paymentDay: { kind: 'int', min: 1, max: 31, nullable: true },
@@ -394,6 +396,10 @@ export class ChatEditService {
         } else {
           Object.assign(values, { paidAt: null, paidDate: null, paidAmount: null });
         }
+      }
+      if (def.key === 'transaction' && 'isTransfer' in values) {
+        values.ignored = values.isTransfer; // a transfer is never counted in totals
+        if (values.isTransfer === false) values.transferGroupId = null;
       }
       const before = this.pick(row, Object.keys(values));
       await this.q.update(def.table).set({ ...values, updatedAt: new Date() }).where(and(eq(def.table.id, row.id), eq(def.table.userId, ctx.userId), eq(def.table.clientId, ctx.clientId)));

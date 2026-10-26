@@ -17,6 +17,7 @@ export function BanksTabContent() {
     bankId: 'nubank',
     cardName: '',
     customBankName: '',
+    holderName: '',
     hasCredit: true,
     closingDay: 10,
     paymentDay: 15
@@ -27,6 +28,7 @@ export function BanksTabContent() {
       bankId: 'nubank',
       cardName: '',
       customBankName: '',
+      holderName: '',
       hasCredit: true,
       closingDay: 10,
       paymentDay: 15
@@ -41,6 +43,7 @@ export function BanksTabContent() {
         bankId: userBank.bankId,
         cardName: userBank.cardName || '',
         customBankName: userBank.customBankName || '',
+        holderName: userBank.holderName || '',
         hasCredit: userBank.hasCredit || false,
         closingDay: userBank.closingDay || 10,
         paymentDay: userBank.paymentDay || 15
@@ -59,6 +62,7 @@ export function BanksTabContent() {
       bankId: formData.bankId,
       cardName: formData.cardName,
       customBankName: formData.bankId === 'other' ? formData.customBankName : null,
+      holderName: formData.holderName.trim() || null,
       hasCredit: formData.hasCredit,
       closingDay: formData.hasCredit ? parseInt(formData.closingDay) : null,
       paymentDay: formData.hasCredit ? parseInt(formData.paymentDay) : null
@@ -242,6 +246,23 @@ export function BanksTabContent() {
                   className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                     text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
                 />
+              </div>
+              {/* Account holder: lets the assistant recognise transfers between your own (and your family's) accounts */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {language === 'pt' ? 'Titular da conta' : 'Account holder'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.holderName}
+                  onChange={(e) => setFormData({ ...formData, holderName: e.target.value })}
+                  placeholder={language === 'pt' ? 'Nome completo, como aparece no extrato' : 'Full name, as shown on the statement'}
+                  className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                    text-base sm:text-sm text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {language === 'pt' ? 'Usado para reconhecer transferências entre as suas contas (e as da sua família).' : 'Used to recognise transfers between your own (and your family\'s) accounts.'}
+                </p>
               </div>
 
               {/* Has Credit Card Toggle */}
@@ -502,6 +523,23 @@ export function BanksTabContent() {
                 className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
                   text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
               />
+            </div>
+            {/* Account holder: lets the assistant recognise transfers between your own (and your family's) accounts */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {language === 'pt' ? 'Titular da conta' : 'Account holder'}
+              </label>
+              <input
+                type="text"
+                value={formData.holderName}
+                onChange={(e) => setFormData({ ...formData, holderName: e.target.value })}
+                placeholder={language === 'pt' ? 'Nome completo, como aparece no extrato' : 'Full name, as shown on the statement'}
+                className="w-full pl-4 pr-10 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
+                  text-base sm:text-sm text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {language === 'pt' ? 'Usado para reconhecer transferências entre as suas contas (e as da sua família).' : 'Used to recognise transfers between your own (and your family\'s) accounts.'}
+              </p>
             </div>
 
             {/* Has Credit Card Toggle */}
