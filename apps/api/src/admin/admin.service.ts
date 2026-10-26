@@ -1,11 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { leads, purchases, coupons, importIssues, testimonials, pricingConfig } from '../db/schema';
+import { leads, purchases, importIssues, testimonials } from '../db/schema';
 import { UpdateLeadDto } from './dto/update-lead.dto';
-import { CreateCouponDto } from './dto/create-coupon.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -14,16 +13,6 @@ export class AdminService {
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
   ) {}
-
-  private mapCoupon(row: typeof coupons.$inferSelect) {
-    return {
-      ...row,
-      currentUses: row.useCount,
-      enabled: row.enabled,
-      validFrom: null,
-      validUntil: row.expiresAt,
-    };
-  }
 
   private mapImportIssue(row: typeof importIssues.$inferSelect) {
     const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
@@ -50,20 +39,6 @@ export class AdminService {
     return row;
   }
 
-  private mapPricingConfig(row: typeof pricingConfig.$inferSelect | undefined) {
-    if (!row) {
-      return {
-        configKey: 'landing-pricing',
-        basePriceCents: 23880,
-        compareAtPriceCents: 47988,
-        installments: 12,
-        stripeWalletEnabled: true,
-        mercadopagoEnabled: true,
-      };
-    }
-    return row;
-  }
-
   listLeads(): Promise<(typeof leads.$inferSelect)[]> {
     return this.db.select().from(leads).orderBy(desc(leads.createdAt));
   }
@@ -78,43 +53,6 @@ export class AdminService {
 
   listPurchases(): Promise<(typeof purchases.$inferSelect)[]> {
     return this.db.select().from(purchases).orderBy(desc(purchases.createdAt));
-  }
-
-  async listCoupons() {
-    const rows = await this.db.select().from(coupons).orderBy(desc(coupons.createdAt));
-    return rows.map((row) => this.mapCoupon(row));
-  }
-
-  async createCoupon(dto: CreateCouponDto) {
-    const insert: typeof coupons.$inferInsert = {
-      ...dto,
-      discountValue: dto.discountValue !== undefined ? String(dto.discountValue) : undefined,
-      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
-      enabled: dto.enabled ?? true,
-    };
-    const rows = await this.db.insert(coupons).values(insert).returning();
-    return this.mapCoupon(rows[0]);
-  }
-
-  async updateCoupon(id: string, dto: Partial<CreateCouponDto>) {
-    const rows = await this.db
-      .update(coupons)
-      .set({
-        ...(dto.code !== undefined ? { code: dto.code } : {}),
-        ...(dto.discountType !== undefined ? { discountType: dto.discountType } : {}),
-        ...(dto.discountValue !== undefined ? { discountValue: String(dto.discountValue) } : {}),
-        ...(dto.maxUses !== undefined ? { maxUses: dto.maxUses } : {}),
-        ...(dto.expiresAt !== undefined ? { expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null } : {}),
-        ...(dto.enabled !== undefined ? { enabled: dto.enabled } : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(coupons.id, id))
-      .returning();
-    return this.mapCoupon(rows[0]);
-  }
-
-  async deleteCoupon(id: string): Promise<void> {
-    await this.db.delete(coupons).where(eq(coupons.id, id));
   }
 
   async listTestimonials() {
@@ -162,58 +100,8 @@ export class AdminService {
       return { success: true, email: dto.email, stage: 1 };
     }
 
-    const discountPercent = dto.stage === 2 ? 10 : 5;
-    const code = `${dto.email.split('@')[0].replace(/[^a-z0-9]/gi, '')}${discountPercent}`.toUpperCase();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await this.db.insert(coupons).values({
-      code,
-      discountType: 'percentage',
-      discountValue: String(discountPercent),
-      maxUses: 1,
-      useCount: 0,
-      enabled: true,
-      expiresAt,
-    });
-    await this.notifications.sendAbandonedCheckoutEmail(dto.email, displayName, dto.stage, code, discountPercent, expiresAt);
-    return { success: true, email: dto.email, stage: dto.stage, code };
-  }
-
-  async getPricingConfig() {
-    const rows = await this.db.select().from(pricingConfig).where(eq(pricingConfig.configKey, 'landing-pricing'));
-    return this.mapPricingConfig(rows[0]);
-  }
-
-  async updatePricingConfig(dto: {
-    basePriceCents?: number;
-    compareAtPriceCents?: number;
-    installments?: number;
-    stripeWalletEnabled?: boolean;
-    mercadopagoEnabled?: boolean;
-  }) {
-    const rows = await this.db
-      .insert(pricingConfig)
-      .values({
-        configKey: 'landing-pricing',
-        basePriceCents: dto.basePriceCents ?? 23880,
-        compareAtPriceCents: dto.compareAtPriceCents ?? 47988,
-        installments: dto.installments ?? 12,
-        stripeWalletEnabled: dto.stripeWalletEnabled ?? true,
-        mercadopagoEnabled: dto.mercadopagoEnabled ?? true,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: pricingConfig.configKey,
-        set: {
-          ...(dto.basePriceCents !== undefined ? { basePriceCents: dto.basePriceCents } : {}),
-          ...(dto.compareAtPriceCents !== undefined ? { compareAtPriceCents: dto.compareAtPriceCents } : {}),
-          ...(dto.installments !== undefined ? { installments: dto.installments } : {}),
-          ...(dto.stripeWalletEnabled !== undefined ? { stripeWalletEnabled: dto.stripeWalletEnabled } : {}),
-          ...(dto.mercadopagoEnabled !== undefined ? { mercadopagoEnabled: dto.mercadopagoEnabled } : {}),
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return this.mapPricingConfig(rows[0]);
+    // Stages 2 and 3 relied on single-use discount coupons, which no longer exist (Stripe promotion codes now).
+    throw new BadRequestException('Only abandoned-checkout stage 1 is supported.');
   }
 
   async listImportIssues() {
