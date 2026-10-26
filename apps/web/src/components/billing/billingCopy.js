@@ -28,7 +28,8 @@ const COPY = {
       perMonth: '/mês',
       perYear: '/ano',
       perMonthEquivalent: (value) => `equivale a ${value}/mês`,
-      savings: (percent) => `Economize ${percent}%`,
+      // Only "mais de X%" when the (rounded) percent is strictly above a multiple of ten, so the claim is always true.
+      savings: (percent) => (percent >= 21 && percent % 10 !== 0 ? `Mais de ${Math.floor(percent / 10) * 10}% de desconto` : `Economize ${percent}%`),
       subscribe: 'Assinar',
       subscribeWith: (plan) => `Assinar plano ${plan}`,
       redirecting: 'Abrindo o pagamento...',
@@ -92,7 +93,7 @@ const COPY = {
       perMonth: '/month',
       perYear: '/year',
       perMonthEquivalent: (value) => `works out to ${value}/month`,
-      savings: (percent) => `Save ${percent}%`,
+      savings: (percent) => (percent >= 21 && percent % 10 !== 0 ? `Over ${Math.floor(percent / 10) * 10}% off` : `Save ${percent}%`),
       subscribe: 'Subscribe',
       subscribeWith: (plan) => `Subscribe to the ${plan} plan`,
       redirecting: 'Opening checkout...',
