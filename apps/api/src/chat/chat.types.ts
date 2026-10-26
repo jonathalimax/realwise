@@ -44,6 +44,8 @@ export interface ReviewGroup {
   items: ReviewItem[];
   /** Name of the account these were saved to. */
   account: string | null;
+  /** True when John thinks these may be transfers between the user's own accounts and wants a yes/no. */
+  transferAsk?: boolean;
   /** The category the row was saved with, if any. */
   currentCategoryId: string | null;
   /** Up to 3 categories John considers plausible, best first. */

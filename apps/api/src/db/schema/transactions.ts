@@ -19,6 +19,10 @@ export const transactions = pgTable('transactions', {
   accountId: uuid('account_id').references(() => accounts.id),
   paymentMethod: varchar('payment_method'),
   ignored: boolean('ignored').default(false).notNull(),
+  // Money moved between the household's own accounts: not income or expense. Also saved with ignored = true so totals skip it.
+  isTransfer: boolean('is_transfer').default(false).notNull(),
+  // Shared by the two sides (out of one account, into another) of the same transfer.
+  transferGroupId: uuid('transfer_group_id'),
   goalId: varchar('goal_id'),
   goalName: varchar('goal_name'),
   plannerGoalId: varchar('planner_goal_id'),

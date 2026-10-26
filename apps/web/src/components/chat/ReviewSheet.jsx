@@ -66,12 +66,18 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
     Object.fromEntries(groups.map((g) => [g.key, g.currentCategoryId ?? g.suggestionIds[0] ?? ''])),
   );
   const [remember, setRemember] = useState(() => Object.fromEntries(groups.map((g) => [g.key, true])));
+  // Groups John thinks may be transfers between the user's own accounts: true = "yes, it is a transfer".
+  const [transfer, setTransfer] = useState(() => Object.fromEntries(groups.map((g) => [g.key, false])));
   const [expanded, setExpanded] = useState(() => new Set());
 
   const apply = () => {
     const decisions = groups
-      .filter((g) => choice[g.key])
-      .map((g) => ({ key: g.key, categoryId: choice[g.key], remember: remember[g.key] }));
+      .filter((g) => transfer[g.key] || choice[g.key])
+      .map((g) =>
+        transfer[g.key]
+          ? { key: g.key, transfer: true, remember: remember[g.key] }
+          : { key: g.key, categoryId: choice[g.key], remember: remember[g.key] },
+      );
     onApply(decisions);
   };
 
@@ -87,7 +93,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
 
   return (
     <BottomSheet
-      title={pt ? 'Confirme as categorias' : 'Confirm categories'}
+      title={groups.some((g) => g.transferAsk) ? (pt ? 'Confirme categorias e transferências' : 'Confirm categories and transfers') : pt ? 'Confirme as categorias' : 'Confirm categories'}
       subtitle={
         pt
           ? `${count} transações já foram salvas. Ajuste as que eu errei.`
@@ -166,7 +172,42 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
               </div>
             )}
 
-            {g.suggestionIds.length > 0 && (
+            {g.transferAsk && (
+              <div className="mt-3" role="radiogroup" aria-label={pt ? 'É uma transferência entre as suas contas?' : 'Is this a transfer between your accounts?'}>
+                <p className="mb-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  {pt ? 'É uma transferência entre as suas contas?' : 'Is this a transfer between your own accounts?'}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: true, label: pt ? 'Sim, é minha' : 'Yes, it is mine' },
+                    { value: false, label: pt ? 'Não, é normal' : 'No, regular' },
+                  ].map((o) => (
+                    <button
+                      key={String(o.value)}
+                      role="radio"
+                      aria-checked={transfer[g.key] === o.value}
+                      onClick={() => setTransfer((prev) => ({ ...prev, [g.key]: o.value }))}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                        transfer[g.key] === o.value
+                          ? 'border-violet-500 bg-violet-600 text-white'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                {transfer[g.key] && (
+                  <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                    {pt
+                      ? 'Fica fora das suas receitas e despesas e é ligada ao outro lado, se ele já estiver importado.'
+                      : 'It is left out of income and expenses and linked to its other side if that is already imported.'}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!transfer[g.key] && g.suggestionIds.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {g.suggestionIds.map((id) => (
                   <button
@@ -186,6 +227,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
             )}
 
             {/* 16px on mobile: below that iOS zooms the whole page when a field is focused */}
+            {!transfer[g.key] && (
             <select
               value={choice[g.key]}
               onChange={(e) => setChoice((prev) => ({ ...prev, [g.key]: e.target.value }))}
@@ -199,6 +241,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
                 </option>
               ))}
             </select>
+            )}
 
             <label className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
               <input
@@ -207,7 +250,9 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
                 onChange={(e) => setRemember((prev) => ({ ...prev, [g.key]: e.target.checked }))}
                 className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
               />
-              {pt ? 'Lembrar disso nas próximas importações' : 'Remember this for future imports'}
+              {transfer[g.key]
+                ? pt ? 'Lembrar: sempre tratar como transferência' : 'Remember: always treat as a transfer'
+                : pt ? 'Lembrar disso nas próximas importações' : 'Remember this for future imports'}
             </label>
           </div>
         );

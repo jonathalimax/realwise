@@ -42,11 +42,17 @@ class ReviewDecisionDto {
   @MaxLength(200)
   key: string;
 
+  @IsOptional()
   @IsUUID()
-  categoryId: string;
+  categoryId?: string;
 
   @IsBoolean()
   remember: boolean;
+
+  /** true = these are transfers between the user's own accounts (no category needed). */
+  @IsOptional()
+  @IsBoolean()
+  transfer?: boolean;
 }
 
 class ReviewDto {

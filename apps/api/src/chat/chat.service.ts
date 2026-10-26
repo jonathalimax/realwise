@@ -269,7 +269,7 @@ export class ChatService {
   async applyReview(
     scope: ChatScope,
     messageId: string,
-    decisions: { key: string; categoryId: string; remember: boolean }[],
+    decisions: { key: string; categoryId?: string; remember: boolean; transfer?: boolean }[],
   ): Promise<{ updated: number; message: ChatMessageRow }> {
     const msg = await this.ownMessage(scope, messageId);
     const review = msg.review as ReviewPayload | null;
@@ -284,8 +284,20 @@ export class ChatService {
     let updated = 0;
     for (const d of decisions) {
       const group = review.groups.find((g) => g.key === d.key);
-      const cat = catById.get(d.categoryId);
-      if (!group || !cat) continue;
+      if (!group) continue;
+      if (d.transfer === true) {
+        // The user says this is money moving between their own accounts: no category, left out of totals, linked to its other side.
+        const res = await this.db
+          .update(transactions)
+          .set({ isTransfer: true, ignored: true, categoryId: null, category: null, updatedAt: new Date() })
+          .where(and(inArray(transactions.id, group.transactionIds), eq(transactions.userId, scope.userId), eq(transactions.clientId, scope.clientId), isNull(transactions.deletedAt)))
+          .returning({ id: transactions.id });
+        updated += res.length;
+        if (d.remember) await this.tools.rememberTransferRule(group.merchant, scope);
+        continue;
+      }
+      const cat = d.categoryId ? catById.get(d.categoryId) : undefined;
+      if (!cat) continue;
       const res = await this.db
         .update(transactions)
         .set({ categoryId: cat.id, category: cat.name, updatedAt: new Date() })
@@ -296,6 +308,8 @@ export class ChatService {
         await this.tools.setCategoryRule({ description: group.merchant, categoryId: cat.id, applyToExisting: false }, scope);
       }
     }
+
+    await this.tools.linkTransfers(scope);
 
     const resolved: ReviewPayload = { ...review, resolved: true };
     const [message] = await this.db.update(chatMessages).set({ review: resolved }).where(eq(chatMessages.id, msg.id)).returning();
@@ -331,9 +345,9 @@ export class ChatService {
     ]);
     return buildSystemPrompt({
       today: new Date().toISOString().slice(0, 10),
-      accounts: accs.map((a) => ({ id: a.id, name: a.name, type: a.type, cardName: a.cardName })),
+      accounts: accs.map((a) => ({ id: a.id, name: a.name, type: a.type, cardName: a.cardName, holderName: a.holderName })),
       categories: cats.map((c) => ({ id: c.id, name: c.name, type: c.type })),
-      rules: rules.map((r) => ({ keyword: r.keyword, categoryName: r.category, usedCount: r.usedCount })),
+      rules: rules.map((r) => ({ keyword: r.keyword, categoryName: r.category, usedCount: r.usedCount, isTransfer: r.type === 'transfer' })),
     });
   }
 }

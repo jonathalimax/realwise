@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { accounts, bills, categories, categorizationRules, chatFiles, imports, transactions } from '../db/schema';
 import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
+import { looksLikeInvoicePayment, matchesHolder, pairTransfers } from './transfer';
 import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
 import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
 
@@ -20,6 +21,8 @@ export interface SavedSummary {
   source: string | null;
   accountName: string;
   saved: number;
+  /** Rows saved as transfers between the user's own accounts (left out of income/expense). */
+  transfers: number;
   duplicatesSkipped: number;
   income: number;
   expense: number;
@@ -68,6 +71,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
               confidence: { type: 'string', enum: ['high', 'low'], description: '"low" when the category is a guess the user should confirm.' },
               suggestedCategoryIds: { type: 'array', items: { type: 'string' }, description: 'Up to 3 plausible category UUIDs, best first (for low confidence).' },
               paymentMethod: { type: ['string', 'null'], enum: [...PAYMENT_METHODS, null] },
+              possibleTransfer: { type: 'boolean', description: 'true when the line is, or may be, money moving between the user\'s own/household accounts (Pix/TED/transfer to or from a person, an invoice payment of their own card). The app confirms it with the user; never guess for ordinary purchases.' },
             },
             required: ['date', 'amount', 'type', 'description'],
           },
@@ -109,6 +113,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
       properties: {
         name: { type: 'string', description: 'e.g. "Nubank Cartão" or "Itaú Conta"' },
         type: { type: 'string', enum: ['checking', 'savings', 'credit', 'wallet'] },
+        holderName: { type: 'string', description: 'Full name of the person the account belongs to, if the document shows it (used to recognise transfers between own accounts).' },
       },
       required: ['name', 'type'],
     },
@@ -166,6 +171,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
         accountId: { type: 'string' },
         search: { type: 'string', description: 'Case-insensitive text in the description.' },
         deleted: { type: 'boolean', description: 'true to list soft-deleted transactions (to restore them).' },
+        onlyTransfers: { type: 'boolean', description: 'true to list ONLY transfers between the user\'s own accounts (normally they are hidden because they are not income or expense).' },
         limit: { type: 'number', description: 'Max rows, default 30, max 100.' },
       },
     },
@@ -263,8 +269,27 @@ export class ChatToolsService {
       .where(and(eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId), isNull(categories.deletedAt)));
     const catById = new Map(cats.map((c) => [c.id, c]));
 
+    // Who counts as "ours": every registered account holder (the user, their spouse...) plus counterparties the user
+    // already confirmed as transfers.
+    const holderNames = (
+      await this.db
+        .select({ holder: accounts.holderName })
+        .from(accounts)
+        .where(and(eq(accounts.clientId, ctx.clientId), eq(accounts.userId, ctx.userId), isNull(accounts.deletedAt)))
+    )
+      .map((a) => a.holder)
+      .filter((h): h is string => Boolean(h));
+    const transferKeys = new Set(
+      (
+        await this.db
+          .select({ keyword: categorizationRules.keyword })
+          .from(categorizationRules)
+          .where(and(eq(categorizationRules.userId, ctx.userId), eq(categorizationRules.type, 'transfer'), isNull(categorizationRules.deletedAt)))
+      ).map((r) => r.keyword),
+    );
+
     const seen = new Map<string, number>();
-    const meta = new Map<string, { low: boolean; suggestions: string[] }>();
+    const meta = new Map<string, { low: boolean; suggestions: string[]; transferAsk: boolean }>();
     const prepared: (typeof transactions.$inferInsert)[] = [];
     const rejected: string[] = [];
 
@@ -288,7 +313,14 @@ export class ChatToolsService {
         .filter((id) => catById.has(id))
         .slice(0, 3);
       if (cat && !suggestions.includes(cat.id)) suggestions.unshift(cat.id);
-      meta.set(dedupHash, { low: r.confidence === 'low' || !cat, suggestions: suggestions.slice(0, 3) });
+      const key = merchantKey(description);
+      const auto = holderNames.some((h) => matchesHolder(description, h)) || (key !== '' && transferKeys.has(key));
+      const ask = !auto && (r.possibleTransfer === true || looksLikeInvoicePayment(description));
+      meta.set(dedupHash, {
+        low: !auto && (r.confidence === 'low' || !cat || ask),
+        suggestions: suggestions.slice(0, 3),
+        transferAsk: ask,
+      });
       prepared.push({
         clientId: ctx.clientId,
         userId: ctx.userId,
@@ -297,8 +329,11 @@ export class ChatToolsService {
         date: r.date,
         description,
         accountId: account.id,
-        categoryId: cat?.id ?? null,
-        category: cat?.name ?? null,
+        // A recognised transfer is not income/expense: no category, and ignored=true so every existing total skips it.
+        categoryId: auto ? null : (cat?.id ?? null),
+        category: auto ? null : (cat?.name ?? null),
+        isTransfer: auto,
+        ignored: auto,
         paymentMethod: this.paymentMethod(r.paymentMethod ?? args.paymentMethod),
         source: 'ai-chat',
         dedupHash,
@@ -327,6 +362,7 @@ export class ChatToolsService {
         .values(fresh.map((f) => ({ ...f, importId })))
         .returning({ id: transactions.id, dedupHash: transactions.dedupHash });
       await this.bumpMatchedRules(fresh, ctx);
+      if (fresh.some((f) => f.isTransfer)) await this.linkTransfers(ctx);
       review = this.buildReview(fresh, inserted, meta, account.name);
     }
 
@@ -336,14 +372,16 @@ export class ChatToolsService {
         .where(and(eq(chatFiles.userId, ctx.userId), eq(chatFiles.name, String(args.sourceFile))));
     }
 
+    const transferCount = fresh.filter((f) => f.isTransfer).length;
     const sum = (t: 'income' | 'expense') =>
-      fresh.filter((f) => f.type === t).reduce((acc, f) => acc + Number(f.amount), 0);
+      fresh.filter((f) => f.type === t && !f.isTransfer).reduce((acc, f) => acc + Number(f.amount), 0);
     const saved: SavedSummary | undefined = fresh.length
       ? {
           importId,
           source: args.sourceFile ?? null,
           accountName: account.name,
           saved: fresh.length,
+          transfers: transferCount,
           duplicatesSkipped: prepared.length - fresh.length,
           income: Number(sum('income').toFixed(2)),
           expense: Number(sum('expense').toFixed(2)),
@@ -351,7 +389,14 @@ export class ChatToolsService {
       : undefined;
 
     return {
-      result: { saved: fresh.length, duplicatesSkipped: prepared.length - fresh.length, rejected, account: account.name },
+      result: {
+        saved: fresh.length,
+        transfersBetweenOwnAccounts: transferCount,
+        transfersAwaitingUserConfirmation: review.filter((g) => g.transferAsk).reduce((a, g) => a + g.count, 0),
+        duplicatesSkipped: prepared.length - fresh.length,
+        rejected,
+        account: account.name,
+      },
       saved,
       review: review.length ? review : undefined,
     };
@@ -365,7 +410,7 @@ export class ChatToolsService {
   private buildReview(
     rows: (typeof transactions.$inferInsert)[],
     inserted: { id: string; dedupHash: string | null }[],
-    meta: Map<string, { low: boolean; suggestions: string[] }>,
+    meta: Map<string, { low: boolean; suggestions: string[]; transferAsk: boolean }>,
     accountName: string,
   ): ReviewGroup[] {
     const idByHash = new Map(inserted.map((i) => [i.dedupHash, i.id]));
@@ -373,7 +418,7 @@ export class ChatToolsService {
     for (const row of rows) {
       const m = meta.get(row.dedupHash!);
       const id = idByHash.get(row.dedupHash!);
-      if (!m?.low || !id) continue;
+      if (!(m?.low || m?.transferAsk) || !id) continue;
       const description = row.description ?? '';
       const key = `${row.type}:${merchantKey(description) || description.toLowerCase()}`;
       const g = groups.get(key) ?? {
@@ -389,6 +434,7 @@ export class ChatToolsService {
         suggestionIds: [],
       };
       g.count += 1;
+      if (m.transferAsk) g.transferAsk = true;
       g.total = Number((g.total + Number(row.amount)).toFixed(2));
       g.transactionIds.push(id);
       if (g.items.length < MAX_REVIEW_ITEMS) {
@@ -449,13 +495,65 @@ export class ChatToolsService {
     }
   }
 
+  /** Pairs up the two sides of each transfer (out of one account, into another) so they are linked. */
+  async linkTransfers(ctx: ToolContext): Promise<number> {
+    const rows = await this.db
+      .select({ id: transactions.id, type: transactions.type, accountId: transactions.accountId, amount: transactions.amount, date: transactions.date })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.clientId, ctx.clientId),
+          eq(transactions.userId, ctx.userId),
+          eq(transactions.isTransfer, true),
+          isNull(transactions.transferGroupId),
+          isNull(transactions.deletedAt),
+        ),
+      );
+    const pairs = pairTransfers(rows.map((r) => ({ id: r.id, type: r.type, accountId: r.accountId, amount: String(r.amount), date: String(r.date) })));
+    for (const [a, b] of pairs) {
+      await this.db.update(transactions).set({ transferGroupId: randomUUID() }).where(inArray(transactions.id, [a, b]));
+    }
+    return pairs.length;
+  }
+
+  /** Remember a counterparty as "one of ours", so future imports mark it as a transfer without asking. */
+  async rememberTransferRule(description: string, ctx: ToolContext): Promise<void> {
+    const keyword = merchantKey(description);
+    if (keyword.length < 3) return;
+    const [existing] = await this.db
+      .select()
+      .from(categorizationRules)
+      .where(and(eq(categorizationRules.userId, ctx.userId), eq(categorizationRules.keyword, keyword)));
+    if (existing) {
+      await this.db
+        .update(categorizationRules)
+        .set({ type: 'transfer', categoryId: null, category: null, isActive: true, deletedAt: null, updatedAt: new Date() })
+        .where(eq(categorizationRules.id, existing.id));
+    } else {
+      await this.db.insert(categorizationRules).values({
+        clientId: ctx.clientId,
+        userId: ctx.userId,
+        keyword,
+        type: 'transfer',
+        originalDescription: description,
+      });
+    }
+  }
+
   private async createAccount(args: ToolArgs, ctx: ToolContext) {
     const name = String(args.name ?? '').trim();
     if (!name) return { error: 'name is required' };
     const type = ['checking', 'savings', 'credit', 'wallet'].includes(args.type) ? args.type : 'checking';
     const [acc] = await this.db
       .insert(accounts)
-      .values({ clientId: ctx.clientId, userId: ctx.userId, name, type, hasCredit: type === 'credit' })
+      .values({
+        clientId: ctx.clientId,
+        userId: ctx.userId,
+        name,
+        type,
+        hasCredit: type === 'credit',
+        holderName: args.holderName ? String(args.holderName).trim().slice(0, 120) : null,
+      })
       .returning();
     return { accountId: acc.id, name: acc.name, type: acc.type };
   }
@@ -554,7 +652,10 @@ export class ChatToolsService {
   }
 
   private filters(args: ToolArgs, ctx: ToolContext) {
-    const c = [eq(transactions.clientId, ctx.clientId), eq(transactions.userId, ctx.userId), eq(transactions.ignored, false), args.deleted ? isNotNull(transactions.deletedAt) : isNull(transactions.deletedAt)];
+    const c = [eq(transactions.clientId, ctx.clientId), eq(transactions.userId, ctx.userId), args.deleted ? isNotNull(transactions.deletedAt) : isNull(transactions.deletedAt)];
+    // Transfers between own accounts are saved as ignored, so they stay out of every total unless asked for explicitly.
+    if (args.onlyTransfers) c.push(eq(transactions.isTransfer, true));
+    else c.push(eq(transactions.ignored, false));
     if (DATE_RE.test(args.from ?? '')) c.push(gte(transactions.date, args.from));
     if (DATE_RE.test(args.to ?? '')) c.push(lte(transactions.date, args.to));
     if (args.type === 'income' || args.type === 'expense') c.push(eq(transactions.type, args.type));
@@ -579,6 +680,8 @@ export class ChatToolsService {
         description: transactions.description,
         category: sql<string>`coalesce(${categories.name}, ${transactions.category}, 'Sem categoria')`,
         account: accounts.name,
+        isTransfer: transactions.isTransfer,
+        transferGroupId: transactions.transferGroupId,
       })
       .from(transactions)
       .leftJoin(categories, eq(categories.id, transactions.categoryId))

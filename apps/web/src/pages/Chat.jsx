@@ -47,6 +47,7 @@ function SavedCard({ saved, onUndo, language }) {
           {saved.expense > 0 && saved.income > 0 && ' · '}
           {saved.income > 0 && `${pt ? 'Entradas' : 'Income'} ${brl(saved.income)}`}
           {saved.duplicatesSkipped > 0 && ` · ${saved.duplicatesSkipped} ${pt ? 'duplicadas ignoradas' : 'duplicates skipped'}`}
+          {saved.transfers > 0 && ` · ${saved.transfers} ${pt ? 'transferências entre contas (fora dos totais)' : 'transfers between accounts (not in totals)'}`}
         </p>
       </div>
       {state === 'undone' ? (
