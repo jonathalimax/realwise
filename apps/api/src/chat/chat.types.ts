@@ -1,7 +1,7 @@
 /** A multiple-choice question John shows the user as a sheet (account, payment method, free choice). */
 export interface ChatQuestion {
   id: string;
-  kind: 'account' | 'payment_method' | 'choice' | 'confirm';
+  kind: 'account' | 'payment_method' | 'choice' | 'confirm' | 'account_form';
   title: string;
   subtitle?: string;
   /** Attachment this question is about, if any. */
@@ -44,6 +44,8 @@ export interface ReviewGroup {
   items: ReviewItem[];
   /** Name of the account these were saved to. */
   account: string | null;
+  /** True when John thinks these may be transfers between the user's own accounts and wants a yes/no. */
+  transferAsk?: boolean;
   /** The category the row was saved with, if any. */
   currentCategoryId: string | null;
   /** Up to 3 categories John considers plausible, best first. */

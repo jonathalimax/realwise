@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { IsString, IsOptional, IsIn, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsBoolean, IsInt, Min, Max, MaxLength } from 'class-validator';
 
 export class CreateAccountDto {
   @IsString()
@@ -32,6 +32,11 @@ export class CreateAccountDto {
   @IsOptional()
   @IsString()
   customBankName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  holderName?: string;
 
   @IsOptional()
   @IsBoolean()

@@ -12,6 +12,8 @@ export const accounts = pgTable('accounts', {
   bankId: varchar('bank_id'),
   cardName: varchar('card_name'),
   customBankName: varchar('custom_bank_name'),
+  // Name of the person the account belongs to (the user, their spouse...). Used to recognise transfers between own accounts.
+  holderName: varchar('holder_name'),
   hasCredit: boolean('has_credit').default(false),
   closingDay: integer('closing_day'),
   paymentDay: integer('payment_day'),

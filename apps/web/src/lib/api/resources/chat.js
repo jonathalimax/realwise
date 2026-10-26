@@ -90,6 +90,20 @@ export function createChatResource({ client = apiClient } = {}) {
       notifyTransactionsChanged();
       return result;
     },
+    /** { needsSetup, accountCount, categoryCount }: a user with no bank account starts in the chat. */
+    onboardingStatus() {
+      return client.get('/chat/onboarding');
+    },
+    /** Seeds the default categories and posts John's welcome + account form (idempotent). */
+    onboardingStart() {
+      return client.post('/chat/onboarding/start');
+    },
+    /** Saves the account form; John then continues the conversation (streamed). */
+    async accountFormStream(messageId, form, onEvent) {
+      const result = await postStream(`/chat/messages/${messageId}/account-form`, form, onEvent);
+      notifyBillsChanged();
+      return result;
+    },
     /** Like send(), but streams John's reply: `onEvent` gets user / delta / reset / status events. */
     async sendStream({ message = '', files = [], onEvent }) {
       const form = new FormData();

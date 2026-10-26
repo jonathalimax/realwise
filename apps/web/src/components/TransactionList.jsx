@@ -209,9 +209,18 @@ export default function TransactionList({
                     {transaction.installmentCurrent}/{transaction.installmentTotal}
                   </span>
                 )}
+                {transaction.isTransfer && (
+                  <span
+                    className="rounded-full bg-sky-100 dark:bg-sky-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-sky-700 dark:text-sky-300"
+                    title={language === 'pt' ? 'Movimentação entre contas: não entra nas receitas e despesas' : 'Move between accounts: not counted as income or expense'}
+                  >
+                    {language === 'pt' ? 'Transferência' : 'Transfer'}
+                  </span>
+                )}
               </div>
 
               {/* Category badge */}
+              {!transaction.isTransfer && (
               <div
                 className="relative inline-grid text-[10px] font-bold rounded-full max-w-[8rem]"
                 onClick={e => e.stopPropagation()}
@@ -259,6 +268,7 @@ export default function TransactionList({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
+              )}
             </div>
           </div>
         </div>
