@@ -29,11 +29,12 @@ export function withCacheBreakpoints(messages: LlmRequest['messages'], model: st
     if (i !== lastUser && m.role !== 'system') return m;
     if (m.role === 'system') return { ...m, content: [{ type: 'text', text: m.content, ...mark }] };
     if (m.role !== 'user') return m;
-    const parts = typeof m.content === 'string' ? [{ type: 'text', text: m.content }] : [...m.content];
+    const parts: Record<string, unknown>[] =
+      typeof m.content === 'string' ? [{ type: 'text', text: m.content }] : [...m.content];
     const last = parts[parts.length - 1];
     // Breakpoints go on a text block (file/image parts may not carry one through the gateway).
     if (last.type === 'text') parts[parts.length - 1] = { ...last, ...mark };
-    else parts.push({ type: 'text', text: '(fim dos anexos)', ...mark } as (typeof parts)[number]);
+    else parts.push({ type: 'text', text: '(fim dos anexos)', ...mark });
     return { ...m, content: parts };
   });
 }
