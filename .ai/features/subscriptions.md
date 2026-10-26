@@ -112,3 +112,11 @@ Stripe card fees + taxes take roughly 10–12% of a Brazilian subscription. At R
 ## Verified
 
 API: 79 scenario checks by the API workstream (state table, migration data step, guard, signature verification, idempotent replays, billing endpoints) with a stubbed Stripe; integration run of the real API + real web with an in-memory Stripe stand-in: blocked user gets 402 on data/chat and still reaches billing, trial and lifetime pass, subscribe → success page → webhook → unlocked (+ onboarding), trial banner, and a trial that expires mid-session flips to the paywall without a reload. Not verified against real Stripe (no keys here).
+
+## Landing page (concise, animated)
+
+The landing (`apps/web/landing_page/`) is one short page: hero with the animated **John chat demo** (`ChatDemo.jsx`: a statement is dropped in, John reads and summarises it with a counting total and animated category bars, then answers a savings question; it loops while visible, pauses off-screen and shows the finished conversation when the visitor prefers reduced motion), three-step "how it works", pricing, four FAQs, a closing call to action and the footer. Everything else (founder story, testimonials, guarantee, pain points, feature grids) was removed.
+
+- Prices come live from Stripe through the public, cached `GET /billing/public-plans` (same data as `/billing/plans`); if it fails the cards say "Valores ao entrar no app". Pricing has no scroll-reveal on purpose (it must always be visible).
+- All call-to-action buttons use `CtaButton`, not the shared `Button`: the shared one concatenates its own dark-mode colours, which beat any colour passed in.
+- CTAs keep the existing sign-in hand-off (`sessionStorage.__rw_show_login` then `/login`) and `landingAnalytics` events.

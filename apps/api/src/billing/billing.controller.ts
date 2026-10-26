@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { IsIn } from 'class-validator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AccessInfo, BillingPlan } from './access';
 import { AllowWithoutSubscription } from './allow-without-subscription.decorator';
@@ -23,6 +24,13 @@ export class BillingController {
 
   @Get('plans')
   plans(): Promise<PlanOption[]> {
+    return this.service.getPlans();
+  }
+
+  /** Same prices for the anonymous landing page. Read-only and cached for 10 minutes, so it cannot load Stripe. */
+  @Public()
+  @Get('public-plans')
+  publicPlans(): Promise<PlanOption[]> {
     return this.service.getPlans();
   }
 

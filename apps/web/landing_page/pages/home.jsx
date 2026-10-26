@@ -1,12 +1,8 @@
 import React, { useEffect } from 'react';
 import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
-import MobileDemo from '../components/landing/MobileDemo';
-import FounderStory from '../components/landing/FounderStory';
-import Testimonials from '../components/landing/Testimonials';
-import FeaturesSection from '../components/landing/FeaturesSection';
+import HowItWorks from '../components/landing/HowItWorks';
 import PricingSection from '../components/landing/PricingSection';
-import GuaranteeSection from '../components/landing/GuaranteeSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
 import FooterSection from '../components/landing/FooterSection';
@@ -32,12 +28,8 @@ export default function Home() {
       <Header />
       <div className="pt-20">
         <HeroSection />
-        <MobileDemo />
-        <FeaturesSection />
-        <FounderStory />
-        <Testimonials />
+        <HowItWorks />
         <PricingSection />
-        <GuaranteeSection />
         <FAQSection />
         <FinalCTASection />
         <FooterSection />
