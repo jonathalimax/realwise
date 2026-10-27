@@ -27,9 +27,20 @@ function pendingSheet(message) {
 const brl = (value) =>
   Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const BAR_COLORS = ['bg-indigo-500', 'bg-emerald-500', 'bg-orange-500', 'bg-sky-500'];
+
+/** Summary of an import: totals plus the biggest expense categories as animated bars, with Undo. */
 function SavedCard({ saved, onUndo, language }) {
   const [state, setState] = useState('idle'); // idle | undoing | undone | error
+  const [grown, setGrown] = useState(false); // flips after mount so the bars animate from 0
   const pt = language === 'pt';
+  const rows = Array.isArray(saved.topCategories) ? saved.topCategories : [];
+  const max = Math.max(1, ...rows.map((r) => r.total));
+
+  useEffect(() => {
+    const t = setTimeout(() => setGrown(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
   const undo = async () => {
     setState('undoing');
@@ -41,32 +52,51 @@ function SavedCard({ saved, onUndo, language }) {
     }
   };
 
+  const notes = [
+    saved.income > 0 && `${pt ? 'Entradas' : 'Income'} ${brl(saved.income)}`,
+    saved.duplicatesSkipped > 0 && `${saved.duplicatesSkipped} ${pt ? 'duplicadas ignoradas' : 'duplicates skipped'}`,
+    saved.transfers > 0 && `${saved.transfers} ${pt ? 'transferências entre contas (fora dos totais)' : 'transfers between accounts (not in totals)'}`,
+  ].filter(Boolean);
+
   return (
-    <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-xs">
-      <div className="min-w-0">
-        <p className="font-bold text-emerald-800 dark:text-emerald-300 truncate">
-          {saved.saved} {pt ? 'transações em' : 'transactions in'} {saved.accountName}
-        </p>
-        <p className="text-emerald-700/80 dark:text-emerald-400/80">
-          {saved.expense > 0 && `${pt ? 'Despesas' : 'Expenses'} ${brl(saved.expense)}`}
-          {saved.expense > 0 && saved.income > 0 && ' · '}
-          {saved.income > 0 && `${pt ? 'Entradas' : 'Income'} ${brl(saved.income)}`}
-          {saved.duplicatesSkipped > 0 && ` · ${saved.duplicatesSkipped} ${pt ? 'duplicadas ignoradas' : 'duplicates skipped'}`}
-          {saved.transfers > 0 && ` · ${saved.transfers} ${pt ? 'transferências entre contas (fora dos totais)' : 'transfers between accounts (not in totals)'}`}
-        </p>
+    <div className="mt-2 rounded-2xl bg-white dark:bg-gray-800 p-3.5 shadow-sm ring-1 ring-gray-200/70 dark:ring-gray-700">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+          {saved.saved} {pt ? 'lançamentos em' : 'entries in'} {saved.accountName}
+        </span>
+        {saved.expense > 0 && <span className="shrink-0 text-base font-bold tabular-nums text-gray-900 dark:text-white">{brl(saved.expense)}</span>}
       </div>
-      {state === 'undone' ? (
-        <span className="shrink-0 font-bold text-gray-500">{pt ? 'Desfeito' : 'Undone'}</span>
-      ) : (
-        <button
-          onClick={undo}
-          disabled={state === 'undoing'}
-          className="shrink-0 inline-flex items-center gap-1 font-bold text-emerald-800 dark:text-emerald-300 hover:underline disabled:opacity-50"
-        >
-          <ArrowUturnLeftIcon className="w-3.5 h-3.5" />
-          {state === 'error' ? (pt ? 'Tentar de novo' : 'Retry') : pt ? 'Desfazer' : 'Undo'}
-        </button>
+      {rows.length > 0 && (
+        <ul className="mt-2.5 space-y-1.5">
+          {rows.map((row, i) => (
+            <li key={row.name} className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
+              <span className="w-20 shrink-0 truncate">{row.name}</span>
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                <span
+                  className={`block h-full rounded-full transition-[width] duration-700 ease-out ${BAR_COLORS[i % BAR_COLORS.length]}`}
+                  style={{ width: grown ? `${(row.total / max) * 100}%` : '0%', transitionDelay: `${i * 110}ms` }}
+                />
+              </span>
+              <span className="w-16 shrink-0 text-right tabular-nums">{brl(row.total).replace(',00', '')}</span>
+            </li>
+          ))}
+        </ul>
       )}
+      <div className="mt-2.5 flex items-center justify-between gap-3 text-[11px]">
+        <p className="min-w-0 text-gray-500 dark:text-gray-400">{notes.join(' · ')}</p>
+        {state === 'undone' ? (
+          <span className="shrink-0 font-bold text-gray-500">{pt ? 'Desfeito' : 'Undone'}</span>
+        ) : (
+          <button
+            onClick={undo}
+            disabled={state === 'undoing'}
+            className="shrink-0 inline-flex items-center gap-1 font-bold text-violet-700 dark:text-violet-300 hover:underline disabled:opacity-50"
+          >
+            <ArrowUturnLeftIcon className="w-3.5 h-3.5" />
+            {state === 'error' ? (pt ? 'Tentar de novo' : 'Retry') : pt ? 'Desfazer' : 'Undo'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -171,7 +171,7 @@ export default function ChatDemo({ className = '' }) {
       <div className="rounded-[2.4rem] border-[7px] border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow-2xl shadow-violet-500/20 overflow-hidden">
         <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 pt-4 pb-3 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-[11px] font-bold text-white">J</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-[11px] font-bold text-white">E</span>
             <span className="text-xs font-bold tracking-wide text-slate-900 dark:text-white">ASSISTENTE IA</span>
           </div>
           <span className="h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />
