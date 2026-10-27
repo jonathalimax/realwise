@@ -276,7 +276,7 @@ export class NotificationsService {
       },
       trial_import: {
         subject: `${ctx.name}, falta só o seu extrato`,
-        title: `Falta só um passo, ${ctx.name} 👋`,
+        title: `Falta só um passo, ${escapeHtml(ctx.name)} 👋`,
         body: p('Você ainda não mandou nenhum extrato. É rápido: abra o chat, anexe o PDF ou CSV do seu banco e o Elio organiza tudo em segundos.') + p('Seu teste é grátis, sem cartão e sem cobrança.'),
         cta: 'Abrir o chat e importar',
         url: app('/chat'),
