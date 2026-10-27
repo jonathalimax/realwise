@@ -51,7 +51,7 @@ export default function HeroSection() {
           <motion.h1 {...rise(0.08)} className="mt-5 text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
             Mande seu extrato.
             <br />
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">O John faz o resto.</span>
+            <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">O Elio faz o resto.</span>
           </motion.h1>
 
           <motion.p {...rise(0.16)} className="mx-auto mt-5 max-w-xl text-lg text-slate-600 dark:text-slate-300 lg:mx-0">

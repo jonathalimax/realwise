@@ -104,7 +104,7 @@ function describeChatError(e: unknown): { status: number; code?: string; message
   const code = body && typeof body === 'object' ? (body as { code?: string }).code : undefined;
   const own = body && typeof body === 'object' && code ? (body as { message?: string }).message : undefined;
   if (own) return { status, code, message: own };
-  if (status === 402) return { status, code: 'SUBSCRIPTION_REQUIRED', message: 'Seu teste terminou. Assine um plano para continuar conversando com o John.' };
+  if (status === 402) return { status, code: 'SUBSCRIPTION_REQUIRED', message: 'Seu teste terminou. Assine um plano para continuar conversando com o Elio.' };
   if (status === 429) return { status, message: 'Estou recebendo muitos pedidos agora. Espere um pouquinho e tente de novo.' };
   if (status === 413) return { status, message: 'Esse arquivo é grande demais. Envie arquivos de até 15 MB.' };
   if (status >= 400 && status < 500) return { status, message: 'Não consegui entender esse pedido. Pode tentar de novo?' };
@@ -207,7 +207,7 @@ export class ChatController {
     return this.service.onboardingStatus({ clientId: user.clientId, userId: user.sub });
   }
 
-  /** First chat open for a user with no accounts: seeds categories and posts John's welcome + account form (idempotent). */
+  /** First chat open for a user with no accounts: seeds categories and posts Elio's welcome + account form (idempotent). */
   @Post('onboarding/start')
   startOnboarding(@CurrentUser() user: JwtPayload) {
     return this.service.startOnboarding({ clientId: user.clientId, userId: user.sub });

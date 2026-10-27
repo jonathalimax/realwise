@@ -90,7 +90,7 @@ Existing tests broken by the change are fixed (tests of deleted code are deleted
 ## Decisions taken at build time
 
 - **Pricing (owner's choice):** monthly **R$ 8,99**, annual about **30% off** (≈ R$ 75,48/year, ≈ R$ 6,29/month). Created in Stripe, never hard-coded; the paywall shows the real Stripe amounts.
-- **AI inside the plan (fair use):** every subscriber gets John. After the per-user monthly AI budget (`LLM_MONTHLY_BUDGET_USD`) John continues on the cheaper `LLM_MODEL_FALLBACK` until `LLM_HARD_CAP_MULTIPLIER` × the budget, then stops until next month. At R$ 8,99 the budget must stay small (see "Unit economics").
+- **AI inside the plan (fair use):** every subscriber gets Elio. After the per-user monthly AI budget (`LLM_MONTHLY_BUDGET_USD`) Elio continues on the cheaper `LLM_MODEL_FALLBACK` until `LLM_HARD_CAP_MULTIPLIER` × the budget, then stops until next month. At R$ 8,99 the budget must stay small (see "Unit economics").
 - `POST /billing/checkout` answers **409** for `lifetime` users (their legacy access must not be replaced by a subscription that can end) and for users with a live Stripe subscription; the owner can still check out.
 - The Stripe webhook **never edits `premium_status`**: access comes only from the `subscription_*` columns; trial fields are left alone.
 - An event for an old, ended subscription cannot overwrite a live one; handlers re-fetch the subscription (state-based, idempotent, order-tolerant); a purchase row is written once per session under an advisory lock; e-mail failures are logged, not thrown (so Stripe does not replay).
@@ -115,7 +115,7 @@ API: 79 scenario checks by the API workstream (state table, migration data step,
 
 ## Landing page (concise, animated)
 
-The landing (`apps/web/landing_page/`) is one short page: hero with the animated **John chat demo** (`ChatDemo.jsx`: a statement is dropped in, John reads and summarises it with a counting total and animated category bars, then answers a savings question; it loops while visible, pauses off-screen and shows the finished conversation when the visitor prefers reduced motion), three-step "how it works", pricing, four FAQs, a closing call to action and the footer. Everything else (founder story, testimonials, guarantee, pain points, feature grids) was removed.
+The landing (`apps/web/landing_page/`) is one short page: hero with the animated **Elio chat demo** (`ChatDemo.jsx`: a statement is dropped in, Elio reads and summarises it with a counting total and animated category bars, then answers a savings question; it loops while visible, pauses off-screen and shows the finished conversation when the visitor prefers reduced motion), three-step "how it works", pricing, four FAQs, a closing call to action and the footer. Everything else (founder story, testimonials, guarantee, pain points, feature grids) was removed.
 
 - Prices come live from Stripe through the public, cached `GET /billing/public-plans` (same data as `/billing/plans`); if it fails the cards say "Valores ao entrar no app". Pricing has no scroll-reveal on purpose (it must always be visible).
 - All call-to-action buttons use `CtaButton`, not the shared `Button`: the shared one concatenates its own dark-mode colours, which beat any colour passed in.

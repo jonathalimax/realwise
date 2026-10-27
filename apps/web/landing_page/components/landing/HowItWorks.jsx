@@ -10,7 +10,7 @@ const STEPS = [
   },
   {
     icon: Sparkles,
-    title: 'O John organiza',
+    title: 'O Elio organiza',
     text: 'Descobre a conta de cada um, categoriza, aprende com você e deixa as transferências entre suas contas fora dos totais.',
   },
   {

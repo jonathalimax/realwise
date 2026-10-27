@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 
 /**
- * Minimal, safe Markdown for John's replies: paragraphs, "-"/"1." lists, **bold** and `code`.
+ * Minimal, safe Markdown for Elio's replies: paragraphs, "-"/"1." lists, **bold** and `code`.
  * Everything is rendered as React text nodes (never HTML), so model output cannot inject markup.
  */
 

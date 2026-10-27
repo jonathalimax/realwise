@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { PlanBadge } from './billing/PlanBadge';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
@@ -90,6 +91,8 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
           </button>
         )}
       </div>
+
+      <PlanBadge onNavigate={handleLinkClick} />
 
       {/* Nav Links + Footer — all in one scrollable area so they scroll together on landscape */}
       <nav className="flex-1 px-4 overflow-y-auto pb-4">

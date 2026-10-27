@@ -5,7 +5,7 @@ import { billingResource } from '@/lib/api/resources/billing';
 import { landingAnalytics } from '../../landingAnalytics';
 
 const INCLUDED = [
-  'John, seu assistente de IA, no chat',
+  'Elio, seu assistente de IA, no chat',
   'Importação de extratos e faturas (PDF, foto, CSV, OFX)',
   'Categorização que aprende com você',
   'Transferências entre suas contas fora dos totais',
@@ -40,7 +40,7 @@ function PlanCard({ plan, monthlyPlan, highlight, loading, onStart }) {
       ) : null}
       <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">{isAnnual ? 'Anual' : 'Mensal'}</h3>
 
-      <div className="mt-3 min-h-[6rem]">
+      <div className="mt-3 md:min-h-[6rem]">
         {loading ? (
           <div className="h-10 w-40 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
         ) : plan ? (

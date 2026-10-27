@@ -6,6 +6,7 @@ import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
 import AccountFormSheet from '../components/chat/AccountFormSheet';
 import Markdown from '../components/chat/Markdown';
+import FilePreview from '../components/chat/FilePreview';
 import { notifyTransactionsChanged } from '../lib/api/resources/transactions';
 import { notifyBillsChanged } from '../lib/api/resources/bills';
 import { useSettings } from '../contexts/SettingsContext';
@@ -27,9 +28,20 @@ function pendingSheet(message) {
 const brl = (value) =>
   Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const BAR_COLORS = ['bg-indigo-500', 'bg-emerald-500', 'bg-orange-500', 'bg-sky-500'];
+
+/** Summary of an import: totals plus the biggest expense categories as animated bars, with Undo. */
 function SavedCard({ saved, onUndo, language }) {
   const [state, setState] = useState('idle'); // idle | undoing | undone | error
+  const [grown, setGrown] = useState(false); // flips after mount so the bars animate from 0
   const pt = language === 'pt';
+  const rows = Array.isArray(saved.topCategories) ? saved.topCategories : [];
+  const max = Math.max(1, ...rows.map((r) => r.total));
+
+  useEffect(() => {
+    const t = setTimeout(() => setGrown(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
   const undo = async () => {
     setState('undoing');
@@ -41,32 +53,51 @@ function SavedCard({ saved, onUndo, language }) {
     }
   };
 
+  const notes = [
+    saved.income > 0 && `${pt ? 'Entradas' : 'Income'} ${brl(saved.income)}`,
+    saved.duplicatesSkipped > 0 && `${saved.duplicatesSkipped} ${pt ? 'duplicadas ignoradas' : 'duplicates skipped'}`,
+    saved.transfers > 0 && `${saved.transfers} ${pt ? 'transferências entre contas (fora dos totais)' : 'transfers between accounts (not in totals)'}`,
+  ].filter(Boolean);
+
   return (
-    <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-xs">
-      <div className="min-w-0">
-        <p className="font-bold text-emerald-800 dark:text-emerald-300 truncate">
-          {saved.saved} {pt ? 'transações em' : 'transactions in'} {saved.accountName}
-        </p>
-        <p className="text-emerald-700/80 dark:text-emerald-400/80">
-          {saved.expense > 0 && `${pt ? 'Despesas' : 'Expenses'} ${brl(saved.expense)}`}
-          {saved.expense > 0 && saved.income > 0 && ' · '}
-          {saved.income > 0 && `${pt ? 'Entradas' : 'Income'} ${brl(saved.income)}`}
-          {saved.duplicatesSkipped > 0 && ` · ${saved.duplicatesSkipped} ${pt ? 'duplicadas ignoradas' : 'duplicates skipped'}`}
-          {saved.transfers > 0 && ` · ${saved.transfers} ${pt ? 'transferências entre contas (fora dos totais)' : 'transfers between accounts (not in totals)'}`}
-        </p>
+    <div className="mt-2 rounded-2xl bg-white dark:bg-gray-800 p-3.5 shadow-sm ring-1 ring-gray-200/70 dark:ring-gray-700">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+          {saved.saved} {pt ? 'lançamentos em' : 'entries in'} {saved.accountName}
+        </span>
+        {saved.expense > 0 && <span className="shrink-0 text-base font-bold tabular-nums text-gray-900 dark:text-white">{brl(saved.expense)}</span>}
       </div>
-      {state === 'undone' ? (
-        <span className="shrink-0 font-bold text-gray-500">{pt ? 'Desfeito' : 'Undone'}</span>
-      ) : (
-        <button
-          onClick={undo}
-          disabled={state === 'undoing'}
-          className="shrink-0 inline-flex items-center gap-1 font-bold text-emerald-800 dark:text-emerald-300 hover:underline disabled:opacity-50"
-        >
-          <ArrowUturnLeftIcon className="w-3.5 h-3.5" />
-          {state === 'error' ? (pt ? 'Tentar de novo' : 'Retry') : pt ? 'Desfazer' : 'Undo'}
-        </button>
+      {rows.length > 0 && (
+        <ul className="mt-2.5 space-y-1.5">
+          {rows.map((row, i) => (
+            <li key={row.name} className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
+              <span className="w-20 shrink-0 truncate">{row.name}</span>
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                <span
+                  className={`block h-full rounded-full transition-[width] duration-700 ease-out ${BAR_COLORS[i % BAR_COLORS.length]}`}
+                  style={{ width: grown ? `${(row.total / max) * 100}%` : '0%', transitionDelay: `${i * 110}ms` }}
+                />
+              </span>
+              <span className="w-16 shrink-0 text-right tabular-nums">{brl(row.total).replace(',00', '')}</span>
+            </li>
+          ))}
+        </ul>
       )}
+      <div className="mt-2.5 flex items-center justify-between gap-3 text-[11px]">
+        <p className="min-w-0 text-gray-500 dark:text-gray-400">{notes.join(' · ')}</p>
+        {state === 'undone' ? (
+          <span className="shrink-0 font-bold text-gray-500">{pt ? 'Desfeito' : 'Undone'}</span>
+        ) : (
+          <button
+            onClick={undo}
+            disabled={state === 'undoing'}
+            className="shrink-0 inline-flex items-center gap-1 font-bold text-violet-700 dark:text-violet-300 hover:underline disabled:opacity-50"
+          >
+            <ArrowUturnLeftIcon className="w-3.5 h-3.5" />
+            {state === 'error' ? (pt ? 'Tentar de novo' : 'Retry') : pt ? 'Desfazer' : 'Undo'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -84,7 +115,7 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
             : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md shadow-sm'
         }`}
       >
-        {!mine && <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">John</p>}
+        {!mine && <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>}
         {Array.isArray(message.attachments) && message.attachments.length > 0 && (
           <div className="mb-1.5 flex flex-wrap gap-1.5">
             {message.attachments.map((file, i) => (
@@ -125,7 +156,7 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
 }
 
 /**
- * John's reply while it streams. Network chunks arrive in bursts, so the text is revealed by a
+ * Elio's reply while it streams. Network chunks arrive in bursts, so the text is revealed by a
  * frame loop that speeds up when it falls behind: steady character-by-character typing, never a wall of text.
  */
 function LiveBubble({ target, status, finished, onRevealed, language }) {
@@ -171,7 +202,7 @@ function LiveBubble({ target, status, finished, onRevealed, language }) {
         aria-live="polite"
         aria-label={pt ? 'O assistente está escrevendo' : 'The assistant is typing'}
       >
-        <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">John</p>
+        <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>
         {visible ? (
           <div>
             <Markdown text={visible} streaming={!finished} />
@@ -205,22 +236,25 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  // Failures are posted as a friendly message from John (local only, never saved or sent to the model).
+  // Failures are posted as a friendly message from Elio (local only, never saved or sent to the model).
   const say = useCallback(
     (content) => setMessages((prev) => [...prev, { id: `local-${Date.now()}-${prev.length}`, role: 'assistant', content, local: true }]),
     [],
   );
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
+  const [previewFile, setPreviewFile] = useState(null); // an attached file opened read-only
   const [dragging, setDragging] = useState(false);
   const composer = useRef(null);
   const composerBox = useRef(null);
   const listRef = useRef(null);
   const stick = useRef(true); // follow the conversation only while the user is at the bottom
+  const pinUntil = useRef(0); // until this time, opening the chat keeps pinning to the bottom
+  const hadSheet = useRef(false);
   const [showJump, setShowJump] = useState(false);
   const delivered = useRef(false); // the server persisted the user's message for the current turn
   const deliveredId = useRef(null); // id of that persisted message
-  const [live, setLive] = useState(null); // { text, status, final } while John's reply streams
+  const [live, setLive] = useState(null); // { text, status, final } while Elio's reply streams
   const autoSent = useRef(false);
   const onboardingStarted = useRef(false);
   const [manualSheet, setManualSheet] = useState(null); // { id, type } opened from a button
@@ -239,7 +273,7 @@ export default function ChatPage() {
     };
   }, [say]);
 
-  // A user with no bank account is set up by John: the first open creates the default categories and posts his
+  // A user with no bank account is set up by Elio: the first open creates the default categories and posts his
   // welcome with the account form. The server makes this idempotent; the ref avoids a duplicate call in StrictMode.
   useEffect(() => {
     if (loading || onboardingStarted.current) return;
@@ -264,6 +298,7 @@ export default function ChatPage() {
   useEffect(() => {
     const onScroll = () => {
       if (document.body.style.position === 'fixed') return; // a sheet froze the page; scrollY is not meaningful
+      if (Date.now() < pinUntil.current) return; // our own pinning, not the user reading history
       const near = isNearBottom();
       stick.current = near;
       setShowJump((prev) => (prev === !near ? prev : !near));
@@ -296,9 +331,29 @@ export default function ChatPage() {
     };
   }, []);
 
-  // Open on the latest message, instantly.
+  // Open on the latest message. Layout keeps settling for a moment after the list renders (markdown, fonts, cards,
+  // the auto-opened sheet), so keep re-pinning to the bottom for ~1s, unless the user starts scrolling themselves.
   useEffect(() => {
-    if (!loading) scrollToBottom('auto');
+    if (loading) return undefined;
+    stick.current = true;
+    pinUntil.current = Date.now() + 1200;
+    let frame;
+    const pin = () => {
+      if (Date.now() > pinUntil.current) return;
+      scrollToBottom('auto');
+      frame = requestAnimationFrame(pin);
+    };
+    pin();
+    const stop = () => {
+      pinUntil.current = 0;
+    };
+    window.addEventListener('wheel', stop, { passive: true, once: true });
+    window.addEventListener('touchstart', stop, { passive: true, once: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('wheel', stop);
+      window.removeEventListener('touchstart', stop);
+    };
   }, [loading]);
 
   // Follow the conversation as it grows, but only while the user is at the bottom. Watching the list's real
@@ -335,6 +390,14 @@ export default function ChatPage() {
     : manualSheet ??
     (lastAssistant && autoType && !dismissed.has(lastAssistant.id) ? { id: lastAssistant.id, type: autoType } : null);
   const sheetMessage = sheet ? messages.find((m) => m.id === sheet.id) : null;
+
+  // A sheet freezes the page and restores the scroll position it had when it opened (often the top, when it opens
+  // right after the chat loads). When it closes, go back to the latest message if the user was following the chat.
+  const sheetOpen = Boolean(sheet);
+  useEffect(() => {
+    if (!sheetOpen && hadSheet.current && stick.current) scrollToBottom('auto');
+    hadSheet.current = sheetOpen;
+  }, [sheetOpen]);
 
   const closeSheet = () => {
     if (sheet) setDismissed((prev) => new Set(prev).add(sheet.id));
@@ -540,11 +603,13 @@ export default function ChatPage() {
     >
       <PageHeader title={pt ? 'Assistente IA' : 'AI Assistant'} />
 
+      {previewFile && <FilePreview file={previewFile} language={language} onClose={() => setPreviewFile(null)} />}
+
       <div ref={listRef} className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 space-y-3" style={{ paddingBottom: 16 }}>
         {!loading && messages.length === 0 && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
             <p className="font-bold text-gray-900 dark:text-white">
-              {pt ? 'Oi, eu sou o John, seu assistente financeiro. Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm John, your financial assistant. Let's take good care of your money 💜"}
+              {pt ? 'Oi, eu sou o Elio, seu assistente financeiro. Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm Elio, your financial assistant. Let's take good care of your money 💜"}
             </p>
             <p>
               {pt
@@ -609,8 +674,15 @@ export default function ChatPage() {
             <div className="mb-2 flex flex-wrap gap-2">
               {files.map((file, i) => (
                 <span key={`${file.name}-${i}`} className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-gray-800 shadow-sm px-2 py-1 text-xs text-gray-700 dark:text-gray-200">
-                  <DocumentTextIcon className="w-4 h-4 text-violet-500" />
-                  <span className="max-w-[10rem] truncate">{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewFile(file)}
+                    className="inline-flex items-center gap-1 hover:text-violet-600 dark:hover:text-violet-300"
+                    aria-label={`${pt ? 'Ver' : 'View'} ${file.name}`}
+                  >
+                    <DocumentTextIcon className="w-4 h-4 text-violet-500" />
+                    <span className="max-w-[10rem] truncate underline-offset-2 hover:underline">{file.name}</span>
+                  </button>
                   <button onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} aria-label={pt ? 'Remover' : 'Remove'}>
                     <XMarkIcon className="w-4 h-4 text-gray-400 hover:text-gray-600" />
                   </button>

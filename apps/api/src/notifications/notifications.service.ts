@@ -191,7 +191,7 @@ export class NotificationsService {
       trial_import: {
         subject: `${ctx.name}, falta só o seu extrato`,
         title: `Falta só um passo, ${ctx.name} 👋`,
-        body: p('Você ainda não mandou nenhum extrato. É rápido: abra o chat, anexe o PDF ou CSV do seu banco e o John organiza tudo em segundos.') + p('Seu teste é grátis, sem cartão e sem cobrança.'),
+        body: p('Você ainda não mandou nenhum extrato. É rápido: abra o chat, anexe o PDF ou CSV do seu banco e o Elio organiza tudo em segundos.') + p('Seu teste é grátis, sem cartão e sem cobrança.'),
         cta: 'Abrir o chat e importar',
         url: `${web}/chat`,
       },
@@ -205,14 +205,14 @@ export class NotificationsService {
       trial_expired: {
         subject: 'Seu teste acabou, mas seus dados estão guardados',
         title: 'Seu teste terminou',
-        body: p('Seus dados continuam guardados. Para voltar a usar o John, escolha um plano a partir de R$ 8,99 por mês. Cancele quando quiser.'),
+        body: p('Seus dados continuam guardados. Para voltar a usar o Elio, escolha um plano a partir de R$ 8,99 por mês. Cancele quando quiser.'),
         cta: 'Ver planos',
         url: `${web}/`,
       },
       monthly_import: {
         subject: `Hora de importar o extrato de ${prevMonth}`,
         title: `Seu extrato de ${prevMonth} já saiu`,
-        body: p('Leva menos de um minuto: anexe o PDF ou CSV no chat e o John categoriza tudo, detecta transferências entre suas contas e atualiza seu resumo.'),
+        body: p('Leva menos de um minuto: anexe o PDF ou CSV no chat e o Elio categoriza tudo, detecta transferências entre suas contas e atualiza seu resumo.'),
         cta: 'Importar agora',
         url: `${web}/chat`,
       },

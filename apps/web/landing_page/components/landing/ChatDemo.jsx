@@ -3,7 +3,7 @@ import { AnimatePresence, animate, motion, useInView, useReducedMotion } from 'f
 import { FileText, Paperclip, Send } from 'lucide-react';
 
 /**
- * Self-playing demo of the product: drop a statement, John reads and organises it, then answers a question.
+ * Self-playing demo of the product: drop a statement, Elio reads and organises it, then answers a question.
  * It loops while visible, pauses when scrolled away, and shows the finished conversation (no motion) when the
  * visitor prefers reduced motion.
  */
@@ -21,20 +21,20 @@ const SUMMARY = {
 
 // `at` = ms after the loop starts when the item appears.
 const SCRIPT = [
-  { id: 'hi', type: 'john', at: 300, text: 'Oi! Eu sou o John 💜 Mande seu extrato ou fatura que eu organizo tudo.' },
+  { id: 'hi', type: 'elio', at: 300, text: 'Oi! Eu sou o Elio 💜 Mande seu extrato ou fatura que eu organizo tudo.' },
   { id: 'file', type: 'file', at: 2600, name: 'Fatura_Nubank_Out.pdf' },
   { id: 'typing1', type: 'typing', at: 3800 },
-  { id: 'read', type: 'john', at: 5000, text: `Li sua fatura: ${SUMMARY.count} lançamentos no Nubank Cartão. Já categorizei tudo ✨` },
+  { id: 'read', type: 'elio', at: 5000, text: `Li sua fatura: ${SUMMARY.count} lançamentos no Nubank Cartão. Já categorizei tudo ✨` },
   { id: 'summary', type: 'summary', at: 7600 },
   { id: 'ask', type: 'user', at: 10600, text: 'Onde posso economizar?' },
   { id: 'typing2', type: 'typing', at: 11600 },
-  { id: 'tip', type: 'john', at: 12800, text: 'Delivery subiu 34% desde setembro. Cortar 2 pedidos por semana economiza cerca de R$ 180 por mês.' },
+  { id: 'tip', type: 'elio', at: 12800, text: 'Delivery subiu 34% desde setembro. Cortar 2 pedidos por semana economiza cerca de R$ 180 por mês.' },
 ];
 const LOOP_MS = 20500;
 
 const brl = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-/** Reveals text a couple of characters at a time, like John's real replies stream in. */
+/** Reveals text a couple of characters at a time, like Elio's real replies stream in. */
 function Typed({ text, instant }) {
   const [count, setCount] = useState(0);
   useEffect(() => {
@@ -60,10 +60,10 @@ function CountUp({ value, instant }) {
   return <>{brl(instant ? value : shown)}</>;
 }
 
-function JohnBubble({ children }) {
+function ElioBubble({ children }) {
   return (
     <div className="max-w-[86%] self-start">
-      <span className="mb-0.5 block text-[10px] font-bold text-violet-600 dark:text-violet-400">John</span>
+      <span className="mb-0.5 block text-[10px] font-bold text-violet-600 dark:text-violet-400">Elio</span>
       <div className="rounded-2xl rounded-bl-md bg-white dark:bg-slate-800 px-3.5 py-2 text-[13px] leading-snug text-slate-800 dark:text-slate-100 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700">
         {children}
       </div>
@@ -103,11 +103,11 @@ function SummaryCard({ instant }) {
 
 function renderItem(item, instant) {
   switch (item.type) {
-    case 'john':
+    case 'elio':
       return (
-        <JohnBubble>
+        <ElioBubble>
           <Typed text={item.text} instant={instant} />
-        </JohnBubble>
+        </ElioBubble>
       );
     case 'file':
       return (
@@ -122,8 +122,8 @@ function renderItem(item, instant) {
       return <div className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-violet-600 px-3.5 py-2 text-[13px] text-white shadow-sm">{item.text}</div>;
     case 'typing':
       return (
-        <JohnBubble>
-          <span className="flex gap-1 py-1" aria-label="John está escrevendo">
+        <ElioBubble>
+          <span className="flex gap-1 py-1" aria-label="Elio está escrevendo">
             {[0, 1, 2].map((i) => (
               <motion.span
                 key={i}
@@ -133,7 +133,7 @@ function renderItem(item, instant) {
               />
             ))}
           </span>
-        </JohnBubble>
+        </ElioBubble>
       );
     case 'summary':
       return <SummaryCard instant={instant} />;
@@ -167,11 +167,11 @@ export default function ChatDemo({ className = '' }) {
   const visible = reduceMotion ? SCRIPT.filter((s) => s.type !== 'typing') : items;
 
   return (
-    <div ref={ref} className={`relative mx-auto w-full max-w-[320px] ${className}`} aria-label="Demonstração: o John organizando uma fatura" role="img">
+    <div ref={ref} className={`relative mx-auto w-full max-w-[320px] ${className}`} aria-label="Demonstração: o Elio organizando uma fatura" role="img">
       <div className="rounded-[2.4rem] border-[7px] border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow-2xl shadow-violet-500/20 overflow-hidden">
         <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 pt-4 pb-3 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-[11px] font-bold text-white">J</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-[11px] font-bold text-white">E</span>
             <span className="text-xs font-bold tracking-wide text-slate-900 dark:text-white">ASSISTENTE IA</span>
           </div>
           <span className="h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700" />

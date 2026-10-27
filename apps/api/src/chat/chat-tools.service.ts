@@ -27,6 +27,8 @@ export interface SavedSummary {
   duplicatesSkipped: number;
   income: number;
   expense: number;
+  /** Biggest expense categories in this save (transfers excluded), for the summary card. */
+  topCategories?: { name: string; total: number }[];
 }
 
 export interface ToolOutcome {
@@ -388,6 +390,16 @@ export class ChatToolsService {
     const transferCount = fresh.filter((f) => f.isTransfer).length;
     const sum = (t: 'income' | 'expense') =>
       fresh.filter((f) => f.type === t && !f.isTransfer).reduce((acc, f) => acc + Number(f.amount), 0);
+    const byCategory = new Map<string, number>();
+    for (const f of fresh) {
+      if (f.type !== 'expense' || f.isTransfer) continue;
+      const name = f.category ?? 'Sem categoria';
+      byCategory.set(name, (byCategory.get(name) ?? 0) + Number(f.amount));
+    }
+    const topCategories = [...byCategory.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([name, total]) => ({ name, total: Number(total.toFixed(2)) }));
     const saved: SavedSummary | undefined = fresh.length
       ? {
           importId,
@@ -398,6 +410,7 @@ export class ChatToolsService {
           duplicatesSkipped: prepared.length - fresh.length,
           income: Number(sum('income').toFixed(2)),
           expense: Number(sum('expense').toFixed(2)),
+          topCategories,
         }
       : undefined;
 
@@ -556,7 +569,7 @@ export class ChatToolsService {
     }
   }
 
-  /** One place that creates an account, used by John's create_account tool and by the onboarding form. */
+  /** One place that creates an account, used by Elio's create_account tool and by the onboarding form. */
   async createAccountFull(
     ctx: ToolContext,
     data: {
