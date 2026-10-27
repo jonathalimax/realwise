@@ -247,6 +247,8 @@ export default function ChatPage() {
   const composerBox = useRef(null);
   const listRef = useRef(null);
   const stick = useRef(true); // follow the conversation only while the user is at the bottom
+  const pinUntil = useRef(0); // until this time, opening the chat keeps pinning to the bottom
+  const hadSheet = useRef(false);
   const [showJump, setShowJump] = useState(false);
   const delivered = useRef(false); // the server persisted the user's message for the current turn
   const deliveredId = useRef(null); // id of that persisted message
@@ -294,6 +296,7 @@ export default function ChatPage() {
   useEffect(() => {
     const onScroll = () => {
       if (document.body.style.position === 'fixed') return; // a sheet froze the page; scrollY is not meaningful
+      if (Date.now() < pinUntil.current) return; // our own pinning, not the user reading history
       const near = isNearBottom();
       stick.current = near;
       setShowJump((prev) => (prev === !near ? prev : !near));
@@ -326,9 +329,29 @@ export default function ChatPage() {
     };
   }, []);
 
-  // Open on the latest message, instantly.
+  // Open on the latest message. Layout keeps settling for a moment after the list renders (markdown, fonts, cards,
+  // the auto-opened sheet), so keep re-pinning to the bottom for ~1s, unless the user starts scrolling themselves.
   useEffect(() => {
-    if (!loading) scrollToBottom('auto');
+    if (loading) return undefined;
+    stick.current = true;
+    pinUntil.current = Date.now() + 1200;
+    let frame;
+    const pin = () => {
+      if (Date.now() > pinUntil.current) return;
+      scrollToBottom('auto');
+      frame = requestAnimationFrame(pin);
+    };
+    pin();
+    const stop = () => {
+      pinUntil.current = 0;
+    };
+    window.addEventListener('wheel', stop, { passive: true, once: true });
+    window.addEventListener('touchstart', stop, { passive: true, once: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('wheel', stop);
+      window.removeEventListener('touchstart', stop);
+    };
   }, [loading]);
 
   // Follow the conversation as it grows, but only while the user is at the bottom. Watching the list's real
@@ -365,6 +388,14 @@ export default function ChatPage() {
     : manualSheet ??
     (lastAssistant && autoType && !dismissed.has(lastAssistant.id) ? { id: lastAssistant.id, type: autoType } : null);
   const sheetMessage = sheet ? messages.find((m) => m.id === sheet.id) : null;
+
+  // A sheet freezes the page and restores the scroll position it had when it opened (often the top, when it opens
+  // right after the chat loads). When it closes, go back to the latest message if the user was following the chat.
+  const sheetOpen = Boolean(sheet);
+  useEffect(() => {
+    if (!sheetOpen && hadSheet.current && stick.current) scrollToBottom('auto');
+    hadSheet.current = sheetOpen;
+  }, [sheetOpen]);
 
   const closeSheet = () => {
     if (sheet) setDismissed((prev) => new Set(prev).add(sheet.id));
