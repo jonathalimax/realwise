@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, boolean, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, boolean, uniqueIndex, text, numeric } from 'drizzle-orm/pg-core';
 import { premiumStatusEnum, userRoleEnum } from './enums';
 
 export const users = pgTable(
@@ -26,6 +26,11 @@ export const users = pgTable(
     subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end', { withTimezone: true }),
     subscriptionCancelAtPeriodEnd: boolean('subscription_cancel_at_period_end').default(false).notNull(),
     reminderEmailsOptOut: boolean('reminder_emails_opt_out').default(false).notNull(),
+    marketingEmailsOptOut: boolean('marketing_emails_opt_out').default(false).notNull(),
+    lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
+    adminNote: text('admin_note'),
+    /** Admin override of this user's monthly AI budget (US$); wins over the global and trial budgets. */
+    llmBudgetOverrideUsd: numeric('llm_budget_override_usd', { precision: 10, scale: 4 }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

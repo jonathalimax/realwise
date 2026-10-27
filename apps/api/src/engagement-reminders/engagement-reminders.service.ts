@@ -5,6 +5,7 @@ import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { reminderEmailsSent, transactions, users } from '../db/schema';
 import { computeAccess } from '../billing/access';
+import { AppSettingsService } from '../app-settings/app-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { periodKeyFor, pickReminder } from './reminder-rules';
 import { unsubscribeToken } from './unsubscribe-token';
@@ -16,9 +17,11 @@ export class EngagementRemindersService {
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
+    private readonly settings: AppSettingsService,
   ) {}
 
   async runForAllUsers(now = new Date()): Promise<{ sent: number; skipped: number }> {
+    const { engagement } = await this.settings.getEmails();
     const rows = await this.db.select().from(users).where(eq(users.reminderEmailsOptOut, false));
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     let sent = 0;
@@ -30,7 +33,7 @@ export class EngagementRemindersService {
         const [counts] = await this.db
           .select({
             total: sql<number>`count(*)::int`,
-            thisMonth: sql<number>`count(*) filter (where ${transactions.createdAt} >= ${monthStart})::int`,
+            thisMonth: sql<number>`count(*) filter (where ${transactions.createdAt} >= ${monthStart.toISOString()}::timestamptz)::int`,
           })
           .from(transactions)
           .where(and(eq(transactions.userId, user.id), isNull(transactions.deletedAt)));
@@ -43,7 +46,7 @@ export class EngagementRemindersService {
           transactionsThisMonth: counts?.thisMonth ?? 0,
           now,
         });
-        if (!kind) continue;
+        if (!kind || !engagement.kinds[kind].enabled) continue;
 
         // Never two reminders inside 20h, whatever the kind.
         const recent = await this.db

@@ -11,6 +11,6 @@ import { StripeWebhookService } from './stripe-webhook.service';
   imports: [DrizzleModule, NotificationsModule],
   controllers: [BillingController, StripeWebhookController],
   providers: [BillingService, StripeWebhookService, StripeClient],
-  exports: [BillingService],
+  exports: [BillingService, StripeClient],
 })
 export class BillingModule {}

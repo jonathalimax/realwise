@@ -9,5 +9,6 @@ import { EngagementRemindersService } from './engagement-reminders.service';
   imports: [DrizzleModule, NotificationsModule],
   controllers: [EngagementRemindersController],
   providers: [EngagementRemindersService, EngagementRemindersScheduler],
+  exports: [EngagementRemindersService],
 })
 export class EngagementRemindersModule {}

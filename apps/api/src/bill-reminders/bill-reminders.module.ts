@@ -8,5 +8,6 @@ import { BillActionsModule } from '../bill-actions/bill-actions.module';
 @Module({
   imports: [DrizzleModule, NotificationsModule, BillActionsModule],
   providers: [BillRemindersService, BillRemindersScheduler],
+  exports: [BillRemindersService],
 })
 export class BillRemindersModule {}
