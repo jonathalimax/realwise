@@ -75,6 +75,8 @@ export const TOOL_STATUS: Record<string, string> = {
   create_account: 'Criando a conta…',
   create_category: 'Criando a categoria…',
   create_bill: 'Cadastrando a conta a pagar…',
+  list_pending_bills: 'Olhando suas contas…',
+  mark_bills_paid: 'Marcando as contas como pagas…',
   set_category_rule: 'Lembrando a categoria…',
   query_transactions: 'Consultando seus lançamentos…',
   summarize_transactions: 'Calculando os totais…',

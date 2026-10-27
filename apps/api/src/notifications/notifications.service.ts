@@ -240,29 +240,53 @@ export class NotificationsService {
 
   async sendEngagementEmail(
     to: string,
-    kind: 'trial_import' | 'trial_ending' | 'trial_expired' | 'monthly_import',
-    ctx: { name: string; trialDaysRemaining: number; unsubscribeUserId: string; unsubscribeToken: string; now: Date },
+    kind: 'trial_import' | 'trial_ending' | 'trial_expired' | 'monthly_import' | 'bill_suggestion',
+    ctx: {
+      name: string;
+      trialDaysRemaining: number;
+      unsubscribeUserId: string;
+      unsubscribeToken: string;
+      now: Date;
+      /** The user's client id; app links are `${web}/${clientId}/...`. */
+      clientId?: string;
+      /** For `bill_suggestion`: the recurring payment Elio noticed. */
+      suggestion?: { id: string; name: string; amount: string; dayOfMonth: number; dismissUrl: string };
+    },
   ): Promise<void> {
     const web = process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br';
     const api = process.env.API_BASE_URL ?? 'https://api.realwise.com.br';
     const unsub = `${api}/reminders/unsubscribe?u=${ctx.unsubscribeUserId}&t=${ctx.unsubscribeToken}`;
     const prevMonth = new Date(ctx.now.getFullYear(), ctx.now.getMonth() - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
     const p = (t: string) => `<div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:14px;">${t}</div>`;
+    const app = (path: string) => (ctx.clientId ? `${web.replace(/\/$/, '')}/${ctx.clientId}${path}` : `${web.replace(/\/$/, '')}/login`);
+    const sg = ctx.suggestion;
+    const money = (v: string) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
     const copy = {
+      bill_suggestion: {
+        subject: sg ? `${ctx.name}, quer um lembrete para ${sg.name}?` : 'Quer criar um lembrete?',
+        title: 'O Elio percebeu uma coisa 👀',
+        body: sg
+          ? p(`Notei que você paga <strong>${escapeHtml(sg.name)}</strong> todo mês, por volta do dia <strong>${sg.dayOfMonth}</strong> (cerca de <strong>${money(sg.amount)}</strong>).`) +
+            p('Quer que eu crie um lembrete para você não esquecer? É só tocar no botão e eu cuido do resto.') +
+            `<div style="text-align:center;font-size:12px;margin-top:6px;"><a href="${sg.dismissUrl}" style="color:#9ca3af;">Agora não, obrigado</a></div>`
+          : '',
+        cta: 'Sim, criar o lembrete',
+        url: sg ? app(`/chat?suggestion=${encodeURIComponent(sg.id)}`) : app('/chat'),
+      },
       trial_import: {
         subject: `${ctx.name}, falta só o seu extrato`,
         title: `Falta só um passo, ${ctx.name} 👋`,
         body: p('Você ainda não mandou nenhum extrato. É rápido: abra o chat, anexe o PDF ou CSV do seu banco e o Elio organiza tudo em segundos.') + p('Seu teste é grátis, sem cartão e sem cobrança.'),
         cta: 'Abrir o chat e importar',
-        url: `${web}/chat`,
+        url: app('/chat'),
       },
       trial_ending: {
         subject: 'Seu teste grátis termina amanhã',
         title: 'Seu teste termina amanhã',
         body: p('Aproveite as últimas horas: importe o extrato mais recente e veja o resumo do mês.') + p('Nada será cobrado automaticamente. Se quiser continuar depois, é só escolher um plano; se não, seus dados ficam guardados.'),
         cta: 'Importar meu extrato',
-        url: `${web}/chat`,
+        url: app('/chat'),
       },
       trial_expired: {
         subject: 'Seu teste acabou, mas seus dados estão guardados',
@@ -276,7 +300,7 @@ export class NotificationsService {
         title: `Seu extrato de ${prevMonth} já saiu`,
         body: p('Leva menos de um minuto: anexe o PDF ou CSV no chat e o Elio categoriza tudo, detecta transferências entre suas contas e atualiza seu resumo.'),
         cta: 'Importar agora',
-        url: `${web}/chat`,
+        url: app('/chat'),
       },
     }[kind];
 
@@ -290,39 +314,56 @@ export class NotificationsService {
     await this.sendMail({ to, subject: copy.subject, html });
   }
 
-  async sendBillReminderEmail(to: string, groups: BillGroups): Promise<void> {
+  async sendBillReminderEmail(to: string, groups: BillGroups, ctaUrl?: string): Promise<void> {
     const total = groups.overdue.length + groups.dueToday.length + groups.dueSoon.length;
     if (total === 0) return;
 
-    const formatAmount = (v: string) =>
-      `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-
-    const formatDate = (iso: string) => {
-      const [y, m, d] = iso.slice(0, 10).split('-');
-      return `${d}/${m}/${y}`;
+    const money = (v: string) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    const day = (iso: string) => {
+      const [, m, d] = iso.slice(0, 10).split('-');
+      return `${d}/${m}`;
     };
+    const sum = [...groups.overdue, ...groups.dueToday, ...groups.dueSoon].reduce((acc, b) => acc + Number(b.amount), 0);
 
-    const section = (title: string, bills: BillEntry[]) => {
+    const section = (title: string, color: string, bills: BillEntry[], note: (b: BillEntry) => string) => {
       if (!bills.length) return '';
-      return `<h3>${title}</h3><ul>${bills
-        .map(
-          (b) =>
-            `<li><strong>${b.name}</strong> — ${formatAmount(b.amount)}, vence ${formatDate(b.dueDate)}${b.daysOverdue ? ` (${b.daysOverdue} dias em atraso)` : ''}${b.actionUrl ? ` <a href="${b.actionUrl}">Marcar como pago</a>` : ''}</li>`,
-        )
-        .join('')}</ul>`;
+      return `
+        <div style="margin:0 0 18px;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${color};margin-bottom:6px;">${title}</div>
+          ${bills
+            .map(
+              (b) => `
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #f1f5f9;"><tr>
+              <td style="padding:9px 0;font-size:14px;color:#1e293b;"><strong>${escapeHtml(b.name)}</strong><br /><span style="font-size:12px;color:#94a3b8;">${note(b)}</span></td>
+              <td style="padding:9px 0;font-size:14px;font-weight:700;color:#1e293b;text-align:right;white-space:nowrap;">${money(b.amount)}</td>
+            </tr></table>`,
+            )
+            .join('')}
+        </div>`;
     };
 
-    const html = `
-      <p>Olá! Aqui estão suas contas pendentes:</p>
-      ${section('⚠️ Em atraso', groups.overdue)}
-      ${section('📅 Vence hoje', groups.dueToday)}
-      ${section('🔔 Vence em breve (1–3 dias)', groups.dueSoon)}
-      <p style="font-size:12px;color:#888">Realwise — gestão financeira pessoal</p>
+    const body = `
+      <div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:16px;">
+        Separei as contas que precisam da sua atenção. Já pagou alguma? Toque no botão abaixo e me conte quais (e os valores, se mudaram): eu marco tudo para você.
+      </div>
+      ${section('⚠️ Em atraso', '#e11d48', groups.overdue, (b) => `venceu em ${day(b.dueDate)}${b.daysOverdue ? ` · ${b.daysOverdue} dia${b.daysOverdue > 1 ? 's' : ''} de atraso` : ''}`)}
+      ${section('📅 Vence hoje', '#d97706', groups.dueToday, () => 'vence hoje')}
+      ${section('🔔 Vence em breve', '#2563eb', groups.dueSoon, (b) => `vence em ${day(b.dueDate)}`)}
+      <div style="font-size:13px;color:#64748b;margin-top:4px;">${total} conta${total > 1 ? 's' : ''} · total de <strong>${money(String(sum))}</strong></div>
     `;
+
+    const html = getBaseTemplate({
+      title: total > 1 ? 'Suas contas pedem atenção' : 'Uma conta pede atenção',
+      subtitle: 'Resolva tudo em um minuto, direto no chat com o Elio.',
+      body,
+      cta: 'Resolver minhas contas com o Elio',
+      ctaUrl: ctaUrl ?? 'https://realwise.com.br',
+      footerNote: 'Você recebe este lembrete porque tem contas cadastradas no Realwise.',
+    });
 
     await this.sendMail({
       to,
-      subject: `Realwise — lembrete de conta${total > 1 ? 's' : ''}`,
+      subject: total > 1 ? `Realwise — ${total} contas pedem atenção` : 'Realwise — uma conta pede atenção',
       html,
     });
   }

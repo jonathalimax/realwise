@@ -5,10 +5,13 @@ import { ChatService } from './chat.service';
 import { ChatToolsService } from './chat-tools.service';
 import { InsightsService } from './insights.service';
 import { ChatEditService } from './chat-edit.service';
+import { ChatBillsService } from './chat-bills.service';
+import { BillsModule } from '../bills/bills.module';
+import { BillSuggestionsModule } from '../bill-suggestions/bill-suggestions.module';
 
 @Module({
-  imports: [DrizzleModule],
+  imports: [DrizzleModule, BillsModule, BillSuggestionsModule],
   controllers: [ChatController],
-  providers: [ChatService, ChatToolsService, ChatEditService, InsightsService],
+  providers: [ChatService, ChatToolsService, ChatEditService, ChatBillsService, InsightsService],
 })
 export class ChatModule {}

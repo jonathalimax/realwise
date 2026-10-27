@@ -28,6 +28,8 @@ export const users = pgTable(
     reminderEmailsOptOut: boolean('reminder_emails_opt_out').default(false).notNull(),
     marketingEmailsOptOut: boolean('marketing_emails_opt_out').default(false).notNull(),
     lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
+    /** Last time recurring-bill detection ran for this user (it runs at most weekly). */
+    billDetectionAt: timestamp('bill_detection_at', { withTimezone: true }),
     adminNote: text('admin_note'),
     /** Admin override of this user's monthly AI budget (US$); wins over the global and trial budgets. */
     llmBudgetOverrideUsd: numeric('llm_budget_override_usd', { precision: 10, scale: 4 }),

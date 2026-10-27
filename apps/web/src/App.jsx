@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { extractClientId } from './config/clientConfig';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
 import { GoalsProvider } from './contexts/GoalsContext';
@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
 import SubscriptionGate from './components/billing/SubscriptionGate';
 import SubscriptionPage from './pages/SubscriptionPage';
+import { consumeDeepLink, rememberDeepLink } from './lib/auth/deepLink';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -54,8 +55,19 @@ function AuthenticatedShell({ children }) {
   return children;
 }
 
+/** Replays a chat deep link (from an email) that was remembered before the user had to sign in. */
+function PostLoginRedirect() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const to = consumeDeepLink();
+    if (to) navigate(to, { replace: true });
+  }, [navigate]);
+  return null;
+}
+
 function RedirectToGlobalLogin() {
   useEffect(() => {
+    rememberDeepLink(window.location.pathname, window.location.search);
     const storedClientId = localStorage.getItem('rw_last_client') || '';
     window.location.replace(buildLoginRedirectUrl(window.location.pathname, storedClientId));
   }, []);
@@ -77,6 +89,7 @@ function AuthenticatedApp() {
                     <InvestmentProvider>
                       <BillsProvider>
                         <Suspense fallback={<PageLoader />}>
+                          <PostLoginRedirect />
                           <Routes>
                             <Route element={<Layout />}>
                               <Route index element={<Navigate to="/dashboard" replace />} />
