@@ -41,3 +41,11 @@ Keep the existing pages (leads, testimonials, import issues, guide). Add, in Por
 
 ## Web app (customer) work, done separately
 Login copy, contact card (Settings + login), delete-account flow, subscription management page `/subscription`, premium "full access" banner and side-menu card linking to it, announcement banner.
+
+## Area B implementation notes (users, AI logs, analytics)
+- Shared helpers: `admin-common/admin-query.util.ts` (paging max 100, safe date parsing, CSV cell escaping) and `admin-common/access-sql.ts` (SQL mirror of `computeAccess` to filter/count by access state in the database; keep in sync).
+- Dates: `YYYY-MM-DD` filters are Brazil-time days (`to` inclusive of that day); daily series are bucketed in `America/Sao_Paulo`. Ranges are capped (llm logs 400 days, overview `days` 1..365). Rates (`errorRate`, `conversionRate`) are fractions 0..1.
+- PATCH email, plan and delete refuse admin/owner users (403). Plan: `extend_trial` adds to a running trial, `start_trial` always restarts from now; trial actions 409 on lifetime or live-subscription users; `grant_lifetime` and `revoke` 409 while a Stripe subscription is live (revoke also inside a paid period). Plan response: `{ id, access }`.
+- `DELETE /admin/users/:id` uses the `ACCOUNT_DELETION` token (`admin-users/account-deletion.token.ts`); Area A must provide it or the endpoint answers 503.
+- `users.last_active_at` is stamped by the global `LastActiveInterceptor` (admin-analytics), at most once per 10 minutes per user (in-memory throttle plus conditional UPDATE). DAU/WAU/MAU read it; `series.activeUsers` uses chat messages, imports and the last-active day.
+- MRR uses list prices 899 / 7490 cents (override `ADMIN_PRICE_MONTHLY_CENTS` / `ADMIN_PRICE_ANNUAL_CENTS`); promotion-code discounts are not reflected.

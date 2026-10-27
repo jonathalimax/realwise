@@ -1,5 +1,12 @@
 import { Module } from '@nestjs/common';
+import { AdminGuard } from '../auth/guards/admin.guard';
+import { DrizzleModule } from '../db/drizzle.module';
+import { AdminLlmController } from './admin-llm.controller';
+import { AdminLlmService } from './admin-llm.service';
 
-/** Filled in by the admin-v2 work; see .ai/features/admin-v2.md for the contract. */
-@Module({})
+@Module({
+  imports: [DrizzleModule],
+  controllers: [AdminLlmController],
+  providers: [AdminLlmService, AdminGuard],
+})
 export class AdminLlmModule {}
