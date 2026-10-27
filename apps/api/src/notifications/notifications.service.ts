@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
+import { escapeHtml, safeHttpUrl, textToParagraphs } from './email-text';
 
 interface BillEntry {
   id: string;
@@ -163,17 +164,78 @@ export class NotificationsService {
     this.resend = new Resend(apiKey);
   }
 
-  private async sendMail(params: { to: string; subject: string; html: string }): Promise<void> {
+  private async sendMail(params: {
+    to: string;
+    subject: string;
+    html: string;
+    from?: string;
+    replyTo?: string;
+    headers?: Record<string, string>;
+  }): Promise<void> {
     if (!this.resend) return;
     const { error } = await this.resend.emails.send({
-      from: this.from,
+      from: params.from ?? this.from,
       to: params.to,
       subject: params.subject,
       html: params.html,
+      ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+      ...(params.headers ? { headers: params.headers } : {}),
     });
     if (error) {
       throw new Error(`Resend send failed: ${error.message}`);
     }
+  }
+
+  /** Address support replies are sent from (and that users answer to). */
+  get supportEmail(): string {
+    return process.env.SUPPORT_EMAIL ?? 'suporte@realwise.com.br';
+  }
+
+  /** Reply from the admin inbox to a support message; goes out from SUPPORT_EMAIL. Throws when delivery fails. */
+  async sendSupportReply(to: string, ctx: { name?: string | null; subject?: string | null; reply: string; original: string }): Promise<void> {
+    const first = (ctx.name ?? '').trim().split(' ')[0];
+    const quoted = `<div style="border-left:3px solid #e5e7eb;padding:4px 12px;margin-top:8px;font-size:12px;color:#9ca3af;line-height:1.6;">${escapeHtml(ctx.original.slice(0, 1000)).replace(/\n/g, '<br />')}</div>`;
+    const html = getBaseTemplate({
+      title: first ? `Olá, ${escapeHtml(first)}` : 'Olá',
+      body: textToParagraphs(ctx.reply) + `<div style="font-size:12px;color:#9ca3af;margin-top:18px;">Sua mensagem:</div>${quoted}`,
+      footerNote: 'Responda este e-mail para continuar a conversa.',
+    });
+    await this.sendMail({
+      to,
+      subject: ctx.subject ? `Re: ${ctx.subject}` : 'Re: sua mensagem para o Realwise',
+      html,
+      from: `Realwise <${this.supportEmail}>`,
+      replyTo: this.supportEmail,
+    });
+  }
+
+  /** Brand-template HTML for a marketing campaign (also used by the admin preview). Everything user-provided is escaped. */
+  renderCampaignEmail(c: { subject: string; body: string; ctaLabel?: string | null; ctaUrl?: string | null }, unsubscribeUrl: string): string {
+    const ctaUrl = safeHttpUrl(c.ctaUrl);
+    return getBaseTemplate({
+      title: escapeHtml(c.subject),
+      body: textToParagraphs(c.body),
+      cta: ctaUrl && c.ctaLabel?.trim() ? escapeHtml(c.ctaLabel.trim()) : undefined,
+      ctaUrl: ctaUrl ? escapeHtml(ctaUrl) : undefined,
+      footerNote: `Não quer mais receber novidades? <a href="${escapeHtml(unsubscribeUrl)}" style="color:#9ca3af;">Cancelar inscrição</a>`,
+    });
+  }
+
+  /** Sends a marketing campaign email with a one-click unsubscribe link and List-Unsubscribe headers. Throws on delivery failure. */
+  async sendCampaignEmail(
+    to: string,
+    c: { subject: string; body: string; ctaLabel?: string | null; ctaUrl?: string | null },
+    unsubscribeUrl: string,
+  ): Promise<void> {
+    await this.sendMail({
+      to,
+      subject: c.subject,
+      html: this.renderCampaignEmail(c, unsubscribeUrl),
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
   }
 
   async sendEngagementEmail(
