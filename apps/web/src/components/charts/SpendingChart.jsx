@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PieChart } from '@mui/x-charts/PieChart';
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useBudget } from '../../contexts/BudgetContext';
 import { useMonth } from '../../contexts/MonthContext';
@@ -48,6 +48,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
   const { selectedMonth: contextMonth } = useMonth();
   const month = selectedMonth || contextMonth;
   const navigate = useNavigate();
+  const [activeLabel, setActiveLabel] = useState(null); // slice tapped on the donut
 
   const goToCategory = (category) => {
     if (onCategoryClick) {
@@ -148,40 +149,51 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
     return CATEGORY_ICONS[categoryName] || '💰';
   };
 
-  const handleItemClick = (event, itemIdentifier) => {
-    if (itemIdentifier?.dataIndex === undefined) return;
-    const clickedItem = pieData[itemIdentifier.dataIndex];
-    if (clickedItem) goToCategory(clickedItem.label);
-  };
+  const activeSlice = pieData.find((d) => d.label === activeLabel) ?? null;
 
   return (
     <div className="space-y-6">
-      {/* Donut Chart with Center Stats */}
-      <div className="relative w-full flex items-center justify-center">
-        <PieChart
-          series={[{
-            data: pieData,
-            innerRadius: 78,
-            outerRadius: 120,
-            paddingAngle: 3,
-            cornerRadius: 4,
-            highlightScope: { fade: 'global', highlight: 'item' },
-            valueFormatter: (item) => formatCurrency(item.value),
-          }]}
-          onItemClick={handleItemClick}
-          slotProps={{
-            legend: { hidden: true },
-          }}
-          height={300}
-          margin={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          sx={{ maxWidth: '100%' }}
-        />
+      {/* Donut: tap a slice to read it in the centre; the list below opens the category */}
+      <div className="relative mx-auto h-[250px] w-full max-w-[320px]" style={{ touchAction: 'pan-y' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              dataKey="value"
+              nameKey="label"
+              innerRadius="66%"
+              outerRadius="92%"
+              paddingAngle={pieData.length > 1 ? 3 : 0}
+              cornerRadius={6}
+              stroke="none"
+              startAngle={90}
+              endAngle={-270}
+              isAnimationActive
+              animationDuration={700}
+              onClick={(entry) => setActiveLabel((prev) => (prev === entry?.label ? null : entry?.label ?? null))}
+            >
+              {pieData.map((d) => (
+                <Cell key={d.label} fill={d.color} fillOpacity={!activeSlice || activeSlice.label === d.label ? 1 : 0.35} style={{ cursor: 'pointer', outline: 'none' }} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
 
-        {/* Center Stats */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-            {formatCurrency(total)}
-          </p>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-12 text-center">
+          {activeSlice ? (
+            <>
+              <p className="max-w-full truncate text-xs font-semibold text-gray-500 dark:text-gray-400">{activeSlice.label}</p>
+              <p className="text-lg font-bold tabular-nums text-gray-900 dark:text-white sm:text-2xl">{formatCurrency(activeSlice.value)}</p>
+              <p className="text-xs font-semibold tabular-nums" style={{ color: activeSlice.color }}>
+                {total > 0 ? `${((activeSlice.value / total) * 100).toFixed(0)}%` : ''}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{language === 'pt' ? 'Total' : 'Total'}</p>
+              <p className="text-lg font-bold tabular-nums text-gray-900 dark:text-white sm:text-2xl">{formatCurrency(total)}</p>
+            </>
+          )}
         </div>
       </div>
 
