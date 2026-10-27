@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { extractClientId } from './config/clientConfig';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
 import { GoalsProvider } from './contexts/GoalsContext';
@@ -62,13 +62,13 @@ function AuthenticatedShell({ children }) {
  */
 function PostLoginRedirect({ children }) {
   const [target] = useState(() => peekDeepLink());
-  const [redirecting, setRedirecting] = useState(Boolean(target));
+  const [landed, setLanded] = useState(!target);
+  const { pathname, search } = useLocation();
+  if (!landed && pathname + search === target) setLanded(true);
   useEffect(() => {
-    if (!redirecting) return;
-    consumeDeepLink();
-    setRedirecting(false);
-  }, [redirecting]);
-  if (redirecting) return <Navigate to={target} replace />;
+    if (landed) consumeDeepLink();
+  }, [landed]);
+  if (!landed) return <Navigate to={target} replace />;
   return children;
 }
 
