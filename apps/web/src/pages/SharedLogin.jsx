@@ -111,6 +111,21 @@ export default function SharedLogin() {
     window.location.href = authUrl.toString();
   };
 
+  // The login is always dark, even for users on light mode: keep the page behind it (iOS overscroll) and the
+  // browser chrome dark too, then hand both back when leaving.
+  useEffect(() => {
+    const html = document.documentElement;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const prevBg = html.style.backgroundColor;
+    const prevColor = meta?.getAttribute('content') ?? null;
+    html.style.backgroundColor = '#020617';
+    meta?.setAttribute('content', '#020617');
+    return () => {
+      html.style.backgroundColor = prevBg;
+      if (meta && prevColor !== null) meta.setAttribute('content', prevColor);
+    };
+  }, []);
+
   const wide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)').matches;
 
   return (
