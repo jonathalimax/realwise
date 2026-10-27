@@ -229,9 +229,28 @@ function LiveBubble({ target, status, finished, onRevealed, language }) {
 }
 
 const NEAR_BOTTOM_PX = 140;
-const isNearBottom = () => document.documentElement.scrollHeight - (window.scrollY + window.innerHeight) < NEAR_BOTTOM_PX;
-const scrollToBottom = (behavior = 'auto') =>
-  window.scrollTo({ top: document.documentElement.scrollHeight, behavior });
+
+/**
+ * The element that actually scrolls the page. On iOS, index.css gives html and body `height: 100%; overflow: auto`,
+ * which turns <body> into the scroll container (window.scrollY stays 0 and documentElement.scrollHeight is just the
+ * viewport). Everywhere else the window scrolls. Never assume `window`: scrolling it on iOS does nothing.
+ */
+function pageScroller() {
+  const { body } = document;
+  if (body.scrollHeight > body.clientHeight + 1 && ['auto', 'scroll', 'hidden'].includes(getComputedStyle(body).overflowY)) return body;
+  return document.scrollingElement || document.documentElement;
+}
+const isNearBottom = () => {
+  const el = pageScroller();
+  const viewport = el === document.body ? el.clientHeight : window.innerHeight;
+  const top = el === document.body ? el.scrollTop : window.scrollY;
+  return el.scrollHeight - (top + viewport) < NEAR_BOTTOM_PX;
+};
+const scrollToBottom = (behavior = 'auto') => {
+  const el = pageScroller();
+  if (el === document.body) el.scrollTo({ top: el.scrollHeight, behavior });
+  else window.scrollTo({ top: el.scrollHeight, behavior });
+};
 
 export default function ChatPage() {
   const { language } = useSettings();
@@ -300,15 +319,16 @@ export default function ChatPage() {
 
   // Track whether the user is reading history (scrolled up) or following the conversation.
   useEffect(() => {
-    const onScroll = () => {
-      if (document.body.style.position === 'fixed') return; // a sheet froze the page; scrollY is not meaningful
+    // Capture phase: scroll events of <body> (the iOS scroll container) do not bubble up to the window.
+    const onScroll = (e) => {
+      if (e.target !== document && e.target !== document.body && e.target !== document.documentElement) return; // an inner scroller (composer, sheet)
       if (Date.now() < pinUntil.current) return; // our own pinning, not the user reading history
       const near = isNearBottom();
       stick.current = near;
       setShowJump((prev) => (prev === !near ? prev : !near));
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => document.removeEventListener('scroll', onScroll, { capture: true });
   }, []);
 
   // iOS can leave the page laid out for a keyboard/picker that is already gone (blank or black area, composer floating
@@ -395,8 +415,8 @@ export default function ChatPage() {
     (lastAssistant && autoType && !dismissed.has(lastAssistant.id) ? { id: lastAssistant.id, type: autoType } : null);
   const sheetMessage = sheet ? messages.find((m) => m.id === sheet.id) : null;
 
-  // A sheet freezes the page and restores the scroll position it had when it opened (often the top, when it opens
-  // right after the chat loads). When it closes, go back to the latest message if the user was following the chat.
+  // A sheet locks the page's scroll while it is open. When it closes, make sure the view is on the latest message
+  // if the user was following the chat.
   const sheetOpen = Boolean(sheet);
   useEffect(() => {
     if (!sheetOpen && hadSheet.current && stick.current) scrollToBottom('auto');
