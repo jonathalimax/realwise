@@ -3,7 +3,7 @@
 
 let pdfjsLibPromise = null;
 
-async function loadPdfJs() {
+export async function loadPdfJs() {
   if (pdfjsLibPromise) return pdfjsLibPromise;
   pdfjsLibPromise = (async () => {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');

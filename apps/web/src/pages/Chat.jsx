@@ -6,6 +6,7 @@ import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
 import AccountFormSheet from '../components/chat/AccountFormSheet';
 import Markdown from '../components/chat/Markdown';
+import FilePreview from '../components/chat/FilePreview';
 import { notifyTransactionsChanged } from '../lib/api/resources/transactions';
 import { notifyBillsChanged } from '../lib/api/resources/bills';
 import { useSettings } from '../contexts/SettingsContext';
@@ -242,6 +243,7 @@ export default function ChatPage() {
   );
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
+  const [previewFile, setPreviewFile] = useState(null); // an attached file opened read-only
   const [dragging, setDragging] = useState(false);
   const composer = useRef(null);
   const composerBox = useRef(null);
@@ -601,6 +603,8 @@ export default function ChatPage() {
     >
       <PageHeader title={pt ? 'Assistente IA' : 'AI Assistant'} />
 
+      {previewFile && <FilePreview file={previewFile} language={language} onClose={() => setPreviewFile(null)} />}
+
       <div ref={listRef} className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 space-y-3" style={{ paddingBottom: 16 }}>
         {!loading && messages.length === 0 && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
@@ -670,8 +674,15 @@ export default function ChatPage() {
             <div className="mb-2 flex flex-wrap gap-2">
               {files.map((file, i) => (
                 <span key={`${file.name}-${i}`} className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-gray-800 shadow-sm px-2 py-1 text-xs text-gray-700 dark:text-gray-200">
-                  <DocumentTextIcon className="w-4 h-4 text-violet-500" />
-                  <span className="max-w-[10rem] truncate">{file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewFile(file)}
+                    className="inline-flex items-center gap-1 hover:text-violet-600 dark:hover:text-violet-300"
+                    aria-label={`${pt ? 'Ver' : 'View'} ${file.name}`}
+                  >
+                    <DocumentTextIcon className="w-4 h-4 text-violet-500" />
+                    <span className="max-w-[10rem] truncate underline-offset-2 hover:underline">{file.name}</span>
+                  </button>
                   <button onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} aria-label={pt ? 'Remover' : 'Remove'}>
                     <XMarkIcon className="w-4 h-4 text-gray-400 hover:text-gray-600" />
                   </button>
