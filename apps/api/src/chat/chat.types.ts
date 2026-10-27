@@ -1,4 +1,4 @@
-/** A multiple-choice question John shows the user as a sheet (account, payment method, free choice). */
+/** A multiple-choice question Elio shows the user as a sheet (account, payment method, free choice). */
 export interface ChatQuestion {
   id: string;
   kind: 'account' | 'payment_method' | 'choice' | 'confirm' | 'account_form';
@@ -44,11 +44,11 @@ export interface ReviewGroup {
   items: ReviewItem[];
   /** Name of the account these were saved to. */
   account: string | null;
-  /** True when John thinks these may be transfers between the user's own accounts and wants a yes/no. */
+  /** True when Elio thinks these may be transfers between the user's own accounts and wants a yes/no. */
   transferAsk?: boolean;
   /** The category the row was saved with, if any. */
   currentCategoryId: string | null;
-  /** Up to 3 categories John considers plausible, best first. */
+  /** Up to 3 categories Elio considers plausible, best first. */
   suggestionIds: string[];
 }
 
@@ -66,7 +66,7 @@ export type ChatStreamEvent =
   | { type: 'user'; message: unknown } // the persisted user message
   | { type: 'delta'; text: string } // a piece of the reply, as the model writes it
   | { type: 'reset' } // discard streamed text: the model moved on to run tools
-  | { type: 'status'; label: string } // what John is doing ("Salvando transações…")
+  | { type: 'status'; label: string } // what Elio is doing ("Salvando transações…")
   | { type: 'done'; result: unknown } // final persisted result, same shape as the non-streaming JSON
   | { type: 'error'; message: string; status: number; code?: string };
 

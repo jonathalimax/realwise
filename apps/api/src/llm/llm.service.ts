@@ -57,7 +57,7 @@ export class LlmService {
       // The real cause goes to the server log and llm_call_log; users only get a generic message.
       console.error(`[llm] ${request.purpose} call failed for model ${request.model ?? 'default'}: ${reason}`);
       await this.log(scope, req, null, 0, reason);
-      throw new ServiceUnavailableException('O John está indisponível no momento. Tente de novo em instantes.');
+      throw new ServiceUnavailableException('O Elio está indisponível no momento. Tente de novo em instantes.');
     }
   }
 
@@ -91,7 +91,7 @@ export class LlmService {
     if (fallback && spent < hardCap) return { ...req, model: fallback };
 
     throw new HttpException(
-      { message: 'Você chegou ao limite de uso do John neste mês. Ele volta a ficar disponível no começo do próximo mês.', code: 'MONTHLY_LIMIT' },
+      { message: 'Você chegou ao limite de uso do Elio neste mês. Ele volta a ficar disponível no começo do próximo mês.', code: 'MONTHLY_LIMIT' },
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }
@@ -108,7 +108,7 @@ export class LlmService {
     const spent = await this.monthToDateUsd(userId, user.premiumAccessStartedAt ?? user.createdAt);
     if (spent < cap) return;
     throw new HttpException(
-      { message: 'Você usou todo o limite do teste grátis. Para continuar com o John, assine um plano.', code: 'TRIAL_LIMIT' },
+      { message: 'Você usou todo o limite do teste grátis. Para continuar com o Elio, assine um plano.', code: 'TRIAL_LIMIT' },
       HttpStatus.TOO_MANY_REQUESTS,
     );
   }

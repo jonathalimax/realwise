@@ -42,7 +42,7 @@ async function postStream(path, body, onEvent) {
     } catch {
       return;
     }
-    if (event.type === 'error') throw new ApiError(event.message || 'O John não conseguiu responder.', { status: event.status ?? 503, data: { code: event.code } });
+    if (event.type === 'error') throw new ApiError(event.message || 'O Elio não conseguiu responder.', { status: event.status ?? 503, data: { code: event.code } });
     if (event.type === 'done') result = event.result;
     onEvent?.(event);
   };
@@ -57,7 +57,7 @@ async function postStream(path, body, onEvent) {
       buffer = buffer.slice(idx + 2);
     }
   }
-  if (!result) throw new ApiError('A conexão caiu antes de o John terminar. Tente de novo.', { status: 503 });
+  if (!result) throw new ApiError('A conexão caiu antes de o Elio terminar. Tente de novo.', { status: 503 });
   return result;
 }
 
@@ -77,7 +77,7 @@ export function createChatResource({ client = apiClient } = {}) {
       notifyBillsChanged();
       return result;
     },
-    /** Answers a question sheet; John continues and replies. */
+    /** Answers a question sheet; Elio continues and replies. */
     async answer(messageId, answers) {
       const result = await client.post(`/chat/messages/${messageId}/answers`, { answers });
       notifyTransactionsChanged();
@@ -94,17 +94,17 @@ export function createChatResource({ client = apiClient } = {}) {
     onboardingStatus() {
       return client.get('/chat/onboarding');
     },
-    /** Seeds the default categories and posts John's welcome + account form (idempotent). */
+    /** Seeds the default categories and posts Elio's welcome + account form (idempotent). */
     onboardingStart() {
       return client.post('/chat/onboarding/start');
     },
-    /** Saves the account form; John then continues the conversation (streamed). */
+    /** Saves the account form; Elio then continues the conversation (streamed). */
     async accountFormStream(messageId, form, onEvent) {
       const result = await postStream(`/chat/messages/${messageId}/account-form`, form, onEvent);
       notifyBillsChanged();
       return result;
     },
-    /** Like send(), but streams John's reply: `onEvent` gets user / delta / reset / status events. */
+    /** Like send(), but streams Elio's reply: `onEvent` gets user / delta / reset / status events. */
     async sendStream({ message = '', files = [], onEvent }) {
       const form = new FormData();
       if (message) form.append('message', message);

@@ -556,7 +556,7 @@ export class ChatToolsService {
     }
   }
 
-  /** One place that creates an account, used by John's create_account tool and by the onboarding form. */
+  /** One place that creates an account, used by Elio's create_account tool and by the onboarding form. */
   async createAccountFull(
     ctx: ToolContext,
     data: {

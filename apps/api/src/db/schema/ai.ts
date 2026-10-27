@@ -76,7 +76,7 @@ export const chatFiles = pgTable(
   (t) => ({ byUser: index('chat_files_user_created_idx').on(t.userId, t.createdAt) }),
 );
 
-/** Audit trail of everything John changed or soft-deleted, with the previous values. */
+/** Audit trail of everything Elio changed or soft-deleted, with the previous values. */
 export const chatChangeLog = pgTable(
   'chat_change_log',
   {

@@ -84,7 +84,7 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
             : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md shadow-sm'
         }`}
       >
-        {!mine && <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">John</p>}
+        {!mine && <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>}
         {Array.isArray(message.attachments) && message.attachments.length > 0 && (
           <div className="mb-1.5 flex flex-wrap gap-1.5">
             {message.attachments.map((file, i) => (
@@ -125,7 +125,7 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
 }
 
 /**
- * John's reply while it streams. Network chunks arrive in bursts, so the text is revealed by a
+ * Elio's reply while it streams. Network chunks arrive in bursts, so the text is revealed by a
  * frame loop that speeds up when it falls behind: steady character-by-character typing, never a wall of text.
  */
 function LiveBubble({ target, status, finished, onRevealed, language }) {
@@ -171,7 +171,7 @@ function LiveBubble({ target, status, finished, onRevealed, language }) {
         aria-live="polite"
         aria-label={pt ? 'O assistente está escrevendo' : 'The assistant is typing'}
       >
-        <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">John</p>
+        <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>
         {visible ? (
           <div>
             <Markdown text={visible} streaming={!finished} />
@@ -205,7 +205,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  // Failures are posted as a friendly message from John (local only, never saved or sent to the model).
+  // Failures are posted as a friendly message from Elio (local only, never saved or sent to the model).
   const say = useCallback(
     (content) => setMessages((prev) => [...prev, { id: `local-${Date.now()}-${prev.length}`, role: 'assistant', content, local: true }]),
     [],
@@ -220,7 +220,7 @@ export default function ChatPage() {
   const [showJump, setShowJump] = useState(false);
   const delivered = useRef(false); // the server persisted the user's message for the current turn
   const deliveredId = useRef(null); // id of that persisted message
-  const [live, setLive] = useState(null); // { text, status, final } while John's reply streams
+  const [live, setLive] = useState(null); // { text, status, final } while Elio's reply streams
   const autoSent = useRef(false);
   const onboardingStarted = useRef(false);
   const [manualSheet, setManualSheet] = useState(null); // { id, type } opened from a button
@@ -239,7 +239,7 @@ export default function ChatPage() {
     };
   }, [say]);
 
-  // A user with no bank account is set up by John: the first open creates the default categories and posts his
+  // A user with no bank account is set up by Elio: the first open creates the default categories and posts his
   // welcome with the account form. The server makes this idempotent; the ref avoids a duplicate call in StrictMode.
   useEffect(() => {
     if (loading || onboardingStarted.current) return;
@@ -544,7 +544,7 @@ export default function ChatPage() {
         {!loading && messages.length === 0 && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
             <p className="font-bold text-gray-900 dark:text-white">
-              {pt ? 'Oi, eu sou o John, seu assistente financeiro. Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm John, your financial assistant. Let's take good care of your money 💜"}
+              {pt ? 'Oi, eu sou o Elio, seu assistente financeiro. Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm Elio, your financial assistant. Let's take good care of your money 💜"}
             </p>
             <p>
               {pt

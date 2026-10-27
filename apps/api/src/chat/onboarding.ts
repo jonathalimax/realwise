@@ -54,7 +54,7 @@ export function welcomeMessage(lang: 'pt' | 'en'): { content: string; formTitle:
   const inc = [...new Set(DEFAULT_CATEGORIES.filter((c) => c.type === 'income').map((c) => c.name))].join(', ');
   if (lang === 'en') {
     return {
-      content: `Hi! I'm John, your financial assistant 💜 I'll get everything ready for you, right here in the chat.
+      content: `Hi! I'm Elio, your financial assistant 💜 I'll get everything ready for you, right here in the chat.
 
 I already created your categories:
 - **Expenses:** ${exp}
@@ -66,7 +66,7 @@ You can ask me to change them any time (for example, "rename Lazer to Fun"). Now
     };
   }
   return {
-    content: `Oi! Eu sou o John, seu assistente financeiro 💜 Vou deixar tudo pronto para você, aqui mesmo no chat.
+    content: `Oi! Eu sou o Elio, seu assistente financeiro 💜 Vou deixar tudo pronto para você, aqui mesmo no chat.
 
 Já criei as suas categorias:
 - **Despesas:** ${exp}
