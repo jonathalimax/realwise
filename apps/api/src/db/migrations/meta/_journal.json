@@ -183,6 +183,13 @@
       "when": 1792500000000,
       "tag": "0025_engagement_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792600000000,
+      "tag": "0026_admin_v2",
+      "breakpoints": true
     }
   ]
 }

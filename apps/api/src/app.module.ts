@@ -28,6 +28,13 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { B3SyncModule } from './b3-sync/b3-sync.module';
 import { BillRemindersModule } from './bill-reminders/bill-reminders.module';
 import { EngagementRemindersModule } from './engagement-reminders/engagement-reminders.module';
+import { AdminCommonModule } from './admin-common/admin-common.module';
+import { SupportModule } from './support/support.module';
+import { AccountModule } from './account/account.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
+import { AdminLlmModule } from './admin-llm/admin-llm.module';
+import { AdminAnalyticsModule } from './admin-analytics/admin-analytics.module';
+import { AdminCommsModule } from './admin-comms/admin-comms.module';
 import { BillActionsModule } from './bill-actions/bill-actions.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -60,6 +67,13 @@ import { ChatModule } from './chat/chat.module';
     B3SyncModule,
     BillRemindersModule,
     EngagementRemindersModule,
+    AdminCommonModule,
+    SupportModule,
+    AccountModule,
+    AdminUsersModule,
+    AdminLlmModule,
+    AdminAnalyticsModule,
+    AdminCommsModule,
     BillActionsModule,
     AdminModule,
     PaymentsModule,
