@@ -3,9 +3,7 @@ import { and, count, desc, eq, ilike } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import {
-  AiSettings,
   AnnouncementSettings,
-  DEFAULT_EMAIL_SETTINGS,
   EmailSettings,
   ENGAGEMENT_KINDS,
   EngagementKind,
