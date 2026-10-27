@@ -1,5 +1,5 @@
-import { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useState, lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { extractClientId } from './config/clientConfig';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
 import { GoalsProvider } from './contexts/GoalsContext';
@@ -17,7 +17,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
 import SubscriptionGate from './components/billing/SubscriptionGate';
 import SubscriptionPage from './pages/SubscriptionPage';
-import { consumeDeepLink, rememberDeepLink } from './lib/auth/deepLink';
+import { consumeDeepLink, peekDeepLink, rememberDeepLink } from './lib/auth/deepLink';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -55,14 +55,21 @@ function AuthenticatedShell({ children }) {
   return children;
 }
 
-/** Replays a chat deep link (from an email) that was remembered before the user had to sign in. */
-function PostLoginRedirect() {
-  const navigate = useNavigate();
+/**
+ * Replays a chat deep link (from an email) that was remembered before the user had to sign in. The routes only mount
+ * after the redirect landed, so a landing-route redirect (index -> /dashboard, or the dashboard sending a user with no
+ * account to /chat) cannot overwrite the deep link and its query.
+ */
+function PostLoginRedirect({ children }) {
+  const [target] = useState(() => peekDeepLink());
+  const [redirecting, setRedirecting] = useState(Boolean(target));
   useEffect(() => {
-    const to = consumeDeepLink();
-    if (to) navigate(to, { replace: true });
-  }, [navigate]);
-  return null;
+    if (!redirecting) return;
+    consumeDeepLink();
+    setRedirecting(false);
+  }, [redirecting]);
+  if (redirecting) return <Navigate to={target} replace />;
+  return children;
 }
 
 function RedirectToGlobalLogin() {
@@ -89,7 +96,7 @@ function AuthenticatedApp() {
                     <InvestmentProvider>
                       <BillsProvider>
                         <Suspense fallback={<PageLoader />}>
-                          <PostLoginRedirect />
+                          <PostLoginRedirect>
                           <Routes>
                             <Route element={<Layout />}>
                               <Route index element={<Navigate to="/dashboard" replace />} />
@@ -122,6 +129,7 @@ function AuthenticatedApp() {
                             </Route>
                             <Route path="*" element={<Navigate to="/dashboard" replace />} />
                           </Routes>
+                          </PostLoginRedirect>
                         </Suspense>
                       </BillsProvider>
                     </InvestmentProvider>
