@@ -4,6 +4,7 @@ import { authApi } from '../lib/api/auth';
 import { resolveApiBaseUrl } from '../lib/api/client';
 import { clearLoginSession, isLoginSessionExpired } from '../lib/auth/sessionAge';
 import { resolveLoginClientId } from '../lib/auth/loginClient';
+import { mailtoUrl, useSupportConfig, whatsappUrl } from '../components/contact/useSupportConfig';
 
 // The animated demo is only worth its bytes on wide screens, so it loads on demand.
 const ChatDemo = lazy(() => import('../../landing_page/components/landing/ChatDemo'));
@@ -126,6 +127,9 @@ export default function SharedLogin() {
     };
   }, []);
 
+  const support = useSupportConfig();
+  const accountDeleted = useMemo(() => new URLSearchParams(window.location.search).has('deleted'), []);
+
   const wide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)').matches;
 
   return (
@@ -172,11 +176,17 @@ export default function SharedLogin() {
         <div className="order-1 w-full lg:order-2">
           <div className="mx-auto w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.06] p-7 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-9">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> 3 dias grátis · sem cartão
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Seu assistente financeiro com IA
             </span>
 
             <h2 className="mt-5 text-2xl font-bold">Bem-vindo ao Realwise</h2>
             <p className="mt-2 text-slate-400">Entre com sua conta Google para começar ou voltar ao seu painel.</p>
+
+            {accountDeleted && !error && (
+              <div className="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4">
+                <p className="text-sm text-emerald-300">Sua conta foi excluída e seus dados foram apagados.</p>
+              </div>
+            )}
 
             {error && (
               <div className="mt-6 rounded-xl border border-rose-400/30 bg-rose-500/10 p-4">
@@ -208,15 +218,22 @@ export default function SharedLogin() {
             </button>
 
             <p className="mt-5 text-center text-sm text-slate-400">
-              Novo por aqui? É só entrar: o teste começa na hora e você só paga se quiser continuar.
+              Primeira vez por aqui? Entre com o Google e criamos a sua conta na hora.
             </p>
 
             <p className="mt-6 flex items-center justify-center gap-2 border-t border-white/10 pt-5 text-xs text-slate-500">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Seus dados são só seus e ficam protegidos.
+              <ShieldCheck className="h-4 w-4 text-emerald-400" /> Ambiente seguro e protegido.
             </p>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-600">
+          <p className="mt-6 text-center text-xs text-slate-500">
+            Precisa de ajuda?{' '}
+            <a href={whatsappUrl(support.whatsapp)} target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-300 underline-offset-2 hover:underline">WhatsApp</a>
+            {' · '}
+            <a href={mailtoUrl(support.email)} className="font-semibold text-slate-300 underline-offset-2 hover:underline">{support.email}</a>
+          </p>
+
+          <p className="mt-3 text-center text-xs text-slate-600">
             Realwise, feito com carinho por{' '}
             <a href="https://linkedin.com/in/jonathalimax" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-400">Jonatha Lima</a>
           </p>

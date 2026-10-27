@@ -1,9 +1,20 @@
 // src/pages/admin/AdminApp.jsx
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import AdminLayout from '../../components/AdminLayout';
 import AdminAuth from './AdminAuth';
 import { authApi } from '../../lib/api/auth';
 
+const Overview = lazy(() => import('../v2/Overview'));
+const Users = lazy(() => import('../v2/Users'));
+const UserDetail = lazy(() => import('../v2/UserDetail'));
+const LlmLogs = lazy(() => import('../v2/LlmLogs'));
+const Support = lazy(() => import('../v2/Support'));
+const Emails = lazy(() => import('../v2/Emails'));
+const Campaigns = lazy(() => import('../v2/Campaigns'));
+const CampaignEditor = lazy(() => import('../v2/CampaignEditor'));
+const AiSettings = lazy(() => import('../v2/AiSettings'));
+const Audit = lazy(() => import('../v2/Audit'));
 const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
 const ImportIssues = lazy(() => import('./ImportIssues'));
 const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
@@ -15,11 +26,6 @@ const PageLoader = () => (
     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500" />
   </div>
 );
-
-const navLinkClass = ({ isActive }) =>
-  `text-xs sm:text-sm px-2 sm:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap ${
-    isActive ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'
-  }`;
 
 export default function AdminApp() {
   const [ready, setReady] = useState(false);
@@ -62,40 +68,38 @@ export default function AdminApp() {
   if (!ready) return <PageLoader />;
   if (!isAdmin) return <AdminAuth error={authError} />;
 
+  async function handleLogout() {
+    try { await authApi.logout(); } catch { /* sessão já encerrada */ }
+    window.location.replace('/login');
+  }
+
   return (
     <BrowserRouter basename="/admin">
-      <div className="min-h-screen bg-gray-950 text-gray-100">
-        <nav className="bg-gray-900 border-b border-gray-800 px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3 overflow-x-auto">
-          <div className="mr-2 sm:mr-3 flex items-center gap-3 whitespace-nowrap flex-shrink-0">
-            <img src="/logo.png" alt="Realwise" className="w-8 h-8 rounded-xl object-contain" />
-            <span className="font-bold text-emerald-400 text-base sm:text-lg">Realwise Admin</span>
-          </div>
-          <NavLink to="leads" className={navLinkClass}>Leads</NavLink>
-          <NavLink to="guia" className={navLinkClass}>Guia</NavLink>
-          <NavLink to="testimonials" className={navLinkClass}>Testimonials</NavLink>
-          <NavLink to="import-issues" className={navLinkClass}>Import issues</NavLink>
-          <button
-            onClick={async () => {
-              await authApi.logout();
-              window.location.replace('/login');
-            }}
-            className="ml-auto text-xs sm:text-sm text-gray-500 hover:text-red-400 whitespace-nowrap flex-shrink-0"
-          >
-            Sign out
-          </button>
-        </nav>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route index element={<Navigate to="leads" replace />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route element={<AdminLayout onLogout={handleLogout} />}>
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<Overview />} />
+            <Route path="users" element={<Users />} />
+            <Route path="users/:id" element={<UserDetail />} />
+            <Route path="ai-logs" element={<LlmLogs />} />
+            <Route path="support" element={<Support />} />
+            <Route path="support/:id" element={<Support />} />
+            <Route path="emails" element={<Emails />} />
+            <Route path="campaigns" element={<Campaigns />} />
+            <Route path="campaigns/new" element={<CampaignEditor />} />
+            <Route path="campaigns/:id" element={<CampaignEditor />} />
+            <Route path="settings" element={<AiSettings />} />
+            <Route path="audit" element={<Audit />} />
             <Route path="leads" element={<LeadsDashboard />} />
             <Route path="guia" element={<GuidePage />} />
             <Route path="testimonials" element={<TestimonialManagementPage />} />
             <Route path="import-issues" element={<ImportIssues />} />
             <Route path="import-issues/:id" element={<ImportIssueDetail />} />
-            <Route path="*" element={<Navigate to="" replace />} />
-          </Routes>
-        </Suspense>
-      </div>
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

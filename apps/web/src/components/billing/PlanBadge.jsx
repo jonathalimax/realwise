@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ChevronRight, Crown } from 'lucide-react';
 import { usePlanInfo } from './usePlanInfo';
 
 /** Card for the side menu: plan name, and for the trial a live countdown with a subscribe button. */
@@ -33,11 +34,20 @@ export function PlanBadge({ onNavigate }) {
   }
 
   return (
-    <div className="mx-4 mb-3 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2.5 dark:border-gray-800 dark:bg-gray-800/50">
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{info.copy.settings.title}</p>
-      <p className="mt-0.5 text-sm font-bold text-gray-900 dark:text-white">{info.title}</p>
-      {info.detail && <p className={`text-[11px] ${info.warn ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>{info.detail}</p>}
-    </div>
+    <Link
+      to="/subscription"
+      onClick={onNavigate}
+      className="mx-4 mb-3 block rounded-2xl bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-600 p-3 text-white shadow-lg shadow-violet-600/20 ring-1 ring-white/10 transition hover:brightness-110"
+    >
+      <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-200">
+        <Crown className="h-3.5 w-3.5" /> {c.fullAccess}
+      </p>
+      <p className="mt-1 text-sm font-bold">{info.title}</p>
+      {info.detail && <p className={`text-[11px] ${info.warn ? 'font-semibold text-amber-200' : 'text-white/70'}`}>{info.detail}</p>}
+      <p className="mt-2 flex items-center gap-0.5 text-[11px] font-semibold text-white/90">
+        {c.manage} <ChevronRight className="h-3.5 w-3.5" />
+      </p>
+    </Link>
   );
 }
 
@@ -72,14 +82,21 @@ export function PlanBar() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-1.5 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-      <span className="min-w-0 truncate">
-        <strong className="font-bold text-gray-800 dark:text-gray-200">{info.title}</strong>
-        {info.detail && <span className={info.warn ? ' font-semibold text-amber-600 dark:text-amber-400' : ''}> · {info.detail}</span>}
+    <Link
+      to="/subscription"
+      className="flex items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-violet-700 via-indigo-700 to-fuchsia-700 px-4 py-2 text-white transition hover:brightness-110"
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <Crown className="h-4 w-4 shrink-0 text-amber-300" />
+        <span className="shrink-0 text-sm font-bold">{c.fullAccess}</span>
+        <span className="truncate text-xs text-white/75">
+          {info.title}
+          {info.detail && <span className={info.warn ? 'font-semibold text-amber-200' : ''}> · {info.detail}</span>}
+        </span>
       </span>
-      <Link to="/settings" className="shrink-0 font-semibold text-violet-600 hover:underline dark:text-violet-400">
-        {c.manage}
-      </Link>
-    </div>
+      <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-white/90">
+        {c.manage} <ChevronRight className="h-4 w-4" />
+      </span>
+    </Link>
   );
 }
