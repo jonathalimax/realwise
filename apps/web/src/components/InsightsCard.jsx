@@ -41,9 +41,14 @@ export default function InsightsCard({ selectedMonth }) {
         {language === 'pt' ? 'Insights do mês' : 'Monthly insights'}
       </h2>
       {items === null ? (
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-2 gap-3" role="status" aria-busy="true">
+          <span className="sr-only">{language === 'pt' ? 'O John está analisando seu mês…' : 'John is analyzing your month…'}</span>
           {[0, 1].map((i) => (
-            <div key={i} className="h-20 rounded-xl bg-gray-100 dark:bg-gray-700 animate-pulse" />
+            <div key={i} className="skeleton-shimmer rounded-xl p-3 h-20">
+              <div className="h-3 w-2/5 rounded bg-gray-200/80 dark:bg-gray-600/70" />
+              <div className="mt-3 h-2.5 w-full rounded bg-gray-200/80 dark:bg-gray-600/70" />
+              <div className="mt-2 h-2.5 w-3/4 rounded bg-gray-200/80 dark:bg-gray-600/70" />
+            </div>
           ))}
         </div>
       ) : (

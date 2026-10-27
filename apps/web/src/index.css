@@ -7,6 +7,25 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Skeleton with a light band sweeping across it (loading placeholders that must not block the page). */
+@keyframes shimmerSweep {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.skeleton-shimmer {
+  background-color: #f3f4f6;
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.6s linear infinite;
+}
+html.dark .skeleton-shimmer {
+  background-color: #374151;
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.12) 50%, transparent 70%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; }
+}
+
 /* Prevent iOS/Safari overscroll bounce showing white background */
 html {
   overscroll-behavior: none;
