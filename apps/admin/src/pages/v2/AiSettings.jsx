@@ -28,6 +28,12 @@ function toAiForm(data) {
   return f;
 }
 
+/** The value in effect when the field is left blank (DB > env > built-in default), as reported by the API. */
+function placeholderFor(current, key, fallback = 'padrão') {
+  const v = current?.effective?.[key];
+  return v === undefined || v === null || v === '' ? fallback : `padrão (${v})`;
+}
+
 function AiCard() {
   const state = useAsync(() => settingsResource.getAi(), 'ai');
   const [form, setForm] = useState(null);
@@ -44,8 +50,9 @@ function AiCard() {
     setError('');
     try {
       const body = { promptCache: form.promptCache };
-      NUMERIC.forEach((k) => { if (form[k].trim() !== '') body[k] = Number(form[k].replace(',', '.')); });
-      MODELS.forEach(([k]) => { if (form[k].trim() !== '') body[k] = form[k].trim(); });
+      // Blank = null: the API keeps omitted keys, so null is how a field goes back to the server default.
+      NUMERIC.forEach((k) => { body[k] = form[k].trim() !== '' ? Number(form[k].replace(',', '.')) : null; });
+      MODELS.forEach(([k]) => { body[k] = form[k].trim() !== '' ? form[k].trim() : null; });
       const saved = await settingsResource.saveAi(body);
       if (saved && typeof saved === 'object') setForm(toAiForm(saved));
       setToast('Configurações de IA salvas.');
@@ -58,13 +65,13 @@ function AiCard() {
 
   return (
     <AsyncView state={state} isEmpty={() => false}>
-      {() => !form ? null : (
+      {(current) => !form ? null : (
         <div className="space-y-4">
           <Card title="Orçamento de IA" subtitle="Limite mensal de custo por usuário, em dólares. Um limite individual no perfil do usuário tem prioridade.">
             <div className="grid sm:grid-cols-3 gap-3">
-              <Field label="Assinantes (US$/mês)"><input className={inputClass} inputMode="decimal" value={form.monthlyBudgetUsd} onChange={(e) => set({ monthlyBudgetUsd: e.target.value })} placeholder="padrão" /></Field>
-              <Field label="Em teste (US$)"><input className={inputClass} inputMode="decimal" value={form.trialBudgetUsd} onChange={(e) => set({ trialBudgetUsd: e.target.value })} placeholder="padrão" /></Field>
-              <Field label="Multiplicador do teto rígido" hint="Ex.: 1,5 bloqueia em 150% do orçamento."><input className={inputClass} inputMode="decimal" value={form.hardCapMultiplier} onChange={(e) => set({ hardCapMultiplier: e.target.value })} placeholder="padrão" /></Field>
+              <Field label="Assinantes (US$/mês)"><input className={inputClass} inputMode="decimal" value={form.monthlyBudgetUsd} onChange={(e) => set({ monthlyBudgetUsd: e.target.value })} placeholder={placeholderFor(current, 'monthlyBudgetUsd')} /></Field>
+              <Field label="Em teste (US$)"><input className={inputClass} inputMode="decimal" value={form.trialBudgetUsd} onChange={(e) => set({ trialBudgetUsd: e.target.value })} placeholder={placeholderFor(current, 'trialBudgetUsd')} /></Field>
+              <Field label="Multiplicador do teto rígido" hint="Ex.: 1,5 bloqueia em 150% do orçamento."><input className={inputClass} inputMode="decimal" value={form.hardCapMultiplier} onChange={(e) => set({ hardCapMultiplier: e.target.value })} placeholder={placeholderFor(current, 'hardCapMultiplier')} /></Field>
             </div>
           </Card>
 
@@ -72,7 +79,7 @@ function AiCard() {
             <div className="grid sm:grid-cols-2 gap-3">
               {MODELS.map(([key, label, hint]) => (
                 <Field key={key} label={label} hint={hint}>
-                  <input className={inputClass} value={form[key]} onChange={(e) => set({ [key]: e.target.value })} placeholder="provedor/modelo" />
+                  <input className={inputClass} value={form[key]} onChange={(e) => set({ [key]: e.target.value })} placeholder={placeholderFor(current, key, 'provedor/modelo')} />
                 </Field>
               ))}
             </div>
