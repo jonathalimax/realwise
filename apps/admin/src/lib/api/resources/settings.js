@@ -27,7 +27,8 @@ export const settingsResource = {
     return apiClient.request('/admin/settings/announcement', { method: 'PUT', body: value });
   },
   sendEmailTest({ kind, to }) {
-    return apiClient.post('/admin/settings/emails/test', { kind, to });
+    // The API names the bill-reminder sample 'bills'.
+    return apiClient.post('/admin/settings/emails/test', { kind: kind === 'bill_reminder' ? 'bills' : kind, to });
   },
   runEmailJob(job) {
     return apiClient.post('/admin/emails/run-now', { job });

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { AppSettingsService } from '../app-settings/app-settings.service';
+import type { AiSettings } from '../app-settings/app-settings.types';
 import type { LlmProvider, LlmRequest, LlmResult, LlmToolCall } from './llm.types';
 
 const API_URL = process.env.OPENROUTER_API_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
@@ -10,10 +12,12 @@ const LIGHT_DEFAULT = 'anthropic/claude-haiku-5.5';
  * Model per request. Documents (statements) use the strong model; plain Q&A, edits and insights use the light one.
  * Override per environment with LLM_MODEL_CHAT (strong), LLM_MODEL_CHAT_LIGHT and LLM_MODEL_INSIGHTS.
  */
-export function modelFor(req: Pick<LlmRequest, 'purpose' | 'tier'>): string {
-  if (req.purpose === 'insights') return process.env.LLM_MODEL_INSIGHTS ?? process.env.LLM_MODEL_CHAT_LIGHT ?? LIGHT_DEFAULT;
-  if (req.tier === 'light') return process.env.LLM_MODEL_CHAT_LIGHT ?? LIGHT_DEFAULT;
-  return process.env.LLM_MODEL_CHAT ?? STRONG_DEFAULT;
+export function modelFor(req: Pick<LlmRequest, 'purpose' | 'tier'>, ai: AiSettings = {}): string {
+  const pick = (...values: (string | undefined)[]) => values.map((v) => v?.trim()).find(Boolean);
+  const light = [ai.modelChatLight, process.env.LLM_MODEL_CHAT_LIGHT];
+  if (req.purpose === 'insights') return pick(ai.modelInsights, process.env.LLM_MODEL_INSIGHTS, ...light) ?? LIGHT_DEFAULT;
+  if (req.tier === 'light') return pick(...light) ?? LIGHT_DEFAULT;
+  return pick(ai.modelChat, process.env.LLM_MODEL_CHAT) ?? STRONG_DEFAULT;
 }
 
 /**
@@ -21,8 +25,9 @@ export function modelFor(req: Pick<LlmRequest, 'purpose' | 'tier'>): string {
  * rules) and the last user message (history + any attached document) are the big stable prefix that is re-sent on
  * every tool round, so cache up to both. Only Anthropic models take this; others get the messages untouched.
  */
-export function withCacheBreakpoints(messages: LlmRequest['messages'], model: string): unknown[] {
-  if (!model.startsWith('anthropic/') || process.env.LLM_PROMPT_CACHE === 'off') return messages;
+export function withCacheBreakpoints(messages: LlmRequest['messages'], model: string, promptCache?: boolean): unknown[] {
+  const enabled = promptCache ?? process.env.LLM_PROMPT_CACHE !== 'off';
+  if (!model.startsWith('anthropic/') || !enabled) return messages;
   const mark = { cache_control: { type: 'ephemeral' } };
   const lastUser = messages.map((m) => m.role).lastIndexOf('user');
   return messages.map((m, i) => {
@@ -81,17 +86,19 @@ interface Usage {
 export class OpenRouterProvider implements LlmProvider {
   readonly name = 'openrouter';
 
+  constructor(private readonly settings: AppSettingsService) {}
+
   isConfigured(): boolean {
     return Boolean(process.env.OPENROUTER_API_KEY);
   }
 
-  private buildBody(req: LlmRequest, model: string, stream: boolean) {
+  private buildBody(req: LlmRequest, model: string, stream: boolean, ai: AiSettings) {
     const hasPdf = req.messages.some(
       (m) => m.role === 'user' && Array.isArray(m.content) && m.content.some((p) => p.type === 'file'),
     );
     return JSON.stringify({
       model,
-      messages: withCacheBreakpoints(req.messages, model),
+      messages: withCacheBreakpoints(req.messages, model, ai.promptCache),
       tools: req.tools?.length
         ? req.tools.map((t) => ({ type: 'function', function: { ...t, parameters: simplifySchema(t.parameters) } }))
         : undefined,
@@ -122,9 +129,10 @@ export class OpenRouterProvider implements LlmProvider {
   }
 
   async generate(req: LlmRequest): Promise<LlmResult> {
-    const model = req.model ?? modelFor(req);
+    const ai = await this.settings.getAi();
+    const model = req.model ?? modelFor(req, ai);
     const start = Date.now();
-    const res = await this.post(this.buildBody(req, model, false), 120_000);
+    const res = await this.post(this.buildBody(req, model, false, ai), 120_000);
 
     const data = (await res.json()) as {
       choices?: { message?: { content?: string | null; tool_calls?: LlmToolCall[] } }[];
@@ -149,9 +157,10 @@ export class OpenRouterProvider implements LlmProvider {
 
   /** Same as generate(), but calls `onText` with each piece of text as the model produces it. */
   async generateStream(req: LlmRequest, onText: (delta: string) => void): Promise<LlmResult> {
-    const model = req.model ?? modelFor(req);
+    const ai = await this.settings.getAi();
+    const model = req.model ?? modelFor(req, ai);
     const start = Date.now();
-    const res = await this.post(this.buildBody(req, model, true), 180_000);
+    const res = await this.post(this.buildBody(req, model, true, ai), 180_000);
     if (!res.body) throw new Error('OpenRouter returned no stream body');
 
     let text = '';
