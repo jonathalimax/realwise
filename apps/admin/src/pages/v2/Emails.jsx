@@ -16,6 +16,7 @@ const KINDS = [
   { key: 'trial_ending', label: 'Teste terminando', desc: 'Avisa que o período de teste está acabando.' },
   { key: 'trial_expired', label: 'Teste expirado', desc: 'Convida a assinar após o fim do teste.' },
   { key: 'monthly_import', label: 'Importação mensal', desc: 'Lembra assinantes de importar o extrato do mês.' },
+  { key: 'bill_suggestion', label: 'Sugestão de lembrete', desc: 'O Elio percebe um pagamento mensal e pergunta se quer criar um lembrete (no máx. 1 a cada 14 dias).' },
 ];
 const SENT_KINDS = [...KINDS, { key: 'bill_reminder', label: 'Lembrete de contas' }];
 const kindLabel = (k) => SENT_KINDS.find((x) => x.key === k)?.label ?? k ?? '—';

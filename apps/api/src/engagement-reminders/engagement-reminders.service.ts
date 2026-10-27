@@ -7,8 +7,9 @@ import { reminderEmailsSent, transactions, users } from '../db/schema';
 import { computeAccess } from '../billing/access';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { periodKeyFor, pickReminder } from './reminder-rules';
-import { unsubscribeToken } from './unsubscribe-token';
+import { periodKeyFor, pickReminder, type ReminderKind } from './reminder-rules';
+import { BillSuggestionsService, type SuggestionRow } from '../bill-suggestions/bill-suggestions.service';
+import { suggestionToken, unsubscribeToken } from './unsubscribe-token';
 
 @Injectable()
 export class EngagementRemindersService {
@@ -18,6 +19,7 @@ export class EngagementRemindersService {
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
     private readonly settings: AppSettingsService,
+    private readonly suggestions: BillSuggestionsService,
   ) {}
 
   async runForAllUsers(now = new Date()): Promise<{ sent: number; skipped: number }> {
@@ -38,7 +40,7 @@ export class EngagementRemindersService {
           .from(transactions)
           .where(and(eq(transactions.userId, user.id), isNull(transactions.deletedAt)));
 
-        const kind = pickReminder({
+        const baseKind = pickReminder({
           access,
           trialStartedAt: user.premiumAccessStartedAt ?? user.createdAt,
           trialEndsAt: user.premiumAccessEndsAt,
@@ -46,6 +48,14 @@ export class EngagementRemindersService {
           transactionsThisMonth: counts?.thisMonth ?? 0,
           now,
         });
+        let kind: ReminderKind | null = baseKind;
+        let suggestion: SuggestionRow | null = null;
+        // Nothing urgent to say: maybe Elio noticed a monthly payment worth a reminder (detection runs weekly per user).
+        if (!kind && access.allowed && engagement.kinds.bill_suggestion.enabled) {
+          await this.suggestions.detectIfDue(user, now);
+          suggestion = await this.suggestions.nextToEmail(user.id, 14, now);
+          if (suggestion) kind = 'bill_suggestion';
+        }
         if (!kind || !engagement.kinds[kind].enabled) continue;
 
         // Never two reminders inside 20h, whatever the kind.
@@ -61,7 +71,7 @@ export class EngagementRemindersService {
         // Claim first (unique index), send second: a crash can drop one email but can never double-send.
         const claimed = await this.db
           .insert(reminderEmailsSent)
-          .values({ userId: user.id, kind, periodKey: periodKeyFor(kind, now, user.premiumAccessEndsAt) })
+          .values({ userId: user.id, kind, periodKey: periodKeyFor(kind, now, user.premiumAccessEndsAt, suggestion?.id) })
           .onConflictDoNothing()
           .returning({ id: reminderEmailsSent.id });
         if (!claimed.length) { skipped++; continue; }
@@ -72,7 +82,18 @@ export class EngagementRemindersService {
           unsubscribeUserId: user.id,
           unsubscribeToken: unsubscribeToken(user.id),
           now,
+          clientId: user.clientId,
+          suggestion: suggestion
+            ? {
+                id: suggestion.id,
+                name: suggestion.name,
+                amount: suggestion.amount,
+                dayOfMonth: suggestion.dayOfMonth,
+                dismissUrl: `${(process.env.API_BASE_URL ?? 'https://api.realwise.com.br').replace(/\/$/, '')}/reminders/suggestion/dismiss?u=${user.id}&s=${suggestion.id}&t=${suggestionToken(user.id, suggestion.id)}`,
+              }
+            : undefined,
         });
+        if (suggestion) await this.suggestions.markEmailed(suggestion.id);
         sent++;
       } catch (err) {
         this.logger.error(`reminder failed for user ${user.id}: ${(err as Error).message}`);

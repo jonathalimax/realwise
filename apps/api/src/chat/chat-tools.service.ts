@@ -11,6 +11,7 @@ import { looksLikeInvoicePayment, matchesHolder, pairTransfers } from './transfe
 import { BANKS } from './onboarding';
 import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
 import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
+import { ChatBillsService } from './chat-bills.service';
 
 export interface ToolContext {
   clientId: string;
@@ -172,6 +173,34 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     },
   },
   {
+    name: 'list_pending_bills',
+    description:
+      'List the user\'s pending bills that are overdue, due today or due within a week, with their ids and expected amounts. Call this before marking bills as paid, or when the user asks which bills they have to pay.',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'mark_bills_paid',
+    description:
+      'Mark pending bills as paid when the user says they paid them (e.g. "paguei a internet de 120"). Use billIds from list_pending_bills. Include amount only when the user gave a value different from the expected one. Reply afterwards with a short celebration and ask if they want to add anything else.',
+    parameters: {
+      type: 'object',
+      properties: {
+        bills: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              billId: { type: 'string' },
+              amount: { type: 'number', description: 'Amount actually paid in BRL; omit to use the expected amount.' },
+            },
+            required: ['billId'],
+          },
+        },
+      },
+      required: ['bills'],
+    },
+  },
+  {
     name: 'query_transactions',
     description: 'List individual transactions, newest first, with their ids (needed to update/delete/restore them). Use for questions about specific purchases.',
     parameters: {
@@ -212,6 +241,7 @@ export class ChatToolsService {
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly edit: ChatEditService,
+    private readonly billsChat: ChatBillsService,
   ) {}
 
   /** Runs a previously previewed update/delete that the user explicitly confirmed. The action comes from the stored message, never from the client. */
@@ -253,6 +283,10 @@ export class ChatToolsService {
           return { result: await this.createCategory(args, ctx) };
         case 'create_bill':
           return { result: await this.createBill(args, ctx) };
+        case 'list_pending_bills':
+          return { result: await this.billsChat.listForModel(ctx) };
+        case 'mark_bills_paid':
+          return { result: await this.billsChat.markPaidFromModel(ctx, Array.isArray(args.bills) ? args.bills : []) };
         case 'set_category_rule':
           return { result: await this.setCategoryRule(args, ctx) };
         case 'query_transactions':

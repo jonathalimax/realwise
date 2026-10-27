@@ -126,6 +126,20 @@ export function createChatResource({ client = apiClient } = {}) {
       notifyTransactionsChanged();
       return result;
     },
+    /** Opened from the bills email: Elio posts the checklist of pending bills (or says all is up to date). */
+    billsIntent() {
+      return client.post('/chat/intents/bills');
+    },
+    /** Opened from the suggestion email: creates the suggested monthly reminder and returns Elio's message. */
+    suggestionIntent(id) {
+      return client.post('/chat/intents/suggestion', { id });
+    },
+    /** Submits the checklist: items are { billId, paid, amount? }. */
+    async settleBills(messageId, items) {
+      const result = await client.post(`/chat/messages/${messageId}/bills`, { items });
+      notifyBillsChanged();
+      return result;
+    },
     insights(month) {
       return client.get(`/chat/insights?month=${encodeURIComponent(month)}`);
     },

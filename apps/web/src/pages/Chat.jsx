@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader';
 import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
 import AccountFormSheet from '../components/chat/AccountFormSheet';
+import BillsSheet from '../components/chat/BillsSheet';
 import Markdown from '../components/chat/Markdown';
 import FilePreview from '../components/chat/FilePreview';
 import { notifyTransactionsChanged } from '../lib/api/resources/transactions';
@@ -22,6 +23,7 @@ function pendingSheet(message) {
   if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer && q.kind === 'account_form')) return 'account_form';
   if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer)) return 'questions';
   if (message.review && !message.review.resolved && message.review.groups?.length) return 'review';
+  if (message.billsPanel && !message.billsPanel.resolved && message.billsPanel.items?.length) return 'bills';
   return null;
 }
 
@@ -142,6 +144,8 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
               ? message.questions.every((q) => q.answer || q.kind === 'confirm')
                 ? pt ? 'Revisar e confirmar' : 'Review and confirm'
                 : pt ? 'Responder perguntas' : 'Answer questions'
+              : pending === 'bills'
+              ? 'Marcar contas pagas'
               : pt
                 ? `Confirmar categorias (${message.review.groups.length})`
                 : `Confirm categories (${message.review.groups.length})`}
@@ -515,6 +519,25 @@ export default function ChatPage() {
     }
   };
 
+  const submitBills = async (items) => {
+    setSheetBusy(true);
+    try {
+      const { panelMessage, assistantMessage } = await chatResource.settleBills(sheetMessage.id, items);
+      setManualSheet(null);
+      setMessages((prev) => {
+        const next = prev.map((m) => (m.id === panelMessage.id ? panelMessage : m));
+        return next.some((m) => m.id === assistantMessage.id) ? next : [...next, assistantMessage];
+      });
+      stick.current = true;
+    } catch (e) {
+      setManualSheet(null);
+      setDismissed((prev) => new Set(prev).add(sheetMessage.id));
+      say(`${friendlyChatError(e)} Toque em "Marcar contas pagas" para tentar de novo.`);
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
   const submitReview = async (decisions) => {
     setSheetBusy(true);
     try {
@@ -564,6 +587,24 @@ export default function ChatPage() {
     },
     [text, files, sending, pt, runTurn, recoverAfterDrop, say],
   );
+
+  // Opened from an email: ?intent=bills (settle pending bills) or ?suggestion=<id> (Elio creates the suggested reminder).
+  const deepLinkDone = useRef(false);
+  useEffect(() => {
+    const intent = searchParams.get('intent');
+    const suggestion = searchParams.get('suggestion');
+    if (loading || deepLinkDone.current || (!intent && !suggestion)) return;
+    deepLinkDone.current = true;
+    setSearchParams({}, { replace: true });
+    const run = suggestion ? chatResource.suggestionIntent(suggestion) : chatResource.billsIntent();
+    run
+      .then(({ message }) => {
+        setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev.map((m) => (m.id === message.id ? message : m)) : [...prev, message]));
+        stick.current = true;
+        if (suggestion) notifyBillsChanged();
+      })
+      .catch((e) => say(friendlyChatError(e, 'Não consegui abrir isso agora. Tente de novo em instantes ou me conte por aqui.')));
+  }, [searchParams, loading, setSearchParams, say]);
 
   // Question typed in the home "ask" bar arrives as ?q=...
   useEffect(() => {
@@ -739,6 +780,9 @@ export default function ChatPage() {
       )}
       {sheetMessage && sheet.type === 'account_form' && (
         <AccountFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAccountForm} onClose={closeSheet} />
+      )}
+      {sheetMessage && sheet.type === 'bills' && (
+        <BillsSheet key={sheetMessage.id} message={sheetMessage} busy={sheetBusy} onSubmit={submitBills} onClose={closeSheet} />
       )}
       {sheetMessage && sheet.type === 'review' && (
         <ReviewSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onApply={submitReview} onClose={closeSheet} />

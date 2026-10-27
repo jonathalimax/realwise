@@ -36,6 +36,8 @@ export const chatMessages = pgTable(
     // Interactive sheets: unanswered multiple-choice questions, and categories awaiting confirmation.
     questions: jsonb('questions'),
     review: jsonb('review'),
+    // A checklist of pending bills Elio asks the user to settle (see chat-bills.service.ts).
+    billsPanel: jsonb('bills_panel'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({ byUser: index('chat_messages_user_created_idx').on(t.userId, t.createdAt) }),

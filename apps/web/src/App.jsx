@@ -1,5 +1,5 @@
-import { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState, lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { extractClientId } from './config/clientConfig';
 import { ClientConfigProvider, useFeature } from './contexts/ClientConfigContext';
 import { GoalsProvider } from './contexts/GoalsContext';
@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
 import SubscriptionGate from './components/billing/SubscriptionGate';
 import SubscriptionPage from './pages/SubscriptionPage';
+import { consumeDeepLink, peekDeepLink, rememberDeepLink } from './lib/auth/deepLink';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -54,8 +55,26 @@ function AuthenticatedShell({ children }) {
   return children;
 }
 
+/**
+ * Replays a chat deep link (from an email) that was remembered before the user had to sign in. The routes only mount
+ * after the redirect landed, so a landing-route redirect (index -> /dashboard, or the dashboard sending a user with no
+ * account to /chat) cannot overwrite the deep link and its query.
+ */
+function PostLoginRedirect({ children }) {
+  const [target] = useState(() => peekDeepLink());
+  const [landed, setLanded] = useState(!target);
+  const { pathname, search } = useLocation();
+  if (!landed && pathname + search === target) setLanded(true);
+  useEffect(() => {
+    if (landed) consumeDeepLink();
+  }, [landed]);
+  if (!landed) return <Navigate to={target} replace />;
+  return children;
+}
+
 function RedirectToGlobalLogin() {
   useEffect(() => {
+    rememberDeepLink(window.location.pathname, window.location.search);
     const storedClientId = localStorage.getItem('rw_last_client') || '';
     window.location.replace(buildLoginRedirectUrl(window.location.pathname, storedClientId));
   }, []);
@@ -77,6 +96,7 @@ function AuthenticatedApp() {
                     <InvestmentProvider>
                       <BillsProvider>
                         <Suspense fallback={<PageLoader />}>
+                          <PostLoginRedirect>
                           <Routes>
                             <Route element={<Layout />}>
                               <Route index element={<Navigate to="/dashboard" replace />} />
@@ -109,6 +129,7 @@ function AuthenticatedApp() {
                             </Route>
                             <Route path="*" element={<Navigate to="/dashboard" replace />} />
                           </Routes>
+                          </PostLoginRedirect>
                         </Suspense>
                       </BillsProvider>
                     </InvestmentProvider>

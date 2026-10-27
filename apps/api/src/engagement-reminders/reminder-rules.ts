@@ -1,6 +1,6 @@
 import { AccessInfo } from '../billing/access';
 
-export type ReminderKind = 'trial_import' | 'trial_ending' | 'trial_expired' | 'monthly_import';
+export type ReminderKind = 'trial_import' | 'trial_ending' | 'trial_expired' | 'monthly_import' | 'bill_suggestion';
 
 export interface ReminderFacts {
   access: AccessInfo;
@@ -44,7 +44,8 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
   return null;
 }
 
-export function periodKeyFor(kind: ReminderKind, now: Date, trialEndsAt: Date | null): string {
+export function periodKeyFor(kind: ReminderKind, now: Date, trialEndsAt: Date | null, suggestionId?: string): string {
+  if (kind === 'bill_suggestion') return suggestionId ?? 'none';
   if (kind === 'monthly_import') return now.toISOString().slice(0, 7);
   return trialEndsAt ? trialEndsAt.toISOString().slice(0, 10) : 'once';
 }
