@@ -9,6 +9,7 @@ import Markdown from '../components/chat/Markdown';
 import { notifyTransactionsChanged } from '../lib/api/resources/transactions';
 import { notifyBillsChanged } from '../lib/api/resources/bills';
 import { useSettings } from '../contexts/SettingsContext';
+import { friendlyChatError } from '../lib/chatErrors';
 import { chatResource } from '../lib/api/resources/chat';
 
 const SUPPORTED = ['pdf', 'csv', 'tsv', 'txt', 'xlsx', 'xls', 'ofx', 'qif', 'png', 'jpg', 'jpeg', 'webp'];
@@ -204,7 +205,11 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
+  // Failures are posted as a friendly message from John (local only, never saved or sent to the model).
+  const say = useCallback(
+    (content) => setMessages((prev) => [...prev, { id: `local-${Date.now()}-${prev.length}`, role: 'assistant', content, local: true }]),
+    [],
+  );
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
@@ -227,12 +232,12 @@ export default function ChatPage() {
     chatResource
       .messages()
       .then((rows) => active && setMessages(Array.isArray(rows) ? rows : []))
-      .catch(() => active && setError(pt ? 'Não consegui carregar a conversa.' : 'Could not load the conversation.'))
+      .catch(() => active && say('Não consegui carregar a conversa agora. Atualize a página em instantes.'))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
-  }, [pt]);
+  }, [say]);
 
   // A user with no bank account is set up by John: the first open creates the default categories and posts his
   // welcome with the account form. The server makes this idempotent; the ref avoids a duplicate call in StrictMode.
@@ -315,21 +320,15 @@ export default function ChatPage() {
         (f) => SUPPORTED.includes(f.name.split('.').pop()?.toLowerCase() ?? '') && f.size <= MAX_FILE_BYTES,
       );
       if (ok.length < picked.length) {
-        setError(
-          pt
-            ? 'Alguns arquivos foram ignorados. Use PDF, imagem, CSV, XLSX ou OFX de até 15 MB.'
-            : 'Some files were skipped. Use PDF, image, CSV, XLSX or OFX up to 15 MB.',
-        );
-      } else {
-        setError('');
+        say('Alguns arquivos foram ignorados. Envie PDF, imagem, CSV, XLSX ou OFX de até 15 MB cada.');
       }
       setFiles((prev) => [...prev, ...ok].slice(0, MAX_FILES));
     },
-    [pt],
+    [say],
   );
 
   // The latest assistant message waiting on the user opens its sheet automatically, unless it was closed.
-  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+  const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant' && !m.local);
   const autoType = lastAssistant ? pendingSheet(lastAssistant) : null;
   const sheet = live
     ? null
@@ -409,13 +408,12 @@ export default function ChatPage() {
     }
     setLive(null);
     setSending(false);
-    setError(pt ? 'O John está demorando mais que o normal. Atualize a página em instantes para ver a resposta.' : 'John is taking longer than usual. Refresh in a moment to see the reply.');
-  }, [pt]);
+    say('Estou demorando mais que o normal para responder. Atualize a página em instantes para ver a resposta.');
+  }, [pt, say]);
 
   const submitAnswers = async (answers) => {
     setSheetBusy(true);
     setSending(true);
-    setError('');
     const id = sheetMessage.id;
     setManualSheet(null);
     try {
@@ -427,8 +425,8 @@ export default function ChatPage() {
       }
       setLive(null);
       setSending(false);
-      setManualSheet({ id, type: 'questions' });
-      setError(e?.message || (pt ? 'Não consegui enviar as respostas.' : 'Could not send your answers.'));
+      setDismissed((prev) => new Set(prev).add(id));
+      say(`${friendlyChatError(e)} Toque em "Responder perguntas" para tentar de novo.`);
     } finally {
       setSheetBusy(false);
     }
@@ -437,7 +435,6 @@ export default function ChatPage() {
   const submitAccountForm = async (form) => {
     setSheetBusy(true);
     setSending(true);
-    setError('');
     const id = sheetMessage.id;
     try {
       await runTurn((onEvent) => chatResource.accountFormStream(id, form, onEvent), null);
@@ -448,7 +445,8 @@ export default function ChatPage() {
       }
       setLive(null);
       setSending(false);
-      setError(e?.message || (pt ? 'Não consegui salvar a conta.' : 'Could not save the account.'));
+      setDismissed((prev) => new Set(prev).add(id));
+      say(`${friendlyChatError(e)} Toque em "Responder perguntas" para tentar de novo.`);
     } finally {
       setSheetBusy(false);
     }
@@ -456,13 +454,13 @@ export default function ChatPage() {
 
   const submitReview = async (decisions) => {
     setSheetBusy(true);
-    setError('');
     try {
       const { message } = await chatResource.applyReview(sheetMessage.id, decisions);
       setManualSheet(null);
       replaceMessage(message);
     } catch (e) {
-      setError(e?.message || (pt ? 'Não consegui salvar as categorias.' : 'Could not save the categories.'));
+      setManualSheet(null);
+      say(friendlyChatError(e, 'Não consegui salvar as categorias agora. Tente de novo em instantes.'));
     } finally {
       setSheetBusy(false);
     }
@@ -473,7 +471,6 @@ export default function ChatPage() {
       const message = (overrideText ?? text).trim();
       if ((!message && files.length === 0) || sending) return;
       const attached = files;
-      setError('');
       setSending(true);
       setText('');
       setFiles([]);
@@ -499,10 +496,10 @@ export default function ChatPage() {
         setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
         setText(message);
         setFiles(attached);
-        setError(e?.message || (pt ? 'Algo deu errado. Tente novamente.' : 'Something went wrong. Please try again.'));
+        say(friendlyChatError(e));
       }
     },
-    [text, files, sending, pt, runTurn, recoverAfterDrop],
+    [text, files, sending, pt, runTurn, recoverAfterDrop, say],
   );
 
   // Question typed in the home "ask" bar arrives as ?q=...
@@ -608,7 +605,6 @@ export default function ChatPage() {
               <ArrowDownIcon className="w-5 h-5" />
             </button>
           )}
-          {error && <p className="mb-2 text-xs font-semibold text-rose-600">{error}</p>}
           {files.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {files.map((file, i) => (
@@ -670,7 +666,7 @@ export default function ChatPage() {
         <QuestionSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAnswers} onClose={closeSheet} />
       )}
       {sheetMessage && sheet.type === 'account_form' && (
-        <AccountFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} error={error} onSubmit={submitAccountForm} onClose={closeSheet} />
+        <AccountFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAccountForm} onClose={closeSheet} />
       )}
       {sheetMessage && sheet.type === 'review' && (
         <ReviewSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onApply={submitReview} onClose={closeSheet} />

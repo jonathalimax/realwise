@@ -68,7 +68,7 @@ export type ChatStreamEvent =
   | { type: 'reset' } // discard streamed text: the model moved on to run tools
   | { type: 'status'; label: string } // what John is doing ("Salvando transações…")
   | { type: 'done'; result: unknown } // final persisted result, same shape as the non-streaming JSON
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string; status: number; code?: string };
 
 export const TOOL_STATUS: Record<string, string> = {
   save_transactions: 'Salvando as transações…',

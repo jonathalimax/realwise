@@ -25,6 +25,7 @@ export const users = pgTable(
     subscriptionPlan: varchar('subscription_plan'),
     subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end', { withTimezone: true }),
     subscriptionCancelAtPeriodEnd: boolean('subscription_cancel_at_period_end').default(false).notNull(),
+    reminderEmailsOptOut: boolean('reminder_emails_opt_out').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

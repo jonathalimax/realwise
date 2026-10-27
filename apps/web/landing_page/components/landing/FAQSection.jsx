@@ -4,8 +4,8 @@ import { ChevronDown } from 'lucide-react';
 
 const FAQS = [
   {
-    q: 'Preciso de cartão para testar?',
-    a: 'Não. São 3 dias grátis com tudo liberado. Depois, você escolhe assinar. Se não assinar, o acesso fica pausado e seus dados continuam guardados.',
+    q: 'Preciso de cartão ou pagar algo para testar?',
+    a: 'Não. Você usa tudo por 3 dias sem cadastrar cartão e sem pagar nada. Só depois do teste, se quiser continuar, escolhe um plano e paga. Se não assinar, o acesso fica pausado e seus dados continuam guardados.',
   },
   {
     q: 'Meus dados estão seguros?',

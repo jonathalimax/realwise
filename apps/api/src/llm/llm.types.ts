@@ -26,8 +26,13 @@ export interface LlmToolDefinition {
   parameters: Record<string, unknown>;
 }
 
+/** 'strong' = the accurate (expensive) model, for reading documents; 'light' = the cheap model for Q&A and edits. */
+export type LlmTier = 'strong' | 'light';
+
 export interface LlmRequest {
   purpose: LlmPurpose;
+  /** Defaults to 'strong' for chat (safe) and 'light' for insights. */
+  tier?: LlmTier;
   messages: LlmMessage[];
   tools?: LlmToolDefinition[];
   /** Overrides the model chosen for the purpose (used for the over-budget fallback). */
@@ -43,6 +48,10 @@ export interface LlmResult {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** Part of inputTokens served from the prompt cache (billed at a fraction). */
+  cachedInputTokens?: number;
+  /** Part of inputTokens written to the prompt cache (billed at a premium). */
+  cacheWriteTokens?: number;
   latencyMs: number;
 }
 
