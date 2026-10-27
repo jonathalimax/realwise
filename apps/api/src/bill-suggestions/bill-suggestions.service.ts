@@ -84,6 +84,7 @@ export class BillSuggestionsService {
           eq(transactions.type, 'expense'),
           isNull(transactions.deletedAt),
           eq(transactions.ignored, false),
+          eq(transactions.isTransfer, false),
           gte(transactions.date, since),
         ),
       );
