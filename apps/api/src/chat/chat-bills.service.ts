@@ -5,7 +5,7 @@ import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { bills, chatMessages } from '../db/schema';
 import { BillsService } from '../bills/bills.service';
-import { BillSuggestionsService } from '../bill-suggestions/bill-suggestions.service';
+import { BillSuggestionsService, brtNow } from '../bill-suggestions/bill-suggestions.service';
 
 type ChatMessageRow = typeof chatMessages.$inferSelect;
 export interface BillsScope {
@@ -55,9 +55,11 @@ export class ChatBillsService {
 
   /** Pending bills that are overdue, due today, or due within a week: the ones worth asking about. */
   async pendingItems(scope: BillsScope, now = new Date()): Promise<BillsPanelItem[]> {
-    const from = dateOnly(new Date(now.getTime() - OVERDUE_WINDOW_DAYS * 86_400_000));
-    const to = dateOnly(new Date(now.getTime() + SOON_WINDOW_DAYS * 86_400_000));
-    const today = dateOnly(now);
+    // "Today" is the user's day in Brasília, not UTC (after 21:00 BRT the UTC date is already tomorrow).
+    const local = brtNow(now);
+    const from = dateOnly(new Date(local.getTime() - OVERDUE_WINDOW_DAYS * 86_400_000));
+    const to = dateOnly(new Date(local.getTime() + SOON_WINDOW_DAYS * 86_400_000));
+    const today = dateOnly(local);
     const rows = await this.db
       .select()
       .from(bills)
@@ -109,12 +111,12 @@ export class ChatBillsService {
 
     const items = await this.pendingItems(scope);
     if (items.length === 0) {
-      return {
-        message: await this.say(
-          scope,
-          'Boa notícia: não encontrei nenhuma conta pendente por agora. Você está em dia! 🎉\n\nSe quiser, me conte uma conta que você paga todo mês (aluguel, internet, assinatura) e eu crio um lembrete para você.',
-        ),
-      };
+      const upToDate =
+        'Boa notícia: não encontrei nenhuma conta pendente por agora. Você está em dia! 🎉\n\nSe quiser, me conte uma conta que você paga todo mês (aluguel, internet, assinatura) e eu crio um lembrete para você.';
+      // Repeated opens of the same link must not stack identical messages.
+      const hourAgo = new Date(Date.now() - 3_600_000);
+      const same = recent.find((m) => m.content === upToDate && m.createdAt >= hourAgo);
+      return { message: same ?? (await this.say(scope, upToDate)) };
     }
 
     const over = items.filter((i) => i.group === 'overdue').length;

@@ -26,8 +26,13 @@ const titleCase = (text: string) =>
     .replace(/\b\p{L}/gu, (c) => c.toUpperCase())
     .trim();
 
-/** The next date (YYYY-MM-DD) on `day` of the month that is today or later; clamps to the month's length. */
-export function nextDueDate(day: number, from = new Date()): string {
+/** Brazil has no DST: "today" for our users is UTC-3. The returned Date's UTC fields read as Brasília wall time. */
+export function brtNow(now = new Date()): Date {
+  return new Date(now.getTime() - 3 * 3_600_000);
+}
+
+/** The next date (YYYY-MM-DD) on `day` of the month that is today (Brasília) or later; clamps to the month's length. */
+export function nextDueDate(day: number, from = brtNow()): string {
   const build = (year: number, month: number) => {
     const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
     return new Date(Date.UTC(year, month, Math.min(day, last)));
