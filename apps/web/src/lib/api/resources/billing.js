@@ -15,6 +15,19 @@ export function createBillingResource({ client = apiClient } = {}) {
     createPortal() {
       return client.post('/billing/portal');
     },
+    /** Subscription details for the manage page (plan, renewal, price). */
+    status() {
+      return client.get('/billing/status');
+    },
+    changePlan(plan) {
+      return client.post('/billing/change-plan', { plan });
+    },
+    cancel() {
+      return client.post('/billing/cancel');
+    },
+    resume() {
+      return client.post('/billing/resume');
+    },
   };
 }
 

@@ -4,6 +4,8 @@ import { useAccess } from '../contexts/AccessContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import PageHeader from '../components/PageHeader';
+import ContactCard from '../components/contact/ContactCard';
+import DeleteAccountCard from '../components/account/DeleteAccountCard';
 import SubscriptionSettingsCard from '../components/billing/SubscriptionSettingsCard';
 import { getSettingsProfile } from './settingsProfile';
 
@@ -170,6 +172,8 @@ export default function SettingsPage() {
                   </svg>
                 </div>
               </button>
+
+              <ContactCard />
             </div>
 
             {/* Logout */}
@@ -185,6 +189,7 @@ export default function SettingsPage() {
                   {language === 'pt' ? 'Sair da conta' : 'Sign out'}
                 </button>
               </div>
+              <DeleteAccountCard />
             </div>
         </div>
       </div>

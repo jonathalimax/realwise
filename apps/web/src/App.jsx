@@ -16,6 +16,7 @@ import AppErrorBoundary from './components/AppErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
 import SubscriptionGate from './components/billing/SubscriptionGate';
+import SubscriptionPage from './pages/SubscriptionPage';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
@@ -89,6 +90,7 @@ function AuthenticatedApp() {
                               <Route path="transactions" element={<TransactionsPage />} />
                               <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
                               <Route path="settings" element={<SettingsPage />} />
+                              <Route path="subscription" element={<SubscriptionPage />} />
                               <Route path="settings/categories" element={<CategorySettingsPage />} />
                               <Route path="settings/banks" element={<BanksSettingsPage />} />
                               <Route path="budget" element={<BudgetPage />} />

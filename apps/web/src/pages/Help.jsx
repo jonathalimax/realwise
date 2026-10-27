@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import TutorialModal from '../components/TutorialModal';
+import ContactSheet from '../components/contact/ContactSheet';
 import {
   QuestionMarkCircleIcon,
   PlayCircleIcon,
@@ -12,9 +12,9 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function HelpPage() {
-  const navigate = useNavigate();
   const { language } = useSettings();
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showContact, setShowContact] = useState(false);
 
   const helpItems = [
     {
@@ -32,7 +32,7 @@ export default function HelpPage() {
       description: language === 'pt'
         ? 'Sugira novas funcionalidades para o app'
         : 'Suggest new features for the app',
-      action: () => navigate('/feedback'),
+      action: () => setShowContact(true),
       color: 'amber',
     },
     {
@@ -41,7 +41,7 @@ export default function HelpPage() {
       description: language === 'pt'
         ? 'Entre em contato com nossa equipe'
         : 'Get in touch with our team',
-      action: () => navigate('/support'),
+      action: () => setShowContact(true),
       color: 'blue',
     },
   ];
@@ -160,6 +160,8 @@ export default function HelpPage() {
           </p>
         </div>
       </main>
+
+      {showContact && <ContactSheet onClose={() => setShowContact(false)} />}
 
       {/* Tutorial Modal */}
       <TutorialModal
