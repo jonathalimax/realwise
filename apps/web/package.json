@@ -18,8 +18,8 @@
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^7.3.7",
     "@mui/x-charts": "^8.26.0",
-    "@tailwindcss/postcss": "^4.1.18",
     "@realwise/types": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.23",
     "framer-motion": "^12.23.26",
     "i18next": "^25.7.4",
@@ -33,6 +33,7 @@
     "react-i18next": "^16.5.1",
     "react-number-format": "^5.4.4",
     "react-router-dom": "^7.11.0",
+    "recharts": "3.10.1",
     "tailwindcss": "^4.1.18",
     "xlsx": "^0.18.5"
   },
