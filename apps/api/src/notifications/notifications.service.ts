@@ -163,13 +163,14 @@ export class NotificationsService {
     this.resend = new Resend(apiKey);
   }
 
-  private async sendMail(params: { to: string; subject: string; html: string }): Promise<void> {
+  private async sendMail(params: { to: string; subject: string; html: string; replyTo?: string }): Promise<void> {
     if (!this.resend) return;
     const { error } = await this.resend.emails.send({
       from: this.from,
       to: params.to,
       subject: params.subject,
       html: params.html,
+      ...(params.replyTo ? { replyTo: params.replyTo } : {}),
     });
     if (error) {
       throw new Error(`Resend send failed: ${error.message}`);
@@ -262,6 +263,39 @@ export class NotificationsService {
       to,
       subject: `Realwise — lembrete de conta${total > 1 ? 's' : ''}`,
       html,
+    });
+  }
+
+  /** Forwards a contact-form message to the support inbox; replying to the e-mail answers the sender. */
+  async sendSupportMessageEmail(params: {
+    to: string;
+    fromName: string | null;
+    fromEmail: string;
+    subject: string | null;
+    message: string;
+    source: 'app' | 'login';
+    userId: string | null;
+  }): Promise<void> {
+    const escape = (value: string) =>
+      value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const who = params.fromName
+      ? `${escape(params.fromName)} &lt;${escape(params.fromEmail)}&gt;`
+      : escape(params.fromEmail);
+    const origin =
+      params.source === 'app'
+        ? `usuário logado${params.userId ? ` (${escape(params.userId)})` : ''}`
+        : 'visitante (tela de login)';
+    const subject = params.subject?.trim() || 'Nova mensagem de suporte';
+    await this.sendMail({
+      to: params.to,
+      replyTo: params.fromEmail,
+      subject: `[Suporte] ${subject.replace(/[\r\n]+/g, ' ').slice(0, 150)}`,
+      html: getBaseTemplate({
+        title: escape(subject),
+        subtitle: `De ${who} · ${origin}`,
+        body: `<div style="font-size:14px;color:#1e293b;line-height:1.7;white-space:pre-wrap;">${escape(params.message)}</div>`,
+        footerNote: 'Responda este e-mail para falar diretamente com o usuário.',
+      }),
     });
   }
 

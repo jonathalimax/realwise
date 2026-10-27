@@ -1,5 +1,14 @@
 import { Module } from '@nestjs/common';
+import { BillingModule } from '../billing/billing.module';
+import { DrizzleModule } from '../db/drizzle.module';
+import { StorageModule } from '../storage/storage.module';
+import { AccountDeletionService } from './account-deletion.service';
+import { AccountController } from './account.controller';
 
-/** Filled in by the admin-v2 work; see .ai/features/admin-v2.md for the contract. */
-@Module({})
+@Module({
+  imports: [DrizzleModule, BillingModule, StorageModule],
+  controllers: [AccountController],
+  providers: [AccountDeletionService],
+  exports: [AccountDeletionService],
+})
 export class AccountModule {}

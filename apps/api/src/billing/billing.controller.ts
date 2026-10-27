@@ -3,9 +3,9 @@ import { IsIn } from 'class-validator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { AccessInfo, BillingPlan } from './access';
+import { BillingPlan } from './access';
 import { AllowWithoutSubscription } from './allow-without-subscription.decorator';
-import { BillingService, PlanOption } from './billing.service';
+import { BillingService, BillingStatus, PlanOption } from './billing.service';
 
 class CheckoutDto {
   @IsIn(['monthly', 'annual'])
@@ -18,7 +18,7 @@ export class BillingController {
   constructor(private readonly service: BillingService) {}
 
   @Get('status')
-  status(@CurrentUser() user: JwtPayload): Promise<AccessInfo> {
+  status(@CurrentUser() user: JwtPayload): Promise<BillingStatus> {
     return this.service.getStatus(user.sub);
   }
 
@@ -37,6 +37,21 @@ export class BillingController {
   @Post('checkout')
   checkout(@CurrentUser() user: JwtPayload, @Body() dto: CheckoutDto): Promise<{ url: string }> {
     return this.service.createCheckout(user.sub, dto.plan);
+  }
+
+  @Post('change-plan')
+  changePlan(@CurrentUser() user: JwtPayload, @Body() dto: CheckoutDto): Promise<BillingStatus> {
+    return this.service.changePlan(user.sub, dto.plan);
+  }
+
+  @Post('cancel')
+  cancel(@CurrentUser() user: JwtPayload): Promise<BillingStatus> {
+    return this.service.cancelSubscription(user.sub);
+  }
+
+  @Post('resume')
+  resume(@CurrentUser() user: JwtPayload): Promise<BillingStatus> {
+    return this.service.resumeSubscription(user.sub);
   }
 
   @Post('portal')
