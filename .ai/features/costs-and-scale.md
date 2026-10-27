@@ -40,6 +40,12 @@ Scaling to 10 / 100 users is linear (net revenue US$ 13 / 128; Hybrid + cache at
 
 Switching the document model is the biggest single lever, but price says nothing about extraction accuracy on Brazilian statements. Test on real PDFs (scanned, credit card, multi-page) by setting `LLM_MODEL_CHAT` on staging before changing prod. Prices for these models are already in `model-pricing.ts`, so the budget guard keeps working.
 
+## How to try another model
+Set the env var on the API app in Coolify and Redeploy; no code change. Every model below has a price entry in `apps/api/src/llm/model-pricing.ts` (a model without one is logged as US$0 and bypasses the budget guard).
+- Document/strong tier, `LLM_MODEL_CHAT`: `anthropic/claude-sonnet-5.5` (default), `google/gemini-3.7-flash`, `google/gemini-3.8-flash`, `google/gemini-3.5-flash-lite`, `google/gemini-3.1-flash-lite`, `openai/gpt-5.4-mini`, `openai/gpt-5-mini`, `openai/gpt-6.1-sol`, `x-ai/grok-4.3`.
+- Light tier, `LLM_MODEL_CHAT_LIGHT` and `LLM_MODEL_INSIGHTS`: `anthropic/claude-haiku-5.5` (default), `openai/gpt-6-luna`, `openai/gpt-5-nano`.
+- Test with a statement PDF, a scanned one and a credit-card statement; check `llm_call_log` for model, tokens and cost. Roll back by removing the var.
+
 ## Findings
 1. **The trial is still the biggest cost** on Sonnet: US$0,18–0,43 per signup against US$1,28 monthly net revenue.
 2. Sonnet for every turn is not viable at R$ 8,99; the hybrid routing is the minimum.

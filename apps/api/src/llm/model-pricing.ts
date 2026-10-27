@@ -9,6 +9,13 @@ const PRICING: Record<string, Record<string, { inputPerMillion: number; outputPe
     'google/gemini-3.5-flash-lite': { inputPerMillion: 0.3, outputPerMillion: 2.5 },
     'openai/gpt-5.4-mini': { inputPerMillion: 0.75, outputPerMillion: 4.5 },
     'openai/gpt-5-mini': { inputPerMillion: 0.25, outputPerMillion: 2 },
+    'google/gemini-3.1-flash-lite': { inputPerMillion: 0.25, outputPerMillion: 1.5 },
+    'google/gemini-3.8-flash': { inputPerMillion: 0.83, outputPerMillion: 4.12 },
+    'openai/gpt-6.1-sol': { inputPerMillion: 2, outputPerMillion: 10 },
+    'x-ai/grok-4.3': { inputPerMillion: 1.25, outputPerMillion: 2.5 },
+    // Cheaper light-tier options (LLM_MODEL_CHAT_LIGHT / LLM_MODEL_INSIGHTS).
+    'openai/gpt-5-nano': { inputPerMillion: 0.05, outputPerMillion: 0.4 },
+    'openai/gpt-6-luna': { inputPerMillion: 0.1, outputPerMillion: 0.5 },
   },
 };
 
