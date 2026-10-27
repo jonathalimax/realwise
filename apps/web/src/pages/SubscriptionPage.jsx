@@ -165,7 +165,11 @@ export default function SubscriptionPage() {
         {(access.state === 'owner' || access.state === 'lifetime') && (
           <section className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800">
             <Row label="Situação" value={headline} />
-            <p className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">Você tem acesso completo ao Realwise, sem cobrança.</p>
+            <p className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">
+              {access.state === 'owner'
+                ? 'Esta é a conta proprietária: ela tem acesso completo e não possui uma assinatura para gerenciar. Para ver a tela de planos, trocar ou cancelar, entre com uma conta que assine o Realwise.'
+                : 'Você tem acesso completo ao Realwise, sem cobrança, então não há assinatura para gerenciar.'}
+            </p>
           </section>
         )}
       </main>
