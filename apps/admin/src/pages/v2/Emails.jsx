@@ -195,7 +195,7 @@ function SentTab() {
       <div className="p-3 sm:p-4 grid gap-2 sm:grid-cols-2 border-b border-gray-800">
         <select className={inputClass} value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Tipo de e-mail">
           <option value="">Todos os tipos</option>
-          {SENT_KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+          {KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
         </select>
         <input className={inputClass} placeholder="Filtrar por e-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
