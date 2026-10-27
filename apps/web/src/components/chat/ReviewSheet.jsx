@@ -53,9 +53,9 @@ function ItemRow({ item, account, type }) {
 }
 
 /**
- * Rows John already saved but is unsure how to categorize. One card per merchant; a lone transaction shows its
+ * Rows Elio already saved but is unsure how to categorize. One card per merchant; a lone transaction shows its
  * full details up front, a group expands to its list. Confirming updates the saved rows directly, and
- * "remember" teaches John for next time.
+ * "remember" teaches Elio for next time.
  */
 export default function ReviewSheet({ message, language, busy, onApply, onClose }) {
   const pt = language === 'pt';
@@ -66,7 +66,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
     Object.fromEntries(groups.map((g) => [g.key, g.currentCategoryId ?? g.suggestionIds[0] ?? ''])),
   );
   const [remember, setRemember] = useState(() => Object.fromEntries(groups.map((g) => [g.key, true])));
-  // Groups John thinks may be transfers between the user's own accounts: true = "yes, it is a transfer".
+  // Groups Elio thinks may be transfers between the user's own accounts: true = "yes, it is a transfer".
   const [transfer, setTransfer] = useState(() => Object.fromEntries(groups.map((g) => [g.key, false])));
   const [expanded, setExpanded] = useState(() => new Set());
 

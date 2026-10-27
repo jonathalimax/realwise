@@ -23,7 +23,7 @@ function Field({ label, hint, children }) {
   );
 }
 
-/** The form John opens to register a bank account or card: bank, type, name, holder and (for cards) closing/due day. */
+/** The form Elio opens to register a bank account or card: bank, type, name, holder and (for cards) closing/due day. */
 export default function AccountFormSheet({ message, language, busy, error, onSubmit, onClose }) {
   const pt = language === 'pt';
   const question = (message.questions ?? []).find((q) => q.kind === 'account_form' && !q.answer);

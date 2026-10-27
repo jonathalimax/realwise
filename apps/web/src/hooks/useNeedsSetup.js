@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { chatResource } from '../lib/api/resources/chat';
 
 /**
- * true = the user has no bank account yet, so John (the chat) sets them up; false = already set up; null = still checking.
+ * true = the user has no bank account yet, so Elio (the chat) sets them up; false = already set up; null = still checking.
  * A failed check counts as "set up" so a network hiccup never traps someone away from the dashboard.
  */
 export function useNeedsSetup() {

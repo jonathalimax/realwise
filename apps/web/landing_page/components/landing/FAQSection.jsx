@@ -13,7 +13,7 @@ const FAQS = [
   },
   {
     q: 'Quais bancos funcionam?',
-    a: 'Qualquer um. O John lê PDF, foto, planilha (CSV/XLSX) e OFX de qualquer banco ou cartão, sem precisar conectar sua conta.',
+    a: 'Qualquer um. O Elio lê PDF, foto, planilha (CSV/XLSX) e OFX de qualquer banco ou cartão, sem precisar conectar sua conta.',
   },
   {
     q: 'Como cancelo?',

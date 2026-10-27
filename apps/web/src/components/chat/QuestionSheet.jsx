@@ -4,7 +4,7 @@ import BottomSheet from './BottomSheet';
 
 const NEW = '__new__';
 
-/** Multiple-choice questions from John (which account / how it was paid). Answers are sent back as the next message. */
+/** Multiple-choice questions from Elio (which account / how it was paid). Answers are sent back as the next message. */
 export default function QuestionSheet({ message, language, busy, onSubmit, onClose }) {
   const pt = language === 'pt';
   const pending = (message.questions ?? []).filter((q) => !q.answer);

@@ -5,7 +5,7 @@ import { billingResource } from '@/lib/api/resources/billing';
 import { landingAnalytics } from '../../landingAnalytics';
 
 const INCLUDED = [
-  'John, seu assistente de IA, no chat',
+  'Elio, seu assistente de IA, no chat',
   'Importação de extratos e faturas (PDF, foto, CSV, OFX)',
   'Categorização que aprende com você',
   'Transferências entre suas contas fora dos totais',

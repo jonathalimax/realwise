@@ -32,7 +32,7 @@ export default function DashboardPage() {
   const { getPaymentMonthKey, loading: cardsLoading } = useCards();
   const { transactions, loading: transactionsLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const investmentsEnabled = useFeature('investments');
-  // No bank account yet: John (the chat) sets the user up, so the dashboard has nothing to show.
+  // No bank account yet: Elio (the chat) sets the user up, so the dashboard has nothing to show.
   const needsSetup = useNeedsSetup();
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
     transactions, selectedMonth, viewMode, getPaymentMonthKey, { rollover: monthlyRollover }

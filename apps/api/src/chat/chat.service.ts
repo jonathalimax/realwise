@@ -156,7 +156,7 @@ export class ChatService {
 
     if (!reply) reply = saved.length ? 'Pronto! Salvei as transações.' : 'Não consegui concluir agora. Pode tentar de novo?';
 
-    // The turn saved data and asked nothing, so John has dealt with whatever was attached: clear it, so it is never
+    // The turn saved data and asked nothing, so Elio has dealt with whatever was attached: clear it, so it is never
     // re-sent with later messages. (If he asked something, or saved nothing, the files stay for the user's answer.)
     if (questions.length === 0 && saved.length > 0 && pendingFiles.length > 0) {
       await this.db
@@ -203,7 +203,7 @@ export class ChatService {
   }
 
   /**
-   * First chat open for a user with no accounts: creates the default categories (once) and posts John's scripted
+   * First chat open for a user with no accounts: creates the default categories (once) and posts Elio's scripted
    * welcome with the account form. Idempotent: it does nothing if the welcome is already in the recent conversation.
    */
   async startOnboarding(scope: ChatScope): Promise<{ needsSetup: boolean; message: ChatMessageRow | null }> {
@@ -236,7 +236,7 @@ export class ChatService {
     return { needsSetup: true, message };
   }
 
-  /** Saves the onboarding account form, then lets John continue the conversation (next: more accounts, income, first statement). */
+  /** Saves the onboarding account form, then lets Elio continue the conversation (next: more accounts, income, first statement). */
   async submitAccountForm(
     scope: ChatScope,
     messageId: string,
@@ -314,7 +314,7 @@ export class ChatService {
     return msg;
   }
 
-  /** Turns the user's picks in a question sheet into their next message, so John continues with the documents still attached. */
+  /** Turns the user's picks in a question sheet into their next message, so Elio continues with the documents still attached. */
   async answerQuestions(
     scope: ChatScope,
     messageId: string,
@@ -426,7 +426,7 @@ export class ChatService {
       .from(imports)
       .where(and(eq(imports.id, importId), eq(imports.userId, scope.userId), eq(imports.clientId, scope.clientId)));
     if (!imp) throw new NotFoundException('Import not found');
-    // Soft delete only: the rows are hidden, never destroyed (they can be restored with John's restore tool).
+    // Soft delete only: the rows are hidden, never destroyed (they can be restored with Elio's restore tool).
     const removed = await this.db
       .update(transactions)
       .set({ deletedAt: new Date(), updatedAt: new Date() })
