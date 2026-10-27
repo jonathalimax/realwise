@@ -9,6 +9,7 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ChatService, MAX_FILES_PER_MESSAGE } from './chat.service';
 import type { ChatStreamEvent } from './chat.types';
 import { InsightsService } from './insights.service';
+import { ChatBillsService, type BillDecision } from './chat-bills.service';
 
 class SendMessageDto {
   @IsOptional()
@@ -97,6 +98,31 @@ class ReviewDto {
   decisions: ReviewDecisionDto[];
 }
 
+class BillDecisionDto {
+  @IsUUID()
+  billId: string;
+
+  @IsBoolean()
+  paid: boolean;
+
+  @IsOptional()
+  @Min(0)
+  @Max(1_000_000_000)
+  amount?: number;
+}
+
+class BillsPanelDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BillDecisionDto)
+  items: BillDecisionDto[];
+}
+
+class SuggestionIntentDto {
+  @IsUUID()
+  id: string;
+}
+
 /** Turns any failure into a friendly pt-BR message (never a stack trace or English technical text) plus status/code. */
 function describeChatError(e: unknown): { status: number; code?: string; message: string } {
   const status = (e as { getStatus?: () => number }).getStatus?.() ?? 500;
@@ -116,6 +142,7 @@ export class ChatController {
   constructor(
     private readonly service: ChatService,
     private readonly insights: InsightsService,
+    private readonly bills: ChatBillsService,
   ) {}
 
   @Get('messages')
@@ -228,6 +255,23 @@ export class ChatController {
   @Post('messages/:id/review')
   review(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReviewDto, @CurrentUser() user: JwtPayload) {
     return this.service.applyReview({ clientId: user.clientId, userId: user.sub }, id, dto.decisions);
+  }
+
+  /** Opened from the bills email (?intent=bills): Elio posts the checklist of pending bills. */
+  @Post('intents/bills')
+  billsIntent(@CurrentUser() user: JwtPayload) {
+    return this.bills.startBillsIntent({ clientId: user.clientId, userId: user.sub });
+  }
+
+  /** Opened from the suggestion email (?suggestion=id): the user said yes, so Elio creates the reminder. */
+  @Post('intents/suggestion')
+  suggestionIntent(@Body() dto: SuggestionIntentDto, @CurrentUser() user: JwtPayload) {
+    return this.bills.startSuggestionIntent({ clientId: user.clientId, userId: user.sub }, dto.id);
+  }
+
+  @Post('messages/:id/bills')
+  settleBills(@Param('id', ParseUUIDPipe) id: string, @Body() dto: BillsPanelDto, @CurrentUser() user: JwtPayload) {
+    return this.bills.submitPanel({ clientId: user.clientId, userId: user.sub }, id, dto.items as BillDecision[]);
   }
 
   @Post('imports/:id/undo')
