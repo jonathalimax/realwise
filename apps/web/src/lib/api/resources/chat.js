@@ -42,7 +42,7 @@ async function postStream(path, body, onEvent) {
     } catch {
       return;
     }
-    if (event.type === 'error') throw new ApiError(event.message || 'The assistant failed.', { status: 503 });
+    if (event.type === 'error') throw new ApiError(event.message || 'O John não conseguiu responder.', { status: event.status ?? 503, data: { code: event.code } });
     if (event.type === 'done') result = event.result;
     onEvent?.(event);
   };
@@ -57,7 +57,7 @@ async function postStream(path, body, onEvent) {
       buffer = buffer.slice(idx + 2);
     }
   }
-  if (!result) throw new ApiError('The connection closed before John finished. Please try again.', { status: 503 });
+  if (!result) throw new ApiError('A conexão caiu antes de o John terminar. Tente de novo.', { status: 503 });
   return result;
 }
 

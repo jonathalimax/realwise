@@ -53,7 +53,7 @@ Set the env var on the API app in Coolify and Redeploy; no code change. Every mo
 
 ## Recommended levers (in order)
 1. Env now: `LLM_MONTHLY_BUDGET_USD=0.6`, `LLM_MODEL_FALLBACK=anthropic/claude-haiku-5.5` (default budget is US$5/user, which loses money on every heavy user).
-2. Trial AI cap of ~US$0,15–0,25 per user (budget by access state) — not built.
+2. Trial AI cap — **built**: users in `trial` state are blocked (429 `TRIAL_LIMIT`, friendly pt-BR message asking them to subscribe) once their spend since the trial started reaches `LLM_TRIAL_BUDGET_USD` (default 0.15; 0 disables). Statements still use the strong model inside that allowance.
 3. Route plain Q&A/insights to Haiku, Sonnet for turns with attached documents — **built** (`tier` on `LlmRequest`; env `LLM_MODEL_CHAT` strong, `LLM_MODEL_CHAT_LIGHT`, `LLM_MODEL_INSIGHTS`).
 4. Prompt caching (Anthropic `cache_control` on the system prompt and last user message; cache reads/writes priced in the budget guard) — **built**; disable with `LLM_PROMPT_CACHE=off`. Check `llm_call_log` cost per turn after deploy to confirm cache hits.
 5. Reminder emails to lift trial→paid conversion (built, `engagement-reminders`).

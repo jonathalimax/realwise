@@ -97,6 +97,20 @@ class ReviewDto {
   decisions: ReviewDecisionDto[];
 }
 
+/** Turns any failure into a friendly pt-BR message (never a stack trace or English technical text) plus status/code. */
+function describeChatError(e: unknown): { status: number; code?: string; message: string } {
+  const status = (e as { getStatus?: () => number }).getStatus?.() ?? 500;
+  const body = (e as { getResponse?: () => unknown }).getResponse?.();
+  const code = body && typeof body === 'object' ? (body as { code?: string }).code : undefined;
+  const own = body && typeof body === 'object' && code ? (body as { message?: string }).message : undefined;
+  if (own) return { status, code, message: own };
+  if (status === 402) return { status, code: 'SUBSCRIPTION_REQUIRED', message: 'Seu teste terminou. Assine um plano para continuar conversando com o John.' };
+  if (status === 429) return { status, message: 'Estou recebendo muitos pedidos agora. Espere um pouquinho e tente de novo.' };
+  if (status === 413) return { status, message: 'Esse arquivo é grande demais. Envie arquivos de até 15 MB.' };
+  if (status >= 400 && status < 500) return { status, message: 'Não consegui entender esse pedido. Pode tentar de novo?' };
+  return { status: status >= 500 ? status : 500, message: 'Tive um tropeço aqui e não consegui terminar. Pode tentar de novo em instantes?' };
+}
+
 @Controller('chat')
 export class ChatController {
   constructor(
@@ -152,8 +166,8 @@ export class ChatController {
       try {
         res.json(await run());
       } catch (e) {
-        const status = (e as { getStatus?: () => number }).getStatus?.() ?? 500;
-        res.status(status).json({ message: e instanceof Error ? e.message : 'Request failed' });
+        const { status, code, message } = describeChatError(e);
+        res.status(status).json({ message, code });
       }
       return;
     }
@@ -181,7 +195,7 @@ export class ChatController {
       console.log(`[chat] turn finished in ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone before the end: ${clientGone})`);
     } catch (e) {
       console.error(`[chat] turn failed after ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone: ${clientGone}):`, e);
-      write({ type: 'error', message: e instanceof Error ? e.message : 'Request failed' });
+      write({ type: 'error', ...describeChatError(e) });
     } finally {
       clearInterval(ping);
       res.end();
