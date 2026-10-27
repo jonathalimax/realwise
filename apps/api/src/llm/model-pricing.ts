@@ -2,8 +2,13 @@
 // Unknown models are treated as $0 and warned about, never guessed.
 const PRICING: Record<string, Record<string, { inputPerMillion: number; outputPerMillion: number }>> = {
   openrouter: {
-    'anthropic/claude-sonnet-5.5': { inputPerMillion: 3, outputPerMillion: 15 },
+    'anthropic/claude-sonnet-5.5': { inputPerMillion: 2, outputPerMillion: 10 },
     'anthropic/claude-haiku-5.5': { inputPerMillion: 0.1, outputPerMillion: 0.5 },
+    // Candidate document models (PDF + tools + ZDR endpoints on OpenRouter); prices as listed on OpenRouter.
+    'google/gemini-3.7-flash': { inputPerMillion: 0.75, outputPerMillion: 3.75 },
+    'google/gemini-3.5-flash-lite': { inputPerMillion: 0.3, outputPerMillion: 2.5 },
+    'openai/gpt-5.4-mini': { inputPerMillion: 0.75, outputPerMillion: 4.5 },
+    'openai/gpt-5-mini': { inputPerMillion: 0.25, outputPerMillion: 2 },
   },
 };
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """RealWise unit-economics simulation. Every number below is an assumption: replace with llm_call_log averages."""
-SONNET = (3.0, 15.0)    # USD per million tokens (in, out) - apps/api/src/llm/model-pricing.ts
+SONNET = (2.0, 10.0)    # USD per million tokens (in, out) - OpenRouter list price, apps/api/src/llm/model-pricing.ts
+DOC_MODELS = {"sonnet-5.5": SONNET, "gpt-5.4-mini": (0.75, 4.5), "gemini-3.7-flash": (0.75, 3.75), "gemini-3.5-flash-lite": (0.30, 2.5)}
 HAIKU = (0.10, 0.50)
 BRL_PER_USD = 5.5
 
@@ -35,10 +36,12 @@ def cost(action, model, cache=1.0):
     i, o = ACTIONS[action]
     return (i * cache * model[0] + o * model[1]) / 1e6
 
+STRONG = SONNET   # model used for documents/onboarding in the hybrid strategies
+
 def action_cost(action, strategy):
     if strategy == "sonnet":        return cost(action, SONNET)
-    if strategy == "hybrid":        return cost(action, SONNET if action in HYBRID_SONNET else HAIKU)
-    if strategy == "hybrid+cache":  return cost(action, SONNET if action in HYBRID_SONNET else HAIKU, CACHE_INPUT_FACTOR)
+    if strategy == "hybrid":        return cost(action, STRONG if action in HYBRID_SONNET else HAIKU)
+    if strategy == "hybrid+cache":  return cost(action, STRONG if action in HYBRID_SONNET else HAIKU, CACHE_INPUT_FACTOR)
 
 def user_month(p, strategy):
     return (p["imports"] * action_cost("import", strategy) + p["questions"] * action_cost("question", strategy)
@@ -77,6 +80,17 @@ if __name__ == "__main__":
         print()
 
     # Lever: cap AI spend during the trial (enforced by LLM budget for users in 'trial' state; not built yet).
+    print("== document model comparison (hybrid+cache, no caps)")
+    for name, model in DOC_MODELS.items():
+        STRONG = model
+        avg = sum(p["share"] * user_month(p, "hybrid+cache") for p in PROFILES.values())
+        tc = trial_cost("hybrid+cache")
+        for conv in (0.15, 0.30):
+            total = 1000 * avg + (1000 / conv) * tc
+            rev = 1000 * net / BRL_PER_USD
+            print(f"  {name:22} avg paying US$ {avg:.2f} | trial US$ {tc:.2f} | conv {int(conv*100)}% 1000 users: AI US$ {total:5.0f} vs rev US$ {rev:5.0f} -> margin {(rev-total)/rev*100:6.1f}%")
+    STRONG = SONNET
+    print()
     print("== hybrid+cache with TRIAL cap (US$ per trial user) and paid-user cap US$ 0.60")
     for cap in (0.15, 0.25):
         tc = min(trial_cost("hybrid+cache"), cap * TRIAL_ACTIVATION)
