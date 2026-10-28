@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import PageHelp from '@/components/ui/PageHelp';
 import { useSettings } from '../contexts/SettingsContext';
@@ -7,15 +7,13 @@ import { useFeature } from '../contexts/ClientConfigContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
 import { useMonth } from '../contexts/MonthContext';
-import { useIsMobile } from '../hooks/useIsMobile';
 import useTransactions from '../hooks/useTransactions';
 import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
-import BillsSummaryCard from '../components/BillsSummaryCard';
-import IncomeVsExpensesCard from '../components/IncomeVsExpensesCard';
 import AskChatBar from '../components/AskChatBar';
-import InsightsCard from '../components/InsightsCard';
-import PlannerSummaryCard from '../components/PlannerSummaryCard';
-import ExpensesByCategoryCard from '../components/ExpensesByCategoryCard';
+import HomeSummaryCard from '../components/home/HomeSummaryCard';
+import PlanningCard from '../components/home/PlanningCard';
+import BillsMonthCard from '../components/home/BillsMonthCard';
+import CategorySpendingCard from '../components/home/CategorySpendingCard';
 import TrendChart from '../components/charts/TrendChart';
 import PageHeader from '../components/PageHeader';
 import { useNeedsSetup } from '../hooks/useNeedsSetup';
@@ -23,7 +21,6 @@ import { SparklesIcon } from '@heroicons/react/24/outline';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
 
   const { selectedMonth } = useMonth();
   const [viewMode] = useState('payment');
@@ -46,41 +43,31 @@ export default function DashboardPage() {
     navigate('/investments');
   };
 
-  const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
   // Dashboard is hydrating until access resolves an owner, cards finish loading,
   // and the first transactions snapshot lands. Gating here prevents the
   // "everything shows 0" flash where totals are computed from empty arrays.
   const isHydrating = accessLoading || !ownerId || cardsLoading || transactionsLoading || needsSetup === null;
 
-  const last6Months = useMemo(() => Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(`${selectedMonth}-01`);
-    d.setMonth(d.getMonth() - (5 - i));
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }), [selectedMonth]);
+  /** Transactions that belong to `monthKey` (purchase month, or card-payment month for card expenses). */
+  const inMonth = useMemo(
+    () => (monthKey) =>
+      transactions.filter((t) => {
+        const date = new Date(t.date);
+        const transactionMonthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (viewMode === 'purchase') return transactionMonthKey === monthKey;
+        if (t.type === 'income' || t.investmentId) return transactionMonthKey === monthKey;
+        return getPaymentMonthKey(t.date, t.bankId, t.paymentMethod) === monthKey;
+      }),
+    [transactions, viewMode, getPaymentMonthKey],
+  );
 
-  const monthlyTransactions = useMemo(() => {
-    if (!selectedMonth) return transactions;
-
-    return transactions.filter(t => {
-      const date = new Date(t.date);
-      const transactionMonthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-      if (viewMode === 'purchase') {
-        return transactionMonthKey === selectedMonth;
-      } else {
-        if (t.type === 'income') {
-          return transactionMonthKey === selectedMonth;
-        }
-        if (t.investmentId) {
-          return transactionMonthKey === selectedMonth;
-        }
-        const paymentKey = getPaymentMonthKey(t.date, t.bankId, t.paymentMethod);
-        return paymentKey === selectedMonth;
-      }
-    });
-  }, [transactions, selectedMonth, viewMode, getPaymentMonthKey]);
-
+  const monthlyTransactions = useMemo(() => (selectedMonth ? inMonth(selectedMonth) : transactions), [inMonth, selectedMonth, transactions]);
+  const previousMonthTransactions = useMemo(() => {
+    if (!selectedMonth) return [];
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    return inMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }, [inMonth, selectedMonth]);
 
   if (needsSetup === true) return <Navigate to="/chat" replace />;
 
@@ -112,44 +99,32 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         <AskChatBar />
 
-        {/* Main Content Grid */}
+        {/* One column on a phone, in reading order: summary (with Elio's insights), panorama, planning, bills, spending */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Left Column - Main Charts */}
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
-            <InsightsCard selectedMonth={selectedMonth} />
-
-            {/* Income vs Expenses - HIGHLIGHTED */}
-            <IncomeVsExpensesCard
+            <HomeSummaryCard
               transactions={monthlyTransactions}
-              onInvestmentsClick={handleOpenInvestmentsList}
+              previousTransactions={previousMonthTransactions}
+              carryoverSaldo={carryoverSaldo}
+              selectedMonth={selectedMonth}
               showInvestments={investmentsEnabled}
               onIncomeClick={handleIncomeClick}
               onExpensesClick={handleExpensesClick}
-              carryoverSaldo={carryoverSaldo}
+              onInvestmentsClick={handleOpenInvestmentsList}
             />
-
-            {/* Trend Chart - Expenses vs Income Over Time */}
-            <div className="mt-2">
-              <TrendChart
-                transactions={transactions}
-                selectedMonth={selectedMonth}
-                viewMode={viewMode}
-                cumulativeByMonth={cumulativeByMonth}
-                rollover={monthlyRollover}
-              />
-            </div>
+            <TrendChart
+              transactions={transactions}
+              selectedMonth={selectedMonth}
+              viewMode={viewMode}
+              cumulativeByMonth={cumulativeByMonth}
+              rollover={monthlyRollover}
+            />
           </div>
 
-          {/* Right Column - Summary Cards */}
           <div className="space-y-4 md:space-y-6">
-            {/* Planner allocation summary */}
-            <PlannerSummaryCard />
-
-            {/* Bills Summary - Simple Card */}
-            <BillsSummaryCard selectedMonth={selectedMonth} />
-
-            {/* Expenses by category */}
-            <ExpensesByCategoryCard transactions={monthlyTransactions} selectedMonth={selectedMonth} />
+            <PlanningCard transactions={monthlyTransactions} selectedMonth={selectedMonth} />
+            <BillsMonthCard selectedMonth={selectedMonth} />
+            <CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} />
           </div>
         </div>
       </main>
