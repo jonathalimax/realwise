@@ -700,10 +700,11 @@ export class ChatToolsService {
     const name = String(args.name ?? '').trim();
     if (!name) return { error: 'name is required' };
     const type = args.type === 'income' ? 'income' : 'expense';
-    const [cat] = await this.db
-      .insert(categories)
-      .values({ clientId: ctx.clientId, userId: ctx.userId, name, type })
-      .returning();
+    // Already there (e.g. synced from Settings): reuse it instead of adding a duplicate row.
+    const existing = await this.cats.findExisting(ctx, name, type);
+    const [cat] = existing
+      ? [existing]
+      : await this.db.insert(categories).values({ clientId: ctx.clientId, userId: ctx.userId, name, type }).returning();
     await this.cats.addToSettings(ctx, name, type); // also list it on the Categories screen
     return { categoryId: cat.id, name: cat.name, type: cat.type };
   }

@@ -121,6 +121,15 @@ export class ChatCategoriesService {
     if (toInsert.length) await this.db.insert(categories).values(toInsert);
   }
 
+  /** The user's live category with this name (accents/case ignored) that fits the type, if any. A typeless legacy row fits both. */
+  async findExisting(scope: CategoryScope, name: string, type: CategoryType) {
+    const rows = await this.db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId), isNull(categories.deletedAt)));
+    return rows.find((c) => norm(c.name) === norm(name) && (c.type === type || c.type === null));
+  }
+
   /** A category created in the chat also shows up in the Categories screen and dashboards. */
   async addToSettings(scope: CategoryScope, name: string, type: CategoryType): Promise<void> {
     const [s] = await this.db
