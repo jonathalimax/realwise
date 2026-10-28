@@ -12,6 +12,7 @@ import { BANKS } from './onboarding';
 import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
 import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
 import { ChatBillsService } from './chat-bills.service';
+import { ChatCategoriesService } from './chat-categories.service';
 
 export interface ToolContext {
   clientId: string;
@@ -242,6 +243,7 @@ export class ChatToolsService {
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly edit: ChatEditService,
     private readonly billsChat: ChatBillsService,
+    private readonly cats: ChatCategoriesService,
   ) {}
 
   /** Runs a previously previewed update/delete that the user explicitly confirmed. The action comes from the stored message, never from the client. */
@@ -702,6 +704,7 @@ export class ChatToolsService {
       .insert(categories)
       .values({ clientId: ctx.clientId, userId: ctx.userId, name, type })
       .returning();
+    await this.cats.addToSettings(ctx, name, type); // also list it on the Categories screen
     return { categoryId: cat.id, name: cat.name, type: cat.type };
   }
 

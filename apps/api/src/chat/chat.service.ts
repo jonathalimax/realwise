@@ -9,6 +9,7 @@ import type { LlmContentPart, LlmMessage } from '../llm/llm.types';
 import { prepareFile, toContentPart, type PreparedFile } from './attachments';
 import { buildSystemPrompt } from './chat.prompt';
 import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.service';
+import { ChatCategoriesService } from './chat-categories.service';
 import { MAX_REVIEW_ITEMS, TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
 import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, welcomeMessage } from './onboarding';
 
@@ -34,6 +35,7 @@ export class ChatService {
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly llm: LlmService,
     private readonly tools: ChatToolsService,
+    private readonly cats: ChatCategoriesService,
   ) {}
 
   async history(scope: ChatScope, limit = 50): Promise<ChatMessageRow[]> {
@@ -49,7 +51,23 @@ export class ChatService {
       )
       .orderBy(desc(chatMessages.createdAt))
       .limit(limit);
-    return rows.reverse();
+    const ordered = rows.reverse();
+
+    // A category sheet saved earlier carries the category list from when it was created. Refresh it so the picker
+    // always offers every category the user has now (including ones enabled in Settings since).
+    const openReviews = ordered.filter((m) => {
+      const r = m.review as ReviewPayload | null;
+      return r && !r.resolved && Array.isArray(r.groups) && r.groups.length > 0;
+    });
+    if (openReviews.length > 0) {
+      await this.cats.ensure(scope);
+      const current = await this.db
+        .select({ id: categories.id, name: categories.name, type: categories.type })
+        .from(categories)
+        .where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId), isNull(categories.deletedAt)));
+      for (const m of openReviews) m.review = { ...(m.review as ReviewPayload), categories: current };
+    }
+    return ordered;
   }
 
   async send(
@@ -105,6 +123,7 @@ export class ChatService {
       pendingFiles.unshift(f);
     }
 
+    await this.cats.ensure(scope); // every category enabled in Settings is available to Elio and the review sheet
     const system = await this.systemPrompt(scope);
     const messages: LlmMessage[] = [{ role: 'system', content: system }];
     for (const m of prior) {
