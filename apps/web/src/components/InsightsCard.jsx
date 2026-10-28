@@ -11,7 +11,7 @@ const TONE = {
 };
 
 /** AI-written insight cards for the selected month. Renders nothing if the assistant is unavailable or there is no data. */
-export default function InsightsCard({ selectedMonth }) {
+export default function InsightsCard({ selectedMonth, embedded = false }) {
   const { language } = useSettings();
   // Result is tagged with the request it answers, so "loading" is derived rather than set in the effect.
   const [result, setResult] = useState({ key: '', items: [] });
@@ -34,11 +34,14 @@ export default function InsightsCard({ selectedMonth }) {
   const items = result.key === `${selectedMonth}:${version}` ? result.items : null;
   if (items && items.length === 0) return null;
 
+  // Embedded in the summary card: no card of its own, just a quiet heading, so the insights read as an explanation of
+  // the numbers right above them.
+  const Wrapper = embedded ? 'div' : 'section';
   return (
-    <section className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm p-4">
-      <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-gray-900 dark:text-white mb-3">
+    <Wrapper className={embedded ? 'border-t border-slate-100 pt-3 dark:border-slate-700/60' : 'rounded-2xl bg-white dark:bg-gray-800 shadow-sm p-4'}>
+      <h2 className={`flex items-center gap-2 mb-3 ${embedded ? 'text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400' : 'text-sm font-black uppercase tracking-wide text-gray-900 dark:text-white'}`}>
         <SparklesIcon className="w-5 h-5 text-violet-500" />
-        {language === 'pt' ? 'Insights do mês' : 'Monthly insights'}
+        {embedded ? (language === 'pt' ? 'O que o Elio notou' : 'What Elio noticed') : language === 'pt' ? 'Insights do mês' : 'Monthly insights'}
       </h2>
       {items === null ? (
         <div className="grid sm:grid-cols-2 gap-3" role="status" aria-busy="true">
@@ -61,6 +64,6 @@ export default function InsightsCard({ selectedMonth }) {
           ))}
         </div>
       )}
-    </section>
+    </Wrapper>
   );
 }
