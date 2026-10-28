@@ -118,12 +118,6 @@ export default function LeadsDashboard() {
       } else if (actionId === 'migration') {
         await adminResource.sendAdminEmail({ to: email, template: 'accept_migration', fields: { name: name || '', migrationUrl: '' } });
         setRecoveryToast(`Email de migração enviado para ${email}`);
-      } else if (actionId === 'coupon') {
-        await adminResource.sendAbandonedCheckoutEmail({ email, stage: 2, name: name || '' });
-        setRecoveryToast(`Cupom enviado para ${email}`);
-      } else if (actionId === 'lastchance') {
-        await adminResource.sendAbandonedCheckoutEmail({ email, stage: 3, name: name || '' });
-        setRecoveryToast(`Última oferta enviada para ${email}`);
       } else if (actionId === 'state') {
         // inline state change is handled by the existing select — nothing to do
         return;
