@@ -194,7 +194,7 @@ export default function FilePreview({ file, onClose, language }) {
   const isPicture = kind === 'image' || kind === 'pdf';
 
   return (
-    <div className="fixed inset-0 z-[80] flex flex-col bg-black/95" role="dialog" aria-modal="true" aria-label={file.name}>
+    <div className="fixed inset-0 z-[80] flex flex-col bg-black" role="dialog" aria-modal="true" aria-label={file.name}>
       <div className="flex items-center gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-white">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{file.name}</p>
