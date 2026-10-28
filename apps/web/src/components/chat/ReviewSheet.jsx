@@ -116,7 +116,11 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
       }
     >
       {groups.map((g) => {
-        const sameType = categories.filter((c) => !c.type || c.type === g.type);
+        // Every category is selectable: the ones matching this line's type first, the rest under "other categories".
+        const byName = (a, b) => a.name.localeCompare(b.name, 'pt-BR');
+        const sameType = categories.filter((c) => !c.type || c.type === g.type).sort(byName);
+        const otherType = categories.filter((c) => c.type && c.type !== g.type).sort(byName);
+        const typeName = (t) => (t === 'income' ? (pt ? 'Entradas' : 'Income') : pt ? 'Saídas' : 'Expenses');
         const items = g.items ?? [];
         const single = g.count === 1 && items[0];
         const isOpen = expanded.has(g.key);
@@ -235,11 +239,22 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
               aria-label={pt ? `Categoria de ${g.merchant}` : `Category for ${g.merchant}`}
             >
               <option value="">{pt ? 'Deixar sem categoria' : 'Leave uncategorized'}</option>
-              {sameType.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+              <optgroup label={typeName(g.type)}>
+                {sameType.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+              {otherType.length > 0 && (
+                <optgroup label={pt ? 'Outras categorias' : 'Other categories'}>
+                  {otherType.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({typeName(c.type).toLowerCase()})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             )}
 

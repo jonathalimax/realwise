@@ -3,8 +3,6 @@ import { useState, useRef, useEffect } from 'react';
 const ACTIONS = [
   { id: 'welcome', name: 'Enviar Boas-Vindas', description: 'Envia email de boas-vindas com próximos passos.', when: 'Após pagamento', group: 'email' },
   { id: 'access', name: 'Liberar Acesso', description: 'Email com link direto para o dashboard.', when: 'Após onboarding', group: 'email' },
-  { id: 'coupon', name: 'Enviar Cupom', description: 'Email com oferta especial e link de checkout com desconto.', when: 'Lead frio', group: 'email' },
-  { id: 'lastchance', name: 'Última Oferta', description: 'Email com desconto final e link direto para Stripe.', when: 'Após 7+ dias sem conversão', group: 'email' },
   { id: 'onboard', name: 'Iniciar Onboarding', description: 'Cria projeto Firebase e configura acesso.', when: 'Após pagamento', group: 'ops' },
   { id: 'migration', name: 'Aceite de Migração', description: 'Email com instruções para aceitar transferência de projeto.', when: 'Após onboarding', group: 'ops' },
   { id: 'state', name: 'Alterar Estado', description: 'Muda o estado do lead manualmente.', when: 'Qualquer momento', group: 'admin' },
