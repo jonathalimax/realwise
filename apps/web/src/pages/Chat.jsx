@@ -13,6 +13,7 @@ import { notifyBillsChanged } from '../lib/api/resources/bills';
 import { useSettings } from '../contexts/SettingsContext';
 import { friendlyChatError } from '../lib/chatErrors';
 import { chatResource } from '../lib/api/resources/chat';
+import { purgeOldFiles, recallFile, rememberFiles } from '../lib/chatFileCache';
 
 const SUPPORTED = ['pdf', 'csv', 'tsv', 'txt', 'xlsx', 'xls', 'ofx', 'qif', 'png', 'jpg', 'jpeg', 'webp'];
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -104,7 +105,14 @@ function SavedCard({ saved, onUndo, language }) {
   );
 }
 
-function Bubble({ message, onUndo, onOpenSheet, language }) {
+/** Older confirmations were saved with technical text (ids, JSON results); show them as the plain answer they were. */
+function cleanUserText(text) {
+  if (/o usuário CONFIRMOU/.test(text)) return 'Sim, pode alterar ✅';
+  if (/o usuário CANCELOU/.test(text)) return 'Cancelar';
+  return text.replace(/\s*\((accountId|paymentMethod) [^)]*\)/g, '');
+}
+
+function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, language }) {
   const mine = message.role === 'user';
   const pt = language === 'pt';
   const pending = pendingSheet(message);
@@ -121,14 +129,21 @@ function Bubble({ message, onUndo, onOpenSheet, language }) {
         {Array.isArray(message.attachments) && message.attachments.length > 0 && (
           <div className="mb-1.5 flex flex-wrap gap-1.5">
             {message.attachments.map((file, i) => (
-              <span key={`${file.name}-${i}`} className="inline-flex items-center gap-1 rounded-lg bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs">
+              <button
+                key={`${file.name}-${i}`}
+                type="button"
+                onClick={() => onPreviewFile?.(message.id, file.name)}
+                disabled={!onPreviewFile || String(message.id).startsWith('tmp-')}
+                aria-label={`${pt ? 'Ver' : 'View'} ${file.name}`}
+                className="inline-flex items-center gap-1 rounded-lg bg-black/10 dark:bg-white/10 px-2 py-0.5 text-xs hover:bg-black/20 dark:hover:bg-white/20 disabled:cursor-default"
+              >
                 <DocumentTextIcon className="w-3.5 h-3.5" />
                 <span className="max-w-[10rem] truncate">{file.name}</span>
-              </span>
+              </button>
             ))}
           </div>
         )}
-        {mine ? <p className="whitespace-pre-wrap break-words">{message.content}</p> : <Markdown text={message.content} />}
+        {mine ? <p className="whitespace-pre-wrap break-words">{cleanUserText(message.content)}</p> : <Markdown text={message.content} />}
         {Array.isArray(message.saved) &&
           message.saved.map((saved) => (
             <SavedCard key={saved.importId} saved={saved} onUndo={onUndo} language={language} />
@@ -285,6 +300,10 @@ export default function ChatPage() {
   const [sheetBusy, setSheetBusy] = useState(false);
 
   useEffect(() => {
+    purgeOldFiles();
+  }, []);
+
+  useEffect(() => {
     let active = true;
     chatResource
       .messages()
@@ -423,6 +442,16 @@ export default function ChatPage() {
     hadSheet.current = sheetOpen;
   }, [sheetOpen]);
 
+  // Tap an attachment in a message already sent: reopen it from this device's copy (the server keeps none).
+  const previewSentFile = useCallback(
+    async (messageId, name) => {
+      const file = await recallFile(messageId, name);
+      if (file) setPreviewFile(file);
+      else say('Não tenho mais esse arquivo guardado neste aparelho. Os anexos ficam disponíveis por 3 dias, só no aparelho em que foram enviados.');
+    },
+    [say],
+  );
+
   const closeSheet = () => {
     if (sheet) setDismissed((prev) => new Set(prev).add(sheet.id));
     setManualSheet(null);
@@ -445,7 +474,7 @@ export default function ChatPage() {
 
   /** Runs one streamed turn: `start(onEvent)` performs the request; events drive the live bubble. */
   const runTurn = useCallback(
-    async (start, optimisticId) => {
+    async (start, optimisticId, sentFiles) => {
       stick.current = true; // the user just acted: follow the reply
       delivered.current = false;
       deliveredId.current = null;
@@ -454,6 +483,7 @@ export default function ChatPage() {
         if (event.type === 'user') {
           delivered.current = true;
           deliveredId.current = event.message?.id ?? null;
+          if (sentFiles?.length && event.message?.id) rememberFiles(event.message.id, sentFiles);
           setMessages((prev) => [...prev.filter((m) => m.id !== optimisticId), event.message]);
         } else if (event.type === 'delta') {
           setLive((prev) => (prev ? { ...prev, text: prev.text + event.text, status: '' } : prev)); // the answer started: drop the status line
@@ -589,7 +619,7 @@ export default function ChatPage() {
       };
       setMessages((prev) => [...prev, optimistic]);
       try {
-        await runTurn((onEvent) => chatResource.sendStream({ message, files: attached, onEvent }), optimistic.id);
+        await runTurn((onEvent) => chatResource.sendStream({ message, files: attached, onEvent }), optimistic.id, attached);
       } catch (e) {
         if (delivered.current) {
           // The server already saved the message (and keeps working): wait for its reply, never refill the composer.
@@ -700,6 +730,7 @@ export default function ChatPage() {
             message={m}
             language={language}
             onOpenSheet={(id, type) => setManualSheet({ id, type })}
+            onPreviewFile={previewSentFile}
             onUndo={async (importId) => {
               await chatResource.undoImport(importId);
             }}

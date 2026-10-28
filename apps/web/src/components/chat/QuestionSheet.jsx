@@ -48,20 +48,20 @@ export default function QuestionSheet({ message, language, busy, onSubmit, onClo
       }
     >
       {pending.map((q) => (
-        <fieldset key={q.id} className="rounded-2xl border border-gray-200 dark:border-gray-700 p-3">
+        <fieldset key={q.id} className="min-w-0 rounded-2xl border border-gray-200 dark:border-gray-700 p-3">
           <legend className="sr-only">{q.title}</legend>
-          <p className="text-sm font-bold text-gray-900 dark:text-white">{q.title}</p>
+          <p className="break-words text-sm font-bold text-gray-900 dark:text-white">{q.title}</p>
           {q.fileName && (
             <span className="mt-1 inline-flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">
               <DocumentTextIcon className="w-3.5 h-3.5" />
               <span className="max-w-[14rem] truncate">{q.fileName}</span>
             </span>
           )}
-          {q.subtitle && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{q.subtitle}</p>}
+          {q.subtitle && <p className="mt-1 break-words text-xs text-gray-500 dark:text-gray-400">{q.subtitle}</p>}
           {Array.isArray(q.preview) && q.preview.length > 0 && (
             <ul className="mt-2 space-y-1 rounded-xl bg-gray-50 dark:bg-gray-800 p-2 text-xs text-gray-700 dark:text-gray-200">
               {q.preview.map((line, i) => (
-                <li key={i} className="truncate">• {line}</li>
+                <li key={i} className="flex gap-1.5 break-words leading-snug"><span aria-hidden>•</span><span className="min-w-0">{line}</span></li>
               ))}
             </ul>
           )}
