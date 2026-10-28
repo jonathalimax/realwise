@@ -1,0 +1,105 @@
+// src/pages/admin/AdminApp.jsx
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import AdminLayout from '../../components/AdminLayout';
+import AdminAuth from './AdminAuth';
+import { authApi } from '../../lib/api/auth';
+
+const Overview = lazy(() => import('../v2/Overview'));
+const Users = lazy(() => import('../v2/Users'));
+const UserDetail = lazy(() => import('../v2/UserDetail'));
+const LlmLogs = lazy(() => import('../v2/LlmLogs'));
+const Support = lazy(() => import('../v2/Support'));
+const Emails = lazy(() => import('../v2/Emails'));
+const Campaigns = lazy(() => import('../v2/Campaigns'));
+const CampaignEditor = lazy(() => import('../v2/CampaignEditor'));
+const AiSettings = lazy(() => import('../v2/AiSettings'));
+const Audit = lazy(() => import('../v2/Audit'));
+const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
+const ImportIssues = lazy(() => import('./ImportIssues'));
+const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
+const GuidePage = lazy(() => import('./GuidePage'));
+const TestimonialManagementPage = lazy(() => import('./TestimonialManagementPage'));
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-950">
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500" />
+  </div>
+);
+
+export default function AdminApp() {
+  const [ready, setReady] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    return () => document.documentElement.classList.remove('dark');
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    authApi.getSession()
+      .then((session) => {
+        if (!active) return;
+        const nextUser = session?.user || session || null;
+        if (nextUser?.role === 'admin') {
+          setIsAdmin(true);
+          setAuthError('');
+        } else {
+          setIsAdmin(false);
+          setAuthError('Acesso negado. Sua sessão não tem permissão de admin.');
+        }
+        setReady(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setIsAdmin(false);
+        setAuthError('');
+        setReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!ready) return <PageLoader />;
+  if (!isAdmin) return <AdminAuth error={authError} />;
+
+  async function handleLogout() {
+    try { await authApi.logout(); } catch { /* sessão já encerrada */ }
+    window.location.replace('/login');
+  }
+
+  return (
+    <BrowserRouter basename="/admin">
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route element={<AdminLayout onLogout={handleLogout} />}>
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<Overview />} />
+            <Route path="users" element={<Users />} />
+            <Route path="users/:id" element={<UserDetail />} />
+            <Route path="ai-logs" element={<LlmLogs />} />
+            <Route path="support" element={<Support />} />
+            <Route path="support/:id" element={<Support />} />
+            <Route path="emails" element={<Emails />} />
+            <Route path="campaigns" element={<Campaigns />} />
+            <Route path="campaigns/new" element={<CampaignEditor />} />
+            <Route path="campaigns/:id" element={<CampaignEditor />} />
+            <Route path="settings" element={<AiSettings />} />
+            <Route path="audit" element={<Audit />} />
+            <Route path="leads" element={<LeadsDashboard />} />
+            <Route path="guia" element={<GuidePage />} />
+            <Route path="testimonials" element={<TestimonialManagementPage />} />
+            <Route path="import-issues" element={<ImportIssues />} />
+            <Route path="import-issues/:id" element={<ImportIssueDetail />} />
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
