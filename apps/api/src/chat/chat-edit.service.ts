@@ -35,6 +35,7 @@ type FieldDef =
 
 interface EntityDef {
   label: string;
+  plural: string;
   table: any;
   fields: Record<string, FieldDef>;
   /** Text columns matched by `find_records` search. */
@@ -47,11 +48,68 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_IDS = 100;
 
-const brl = (v: unknown) => `R$ ${Number(v ?? 0).toFixed(2).replace('.', ',')}`;
+const brl = (v: unknown) => `R$ ${Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** 2026-07-28 (or a Date) -> 28/07/2026 */
+const fmtDate = (v: unknown): string => {
+  const iso = v instanceof Date ? v.toISOString().slice(0, 10) : String(v ?? '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : String(v ?? '');
+};
+const STATUS_PT: Record<string, string> = { pending: 'pendente', paid: 'paga', overdue: 'atrasada' };
+const TYPE_PT: Record<string, string> = { income: 'entrada', expense: 'saída' };
+const RECURRENCE_PT: Record<string, string> = { monthly: 'mensal', weekly: 'semanal', yearly: 'anual' };
+const PAYMENT_PT: Record<string, string> = { credit: 'crédito', debit: 'débito', pix: 'Pix', transfer: 'transferência', boleto: 'boleto', cash: 'dinheiro', other: 'outro' };
+
+/** Field names the user sees in the confirmation ("O que muda: ..."). */
+const FIELD_LABEL_PT: Record<string, string> = {
+  amount: 'valor',
+  type: 'tipo',
+  date: 'data',
+  description: 'descrição',
+  name: 'nome',
+  dueDate: 'vencimento',
+  status: 'situação',
+  recurrence: 'recorrência',
+  categoryId: 'categoria',
+  accountId: 'conta',
+  paymentMethod: 'forma de pagamento',
+  notificationEnabled: 'aviso de vencimento',
+  notificationDaysBefore: 'dias de antecedência do aviso',
+  ignored: 'ignorar nos totais',
+  isTransfer: 'transferência entre contas',
+  color: 'cor',
+  icon: 'ícone',
+  keyword: 'palavra-chave',
+  language: 'idioma',
+  monthlyRollover: 'acumular saldo do mês anterior',
+  billReminders: 'lembretes de contas',
+  holderName: 'titular',
+  currency: 'moeda',
+  isActive: 'ativa',
+};
+
+/** "aviso de vencimento: desativado" for one proposed change. */
+function describeChange(field: string, value: unknown): string {
+  const label = FIELD_LABEL_PT[field] ?? field;
+  if (value === null || value === undefined) return `${label}: removido`;
+  if (typeof value === 'boolean') {
+    const on = field === 'notificationEnabled' || field === 'billReminders' || field === 'monthlyRollover' || field === 'isActive';
+    return `${label}: ${on ? (value ? 'ativado' : 'desativado') : value ? 'sim' : 'não'}`;
+  }
+  if (field === 'amount') return `${label}: ${brl(value)}`;
+  if (field === 'dueDate' || field === 'date') return `${label}: ${fmtDate(value)}`;
+  if (field === 'status') return `${label}: ${STATUS_PT[String(value)] ?? value}`;
+  if (field === 'type') return `${label}: ${TYPE_PT[String(value)] ?? value}`;
+  if (field === 'recurrence') return `${label}: ${RECURRENCE_PT[String(value)] ?? value}`;
+  if (field === 'paymentMethod') return `${label}: ${PAYMENT_PT[String(value)] ?? value}`;
+  if (field === 'categoryId' || field === 'accountId') return label;
+  return `${label}: ${String(value)}`;
+}
 
 const ENTITIES: Record<EntityKey, EntityDef> = {
   transaction: {
     label: 'transação',
+    plural: 'transações',
     table: transactions,
     softDelete: true,
     searchCols: ['description'],
@@ -66,10 +124,11 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
       ignored: { kind: 'bool' },
       isTransfer: { kind: 'bool' },
     },
-    describe: (r) => `${r.date} · ${r.description ?? '(sem descrição)'} · ${brl(r.amount)}`,
+    describe: (r) => `${fmtDate(r.date)} · ${r.description ?? '(sem descrição)'} · ${brl(r.amount)}`,
   },
   account: {
     label: 'conta',
+    plural: 'contas',
     table: accounts,
     softDelete: true,
     searchCols: ['name', 'cardName', 'customBankName'],
@@ -86,10 +145,11 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
       color: { kind: 'string', max: 30, nullable: true },
       icon: { kind: 'string', max: 40, nullable: true },
     },
-    describe: (r) => `${r.name}${r.type ? ` (${r.type})` : ''}`,
+    describe: (r) => `${r.name}${r.type ? ` (${TYPE_PT[r.type] ?? r.type})` : ''}`,
   },
   category: {
     label: 'categoria',
+    plural: 'categorias',
     table: categories,
     softDelete: true,
     searchCols: ['name'],
@@ -99,10 +159,11 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
       color: { kind: 'string', max: 30, nullable: true },
       icon: { kind: 'string', max: 40, nullable: true },
     },
-    describe: (r) => `${r.name}${r.type ? ` (${r.type})` : ''}`,
+    describe: (r) => `${r.name}${r.type ? ` (${TYPE_PT[r.type] ?? r.type})` : ''}`,
   },
   bill: {
     label: 'conta a pagar',
+    plural: 'contas a pagar',
     table: bills,
     softDelete: true,
     searchCols: ['name', 'description'],
@@ -117,10 +178,11 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
       notificationEnabled: { kind: 'bool' },
       notificationDaysBefore: { kind: 'int', min: 0, max: 30 },
     },
-    describe: (r) => `${r.name} · ${brl(r.amount)} · vence ${r.dueDate} · ${r.status}`,
+    describe: (r) => `${r.name} · ${brl(r.amount)} · vence ${fmtDate(r.dueDate)} · ${STATUS_PT[r.status] ?? r.status}`,
   },
   budget: {
     label: 'orçamento',
+    plural: 'orçamentos',
     table: budgets,
     softDelete: true,
     searchCols: ['name', 'month'],
@@ -136,6 +198,7 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
   },
   rule: {
     label: 'regra de categorização',
+    plural: 'regras de categorização',
     table: categorizationRules,
     softDelete: true,
     searchCols: ['keyword', 'category'],
@@ -148,6 +211,7 @@ const ENTITIES: Record<EntityKey, EntityDef> = {
   },
   settings: {
     label: 'preferências',
+    plural: 'preferências',
     table: settings,
     softDelete: false,
     searchCols: [],
@@ -376,10 +440,12 @@ export class ChatEditService {
     if (rows.length === 0) return { result: { error: 'No matching records (they may be deleted or belong to someone else).' } };
 
     if (rows.length > 1 && !confirmed) {
-      const fields = Object.keys(args.changes).join(', ');
+      const what = Object.entries(args.changes as Record<string, unknown>)
+        .map(([field, value]) => describeChange(field, value))
+        .join(' · ');
       return this.proposal({
-        title: `Alterar ${rows.length} ${def.label}s?`,
-        subtitle: `Campos: ${fields}`,
+        title: `Alterar ${rows.length} ${def.plural}?`,
+        subtitle: `O que muda: ${what}`,
         rows: rows.map((r) => def.describe(r)),
         danger: false,
         action: { tool: 'update_records', args: { entity: def.key, ids: rows.map((r) => r.id), changes: args.changes } },
@@ -427,7 +493,7 @@ export class ChatEditService {
       }
       if (def.key === 'category') notes.push('Transações com esta categoria continuam salvas, sem categoria visível.');
       return this.proposal({
-        title: `Excluir ${rows.length} ${def.label}${rows.length > 1 ? 's' : ''}?`,
+        title: `Excluir ${rows.length} ${rows.length > 1 ? def.plural : def.label}?`,
         subtitle: ['Fica oculto e pode ser restaurado depois.', ...notes].join(' '),
         rows: rows.map((r) => def.describe(r)),
         danger: true,

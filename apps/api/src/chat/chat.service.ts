@@ -57,6 +57,8 @@ export class ChatService {
     text: string,
     uploads: { originalname: string; buffer: Buffer; mimetype?: string }[],
     onEvent?: (event: ChatStreamEvent) => void,
+    /** `displayText` is what the user sees in their bubble; `text` (technical, with ids/results) goes only to the model. */
+    options?: { displayText?: string },
   ): Promise<{ userMessage: ChatMessageRow; assistantMessage: ChatMessageRow }> {
     const trimmed = text.trim();
     if (!trimmed && uploads.length === 0) throw new BadRequestException('Send a message or attach a file.');
@@ -72,7 +74,7 @@ export class ChatService {
       .values({
         ...scope,
         role: 'user',
-        content: trimmed || '(arquivos anexados)',
+        content: options?.displayText?.trim() || trimmed || '(arquivos anexados)',
         attachments: prepared.length ? prepared.map((p) => ({ name: p.name, kind: p.kind })) : null,
       })
       .returning();
@@ -108,7 +110,7 @@ export class ChatService {
     for (const m of prior) {
       messages.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content } as LlmMessage);
     }
-    const parts: LlmContentPart[] = [{ type: 'text', text: userMessage.content }];
+    const parts: LlmContentPart[] = [{ type: 'text', text: trimmed || userMessage.content }];
     if (pendingFiles.length) {
       parts.push({
         type: 'text',
@@ -326,6 +328,7 @@ export class ChatService {
     if (questions.length === 0 || questions.every((q) => q.answer)) throw new BadRequestException('Nothing to answer.');
 
     const lines: string[] = [];
+    const shown: string[] = []; // what the user sees as their own message (no ids, no JSON)
     const updated: ChatQuestion[] = [];
     for (const q of questions) {
       const a = answers.find((x) => x.questionId === q.id);
@@ -346,22 +349,28 @@ export class ChatService {
         if (a.value === 'yes' && q.action) {
           const result = await this.tools.executeConfirmed(q.action, scope);
           lines.push(`${where}: o usuário CONFIRMOU e a ação foi executada. Resultado: ${JSON.stringify(result)}`);
+          shown.push(label);
         } else {
           lines.push(`${where}: o usuário CANCELOU. Nada foi alterado.`);
+          shown.push(label);
         }
       } else if (isNew) {
         lines.push(`${where}: é uma conta NOVA chamada "${label}" (crie-a e use-a).`);
+        shown.push(`Conta nova: ${label}`);
       } else if (q.kind === 'account') {
         lines.push(`${where}: ${label} (accountId ${a.value}).`);
+        shown.push(label);
       } else {
         lines.push(`${where}: ${label}${q.kind === 'payment_method' ? ` (paymentMethod ${a.value})` : ''}.`);
+        shown.push(label);
       }
       updated.push({ ...q, answer: { value: a.value, label } });
     }
     if (lines.length === 0) throw new BadRequestException('No answers provided.');
 
     await this.db.update(chatMessages).set({ questions: updated }).where(eq(chatMessages.id, msg.id));
-    const turn = await this.send(scope, lines.join('\n'), [], onEvent);
+    const displayText = shown.length > 1 ? shown.map((l) => `• ${l}`).join('\n') : shown[0];
+    const turn = await this.send(scope, lines.join('\n'), [], onEvent, { displayText });
     return { ...turn, questionsMessage: { ...msg, questions: updated } };
   }
 
