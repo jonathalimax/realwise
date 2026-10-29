@@ -11,7 +11,7 @@ export const usersResource = {
   update(id, patch) {
     return apiClient.patch(`/admin/users/${id}`, patch);
   },
-  /** body: { action: 'extend_trial'|'start_trial', days } | { action: 'grant_lifetime' } | { action: 'revoke' } */
+  /** body: { action: 'extend_trial'|'start_trial', days } | { action: 'grant_until', until: 'YYYY-MM-DD' } | { action: 'grant_lifetime' } | { action: 'revoke' } */
   plan(id, body) {
     return apiClient.post(`/admin/users/${id}/plan`, body);
   },
