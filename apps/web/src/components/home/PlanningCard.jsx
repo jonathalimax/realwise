@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer } from 'recharts';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useBudget } from '../../contexts/BudgetContext';
 import usePlannerState from '../../pages/planner/usePlannerState';
@@ -13,8 +12,9 @@ const ROSE = '#F43F5E';
 const EMERALD = '#10B981';
 
 /**
- * The month's plan as three rings (needs, wants, savings): each ring is how much of its planned slice is used,
- * with the numbers under it. Needs and wants are limits (turn amber near it, rose when over); savings is a goal.
+ * The month's plan as three stacked rows (needs, wants, savings), one per line so every number stays large on a phone:
+ * name + share used, a full-width bar, then what was spent of the planned amount and what is left. Needs and wants are
+ * limits (amber near it, rose when over); savings is a goal.
  */
 export default function PlanningCard({ transactions, selectedMonth }) {
   const { language, formatCurrency: formatFull } = useSettings();
@@ -64,8 +64,6 @@ export default function PlanningCard({ transactions, selectedMonth }) {
   }
 
   const { groups, net, totalUsed } = model;
-  // Outer ring first: needs, then wants, then savings.
-  const ringData = [...groups].reverse().map((g) => ({ name: g.label, value: Math.min(100, g.usedPct), fill: g.color }));
   const incomeUsedPct = Math.round((totalUsed / net) * 100);
 
   return (
@@ -75,47 +73,47 @@ export default function PlanningCard({ transactions, selectedMonth }) {
       actionLabel={pt ? 'Planejador' : 'Planner'}
       onAction={() => navigate('/planner?tab=alocacao')}
     >
-      <div className="relative mx-auto h-[210px] w-[210px]" role="img" aria-label={pt ? 'Anéis do planejamento' : 'Planning rings'}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart data={ringData} innerRadius="36%" outerRadius="100%" startAngle={90} endAngle={-270} barSize={16}>
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} angleAxisId={0} />
-            <RadialBar dataKey="value" cornerRadius={9} background={{ fill: 'rgba(148,163,184,0.2)' }} isAnimationActive animationDuration={700} />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{incomeUsedPct}%</span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{pt ? 'da renda' : 'of income'}</span>
-        </div>
+      <div className="mb-4">
+        <p className="text-3xl font-black tabular-nums text-slate-900 dark:text-white">
+          {incomeUsedPct}%<span className="ml-2 text-sm font-semibold text-slate-500 dark:text-slate-400">{pt ? 'da renda já usada' : 'of income used'}</span>
+        </p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {formatCurrency(totalUsed)} {pt ? 'de' : 'of'} {formatCurrency(net)}
+        </p>
       </div>
 
-      <div className="mt-3 divide-y divide-slate-100 rounded-2xl bg-slate-50 dark:divide-slate-700/60 dark:bg-slate-900/30">
-        {groups.map((g) => (
-          <div key={g.key} className="flex items-center justify-between gap-3 px-3 py-2.5">
-            <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700 dark:text-slate-200">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: g.color }} />
-                {g.label}
-                <span className="text-[11px] font-normal text-slate-400">{g.pct}%</span>
+      <div className="space-y-5">
+        {groups.map((g) => {
+          const fill = Math.min(100, Math.max(g.used > 0 ? 2 : 0, g.usedPct));
+          const status = g.goal
+            ? g.remaining > 0
+              ? `${pt ? 'Faltam' : 'To go'} ${formatCurrency(g.remaining)} ${pt ? 'para a meta' : 'to the goal'}`
+              : pt ? 'Meta batida 🎉' : 'Goal reached 🎉'
+            : g.over
+              ? `${pt ? 'Estourou' : 'Over by'} ${formatCurrency(-g.remaining)}`
+              : `${pt ? 'Ainda sobram' : 'Left:'} ${formatCurrency(g.remaining)}`;
+          return (
+            <div key={g.key}>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="flex min-w-0 items-center gap-2 text-base font-bold text-slate-800 dark:text-slate-100">
+                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: g.color }} />
+                  <span className="truncate">{g.label}</span>
+                </p>
+                <span className="shrink-0 text-xl font-black tabular-nums" style={{ color: g.color }}>
+                  {Math.round(g.usedPct)}%
+                </span>
+              </div>
+              <div className="mt-2 h-3.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60">
+                <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${fill}%`, backgroundColor: g.color }} />
+              </div>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                <strong className="text-slate-900 dark:text-white">{formatCurrency(g.used)}</strong> {pt ? 'de' : 'of'} {formatCurrency(g.planned)}
+                <span className="text-slate-400"> · {g.pct}% {pt ? 'da renda' : 'of income'}</span>
               </p>
-              <p className={`pl-4 text-[11px] font-semibold ${g.over ? 'text-rose-500' : g.goal ? 'text-emerald-500' : 'text-slate-400'}`}>
-                {g.goal
-                  ? g.remaining > 0
-                    ? `${pt ? 'faltam' : 'to go'} ${formatCurrency(g.remaining)}`
-                    : pt ? 'meta batida 🎉' : 'goal reached 🎉'
-                  : g.over
-                    ? `${pt ? 'estourou' : 'over by'} ${formatCurrency(-g.remaining)}`
-                    : `${pt ? 'sobra' : 'left'} ${formatCurrency(g.remaining)}`}
-              </p>
+              <p className={`text-sm font-semibold ${g.over ? 'text-rose-500' : g.goal ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>{status}</p>
             </div>
-            <div className="shrink-0 text-right">
-              <p className="text-[13px] tabular-nums text-slate-400">
-                <strong className="text-slate-900 dark:text-white">{formatCurrency(g.used)}</strong>
-                <span className="text-[11px]"> / {formatCurrency(g.planned)}</span>
-              </p>
-              <p className="text-[12px] font-black tabular-nums" style={{ color: g.color }}>{Math.round(g.usedPct)}% {pt ? 'usado' : 'used'}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </HomeCard>
   );

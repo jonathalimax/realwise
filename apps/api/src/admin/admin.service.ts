@@ -1,9 +1,9 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { leads, purchases, importIssues, testimonials } from '../db/schema';
+import { leads, purchases, testimonials } from '../db/schema';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -13,27 +13,6 @@ export class AdminService {
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
   ) {}
-
-  private mapImportIssue(row: typeof importIssues.$inferSelect) {
-    const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
-    return {
-      ...row,
-      fileName: typeof metadata.fileName === 'string' ? metadata.fileName : null,
-      fileMime: typeof metadata.fileMime === 'string' ? metadata.fileMime : null,
-      fileBase64: typeof metadata.fileBase64 === 'string' ? metadata.fileBase64 : null,
-      bankType: typeof metadata.bankType === 'string' ? metadata.bankType : null,
-      parserUsed: typeof metadata.parserUsed === 'string' ? metadata.parserUsed : null,
-      detectedHeaders: Array.isArray(metadata.detectedHeaders) ? metadata.detectedHeaders : [],
-      errorMessage: typeof metadata.errorMessage === 'string' ? metadata.errorMessage : null,
-      userNote: typeof metadata.userNote === 'string' ? metadata.userNote : null,
-      userName: typeof metadata.userName === 'string' ? metadata.userName : null,
-      userEmail: typeof metadata.userEmail === 'string' ? metadata.userEmail : null,
-      internalNotes: Array.isArray(metadata.internalNotes) ? metadata.internalNotes : [],
-      resolvedAt: typeof metadata.resolvedAt === 'string' ? metadata.resolvedAt : null,
-      reportedAt: typeof metadata.reportedAt === 'string' ? metadata.reportedAt : null,
-      metadata,
-    };
-  }
 
   private mapTestimonial(row: typeof testimonials.$inferSelect) {
     return row;
@@ -102,46 +81,5 @@ export class AdminService {
 
     // Stages 2 and 3 relied on single-use discount coupons, which no longer exist (Stripe promotion codes now).
     throw new BadRequestException('Only abandoned-checkout stage 1 is supported.');
-  }
-
-  async listImportIssues() {
-    const rows = await this.db.select().from(importIssues).orderBy(desc(importIssues.createdAt));
-    return rows.map((row) => this.mapImportIssue(row));
-  }
-
-  async getImportIssue(id: string) {
-    const rows = await this.db.select().from(importIssues).where(eq(importIssues.id, id));
-    if (rows.length === 0) throw new NotFoundException();
-    return this.mapImportIssue(rows[0]);
-  }
-
-  async updateImportIssue(id: string, dto: { status?: string; note?: string }) {
-    const existing = await this.getImportIssue(id);
-    const metadata = { ...(existing.metadata ?? {}) } as Record<string, unknown>;
-    const nextNotes = Array.isArray(existing.internalNotes) ? [...existing.internalNotes] : [];
-
-    if (dto.note?.trim()) {
-      nextNotes.push({
-        ts: new Date().toISOString(),
-        text: dto.note.trim(),
-      });
-      metadata.internalNotes = nextNotes;
-    }
-
-    if (dto.status) {
-      metadata.resolvedAt = dto.status === 'resolved' ? new Date().toISOString() : null;
-    }
-
-    const rows = await this.db
-      .update(importIssues)
-      .set({
-        status: dto.status ?? existing.status,
-        metadata,
-        updatedAt: new Date(),
-      })
-      .where(eq(importIssues.id, id))
-      .returning();
-
-    return this.mapImportIssue(rows[0]);
   }
 }

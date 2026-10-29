@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { useBills } from '../../contexts/BillsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { buildMonthlyBillRows } from '../../lib/bills/occurrences';
@@ -13,7 +12,10 @@ const OVERDUE = '#F43F5E';
 
 const dayOnly = (v) => String(v).slice(0, 10);
 
-/** The month's bills as a donut (paid / due soon / overdue, in reais) with the next ones due listed under it. */
+/**
+ * The month's bills: one big "to pay" number, a single full-width bar split into paid / overdue / due soon, one legend
+ * row per status, and the next ones due listed under it. Everything is one column so each number stays readable.
+ */
 export default function BillsMonthCard({ selectedMonth }) {
   const { bills, loading } = useBills();
   const { language, formatCurrency: formatFull } = useSettings();
@@ -52,12 +54,11 @@ export default function BillsMonthCard({ selectedMonth }) {
 
   const totalAmount = amounts.paid + amounts.overdue + amounts.upcoming;
   const pendingAmount = amounts.overdue + amounts.upcoming;
-  const donut = [
+  const statuses = [
     { key: 'paid', name: pt ? 'Pagas' : 'Paid', value: amounts.paid, color: PAID, count: paid.length },
     { key: 'overdue', name: pt ? 'Atrasadas' : 'Overdue', value: amounts.overdue, color: OVERDUE, count: overdue.length },
     { key: 'upcoming', name: pt ? 'A vencer' : 'Upcoming', value: amounts.upcoming, color: UPCOMING, count: upcoming.length },
   ];
-  const slices = donut.filter((d) => d.value > 0);
   const paidPct = totalAmount > 0 ? Math.round((amounts.paid / totalAmount) * 100) : 0;
 
   const dueLabel = (iso) => {
@@ -74,38 +75,33 @@ export default function BillsMonthCard({ selectedMonth }) {
       actionLabel={pt ? 'Ver contas' : 'Bills'}
       onAction={() => navigate('/bills')}
     >
-      <div className="relative mx-auto h-[190px] w-[190px]" role="img" aria-label={pt ? 'Contas pagas e a pagar' : 'Paid and unpaid bills'}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={slices.length ? slices : [{ key: 'none', value: 1, color: '#CBD5E1' }]} dataKey="value" innerRadius="68%" outerRadius="98%" paddingAngle={slices.length > 1 ? 3 : 0} cornerRadius={7} stroke="none" startAngle={90} endAngle={-270} isAnimationActive animationDuration={700}>
-              {(slices.length ? slices : [{ key: 'none', color: '#CBD5E1' }]).map((s) => (
-                <Cell key={s.key} fill={s.color} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{pendingAmount > 0 ? (pt ? 'A pagar' : 'To pay') : pt ? 'Em dia' : 'Up to date'}</span>
-          <span className="text-lg font-black tabular-nums text-slate-900 dark:text-white">{pendingAmount > 0 ? formatCurrency(pendingAmount) : '🎉'}</span>
-        </div>
+      <div className="mb-3">
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{pendingAmount > 0 ? (pt ? 'Falta pagar' : 'Left to pay') : pt ? 'Tudo em dia' : 'All up to date'}</p>
+        <p className="text-3xl font-black tabular-nums text-slate-900 dark:text-white">{pendingAmount > 0 ? formatCurrency(pendingAmount) : '🎉'}</p>
       </div>
 
-      <ul className="mt-3 grid grid-cols-3 gap-2">
-        {donut.map((d) => (
-          <li key={d.key} className={`min-w-0 rounded-2xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900/30 ${d.count === 0 ? 'opacity-40' : ''}`}>
-            <p className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
+      <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60" role="img" aria-label={pt ? 'Contas pagas, atrasadas e a vencer' : 'Paid, overdue and upcoming bills'}>
+        {statuses.filter((d) => d.value > 0).map((d) => (
+          <div key={d.key} style={{ width: `${(d.value / totalAmount) * 100}%`, backgroundColor: d.color }} className="h-full border-r-2 border-white last:border-r-0 dark:border-slate-800" />
+        ))}
+      </div>
+
+      <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-700/60">
+        {statuses.map((d) => (
+          <li key={d.key} className={`flex items-center justify-between gap-3 py-2.5 ${d.count === 0 ? 'opacity-40' : ''}`}>
+            <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
               <span className="truncate">{d.name}</span>
-            </p>
-            <p className="mt-0.5 text-[14px] font-black tabular-nums text-slate-900 dark:text-white">{formatCurrency(d.value)}</p>
-            <p className="text-[10px] text-slate-400">{d.count} {d.count === 1 ? (pt ? 'conta' : 'bill') : pt ? 'contas' : 'bills'}</p>
+              <span className="text-sm font-normal text-slate-400">· {d.count}</span>
+            </span>
+            <span className="shrink-0 text-base font-black tabular-nums text-slate-900 dark:text-white">{formatCurrency(d.value)}</span>
           </li>
         ))}
       </ul>
 
       {next.length > 0 && (
         <div className="mt-3 space-y-1">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{pt ? 'Próximas' : 'Next up'}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{pt ? 'Próximas' : 'Next up'}</p>
           {next.map((b) => {
             const late = dayOnly(b.dueDate) < today;
             return (
@@ -115,12 +111,12 @@ export default function BillsMonthCard({ selectedMonth }) {
                 className="flex w-full items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 text-left hover:bg-slate-100 dark:bg-slate-900/30 dark:hover:bg-slate-900/50"
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-semibold text-slate-800 dark:text-slate-100">{b.name}</span>
-                  <span className={`text-[11px] ${late ? 'font-semibold text-rose-500' : 'text-slate-400'}`}>
+                  <span className="block truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{b.name}</span>
+                  <span className={`text-xs ${late ? 'font-semibold text-rose-500' : 'text-slate-400'}`}>
                     {dayOnly(b.dueDate).slice(8, 10)}/{dayOnly(b.dueDate).slice(5, 7)} · {dueLabel(b.dueDate)}
                   </span>
                 </span>
-                <span className="shrink-0 text-[13px] font-bold tabular-nums text-slate-900 dark:text-white">{formatCurrency(Number(b.amount || 0))}</span>
+                <span className="shrink-0 text-sm font-bold tabular-nums text-slate-900 dark:text-white">{formatCurrency(Number(b.amount || 0))}</span>
               </button>
             );
           })}

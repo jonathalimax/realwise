@@ -17,8 +17,6 @@ const AiSettings = lazy(() => import('../v2/AiSettings'));
 const Audit = lazy(() => import('../v2/Audit'));
 const Leads = lazy(() => import('../v2/Leads'));
 const Coupons = lazy(() => import('../v2/Coupons'));
-const ImportIssues = lazy(() => import('./ImportIssues'));
-const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 const GuidePage = lazy(() => import('./GuidePage'));
 
 const PageLoader = () => (
@@ -94,8 +92,6 @@ export default function AdminApp() {
             <Route path="leads" element={<Leads />} />
             <Route path="coupons" element={<Coupons />} />
             <Route path="guia" element={<GuidePage />} />
-            <Route path="import-issues" element={<ImportIssues />} />
-            <Route path="import-issues/:id" element={<ImportIssueDetail />} />
             <Route path="*" element={<Navigate to="/overview" replace />} />
           </Route>
         </Routes>
