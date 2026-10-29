@@ -5,11 +5,11 @@ import { billingResource } from '@/lib/api/resources/billing';
 import { landingAnalytics } from '../../landingAnalytics';
 
 const INCLUDED = [
-  'Elio, seu assistente de IA, no chat',
-  'Importação de extratos e faturas (PDF, foto, CSV, OFX)',
-  'Categorização que aprende com você',
-  'Transferências entre suas contas fora dos totais',
-  'Insights e respostas sobre os seus gastos',
+  'Elio, seu assistente de IA, por texto ou voz',
+  'Plano financeiro montado a partir da sua renda e dos seus objetivos',
+  'Leitura de extratos e faturas (PDF, foto, CSV, OFX)',
+  'Lembretes de contas e categorias que aprendem com você',
+  'Respostas e insights sobre os seus gastos, quando quiser',
 ];
 
 const brl = (cents) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

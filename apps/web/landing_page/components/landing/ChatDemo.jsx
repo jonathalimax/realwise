@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, animate, motion, useInView, useReducedMotion } from 'framer-motion';
-import { FileText, Paperclip, Send } from 'lucide-react';
+import { FileText, Mic, Paperclip, Send } from 'lucide-react';
 
 /**
  * Self-playing demo of the product: drop a statement, Elio reads and organises it, then answers a question.
@@ -21,16 +21,19 @@ const SUMMARY = {
 
 // `at` = ms after the loop starts when the item appears.
 const SCRIPT = [
-  { id: 'hi', type: 'elio', at: 300, text: 'Oi! Eu sou o Elio 💜 Mande seu extrato ou fatura que eu organizo tudo.' },
-  { id: 'file', type: 'file', at: 2600, name: 'Fatura_Nubank_Out.pdf' },
-  { id: 'typing1', type: 'typing', at: 3800 },
-  { id: 'read', type: 'elio', at: 5000, text: `Li sua fatura: ${SUMMARY.count} lançamentos no Nubank Cartão. Já categorizei tudo ✨` },
-  { id: 'summary', type: 'summary', at: 7600 },
-  { id: 'ask', type: 'user', at: 10600, text: 'Onde posso economizar?' },
-  { id: 'typing2', type: 'typing', at: 11600 },
-  { id: 'tip', type: 'elio', at: 12800, text: 'Delivery subiu 34% desde setembro. Cortar 2 pedidos por semana economiza cerca de R$ 180 por mês.' },
+  { id: 'hi', type: 'elio', at: 300, text: 'Oi! Eu sou o Elio 💜 O que você quer conquistar com o seu dinheiro?' },
+  { id: 'goal', type: 'voice', at: 2400, text: 'Quero juntar 20 mil para viajar até dezembro' },
+  { id: 'typing0', type: 'typing', at: 3800 },
+  { id: 'plan', type: 'elio', at: 4900, text: 'Anotado! Com a sua renda, guardar R$ 1.100 por mês te leva lá a tempo. Montei seu plano 50/30/20 ✨' },
+  { id: 'file', type: 'file', at: 8300, name: 'Fatura_Nubank_Out.pdf' },
+  { id: 'typing1', type: 'typing', at: 9300 },
+  { id: 'read', type: 'elio', at: 10400, text: `Li sua fatura: ${SUMMARY.count} lançamentos. Já categorizei tudo.` },
+  { id: 'summary', type: 'summary', at: 12600 },
+  { id: 'ask', type: 'user', at: 15600, text: 'Onde posso economizar?' },
+  { id: 'typing2', type: 'typing', at: 16600 },
+  { id: 'tip', type: 'elio', at: 17800, text: 'Delivery subiu 34% desde setembro. Cortar 2 pedidos por semana economiza cerca de R$ 180 por mês.' },
 ];
-const LOOP_MS = 20500;
+const LOOP_MS = 25500;
 
 const brl = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -118,6 +121,15 @@ function renderItem(item, instant) {
           </span>
         </div>
       );
+    case 'voice':
+      return (
+        <div className="max-w-[84%] self-end rounded-2xl rounded-br-md bg-violet-600 px-3.5 py-2 text-[13px] text-white shadow-sm">
+          <span className="mb-0.5 flex items-center gap-1 text-[10px] font-semibold text-violet-200">
+            <Mic className="h-3 w-3" /> por voz
+          </span>
+          {item.text}
+        </div>
+      );
     case 'user':
       return <div className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-violet-600 px-3.5 py-2 text-[13px] text-white shadow-sm">{item.text}</div>;
     case 'typing':
@@ -167,7 +179,7 @@ export default function ChatDemo({ className = '' }) {
   const visible = reduceMotion ? SCRIPT.filter((s) => s.type !== 'typing') : items;
 
   return (
-    <div ref={ref} className={`relative mx-auto w-full max-w-[320px] ${className}`} aria-label="Demonstração: o Elio organizando uma fatura" role="img">
+    <div ref={ref} className={`relative mx-auto w-full max-w-[320px] ${className}`} aria-label="Demonstração: o Elio montando um plano e organizando uma fatura" role="img">
       <div className="rounded-[2.4rem] border-[7px] border-slate-900 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow-2xl shadow-violet-500/20 overflow-hidden">
         <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 pt-4 pb-3 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
@@ -198,6 +210,7 @@ export default function ChatDemo({ className = '' }) {
         <div className="flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5">
           <Paperclip className="h-4 w-4 text-slate-400" />
           <span className="flex-1 truncate text-xs text-slate-400">Como posso te ajudar?</span>
+          <Mic className="h-4 w-4 text-violet-500" />
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white">
             <Send className="h-3.5 w-3.5" />
           </span>

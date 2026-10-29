@@ -49,14 +49,14 @@ export default function HeroSection() {
           </motion.span>
 
           <motion.h1 {...rise(0.08)} className="mt-5 text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-            Mande seu extrato.
+            Diga seus objetivos.
             <br />
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">O Elio faz o resto.</span>
+            <span className="bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">O Elio cuida do resto.</span>
           </motion.h1>
 
           <motion.p {...rise(0.16)} className="mx-auto mt-5 max-w-xl text-lg text-slate-600 dark:text-slate-300 lg:mx-0">
-            Seu assistente financeiro por chat: organiza gastos e receitas, separa as transferências entre suas contas e responde
-            qualquer dúvida sobre o seu dinheiro.
+            Seu assistente financeiro com IA. Fale ou escreva o que você quer conquistar e ele monta seu plano, lê seus extratos e
+            faturas, lembra suas contas e mostra para onde seu dinheiro vai.
           </motion.p>
 
           <motion.div {...rise(0.24)} className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start justify-center">

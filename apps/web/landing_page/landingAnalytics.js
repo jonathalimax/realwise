@@ -1,3 +1,5 @@
+import { trackLandingEvent } from './landingTracking';
+
 let utmParams = {};
 const seenSections = new Set();
 const seenScrollDepths = new Set();
@@ -73,6 +75,7 @@ export const landingAnalytics = {
   },
 
   trackCtaClicked(label, section) {
+    trackLandingEvent('cta_click', `${section}: ${label}`);
     gtag('event', 'cta_clicked', { cta_label: label, section, ...utmParams });
   },
 

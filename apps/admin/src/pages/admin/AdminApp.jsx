@@ -15,11 +15,11 @@ const Campaigns = lazy(() => import('../v2/Campaigns'));
 const CampaignEditor = lazy(() => import('../v2/CampaignEditor'));
 const AiSettings = lazy(() => import('../v2/AiSettings'));
 const Audit = lazy(() => import('../v2/Audit'));
-const LeadsDashboard = lazy(() => import('./LeadsDashboard'));
+const Leads = lazy(() => import('../v2/Leads'));
+const Coupons = lazy(() => import('../v2/Coupons'));
 const ImportIssues = lazy(() => import('./ImportIssues'));
 const ImportIssueDetail = lazy(() => import('./ImportIssueDetail'));
 const GuidePage = lazy(() => import('./GuidePage'));
-const TestimonialManagementPage = lazy(() => import('./TestimonialManagementPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-950">
@@ -91,9 +91,9 @@ export default function AdminApp() {
             <Route path="campaigns/:id" element={<CampaignEditor />} />
             <Route path="settings" element={<AiSettings />} />
             <Route path="audit" element={<Audit />} />
-            <Route path="leads" element={<LeadsDashboard />} />
+            <Route path="leads" element={<Leads />} />
+            <Route path="coupons" element={<Coupons />} />
             <Route path="guia" element={<GuidePage />} />
-            <Route path="testimonials" element={<TestimonialManagementPage />} />
             <Route path="import-issues" element={<ImportIssues />} />
             <Route path="import-issues/:id" element={<ImportIssueDetail />} />
             <Route path="*" element={<Navigate to="/overview" replace />} />
