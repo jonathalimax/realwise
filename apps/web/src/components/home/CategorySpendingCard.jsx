@@ -7,7 +7,7 @@ import useCategorySpending from './useCategorySpending';
 import { CATEGORY_COLORS, OTHERS_COLOR, iconFor } from './categoryMeta';
 import { trimCents } from './format';
 
-const TOP_ROWS = 5;
+const TOP_ROWS = 6;
 const STRIP_SEGMENTS = 5;
 
 const AMBER = '#F59E0B';
@@ -130,7 +130,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
           </div>
         )}
 
-        <div className="-mx-2 space-y-0.5">
+        <div className="-mx-2 grid grid-cols-1 gap-y-0.5 lg:grid-cols-2 lg:gap-x-3">
           {top.map((row) => (
             <CategoryRow key={row.category} row={row} color={colorOf(row.category)} formatCurrency={formatCurrency} pt={pt} onClick={() => goTo(row.category)} />
           ))}

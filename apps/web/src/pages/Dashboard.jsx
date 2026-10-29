@@ -94,29 +94,33 @@ export default function DashboardPage() {
         <AskChatBar />
 
         {/* One column on a phone, in reading order: summary (with Elio's insights), panorama, planning, bills, spending */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
-            <HomeSummaryCard
+        {/* On a phone the two column wrappers disappear (display: contents) and `order` gives the reading order; on a wide
+            screen the left column carries summary, panorama and spending, the right one planning and bills. */}
+        <div className="flex flex-col gap-4 md:gap-6 lg:grid lg:grid-cols-3">
+          <div className="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-6">
+            <div className="order-1"><HomeSummaryCard
               transactions={monthlyTransactions}
               previousTransactions={previousMonthTransactions}
               carryoverSaldo={carryoverSaldo}
               selectedMonth={selectedMonth}
               onIncomeClick={handleIncomeClick}
               onExpensesClick={handleExpensesClick}
-            />
-            <TrendChart
-              transactions={transactions}
-              selectedMonth={selectedMonth}
-              viewMode={viewMode}
-              cumulativeByMonth={cumulativeByMonth}
-              rollover={monthlyRollover}
-            />
+            /></div>
+            <div className="order-2">
+              <TrendChart
+                transactions={transactions}
+                selectedMonth={selectedMonth}
+                viewMode={viewMode}
+                cumulativeByMonth={cumulativeByMonth}
+                rollover={monthlyRollover}
+              />
+            </div>
+            <div className="order-5"><CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
           </div>
 
-          <div className="space-y-4 md:space-y-6">
-            <PlanningCard transactions={monthlyTransactions} selectedMonth={selectedMonth} />
-            <BillsMonthCard selectedMonth={selectedMonth} />
-            <CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} />
+          <div className="contents lg:flex lg:flex-col lg:gap-6">
+            <div className="order-3"><PlanningCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
+            <div className="order-4"><BillsMonthCard selectedMonth={selectedMonth} /></div>
           </div>
         </div>
       </main>
