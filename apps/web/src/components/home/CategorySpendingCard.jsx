@@ -22,37 +22,38 @@ function CategoryRow({ row, color, formatCurrency: formatFull, pt, onClick }) {
   const formatCurrency = (v) => trimCents(formatFull(v));
   const fill = Math.min(100, Math.max(row.hasSpending ? 2 : 0, row.usedPct));
   const pct = Math.round(row.usedPct);
+  const tone = barColor(row, color);
   const note = row.hasLimit
     ? row.over
-      ? `${pt ? 'Estourou' : 'Over by'} ${formatCurrency(Math.abs(row.remaining))}`
-      : `${pt ? 'Sobra' : 'Left'} ${formatCurrency(row.remaining)}`
-    : `${pt ? 'do total · sem limite definido' : 'of total · no limit set'}`;
+      ? `${pt ? 'Estourou' : 'Over by'} ${formatCurrency(Math.abs(row.remaining))} · ${pt ? 'limite' : 'limit'} ${formatCurrency(row.limit)}`
+      : `${pt ? 'Sobram' : 'Left:'} ${formatCurrency(row.remaining)} · ${pt ? 'limite' : 'limit'} ${formatCurrency(row.limit)}`
+    : pt ? 'sem limite definido' : 'no limit set';
 
   return (
     <button
       onClick={onClick}
-      className={`block w-full rounded-2xl p-2 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-700/40 dark:active:bg-slate-700/60 ${!row.hasSpending && !row.hasLimit ? 'opacity-50' : ''}`}
+      className={`block w-full rounded-2xl p-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-700/40 dark:active:bg-slate-700/60 ${!row.hasSpending && !row.hasLimit ? 'opacity-50' : ''}`}
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-slate-800 dark:text-slate-100">
-          <span className="text-base leading-none" aria-hidden>{iconFor(row.category)}</span>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <span className="text-lg leading-none" aria-hidden>{iconFor(row.category)}</span>
           <span className="truncate">{row.category}</span>
         </span>
-        <span className="shrink-0 text-[13px] tabular-nums text-slate-900 dark:text-white">
-          <strong>{formatCurrency(row.amount)}</strong>
-          {row.hasLimit && <span className="text-[11px] font-normal text-slate-400"> {pt ? 'de' : 'of'} {formatCurrency(row.limit)}</span>}
-        </span>
+        <span className="shrink-0 text-base font-black tabular-nums text-slate-900 dark:text-white">{formatCurrency(row.amount)}</span>
       </div>
-      <div className="mt-1.5 flex items-center gap-2">
-        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60">
-          <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${fill}%`, backgroundColor: barColor(row, color) }} />
-        </div>
-        <span className="w-10 shrink-0 text-right text-[11px] font-bold tabular-nums" style={{ color: barColor(row, color) }}>
-          {pct}%
-        </span>
+      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60">
+        <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${fill}%`, backgroundColor: tone }} />
       </div>
-      <p className={`mt-0.5 text-[11px] ${row.over ? 'font-semibold text-rose-500' : 'text-slate-400'}`}>
-        {row.hasLimit ? note : `${pct}% ${note}`}
+      <p className={`mt-1.5 text-xs ${row.over ? 'font-semibold text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>
+        {row.hasLimit ? (
+          <>
+            <strong style={{ color: tone }}>{pct}%</strong> · {note}
+          </>
+        ) : (
+          <>
+            <strong style={{ color: tone }}>{pct}%</strong> {pt ? 'do total' : 'of total'} · {note}
+          </>
+        )}
       </p>
     </button>
   );
@@ -106,7 +107,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
         title={pt ? 'Gastos' : 'Spending'}
         subtitle={
           overallPct !== null
-            ? `${trimCents(formatCurrency(spentWithLimit))} ${pt ? 'de' : 'of'} ${trimCents(formatCurrency(totalLimit))} · ${overallPct}%`
+            ? `${trimCents(formatCurrency(spentWithLimit))} ${pt ? 'de' : 'of'} ${trimCents(formatCurrency(totalLimit))}`
             : trimCents(formatCurrency(total))
         }
         actionLabel={pt ? `Ver todas (${rows.length})` : `All (${rows.length})`}
@@ -119,9 +120,9 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
                 <div key={seg.key} title={`${seg.label}: ${trimCents(formatCurrency(seg.amount))}`} style={{ width: `${(seg.amount / total) * 100}%`, backgroundColor: seg.color }} className="h-full border-r border-white/60 last:border-r-0 dark:border-slate-800" />
               ))}
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            <div className="mt-2 hidden flex-wrap gap-x-3 gap-y-1 sm:flex">
               {strip.map((seg) => (
-                <span key={seg.key} className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                <span key={seg.key} className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seg.color }} />
                   {seg.label} <span className="tabular-nums text-slate-400">{Math.round((seg.amount / total) * 100)}%</span>
                 </span>
@@ -130,7 +131,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
           </div>
         )}
 
-        <div className="-mx-2 grid grid-cols-1 gap-y-0.5 lg:grid-cols-2 lg:gap-x-3">
+        <div className="-mx-2.5 grid grid-cols-1 gap-y-1 lg:grid-cols-2 lg:gap-x-3">
           {top.map((row) => (
             <CategoryRow key={row.category} row={row} color={colorOf(row.category)} formatCurrency={formatCurrency} pt={pt} onClick={() => goTo(row.category)} />
           ))}

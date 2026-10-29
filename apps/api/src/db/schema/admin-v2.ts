@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, text, timestamp, jsonb, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { users } from './users';
+import { leads } from './leads';
 
 /** A message sent through the in-app/login contact form. Visible and answerable in the admin inbox. */
 export const supportMessages = pgTable(
@@ -74,12 +75,17 @@ export const emailCampaignSends = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     campaignId: uuid('campaign_id').notNull().references(() => emailCampaigns.id),
-    userId: uuid('user_id').notNull().references(() => users.id),
+    /** Exactly one of userId / leadId is set: campaigns can also go to landing-page leads. */
+    userId: uuid('user_id').references(() => users.id),
+    leadId: uuid('lead_id').references(() => leads.id),
     email: varchar('email').notNull(),
     /** 'sent' | 'failed' */
     status: varchar('status').notNull(),
     error: text('error'),
     sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [uniqueIndex('email_campaign_sends_unique_idx').on(t.campaignId, t.userId)],
+  (t) => [
+    uniqueIndex('email_campaign_sends_unique_idx').on(t.campaignId, t.userId),
+    uniqueIndex('email_campaign_sends_lead_unique_idx').on(t.campaignId, t.leadId),
+  ],
 );

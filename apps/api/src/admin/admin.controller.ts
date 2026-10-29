@@ -84,15 +84,4 @@ export class AdminController {
   sendAbandonedCheckoutEmail(@Body() dto: SendAbandonedCheckoutEmailDto) {
     return this.service.sendAbandonedCheckoutEmail(dto);
   }
-
-  @Get('import-issues')
-  listImportIssues() { return this.service.listImportIssues(); }
-
-  @Get('import-issues/:id')
-  getImportIssue(@Param('id') id: string) { return this.service.getImportIssue(id); }
-
-  @Patch('import-issues/:id')
-  updateImportIssue(@Param('id') id: string, @Body() dto: { status?: string; note?: string }) {
-    return this.service.updateImportIssue(id, dto);
-  }
 }

@@ -104,7 +104,7 @@ export default function Coupons() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
       <PageHeader
         title="Códigos promocionais"
         subtitle="Gerenciados no Stripe: o cliente digita o código na tela de pagamento"

@@ -8,8 +8,8 @@ import { Public } from '../auth/decorators/public.decorator';
 import { AllowWithoutSubscription } from '../billing/allow-without-subscription.decorator';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { users } from '../db/schema';
-import { isValidMarketingUnsubscribeToken } from './marketing-token';
+import { leads, users } from '../db/schema';
+import { isValidLeadUnsubscribeToken, isValidMarketingUnsubscribeToken } from './marketing-token';
 
 const page = (msg: string, detail = '') =>
   `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Realwise</title><body style="font-family:system-ui;max-width:420px;margin:15vh auto;padding:0 16px;text-align:center;color:#1e293b"><h2>${msg}</h2>${detail ? `<p style="color:#6b7280">${detail}</p>` : ''}<p><a href="https://realwise.com.br" style="color:#10b981">Voltar ao Realwise</a></p></body></html>`;
@@ -27,6 +27,29 @@ export class PublicCommsController {
     if (!userId || !isValidMarketingUnsubscribeToken(userId, token)) return false;
     await this.db.update(users).set({ marketingEmailsOptOut: true }).where(eq(users.id, userId));
     return true;
+  }
+
+  private async optOutLead(leadId: string, token: string): Promise<boolean> {
+    if (!leadId || !isValidLeadUnsubscribeToken(leadId, token)) return false;
+    await this.db.update(leads).set({ marketingConsent: false, updatedAt: new Date() }).where(eq(leads.id, leadId));
+    return true;
+  }
+
+  @Get('marketing/unsubscribe-lead')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  async unsubscribeLead(@Query('l') leadId: string, @Query('t') token: string): Promise<string> {
+    try {
+      if (!(await this.optOutLead(leadId, token))) return page('Link inválido ou expirado.');
+    } catch {
+      return page('Não foi possível concluir agora.', 'Tente novamente em instantes.');
+    }
+    return page('Pronto! Você não receberá mais e-mails do Realwise.');
+  }
+
+  /** RFC 8058 one-click for leads. */
+  @Post('marketing/unsubscribe-lead')
+  async unsubscribeLeadOneClick(@Query('l') leadId: string, @Query('t') token: string): Promise<{ ok: boolean }> {
+    return { ok: await this.optOutLead(leadId, token) };
   }
 
   @Get('marketing/unsubscribe')
