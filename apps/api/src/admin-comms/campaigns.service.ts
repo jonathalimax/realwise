@@ -4,16 +4,21 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { computeAccess } from '../billing/access';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { emailCampaignSends, emailCampaigns, imports, users } from '../db/schema';
+import { emailCampaignSends, emailCampaigns, imports, leads, users } from '../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { safeHttpUrl } from '../notifications/email-text';
-import { marketingUnsubscribeUrl } from './marketing-token';
+import { leadUnsubscribeUrl, marketingUnsubscribeUrl } from './marketing-token';
 import { PageParams } from './pagination';
 
 export const SEGMENT_STATES = ['trial', 'subscribed', 'blocked', 'lifetime'] as const;
 type SegmentState = (typeof SEGMENT_STATES)[number];
 
+export const SEGMENT_AUDIENCES = ['users', 'leads', 'all'] as const;
+type SegmentAudience = (typeof SEGMENT_AUDIENCES)[number];
+
 export interface CampaignSegment {
+  /** Who receives it: registered users (default), landing-page leads who opted in, or both. */
+  audience?: SegmentAudience;
   states?: SegmentState[];
   signedUpAfter?: string;
   signedUpBefore?: string;
@@ -22,6 +27,7 @@ export interface CampaignSegment {
 }
 
 export interface AudienceUser {
+  kind: 'user' | 'lead';
   id: string;
   email: string;
   name: string | null;
@@ -39,6 +45,10 @@ export function parseSegment(raw: unknown): CampaignSegment {
   if (typeof raw !== 'object' || Array.isArray(raw)) throw new BadRequestException('segment inválido');
   const s = raw as Record<string, unknown>;
   const out: CampaignSegment = {};
+  if (s.audience !== undefined && s.audience !== null && s.audience !== '') {
+    if (!SEGMENT_AUDIENCES.includes(s.audience as SegmentAudience)) throw new BadRequestException(`segment.audience deve ser: ${SEGMENT_AUDIENCES.join(', ')}`);
+    if (s.audience !== 'users') out.audience = s.audience as SegmentAudience;
+  }
   if (s.states !== undefined && s.states !== null) {
     if (!Array.isArray(s.states) || s.states.some((x) => !SEGMENT_STATES.includes(x as SegmentState))) {
       throw new BadRequestException(`segment.states deve conter apenas: ${SEGMENT_STATES.join(', ')}`);
@@ -78,6 +88,30 @@ export class CampaignsService {
 
   /** Everyone matching the segment. Users who opted out of marketing email are always excluded. */
   async audience(segment: CampaignSegment): Promise<AudienceUser[]> {
+    const wantUsers = segment.audience !== 'leads';
+    const wantLeads = segment.audience === 'leads' || segment.audience === 'all';
+    const [userList, leadList] = await Promise.all([wantUsers ? this.userAudience(segment) : [], wantLeads ? this.leadAudience(segment) : []]);
+    return [...userList, ...leadList];
+  }
+
+  /**
+   * Leads who ticked the consent box and have not unsubscribed. Anyone who already has an account is left to the user
+   * path (so nobody gets the same email twice and an account's opt-out always wins). Filters that only make sense for
+   * accounts (plan state, imports, inactivity) leave leads out entirely.
+   */
+  private async leadAudience(segment: CampaignSegment): Promise<AudienceUser[]> {
+    if (segment.states?.length || segment.hasImported !== undefined || segment.inactiveDays !== undefined) return [];
+    const conds: SQL[] = [
+      eq(leads.marketingConsent, true),
+      sql`not exists (select 1 from ${users} where lower(${users.email}) = lower(${leads.email}))`,
+    ];
+    if (segment.signedUpAfter) conds.push(sql`${leads.createdAt} >= ${new Date(segment.signedUpAfter).toISOString()}::timestamptz`);
+    if (segment.signedUpBefore) conds.push(sql`${leads.createdAt} <= ${new Date(segment.signedUpBefore).toISOString()}::timestamptz`);
+    const rows = await this.db.select().from(leads).where(and(...conds));
+    return rows.map((l) => ({ kind: 'lead' as const, id: l.id, email: l.email, name: l.name }));
+  }
+
+  private async userAudience(segment: CampaignSegment): Promise<AudienceUser[]> {
     const conds: SQL[] = [eq(users.marketingEmailsOptOut, false)];
     if (segment.signedUpAfter) conds.push(sql`${users.createdAt} >= ${new Date(segment.signedUpAfter).toISOString()}::timestamptz`);
     if (segment.signedUpBefore) conds.push(sql`${users.createdAt} <= ${new Date(segment.signedUpBefore).toISOString()}::timestamptz`);
@@ -99,12 +133,13 @@ export class CampaignsService {
         // The owner/admin account counts as "subscribed" for targeting.
         return wanted.includes((state === 'owner' ? 'subscribed' : state) as SegmentState);
       })
-      .map((u) => ({ id: u.id, email: u.email, name: u.name }));
+      .map((u) => ({ kind: 'user' as const, id: u.id, email: u.email, name: u.name }));
   }
 
-  async audiencePreview(rawSegment: unknown): Promise<{ count: number; sample: { email: string; name: string | null }[] }> {
+  async audiencePreview(rawSegment: unknown): Promise<{ count: number; users: number; leads: number; sample: { email: string; name: string | null }[] }> {
     const list = await this.audience(parseSegment(rawSegment));
-    return { count: list.length, sample: list.slice(0, 10).map((u) => ({ email: u.email, name: u.name })) };
+    const leadCount = list.filter((u) => u.kind === 'lead').length;
+    return { count: list.length, users: list.length - leadCount, leads: leadCount, sample: list.slice(0, 10).map((u) => ({ email: u.email, name: u.name })) };
   }
 
   // ---- CRUD ---------------------------------------------------------------------------------------------------
@@ -265,9 +300,12 @@ export class CampaignsService {
       const c = await this.get(id);
       if (c.status !== 'sending') return;
       const audience = await this.audience(parseSegment(c.segment));
-      const done = await this.db.select({ userId: emailCampaignSends.userId }).from(emailCampaignSends).where(eq(emailCampaignSends.campaignId, id));
-      const doneIds = new Set(done.map((d) => d.userId));
-      const todo = audience.filter((u) => !doneIds.has(u.id));
+      const done = await this.db
+        .select({ userId: emailCampaignSends.userId, leadId: emailCampaignSends.leadId })
+        .from(emailCampaignSends)
+        .where(eq(emailCampaignSends.campaignId, id));
+      const doneIds = new Set(done.map((d) => (d.userId ? `user:${d.userId}` : `lead:${d.leadId}`)));
+      const todo = audience.filter((u) => !doneIds.has(`${u.kind}:${u.id}`));
 
       for (let i = 0; i < todo.length; i += BATCH_SIZE) {
         const started = Date.now();
@@ -294,12 +332,12 @@ export class CampaignsService {
     // Claim first (unique index), send second: a crash or a second process can never double-send to a user.
     const claimed = await this.db
       .insert(emailCampaignSends)
-      .values({ campaignId: c.id, userId: u.id, email: u.email, status: 'sent' })
+      .values({ campaignId: c.id, userId: u.kind === 'user' ? u.id : null, leadId: u.kind === 'lead' ? u.id : null, email: u.email, status: 'sent' })
       .onConflictDoNothing()
       .returning({ id: emailCampaignSends.id });
     if (!claimed.length) return;
     try {
-      await this.notifications.sendCampaignEmail(u.email, c, marketingUnsubscribeUrl(u.id));
+      await this.notifications.sendCampaignEmail(u.email, c, u.kind === 'lead' ? leadUnsubscribeUrl(u.id) : marketingUnsubscribeUrl(u.id));
     } catch (e) {
       await this.db
         .update(emailCampaignSends)

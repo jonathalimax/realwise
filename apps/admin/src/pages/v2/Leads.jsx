@@ -91,7 +91,7 @@ export default function Leads() {
   const [days, setDays] = useState(30);
   const state = useAsync(() => landingResource.stats(days), `stats-${days}`);
   return (
-    <div className="space-y-5">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
       <PageHeader
         title="Leads e funil da página inicial"
         subtitle="Visitas, cliques nos botões e contatos captados"

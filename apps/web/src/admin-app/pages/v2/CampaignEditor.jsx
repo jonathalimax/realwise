@@ -21,12 +21,13 @@ const SEGMENT_STATES = [
 
 const BLANK = {
   name: '', subject: '', body: '', ctaLabel: '', ctaUrl: '',
-  segment: { states: [], signedUpAfter: '', signedUpBefore: '', hasImported: '', inactiveDays: '' },
+  segment: { audience: 'users', states: [], signedUpAfter: '', signedUpBefore: '', hasImported: '', inactiveDays: '' },
   scheduledAt: '',
 };
 
 function segmentToApi(seg) {
   const out = {};
+  if (seg.audience && seg.audience !== 'users') out.audience = seg.audience;
   if (seg.states?.length) out.states = seg.states;
   if (seg.signedUpAfter) out.signedUpAfter = seg.signedUpAfter;
   if (seg.signedUpBefore) out.signedUpBefore = seg.signedUpBefore;
@@ -38,6 +39,7 @@ function segmentToApi(seg) {
 
 function segmentFromApi(seg = {}) {
   return {
+    audience: seg.audience ?? 'users',
     states: Array.isArray(seg.states) ? seg.states : [],
     signedUpAfter: seg.signedUpAfter ? String(seg.signedUpAfter).slice(0, 10) : '',
     signedUpBefore: seg.signedUpBefore ? String(seg.signedUpBefore).slice(0, 10) : '',
@@ -88,7 +90,7 @@ function Audience({ segment }) {
         <Users className="w-4 h-4 text-emerald-400" />
         {state.loading && !state.data ? <span className="text-gray-500">Calculando público…</span>
           : state.error ? <span className="text-gray-400">{friendlyError(state.error)}</span>
-          : <span className="text-white font-semibold">{num(state.data?.count)} <span className="font-normal text-gray-400">destinatários</span></span>}
+          : <span className="text-white font-semibold">{num(state.data?.count)} <span className="font-normal text-gray-400">destinatários{state.data?.leads > 0 ? ` (${num(state.data.users)} usuários · ${num(state.data.leads)} leads)` : ''}</span></span>}
       </div>
       {state.data?.sample?.length > 0 && (
         <ul className="mt-2 space-y-0.5">
@@ -259,6 +261,16 @@ function Editor({ initial, id }) {
 
           <Card title="Público" subtitle="Quem receber a campanha. Vazio = todos que aceitam marketing.">
             <fieldset disabled={readOnly} className="space-y-4 disabled:opacity-70">
+              <Field label="Para quem" hint="Leads são contatos da página inicial que aceitaram receber novidades. Quem já tem conta recebe uma vez só.">
+                <select className={inputClass} value={form.segment.audience} onChange={(e) => setSeg({ audience: e.target.value })}>
+                  <option value="users">Usuários cadastrados</option>
+                  <option value="leads">Só leads (página inicial)</option>
+                  <option value="all">Usuários e leads</option>
+                </select>
+              </Field>
+              {form.segment.audience === 'leads' && (
+                <InlineMessage tone="info">Os filtros de situação, importações e inatividade valem só para usuários cadastrados. Com “Só leads”, apenas as datas são usadas.</InlineMessage>
+              )}
               <div>
                 <p className="text-xs font-medium text-gray-400 mb-1.5">Situação do usuário</p>
                 <div className="flex flex-wrap gap-2">
