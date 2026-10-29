@@ -3,7 +3,6 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import PageHelp from '@/components/ui/PageHelp';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
-import { useFeature } from '../contexts/ClientConfigContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments } from '../contexts/InvestmentContext';
 import { useMonth } from '../contexts/MonthContext';
@@ -28,7 +27,6 @@ export default function DashboardPage() {
   const { ownerId, loading: accessLoading } = useAccess();
   const { getPaymentMonthKey, loading: cardsLoading } = useCards();
   const { transactions, loading: transactionsLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
-  const investmentsEnabled = useFeature('investments');
   // No bank account yet: Elio (the chat) sets the user up, so the dashboard has nothing to show.
   const needsSetup = useNeedsSetup();
   const { carryoverSaldo, cumulativeByMonth } = useCarryoverSaldo(
@@ -38,10 +36,6 @@ export default function DashboardPage() {
 
   const handleIncomeClick = () => navigate('/income');
   const handleExpensesClick = () => navigate('/expenses');
-
-  const handleOpenInvestmentsList = () => {
-    navigate('/investments');
-  };
 
   // Dashboard is hydrating until access resolves an owner, cards finish loading,
   // and the first transactions snapshot lands. Gating here prevents the
@@ -107,10 +101,8 @@ export default function DashboardPage() {
               previousTransactions={previousMonthTransactions}
               carryoverSaldo={carryoverSaldo}
               selectedMonth={selectedMonth}
-              showInvestments={investmentsEnabled}
               onIncomeClick={handleIncomeClick}
               onExpensesClick={handleExpensesClick}
-              onInvestmentsClick={handleOpenInvestmentsList}
             />
             <TrendChart
               transactions={transactions}

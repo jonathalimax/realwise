@@ -74,35 +74,34 @@ export default function BillsMonthCard({ selectedMonth }) {
       actionLabel={pt ? 'Ver contas' : 'Bills'}
       onAction={() => navigate('/bills')}
     >
-      <div className="flex items-center gap-3">
-        <div className="relative h-[130px] w-[130px] shrink-0" role="img" aria-label={pt ? 'Contas pagas e a pagar' : 'Paid and unpaid bills'}>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={slices.length ? slices : [{ key: 'none', value: 1, color: '#CBD5E1' }]} dataKey="value" innerRadius="66%" outerRadius="96%" paddingAngle={slices.length > 1 ? 3 : 0} cornerRadius={6} stroke="none" startAngle={90} endAngle={-270} isAnimationActive animationDuration={700}>
-                {(slices.length ? slices : [{ key: 'none', color: '#CBD5E1' }]).map((s) => (
-                  <Cell key={s.key} fill={s.color} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{pendingAmount > 0 ? (pt ? 'A pagar' : 'To pay') : pt ? 'Em dia' : 'Up to date'}</span>
-            <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">{pendingAmount > 0 ? formatCurrency(pendingAmount) : '🎉'}</span>
-          </div>
+      <div className="relative mx-auto h-[190px] w-[190px]" role="img" aria-label={pt ? 'Contas pagas e a pagar' : 'Paid and unpaid bills'}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={slices.length ? slices : [{ key: 'none', value: 1, color: '#CBD5E1' }]} dataKey="value" innerRadius="68%" outerRadius="98%" paddingAngle={slices.length > 1 ? 3 : 0} cornerRadius={7} stroke="none" startAngle={90} endAngle={-270} isAnimationActive animationDuration={700}>
+              {(slices.length ? slices : [{ key: 'none', color: '#CBD5E1' }]).map((s) => (
+                <Cell key={s.key} fill={s.color} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{pendingAmount > 0 ? (pt ? 'A pagar' : 'To pay') : pt ? 'Em dia' : 'Up to date'}</span>
+          <span className="text-lg font-black tabular-nums text-slate-900 dark:text-white">{pendingAmount > 0 ? formatCurrency(pendingAmount) : '🎉'}</span>
         </div>
-
-        <ul className="min-w-0 flex-1 space-y-2">
-          {donut.map((d) => (
-            <li key={d.key} className={`min-w-0 ${d.count === 0 ? 'opacity-40' : ''}`}>
-              <p className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
-                {d.name} <span className="font-normal text-slate-400">· {d.count}</span>
-              </p>
-              <p className="pl-4 text-[15px] font-black tabular-nums text-slate-900 dark:text-white">{formatCurrency(d.value)}</p>
-            </li>
-          ))}
-        </ul>
       </div>
+
+      <ul className="mt-3 grid grid-cols-3 gap-2">
+        {donut.map((d) => (
+          <li key={d.key} className={`min-w-0 rounded-2xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900/30 ${d.count === 0 ? 'opacity-40' : ''}`}>
+            <p className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
+              <span className="truncate">{d.name}</span>
+            </p>
+            <p className="mt-0.5 text-[14px] font-black tabular-nums text-slate-900 dark:text-white">{formatCurrency(d.value)}</p>
+            <p className="text-[10px] text-slate-400">{d.count} {d.count === 1 ? (pt ? 'conta' : 'bill') : pt ? 'contas' : 'bills'}</p>
+          </li>
+        ))}
+      </ul>
 
       {next.length > 0 && (
         <div className="mt-3 space-y-1">
