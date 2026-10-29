@@ -85,6 +85,8 @@ export const TOOL_STATUS: Record<string, string> = {
   delete_records: 'Preparando a exclusão…',
   restore_records: 'Restaurando…',
   ask_user: 'Preparando uma pergunta…',
+  remember_fact: 'Anotando isso…',
+  forget_fact: 'Esquecendo isso…',
 };
 
 export const MAX_REVIEW_ITEMS = 40;

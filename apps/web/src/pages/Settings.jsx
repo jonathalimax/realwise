@@ -173,6 +173,26 @@ export default function SettingsPage() {
                 </div>
               </button>
 
+              {/* Memory Card */}
+              <button
+                onClick={() => navigate('/settings/memory')}
+                className="w-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 text-left hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">
+                      {language === 'pt' ? 'O que o Elio sabe sobre você' : 'What Elio knows about you'}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {language === 'pt' ? 'Veja, edite ou apague o que ele lembra' : 'See, edit or delete what he remembers'}
+                    </p>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+
               <ContactCard />
             </div>
 

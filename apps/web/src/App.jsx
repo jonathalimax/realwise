@@ -24,6 +24,7 @@ const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const CategorySettingsPage = lazy(() => import('./pages/CategorySettings'));
 const BanksSettingsPage = lazy(() => import('./pages/BanksSettings'));
+const MemorySettingsPage = lazy(() => import('./pages/MemorySettings'));
 const CardsPage = lazy(() => import('./pages/Cards'));
 const BudgetPage = lazy(() => import('./pages/Budget'));
 const TransactionsPage = lazy(() => import('./pages/Transactions'));
@@ -113,6 +114,7 @@ function AuthenticatedApp() {
                               <Route path="subscription" element={<SubscriptionPage />} />
                               <Route path="settings/categories" element={<CategorySettingsPage />} />
                               <Route path="settings/banks" element={<BanksSettingsPage />} />
+                              <Route path="settings/memory" element={<MemorySettingsPage />} />
                               <Route path="budget" element={<BudgetPage />} />
                               <Route path="help" element={<HelpPage />} />
                               <Route path="notifications" element={<NotificationsPage />} />
