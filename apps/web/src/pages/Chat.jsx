@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownIcon, ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowDownIcon, ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon, ArrowUturnLeftIcon, MicrophoneIcon, SpeakerWaveIcon, StopIcon } from '@heroicons/react/24/outline';
 import PageHeader from '../components/PageHeader';
 import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
@@ -14,6 +14,8 @@ import { useSettings } from '../contexts/SettingsContext';
 import { friendlyChatError } from '../lib/chatErrors';
 import { chatResource } from '../lib/api/resources/chat';
 import { purgeOldFiles, recallFile, rememberFiles } from '../lib/chatFileCache';
+import useSpeechRecognition from '../hooks/useSpeechRecognition';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 
 const SUPPORTED = ['pdf', 'csv', 'tsv', 'txt', 'xlsx', 'xls', 'ofx', 'qif', 'png', 'jpg', 'jpeg', 'webp'];
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -112,7 +114,7 @@ function cleanUserText(text) {
   return text.replace(/\s*\((accountId|paymentMethod) [^)]*\)/g, '');
 }
 
-function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, language }) {
+function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, onSpeak, speaking, language }) {
   const mine = message.role === 'user';
   const pt = language === 'pt';
   const pending = pendingSheet(message);
@@ -125,7 +127,22 @@ function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, language }) {
             : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md shadow-sm'
         }`}
       >
-        {!mine && <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>}
+        {!mine && (
+          <div className="mb-0.5 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>
+            {onSpeak && message.content && !message.local && (
+              <button
+                type="button"
+                onClick={() => onSpeak(message)}
+                aria-label={speaking ? (pt ? 'Parar de ler' : 'Stop reading') : pt ? 'Ouvir esta resposta' : 'Read this reply aloud'}
+                aria-pressed={speaking}
+                className={`-mr-1.5 -mt-0.5 rounded-full p-1.5 transition-colors ${speaking ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300' : 'text-gray-400 hover:text-violet-600 dark:hover:text-violet-300'}`}
+              >
+                {speaking ? <StopIcon className="h-4 w-4" /> : <SpeakerWaveIcon className="h-4 w-4" />}
+              </button>
+            )}
+          </div>
+        )}
         {Array.isArray(message.attachments) && message.attachments.length > 0 && (
           <div className="mb-1.5 flex flex-wrap gap-1.5">
             {message.attachments.map((file, i) => (
@@ -282,6 +299,8 @@ export default function ChatPage() {
   const [text, setText] = useState('');
   const [files, setFiles] = useState([]);
   const [previewFile, setPreviewFile] = useState(null); // an attached file opened read-only
+  const speechLang = pt ? 'pt-BR' : 'en-US';
+  const reader = useSpeechSynthesis({ lang: speechLang }); // read Elio's replies aloud
   const [dragging, setDragging] = useState(false);
   const composer = useRef(null);
   const composerBox = useRef(null);
@@ -452,6 +471,32 @@ export default function ChatPage() {
     [say],
   );
 
+  // Dictation: the words land in the composer as they are recognised; the user reviews them and sends.
+  const dictation = useSpeechRecognition({
+    lang: speechLang,
+    onTranscript: setText,
+    onError: (code) => {
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        say('O navegador não liberou o microfone. Permita o acesso ao microfone nas configurações do site e tente de novo.');
+      } else if (code === 'audio-capture') {
+        say('Não encontrei um microfone neste aparelho.');
+      } else if (code === 'network') {
+        say('O reconhecimento de voz do navegador ficou sem conexão agora. Você pode digitar ou tentar de novo em instantes.');
+      } else {
+        say('Não consegui usar a voz agora. Você pode digitar sua mensagem.');
+      }
+    },
+  });
+  const toggleDictation = () => {
+    if (dictation.listening) {
+      dictation.stop();
+      return;
+    }
+    reader.stop(); // do not let Elio's voice feed back into the microphone
+    composer.current?.blur(); // keep the phone keyboard out of the way while speaking
+    dictation.start(text);
+  };
+
   const closeSheet = () => {
     if (sheet) setDismissed((prev) => new Set(prev).add(sheet.id));
     setManualSheet(null);
@@ -607,6 +652,8 @@ export default function ChatPage() {
       const message = (overrideText ?? text).trim();
       if ((!message && files.length === 0) || sending) return;
       const attached = files;
+      dictation.stop();
+      reader.stop();
       setSending(true);
       setText('');
       setFiles([]);
@@ -635,7 +682,7 @@ export default function ChatPage() {
         say(friendlyChatError(e));
       }
     },
-    [text, files, sending, pt, runTurn, recoverAfterDrop, say],
+    [text, files, sending, pt, runTurn, recoverAfterDrop, say, dictation, reader],
   );
 
   // Opened from an email: ?intent=bills (settle pending bills) or ?suggestion=<id> (Elio creates the suggested reminder).
@@ -731,6 +778,8 @@ export default function ChatPage() {
             language={language}
             onOpenSheet={(id, type) => setManualSheet({ id, type })}
             onPreviewFile={previewSentFile}
+            onSpeak={reader.supported ? (m) => (reader.speakingId === m.id ? reader.stop() : reader.speak(m.id, m.content)) : undefined}
+            speaking={reader.speakingId === m.id}
             onUndo={async (importId) => {
               await chatResource.undoImport(importId);
             }}
@@ -782,6 +831,15 @@ export default function ChatPage() {
               ))}
             </div>
           )}
+          {dictation.listening && (
+            <p role="status" className="mb-2 flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:bg-rose-900/30 dark:text-rose-200">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" />
+              </span>
+              {pt ? 'Ouvindo em português… toque no microfone para parar.' : 'Listening… tap the microphone to stop.'}
+            </p>
+          )}
           <div className="flex items-end gap-2 rounded-2xl bg-white dark:bg-gray-800 shadow-lg p-2">
             {/* A <label> around the input opens the picker in every browser (hidden-input .click() is unreliable on iOS and in-app browsers). No `accept` filter: some mobile pickers grey out unusual extensions; unsupported files are rejected below with a clear message. */}
             <label
@@ -814,6 +872,20 @@ export default function ChatPage() {
               placeholder={pt ? 'Como posso te ajudar?' : 'How can I help you?'}
               className="flex-1 resize-none bg-transparent px-1 py-2 text-base sm:text-sm leading-snug text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none overflow-y-auto"
             />
+            {dictation.supported && (
+              <button
+                type="button"
+                onClick={toggleDictation}
+                disabled={sending}
+                aria-pressed={dictation.listening}
+                aria-label={dictation.listening ? (pt ? 'Parar o ditado' : 'Stop dictation') : pt ? 'Ditar por voz' : 'Dictate'}
+                className={`p-2 rounded-xl transition-colors disabled:opacity-40 ${
+                  dictation.listening ? 'bg-rose-500 text-white animate-pulse' : 'text-gray-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30'
+                }`}
+              >
+                <MicrophoneIcon className="w-6 h-6" />
+              </button>
+            )}
             <button
               onClick={() => submit()}
               disabled={sending || (!text.trim() && files.length === 0)}
