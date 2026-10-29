@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Query, Res, ParseUUIDPipe, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Patch, Param, Query, Res, ParseUUIDPipe, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
@@ -10,6 +10,18 @@ import { ChatService, MAX_FILES_PER_MESSAGE } from './chat.service';
 import type { ChatStreamEvent } from './chat.types';
 import { InsightsService } from './insights.service';
 import { ChatBillsService, type BillDecision } from './chat-bills.service';
+import { ChatMemoryService } from './chat-memory.service';
+
+class MemoryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(240)
+  content?: string;
+
+  @IsOptional()
+  @IsIn(['goal', 'preference', 'context'])
+  kind?: string;
+}
 
 class SendMessageDto {
   @IsOptional()
@@ -143,11 +155,33 @@ export class ChatController {
     private readonly service: ChatService,
     private readonly insights: InsightsService,
     private readonly bills: ChatBillsService,
+    private readonly memory: ChatMemoryService,
   ) {}
 
   @Get('messages')
   messages(@CurrentUser() user: JwtPayload) {
     return this.service.history({ clientId: user.clientId, userId: user.sub });
+  }
+
+  @Get('memory')
+  memoryList(@CurrentUser() user: JwtPayload) {
+    return this.memory.list({ clientId: user.clientId, userId: user.sub });
+  }
+
+  @Post('memory')
+  memoryAdd(@Body() dto: MemoryDto, @CurrentUser() user: JwtPayload) {
+    return this.memory.add({ clientId: user.clientId, userId: user.sub }, dto.content ?? '', dto.kind ?? 'context', 'user');
+  }
+
+  @Patch('memory/:id')
+  memoryUpdate(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MemoryDto, @CurrentUser() user: JwtPayload) {
+    return this.memory.update({ clientId: user.clientId, userId: user.sub }, id, dto);
+  }
+
+  @Delete('memory/:id')
+  async memoryRemove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    await this.memory.remove({ clientId: user.clientId, userId: user.sub }, id);
+    return { ok: true };
   }
 
   @Get('insights')

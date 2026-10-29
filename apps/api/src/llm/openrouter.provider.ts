@@ -30,8 +30,10 @@ export function withCacheBreakpoints(messages: LlmRequest['messages'], model: st
   if (!model.startsWith('anthropic/') || !enabled) return messages;
   const mark = { cache_control: { type: 'ephemeral' } };
   const lastUser = messages.map((m) => m.role).lastIndexOf('user');
+  const firstSystem = messages.findIndex((m) => m.role === 'system');
   return messages.map((m, i) => {
-    if (i !== lastUser && m.role !== 'system') return m;
+    // Only the first system message is the stable cached prefix; later ones (e.g. the month snapshot) change per turn.
+    if (i !== lastUser && i !== firstSystem) return m;
     if (m.role === 'system') return { ...m, content: [{ type: 'text', text: m.content, ...mark }] };
     if (m.role !== 'user') return m;
     const parts: Record<string, unknown>[] =

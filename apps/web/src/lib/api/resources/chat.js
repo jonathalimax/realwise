@@ -140,6 +140,19 @@ export function createChatResource({ client = apiClient } = {}) {
       notifyBillsChanged();
       return result;
     },
+    /** What Elio remembers about the user (lasting facts they stated). */
+    memoryList() {
+      return client.get('/chat/memory');
+    },
+    memoryAdd({ content, kind }) {
+      return client.post('/chat/memory', { content, kind });
+    },
+    memoryUpdate(id, patch) {
+      return client.patch(`/chat/memory/${id}`, patch);
+    },
+    memoryRemove(id) {
+      return client.delete(`/chat/memory/${id}`);
+    },
     insights(month) {
       return client.get(`/chat/insights?month=${encodeURIComponent(month)}`);
     },

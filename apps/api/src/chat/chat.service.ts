@@ -10,6 +10,7 @@ import { prepareFile, toContentPart, type PreparedFile } from './attachments';
 import { buildSystemPrompt } from './chat.prompt';
 import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.service';
 import { ChatCategoriesService } from './chat-categories.service';
+import { ChatMemoryService } from './chat-memory.service';
 import { MAX_REVIEW_ITEMS, TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
 import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, welcomeMessage } from './onboarding';
 
@@ -36,6 +37,7 @@ export class ChatService {
     private readonly llm: LlmService,
     private readonly tools: ChatToolsService,
     private readonly cats: ChatCategoriesService,
+    private readonly memory: ChatMemoryService,
   ) {}
 
   async history(scope: ChatScope, limit = 50): Promise<ChatMessageRow[]> {
@@ -125,7 +127,9 @@ export class ChatService {
 
     await this.cats.ensure(scope); // every category enabled in Settings is available to Elio and the review sheet
     const system = await this.systemPrompt(scope);
-    const messages: LlmMessage[] = [{ role: 'system', content: system }];
+    // The month snapshot changes every turn, so it rides in its own message after the (cached) system prompt.
+    const snapshot = await this.memory.monthSnapshot(scope);
+    const messages: LlmMessage[] = [{ role: 'system', content: system }, { role: 'system', content: snapshot }];
     for (const m of prior) {
       messages.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content } as LlmMessage);
     }
@@ -475,7 +479,9 @@ export class ChatService {
         .limit(150),
     ]);
     const hasIncome = await this.hasIncomeConfigured(scope);
+    const memory = await this.memory.factsBlock(scope);
     return buildSystemPrompt({
+      memory,
       setup: { accountCount: accs.length, categoryCount: cats.length, hasIncome },
       today: new Date().toISOString().slice(0, 10),
       accounts: accs.map((a) => ({ id: a.id, name: a.name, type: a.type, cardName: a.cardName, holderName: a.holderName })),
