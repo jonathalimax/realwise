@@ -13,6 +13,7 @@ import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, type ChatQuestion, type ReviewGroup 
 import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
 import { ChatBillsService } from './chat-bills.service';
 import { ChatCategoriesService } from './chat-categories.service';
+import { ChatMemoryService } from './chat-memory.service';
 
 export interface ToolContext {
   clientId: string;
@@ -109,6 +110,24 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
       },
       required: ['questions'],
     },
+  },
+  {
+    name: 'remember_fact',
+    description:
+      "Save ONE lasting fact the user STATED about themselves so you remember it in future chats: a goal (\"quero juntar R$ 20 mil para a viagem até dezembro\"), a preference (\"não gosto de investir em renda variável\") or life context (\"sou autônomo e minha renda varia\", \"tenho 2 filhos\"). Only things the user explicitly said; never guesses or inferences. Do not save transactions, amounts that belong to a bill, passwords, documents numbers or one-off requests. Write it as one short third-person sentence in Portuguese. Do it silently and keep chatting normally.",
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'The fact, one short sentence (max 200 chars), e.g. "Quer juntar R$ 20 mil para uma viagem até dez/2026".' },
+        kind: { type: 'string', enum: ['goal', 'preference', 'context'] },
+      },
+      required: ['text', 'kind'],
+    },
+  },
+  {
+    name: 'forget_fact',
+    description: 'Delete a remembered fact when the user says it is no longer true or asks you to forget it. Use the id from the "What you remember" list.',
+    parameters: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
   },
   {
     name: 'set_monthly_income',
@@ -244,6 +263,7 @@ export class ChatToolsService {
     private readonly edit: ChatEditService,
     private readonly billsChat: ChatBillsService,
     private readonly cats: ChatCategoriesService,
+    private readonly memory: ChatMemoryService,
   ) {}
 
   /** Runs a previously previewed update/delete that the user explicitly confirmed. The action comes from the stored message, never from the client. */
@@ -277,6 +297,10 @@ export class ChatToolsService {
           return await this.edit.remove(args, ctx);
         case 'restore_records':
           return await this.edit.restore(args, ctx);
+        case 'remember_fact':
+          return { result: await this.memory.rememberFromModel(ctx, args) };
+        case 'forget_fact':
+          return { result: await this.memory.forgetFromModel(ctx, args) };
         case 'set_monthly_income':
           return { result: await this.setMonthlyIncome(args, ctx) };
         case 'create_account':
