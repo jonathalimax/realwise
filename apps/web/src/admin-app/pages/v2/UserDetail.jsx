@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, Clock, Crown, Play, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, CalendarClock, Clock, Crown, Play, Save, Trash2 } from 'lucide-react';
 import { usersResource } from '../../lib/api/resources/users';
 import { friendlyError } from '../../lib/api/errors';
 import { useAsync } from '../../lib/useAsync';
@@ -50,6 +50,28 @@ function TrialDialog({ open, mode, onClose, onSubmit }) {
         <input className={inputClass} type="number" min="1" max="3650" value={days} onChange={(e) => setDays(e.target.value)} />
       </Field>
       {!valid && <InlineMessage tone="warning">Informe um número inteiro de dias entre 1 e 3650.</InlineMessage>}
+    </ConfirmDialog>
+  );
+}
+
+function GrantUntilDialog({ open, onClose, onSubmit }) {
+  const [until, setUntil] = useState('');
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const valid = /^\d{4}-\d{2}-\d{2}$/.test(until) && until > todayIso;
+  return (
+    <ConfirmDialog
+      open={open}
+      title="Conceder acesso até uma data"
+      confirmLabel="Conceder"
+      tone="primary"
+      onClose={onClose}
+      onConfirm={() => valid && onSubmit({ action: 'grant_until', until })}
+      description="Acesso completo e gratuito até o fim do dia escolhido (horário de Brasília). Depois disso, o usuário precisa assinar."
+    >
+      <Field label="Acesso até">
+        <input className={inputClass} type="date" min={todayIso} value={until} onChange={(e) => setUntil(e.target.value)} />
+      </Field>
+      {!valid && <InlineMessage tone="warning">Escolha uma data futura.</InlineMessage>}
     </ConfirmDialog>
   );
 }
@@ -171,6 +193,7 @@ function Detail({ user: u, reload, notify }) {
           <div className="flex flex-wrap gap-2">
             <Button size="sm" icon={Clock} onClick={() => setDialog('extend_trial')} disabled={isOwner}>Estender teste</Button>
             <Button size="sm" icon={Play} onClick={() => setDialog('start_trial')} disabled={isOwner}>Iniciar teste</Button>
+            <Button size="sm" icon={CalendarClock} onClick={() => setDialog('grant_until')} disabled={isOwner || state === 'lifetime'}>Acesso até data</Button>
             <Button size="sm" icon={Crown} onClick={() => setDialog('grant_lifetime')} disabled={isOwner || state === 'lifetime'}>Vitalício</Button>
             <Button size="sm" variant="dangerOutline" icon={Ban} onClick={() => setDialog('revoke')} disabled={isOwner || state === 'blocked'}>Revogar acesso</Button>
           </div>
@@ -286,6 +309,14 @@ function Detail({ user: u, reload, notify }) {
         onClose={() => setDialog(null)}
         onSubmit={(body) => runPlan(body, body.action === 'start_trial' ? 'Teste iniciado.' : 'Teste estendido.')}
       />
+      {/* Mounted only while open so the date field starts empty every time. */}
+      {dialog === 'grant_until' && (
+        <GrantUntilDialog
+          open
+          onClose={() => setDialog(null)}
+          onSubmit={(body) => runPlan(body, 'Acesso concedido até a data escolhida.')}
+        />
+      )}
       <ConfirmDialog
         open={dialog === 'grant_lifetime'}
         title="Conceder acesso vitalício"
