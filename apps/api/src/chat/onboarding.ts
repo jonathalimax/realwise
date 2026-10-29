@@ -60,7 +60,7 @@ I already created your categories:
 - **Expenses:** ${exp}
 - **Income:** ${inc}
 
-You can ask me to change them any time (for example, "rename Lazer to Fun"). Now, to record your transactions I need your first account or card. Fill in the details in the sheet that just opened.`,
+Here is how we'll do it: a quick chat where I learn your accounts, your income and your goals, then I build your plan and read your statements. You can type or use the mic to talk to me. First, I need your first account or card: fill in the sheet that just opened.`,
       formTitle: 'Add your first account or card',
       formSubtitle: 'The holder name helps me recognise transfers between your own accounts.',
     };
@@ -72,7 +72,7 @@ Já criei as suas categorias:
 - **Despesas:** ${exp}
 - **Receitas:** ${inc}
 
-Se quiser ajustar, é só me pedir quando quiser (por exemplo, "troque Lazer por Diversão"). Agora, para registrar suas movimentações, preciso da sua primeira conta ou cartão. Preencha os dados na folha que acabou de abrir.`,
+Vai ser assim: uma conversa rápida em que eu conheço suas contas, sua renda e seus objetivos, monto seu plano e leio seus extratos. Você pode digitar ou usar o microfone para falar comigo. Primeiro, preciso da sua primeira conta ou cartão: preencha a folha que acabou de abrir.`,
     formTitle: 'Cadastre sua primeira conta ou cartão',
     formSubtitle: 'O nome do titular me ajuda a reconhecer transferências entre as suas contas.',
   };

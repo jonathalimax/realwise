@@ -2,9 +2,12 @@ import React, { useEffect } from 'react';
 import Header from '../components/landing/Header';
 import HeroSection from '../components/landing/HeroSection';
 import HowItWorks from '../components/landing/HowItWorks';
+import AIFeatures from '../components/landing/AIFeatures';
 import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
+import LeadCapture from '../components/landing/LeadCapture';
+import { trackLandingView } from '../landingTracking';
 import FooterSection from '../components/landing/FooterSection';
 import WhatsAppFloatingButton from '../components/landing/WhatsAppFloatingButton';
 import { landingAnalytics } from '../landingAnalytics';
@@ -12,6 +15,10 @@ import { landingAnalytics } from '../landingAnalytics';
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 
 export default function Home() {
+  useEffect(() => {
+    trackLandingView();
+  }, []);
+
   useEffect(() => {
     if (!GA_MEASUREMENT_ID) return;
 
@@ -29,8 +36,10 @@ export default function Home() {
       <div className="pt-20">
         <HeroSection />
         <HowItWorks />
+        <AIFeatures />
         <PricingSection />
         <FAQSection />
+        <LeadCapture />
         <FinalCTASection />
         <FooterSection />
       </div>

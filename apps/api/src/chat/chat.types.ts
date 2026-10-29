@@ -87,6 +87,8 @@ export const TOOL_STATUS: Record<string, string> = {
   ask_user: 'Preparando uma pergunta…',
   remember_fact: 'Anotando isso…',
   forget_fact: 'Esquecendo isso…',
+  set_monthly_income: 'Anotando sua renda…',
+  set_budget_plan: 'Montando seu plano…',
 };
 
 export const MAX_REVIEW_ITEMS = 40;
