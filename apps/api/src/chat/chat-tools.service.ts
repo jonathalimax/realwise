@@ -793,6 +793,25 @@ export class ChatToolsService {
         .from(categories)
         .where(and(eq(categories.id, String(args.categoryId)), eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId), isNull(categories.deletedAt)));
     }
+    const recurrence = ['monthly', 'weekly', 'yearly'].includes(args.recurrence) ? args.recurrence : null;
+    // Same name, amount, due date and recurrence already pending: reuse it (the model can repeat a call).
+    const [dup] = await this.db
+      .select()
+      .from(bills)
+      .where(and(
+        eq(bills.clientId, ctx.clientId),
+        eq(bills.userId, ctx.userId),
+        isNull(bills.deletedAt),
+        eq(bills.status, 'pending'),
+        sql`lower(btrim(${bills.name})) = ${name.toLowerCase()}`,
+        eq(bills.amount, amount.toFixed(2)),
+        eq(bills.dueDate, String(args.dueDate)),
+        recurrence ? eq(bills.recurrence, recurrence) : isNull(bills.recurrence),
+      ))
+      .limit(1);
+    if (dup) {
+      return { billId: dup.id, name: dup.name, dueDate: dup.dueDate, recurrence: dup.recurrence, alreadyExisted: true };
+    }
     const [bill] = await this.db
       .insert(bills)
       .values({
@@ -801,7 +820,7 @@ export class ChatToolsService {
         name,
         amount: amount.toFixed(2),
         dueDate: String(args.dueDate),
-        recurrence: ['monthly', 'weekly', 'yearly'].includes(args.recurrence) ? args.recurrence : null,
+        recurrence,
         categoryId: cat?.id ?? null,
         category: cat?.name ?? null,
         description: args.description ? String(args.description) : null,
