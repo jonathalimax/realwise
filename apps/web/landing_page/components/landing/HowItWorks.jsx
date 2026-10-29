@@ -1,22 +1,27 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { MessageCircle, Paperclip, Sparkles } from 'lucide-react';
+import { MessageCircle, Paperclip, Sparkles, Target } from 'lucide-react';
 
 const STEPS = [
   {
+    icon: MessageCircle,
+    title: 'Bata um papo',
+    text: 'Na primeira conversa o Elio conhece suas contas, sua renda e o que você quer conquistar. Pode digitar ou falar no microfone.',
+  },
+  {
+    icon: Target,
+    title: 'Receba seu plano',
+    text: 'Com a sua renda e os seus objetivos, ele monta quanto guardar, quanto gastar e quando você chega lá.',
+  },
+  {
     icon: Paperclip,
-    title: 'Envie',
-    text: 'Extratos, faturas, fotos ou planilhas de qualquer banco, vários de uma vez.',
+    title: 'Mande seus extratos',
+    text: 'Faturas, extratos, fotos ou planilhas de qualquer banco, vários de uma vez. Ele lê, categoriza e guarda tudo.',
   },
   {
     icon: Sparkles,
-    title: 'O Elio organiza',
-    text: 'Descobre a conta de cada um, categoriza, aprende com você e deixa as transferências entre suas contas fora dos totais.',
-  },
-  {
-    icon: MessageCircle,
-    title: 'Pergunte',
-    text: '“Quanto gastei no mês passado?” “Onde posso economizar?” Respostas com os seus números, na hora.',
+    title: 'Pergunte o que quiser',
+    text: '“Quanto gastei no mês passado?” “Posso comprar isso?” Respostas com os seus números, por texto ou voz.',
   },
 ];
 
@@ -26,11 +31,11 @@ export default function HowItWorks() {
     <section id="como-funciona" data-section="how-it-works" className="px-6 py-20">
       <div className="mx-auto max-w-5xl">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Três passos, zero planilha</h2>
-          <p className="mt-3 text-slate-600 dark:text-slate-300">Tudo acontece numa conversa.</p>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Quatro passos, zero planilha</h2>
+          <p className="mt-3 text-slate-600 dark:text-slate-300">Tudo acontece numa conversa, e começa no primeiro acesso.</p>
         </div>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
+        <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, i) => (
             <motion.div
               key={step.title}

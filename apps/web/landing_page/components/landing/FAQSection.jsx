@@ -12,6 +12,14 @@ const FAQS = [
     a: 'Seus dados são só seus e ficam protegidos conforme a LGPD. Para ler os extratos usamos IA com provedores configurados para não reter nem treinar com as suas informações.',
   },
   {
+    q: 'O que o Elio faz por mim?',
+    a: 'Ele conversa com você no primeiro acesso para conhecer suas contas, sua renda e seus objetivos, monta o seu plano, lê seus extratos e faturas, lembra de contas a pagar e responde dúvidas com os seus números. Tudo por chat, digitando ou falando.',
+  },
+  {
+    q: 'Posso falar em vez de digitar?',
+    a: 'Pode. Toque no microfone e dite, por exemplo, “gastei 45 no mercado”. O Elio também pode ler as respostas em voz alta.',
+  },
+  {
     q: 'Quais bancos funcionam?',
     a: 'Qualquer um. O Elio lê PDF, foto, planilha (CSV/XLSX) e OFX de qualquer banco ou cartão, sem precisar conectar sua conta.',
   },

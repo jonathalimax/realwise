@@ -140,6 +140,20 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     },
   },
   {
+    name: 'set_budget_plan',
+    description:
+      "Set how the user's monthly net income is split between necessidades (needs), desejos (wants) and poupança (savings/investments), as whole percentages that sum to 100. Use during the onboarding interview or when the user asks to change their plan, after they agreed to the numbers. Requires an income already configured (set_monthly_income) for the current month.",
+    parameters: {
+      type: 'object',
+      properties: {
+        necessidades: { type: 'number', description: 'Percent for needs (housing, bills, food), e.g. 50.' },
+        desejos: { type: 'number', description: 'Percent for wants (leisure, shopping), e.g. 30.' },
+        poupanca: { type: 'number', description: 'Percent for savings, investments and goals, e.g. 20.' },
+      },
+      required: ['necessidades', 'desejos', 'poupanca'],
+    },
+  },
+  {
     name: 'create_account',
     description: 'Create a new account/card when the user confirms a document belongs to one that does not exist yet.',
     parameters: {
@@ -303,6 +317,8 @@ export class ChatToolsService {
           return { result: await this.memory.forgetFromModel(ctx, args) };
         case 'set_monthly_income':
           return { result: await this.setMonthlyIncome(args, ctx) };
+        case 'set_budget_plan':
+          return { result: await this.setBudgetPlan(args, ctx) };
         case 'create_account':
           return { result: await this.createAccount(args, ctx) };
         case 'create_category':
@@ -718,6 +734,37 @@ export class ChatToolsService {
         set: { salaryGross: amount.toFixed(2), state: nextState, updatedAt: new Date() },
       });
     return { monthlyNetIncome: amount, fromMonth: month };
+  }
+
+  private async setBudgetPlan(args: ToolArgs, ctx: ToolContext) {
+    const parts = ['necessidades', 'desejos', 'poupanca'].map((k) => Math.round(Number(args[k])));
+    if (parts.some((p) => !Number.isFinite(p) || p < 0 || p > 100) || parts.reduce((a, b) => a + b, 0) !== 100) {
+      return { error: 'necessidades, desejos and poupanca must be whole percentages that sum to 100.' };
+    }
+    const [row] = await this.db
+      .select()
+      .from(planner)
+      .where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    const state = ((row?.state ?? {}) as Record<string, unknown>) ?? {};
+    const versions = Array.isArray(state.plannerVersions) ? (state.plannerVersions as Record<string, unknown>[]) : [];
+    const now = new Date(Date.now() - 3 * 3_600_000);
+    const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const allocation = { necessidades: parts[0], desejos: parts[1], poupanca: parts[2] };
+    const idx = versions.findIndex((v) => v.from === month);
+    let next: Record<string, unknown>[];
+    if (idx !== -1) {
+      next = versions.map((v, i) => (i === idx ? { ...v, allocation } : v));
+    } else {
+      // The planner keeps one entry per month: start this month from the latest one that has an income.
+      const latest = [...versions].reverse().find((v) => Number(v.salarioBruto) > 0);
+      if (!latest) return { error: 'No income configured yet. Ask for the monthly net income first (set_monthly_income).' };
+      next = [...versions, { ...latest, from: month, allocation }];
+    }
+    await this.db
+      .update(planner)
+      .set({ state: { ...state, plannerVersions: next }, updatedAt: new Date() })
+      .where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    return { month, allocation };
   }
 
   private async createCategory(args: ToolArgs, ctx: ToolContext) {
