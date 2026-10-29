@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
 
 export class UpdateAdminUserDto {
   @IsOptional()
@@ -32,7 +32,7 @@ export class UpdateAdminUserDto {
   llmBudgetOverrideUsd?: number | null;
 }
 
-export const PLAN_ACTIONS = ['extend_trial', 'start_trial', 'grant_lifetime', 'revoke'] as const;
+export const PLAN_ACTIONS = ['extend_trial', 'start_trial', 'grant_until', 'grant_lifetime', 'revoke'] as const;
 export type PlanAction = (typeof PLAN_ACTIONS)[number];
 
 export class PlanActionDto {
@@ -44,4 +44,9 @@ export class PlanActionDto {
   @Min(1)
   @Max(365)
   days?: number;
+
+  /** grant_until: last day of free access, `YYYY-MM-DD` (Brasília time). */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  until?: string;
 }

@@ -351,6 +351,29 @@ export class AdminUsersService {
         details = { days: dto.days, endsAt: endsAt.toISOString() };
         break;
       }
+      case 'grant_until': {
+        if (!dto.until) throw new BadRequestException('until is required (YYYY-MM-DD).');
+        if (before.state === 'lifetime') {
+          throw new ConflictException('This user already has lifetime access; a time-limited grant would replace it.');
+        }
+        if (hasLiveSubscription(user)) {
+          throw new ConflictException('This user has a live Stripe subscription; a free grant does not apply.');
+        }
+        // Access runs through the end of the chosen day in Brasília (UTC-3, no DST).
+        const endsAt = new Date(`${dto.until}T23:59:59-03:00`);
+        if (Number.isNaN(endsAt.getTime()) || endsAt <= now) {
+          throw new BadRequestException('until must be a valid date in the future.');
+        }
+        if (endsAt.getTime() - now.getTime() > 5 * 365 * DAY_MS) {
+          throw new BadRequestException('until cannot be more than 5 years away; use lifetime instead.');
+        }
+        // Same storage as a trial: premiumStatus 'trialing' + premiumAccessEndsAt (see computeAccess).
+        set.premiumStatus = 'trialing';
+        set.premiumAccessEndsAt = endsAt;
+        if (!user.premiumAccessStartedAt) set.premiumAccessStartedAt = now;
+        details = { until: dto.until, endsAt: endsAt.toISOString() };
+        break;
+      }
       case 'grant_lifetime': {
         if (hasLiveSubscription(user)) {
           throw new ConflictException(
