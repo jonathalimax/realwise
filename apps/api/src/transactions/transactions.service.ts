@@ -1,9 +1,11 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq, gte, lte, sql, isNull } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+import { and, eq, gte, inArray, lte, ne, sql, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { transactions } from '../db/schema';
+import { categories, transactions } from '../db/schema';
+import { pairTransfers } from '../chat/transfer';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsDto } from './dto/list-transactions.dto';
 
@@ -104,13 +106,66 @@ export class TransactionsService {
   }
 
   async update(id: string, dto: UpdateTransactionDto, clientId: string, userId: string): Promise<Transaction> {
-    await this.findOne(id, clientId, userId);
+    const existing = await this.findOne(id, clientId, userId);
+    const patch = this.normalizePayload(dto);
+
+    // A category chosen by name alone: keep its id in sync (or clear it) so every screen agrees on the category.
+    if (dto.category !== undefined && dto.categoryId === undefined) {
+      patch.categoryId = dto.category ? await this.categoryIdByName(clientId, userId, dto.category, dto.type ?? existing.type) : null;
+    }
+
+    if (dto.isTransfer === true) {
+      // A transfer between the user's own accounts is not income or expense: no category, out of the totals.
+      Object.assign(patch, { isTransfer: true, ignored: true, category: null, categoryId: null });
+    } else if (dto.isTransfer === false && existing.isTransfer) {
+      // No longer a transfer: it counts again and is unlinked from the other side.
+      Object.assign(patch, { isTransfer: false, transferGroupId: null, ignored: dto.ignored ?? false });
+      if (existing.transferGroupId) {
+        await this.db
+          .update(transactions)
+          .set({ transferGroupId: null })
+          .where(and(eq(transactions.userId, userId), eq(transactions.transferGroupId, existing.transferGroupId), ne(transactions.id, id)));
+      }
+    }
+
     const rows = await this.db
       .update(transactions)
-      .set({ ...this.normalizePayload(dto), updatedAt: new Date() })
+      .set({ ...patch, updatedAt: new Date() })
       .where(and(eq(transactions.id, id), eq(transactions.clientId, clientId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
       .returning();
-    return rows[0];
+
+    if (dto.isTransfer === true) await this.linkOpenTransfers(clientId, userId);
+    return (await this.findOne(id, clientId, userId)) ?? rows[0];
+  }
+
+  private async categoryIdByName(clientId: string, userId: string, name: string, type: string): Promise<string | null> {
+    const rows = await this.db
+      .select({ id: categories.id, name: categories.name, type: categories.type })
+      .from(categories)
+      .where(and(eq(categories.clientId, clientId), eq(categories.userId, userId), isNull(categories.deletedAt)));
+    const wanted = name.trim().toLowerCase();
+    const named = rows.filter((c) => c.name.trim().toLowerCase() === wanted);
+    return (named.find((c) => c.type === type) ?? named.find((c) => !c.type))?.id ?? null;
+  }
+
+  /** Pairs the two sides of transfers that are not linked yet (same amount, different accounts, a few days apart). */
+  private async linkOpenTransfers(clientId: string, userId: string): Promise<void> {
+    const rows = await this.db
+      .select({ id: transactions.id, type: transactions.type, accountId: transactions.accountId, amount: transactions.amount, date: transactions.date })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.clientId, clientId),
+          eq(transactions.userId, userId),
+          eq(transactions.isTransfer, true),
+          isNull(transactions.transferGroupId),
+          isNull(transactions.deletedAt),
+        ),
+      );
+    const pairs = pairTransfers(rows.map((r) => ({ id: r.id, type: r.type, accountId: r.accountId, amount: String(r.amount), date: String(r.date) })));
+    for (const [a, b] of pairs) {
+      await this.db.update(transactions).set({ transferGroupId: randomUUID() }).where(inArray(transactions.id, [a, b]));
+    }
   }
 
   async remove(id: string, clientId: string, userId: string): Promise<void> {
