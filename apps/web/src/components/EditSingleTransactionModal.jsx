@@ -14,6 +14,20 @@ import CurrencyInput from './ui/CurrencyInput';
 import PercentInput from './ui/PercentInput';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Payment methods that make sense for each kind of entry (the API accepts these values).
+const METHOD_LABEL = {
+  credit: { pt: 'Crédito', en: 'Credit' },
+  debit: { pt: 'Débito', en: 'Debit' },
+  pix: { pt: 'PIX', en: 'PIX' },
+  transfer: { pt: 'Transferência', en: 'Transfer' },
+  boleto: { pt: 'Boleto', en: 'Boleto' },
+  cash: { pt: 'Dinheiro', en: 'Cash' },
+  other: { pt: 'Outro', en: 'Other' },
+};
+const methodsFor = (type, transfer) => (transfer ? ['pix', 'transfer', 'other'] : type === 'income' ? ['pix', 'transfer', 'cash', 'other'] : ['credit', 'debit', 'pix', 'boleto', 'transfer', 'cash']);
+
 export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess, onSaveDraft = null }) {
   const { ownerId } = useAccess();
   const [type, setType] = useState('expense');
@@ -26,6 +40,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [selectedBankId, setSelectedBankId] = useState(null);
   const [isIgnored, setIsIgnored] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('credit');
+  const [isTransfer, setIsTransfer] = useState(false); // money moving between the user's own accounts
   const [loading, setLoading] = useState(false);
   const [updateAllInstallments, setUpdateAllInstallments] = useState(true);
   const [showInstallmentConfirm, setShowInstallmentConfirm] = useState(false);
@@ -68,15 +83,12 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       setSelectedPlannerGoalId(transaction.plannerGoalId || '');
       // Handle both old (bank type) and new (document ID) formats
       // Convert old format to new format by finding the user bank
-      if (transaction.bankId) {
-        const userBank = findUserBank(transaction.bankId);
-        setSelectedBankId(userBank ? userBank.id : null);
-      } else {
-        setSelectedBankId(null);
-      }
+      const storedAccount = transaction.accountId || transaction.bankId;
+      const userBank = storedAccount ? findUserBank(storedAccount) : null;
+      setSelectedBankId(userBank ? userBank.id : null);
       setIsIgnored(transaction.ignored || false);
-      // Load paymentMethod; default to 'credit' for backward compat with old transactions
-      setPaymentMethod(transaction.paymentMethod || 'credit');
+      setIsTransfer(Boolean(transaction.isTransfer));
+      setPaymentMethod(transaction.paymentMethod || (userBank ? (userBank.hasCredit ? 'credit' : 'debit') : 'cash'));
       setUpdateAllInstallments(transaction.isInstallment || false);
       setShowDeleteConfirm(false);
       setDeleteInstallmentScope('single');
@@ -105,6 +117,39 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       }
     }
   }, [transaction, investments, findUserBank]);
+
+  /** Keep a payment method that is valid for the (new) kind of entry; otherwise fall back to the first valid one. */
+  const validMethod = (current, nextType, nextTransfer) => {
+    const list = methodsFor(nextType, nextTransfer);
+    return list.includes(current) ? current : list[0];
+  };
+
+  const changeType = (next) => {
+    if (next === type) return;
+    setType(next);
+    // The category list is different for income and expense: keep the category only if it exists on the other side.
+    const uncat = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
+    const list = categories[next] || [];
+    if (!list.includes(category)) setCategory(list.includes(uncat) ? uncat : '');
+    if (next === 'income') setSelectedPlannerGoalId('');
+    setPaymentMethod((prev) => validMethod(prev, next, isTransfer));
+  };
+
+  const toggleTransfer = (next) => {
+    setIsTransfer(next);
+    if (next) {
+      setCategory('');
+      setIsIgnored(true); // out of the income/expense totals
+      setSelectedGoalId('');
+      setSelectedPlannerGoalId('');
+      setPaymentMethod((prev) => validMethod(prev, type, true));
+    } else {
+      setIsIgnored(false);
+      const uncat = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
+      setCategory((categories[type] || []).includes(uncat) ? uncat : '');
+      setPaymentMethod((prev) => validMethod(prev, type, false));
+    }
+  };
 
   const handleDelete = async () => {
     if (!transaction?.id) return;
@@ -143,9 +188,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       const baseDate = new Date(transactionDate + 'T12:00:00');
       const selectedGoal = selectedGoalId ? goals.find(g => g.id === selectedGoalId) : null;
 
-      const finalCategory = category; // Use selected category as-is, allow empty/"Sem Categoria"
+      const finalCategory = isTransfer ? null : category; // a transfer has no category; otherwise as chosen (may be empty)
 
-      const isInvestmentCategory = (finalCategory === 'Investments' || finalCategory === 'Investimentos');
+      const isInvestmentCategory = !isTransfer && (finalCategory === 'Investments' || finalCategory === 'Investimentos');
 
       const updatedMetadata = buildUpdatedMetadata(transaction.metadata, finalCategory, transaction.category);
 
@@ -176,12 +221,15 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         amount: parseFloat(amount),
         category: finalCategory,
         date: baseDate.toISOString(),
-        goalId: selectedGoalId || null,
-        goalName: selectedGoal?.name || null,
-        plannerGoalId: selectedPlannerGoalId || null,
+        goalId: isTransfer ? null : selectedGoalId || null,
+        goalName: isTransfer ? null : selectedGoal?.name || null,
+        plannerGoalId: isTransfer ? null : selectedPlannerGoalId || null,
+        // The account is stored in both fields: accountId is what the chat and transfers use, bankId the legacy one.
+        accountId: selectedBankId && UUID_RE.test(selectedBankId) ? selectedBankId : null,
         bankId: selectedBankId || null,
-        paymentMethod: selectedBankId ? paymentMethod : null,
-        ignored: isIgnored,
+        paymentMethod: selectedBankId || isTransfer ? paymentMethod : 'cash',
+        ignored: isTransfer ? true : isIgnored,
+        isTransfer,
         // Investment type (if category is Investments)
         investmentType: isInvestmentCategory ? investmentType : null,
         metadata: updatedMetadata
@@ -328,31 +376,49 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Type Toggle */}
+                  {/* Type toggle: the labels become direction labels for a transfer */}
                   <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setType('expense')}
-                      className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                        type === 'expense'
-                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      {t('transactionForm.expense')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setType('income')}
-                      className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                        type === 'income'
-                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      {t('transactionForm.income')}
-                    </button>
+                    {['expense', 'income'].map((kind) => (
+                      <button
+                        key={kind}
+                        type="button"
+                        onClick={() => changeType(kind)}
+                        className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                          type === kind
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        {isTransfer
+                          ? kind === 'expense' ? (language === 'pt' ? 'Saída' : 'Outgoing') : (language === 'pt' ? 'Entrada' : 'Incoming')
+                          : kind === 'expense' ? t('transactionForm.expense') : t('transactionForm.income')}
+                      </button>
+                    ))}
                   </div>
+
+                  {/* Transfer between the user's own accounts */}
+                  <button
+                    type="button"
+                    onClick={() => toggleTransfer(!isTransfer)}
+                    aria-pressed={isTransfer}
+                    className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-all ${
+                      isTransfer ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className={`block text-sm font-medium ${isTransfer ? 'text-violet-700 dark:text-violet-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                        🔁 {language === 'pt' ? 'Transferência entre minhas contas' : 'Transfer between my accounts'}
+                      </span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">
+                        {language === 'pt'
+                          ? 'Fica fora das receitas e despesas e é ligada ao outro lado, se já estiver registrado.'
+                          : 'Left out of income and expenses and linked to the other side, if already recorded.'}
+                      </span>
+                    </span>
+                    <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-1.5 transition-colors ${isTransfer ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                      <span className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${isTransfer ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </span>
+                  </button>
 
                   {/* Row 1: Amount + Date */}
                   <div className="grid grid-cols-2 gap-4">
@@ -402,7 +468,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       />
                     </div>
 
-                    {/* Category */}
+                    {/* Category (not for transfers) */}
+                    {!isTransfer && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('transactionForm.category')}
@@ -434,10 +501,11 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         })()}
                       </select>
                     </div>
+                    )}
                   </div>
 
                   {/* Investment Type (only shown when category is Investments) */}
-                  {(category === 'Investments' || category === 'Investimentos') && (
+                  {!isTransfer && (category === 'Investments' || category === 'Investimentos') && (
                     <>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -668,9 +736,10 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           setSelectedBankId(newBankId);
                           if (newBankId) {
                             const bank = findUserBank(newBankId);
-                            setPaymentMethod(bank?.hasCredit ? 'credit' : 'debit');
+                            const preferred = type === 'income' || isTransfer ? 'pix' : bank?.hasCredit ? 'credit' : 'debit';
+                            setPaymentMethod((prev) => (methodsFor(type, isTransfer).includes(prev) && prev !== 'cash' ? prev : preferred));
                           } else {
-                            setPaymentMethod('credit');
+                            setPaymentMethod('cash');
                           }
                         }}
                         className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
@@ -684,7 +753,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           backgroundSize: '20px'
                         }}
                       >
-                        <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
+                        <option value="cash">{language === 'pt' ? '💵 Sem conta (dinheiro)' : '💵 No account (cash)'}</option>
                         {userBanks.map((userBank) => {
                           const bankInfo = getBankInfo(userBank.bankId);
                           const displayName = getBankDisplayName(userBank);
@@ -701,9 +770,10 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     <div className="flex flex-col justify-end">
                       <button
                         type="button"
-                        onClick={() => setIsIgnored(!isIgnored)}
+                        onClick={() => !isTransfer && setIsIgnored(!isIgnored)}
+                        disabled={isTransfer}
                         className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                          isIgnored
+                          (isIgnored || isTransfer)
                             ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
                             : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
@@ -727,38 +797,31 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     </div>
                   </div>
 
-                  {/* Payment Method Selector */}
-                  {selectedBankId && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
-                      </label>
-                      <div className="flex gap-2">
-                        {[
-                          { value: 'credit', labelPt: 'Crédito', labelEn: 'Credit' },
-                          { value: 'debit', labelPt: 'Débito', labelEn: 'Debit' },
-                          { value: 'pix', labelPt: 'PIX', labelEn: 'PIX' },
-                          { value: 'transfer', labelPt: 'Transferência', labelEn: 'Transfer' },
-                        ].map((method) => (
-                          <button
-                            key={method.value}
-                            type="button"
-                            onClick={() => setPaymentMethod(method.value)}
-                            className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${
-                              paymentMethod === method.value
-                                ? 'border-gray-900 dark:border-gray-300 bg-gray-900 dark:bg-gray-300 text-white dark:text-gray-900'
-                                : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
-                            }`}
-                          >
-                            {language === 'pt' ? method.labelPt : method.labelEn}
-                          </button>
-                        ))}
-                      </div>
+                  {/* Payment method: the options depend on the kind of entry */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {language === 'pt' ? 'Forma de pagamento' : 'Payment method'}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {methodsFor(type, isTransfer).map((method) => (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => setPaymentMethod(method)}
+                          className={`min-w-[5.5rem] flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${
+                            paymentMethod === method
+                              ? 'border-gray-900 dark:border-gray-300 bg-gray-900 dark:bg-gray-300 text-white dark:text-gray-900'
+                              : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
+                          }`}
+                        >
+                          {METHOD_LABEL[method][language === 'pt' ? 'pt' : 'en']}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
 
                   {/* Link to Goal */}
-                  {availableGoals.length > 0 && (
+                  {!isTransfer && availableGoals.length > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {t('goals.linkToGoal')}
@@ -786,7 +849,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   )}
 
                   {/* Planner goal link (only shown when category is Investments and type is expense) */}
-                  {(type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
+                  {(!isTransfer && type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         {language === 'pt' ? 'Objetivo do planner' : 'Planner objective'}

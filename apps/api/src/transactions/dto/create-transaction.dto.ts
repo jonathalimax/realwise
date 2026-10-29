@@ -73,6 +73,11 @@ export class CreateTransactionDto {
   @IsBoolean()
   ignored?: boolean;
 
+  /** Money moving between the user's own accounts: left out of income/expense totals and linked to the other side. */
+  @IsOptional()
+  @IsBoolean()
+  isTransfer?: boolean;
+
   @IsOptional()
   @IsString()
   goalId?: string;
