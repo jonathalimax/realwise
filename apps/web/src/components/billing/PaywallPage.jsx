@@ -6,7 +6,7 @@ import { logoutAndRedirect } from '../../lib/auth/logout';
 import { formatMoney, getBillingCopy, resolveBillingLanguage } from './billingCopy';
 
 const DARK_MODE_STORAGE_KEY = 'realwise:darkMode';
-const PLAN_ORDER = ['monthly', 'annual'];
+const PLAN_ORDER = ['annual', 'monthly'];
 
 // SettingsProvider (which normally applies the theme) is not mounted while the app is blocked.
 function useStoredTheme() {
@@ -59,6 +59,9 @@ function PlanOption({ plan, copy, selected, disabled, onSelect }) {
             {copy.paywall.perMonthEquivalent(formatMoney(Math.round(plan.amount / 12), plan.currency, copy.locale))}
           </span>
         )}
+        <span className="mt-0.5 block text-xs font-semibold text-violet-600 dark:text-violet-300">
+          {copy.paywall.perDayEquivalent(formatMoney(Math.round(plan.amount / (isAnnual ? 365 : 30)), plan.currency, copy.locale))}
+        </span>
       </span>
     </label>
   );

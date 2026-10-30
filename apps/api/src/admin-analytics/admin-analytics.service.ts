@@ -22,8 +22,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const TZ = sql.raw(`'${ADMIN_TZ}'`);
 
 /**
- * List prices in BRL cents used for MRR. They mirror the Stripe prices (R$ 8,99 / month and
- * R$ 74,90 / year); override with ADMIN_PRICE_MONTHLY_CENTS / ADMIN_PRICE_ANNUAL_CENTS if Stripe changes.
+ * List prices in BRL cents used for MRR. They mirror the current Stripe prices (R$ 12,90 / month and
+ * R$ 106,90 / year); override with ADMIN_PRICE_MONTHLY_CENTS / ADMIN_PRICE_ANNUAL_CENTS if Stripe changes.
  * They are only the fallback: each subscription's real amount (after coupons) is stored when it is synced from Stripe,
  * and MRR is built from that. The list prices also give the "without discounts" figure.
  */
@@ -32,7 +32,7 @@ function priceCents(): { monthly: number; annual: number } {
     const n = Number(process.env[name]);
     return Number.isFinite(n) && n > 0 ? n : def;
   };
-  return { monthly: read('ADMIN_PRICE_MONTHLY_CENTS', 899), annual: read('ADMIN_PRICE_ANNUAL_CENTS', 7490) };
+  return { monthly: read('ADMIN_PRICE_MONTHLY_CENTS', 1290), annual: read('ADMIN_PRICE_ANNUAL_CENTS', 10690) };
 }
 
 /** Assumptions for the revenue-vs-cost estimate; env vars override them. */

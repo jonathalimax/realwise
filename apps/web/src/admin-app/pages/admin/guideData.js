@@ -1,5 +1,5 @@
 // Central de Ajuda do admin: respostas prontas para suporte e vendas, alinhadas ao produto como ele funciona hoje
-// (assistente Elio no chat, teste grátis de 3 dias sem cartão, assinatura mensal/anual pelo Stripe).
+// (assistente Elio no chat, teste grátis de 7 dias sem cartão, assinatura mensal/anual pelo Stripe).
 export const guideData = [
   {
     id: 'o-que-e',
@@ -40,7 +40,7 @@ export const guideData = [
       {
         id: 'teste-gratis',
         title: 'Tem teste grátis?',
-        content: 'Sim. São 3 dias grátis com tudo liberado, sem cadastrar cartão e sem pagar nada. Só depois do teste, se quiser continuar, a pessoa escolhe um plano. Se não assinar, o acesso fica pausado e os dados continuam guardados.',
+        content: 'Sim. São 7 dias grátis com tudo liberado, sem cadastrar cartão e sem pagar nada. Só depois do teste, se quiser continuar, a pessoa escolhe um plano. Se não assinar, o acesso fica pausado e os dados continuam guardados.',
         channels: ['whatsapp', 'email'],
       },
       {
@@ -135,7 +135,7 @@ export const guideData = [
       {
         id: 'passo-cadastro',
         title: 'Passo 1: criar a conta',
-        content: 'Na página inicial, "Começar grátis" leva ao login. Não precisa de cartão. O teste de 3 dias começa no primeiro acesso.',
+        content: 'Na página inicial, "Começar grátis" leva ao login. Não precisa de cartão. O teste de 7 dias começa no primeiro acesso.',
       },
       {
         id: 'passo-entrevista',
@@ -194,12 +194,12 @@ export const guideData = [
       {
         id: 'msg-apresentacao',
         title: 'Apresentação inicial',
-        content: 'Oi! O Realwise é um assistente financeiro com IA, o Elio. Você conta seus objetivos, manda seus extratos e faturas (ou fala com ele pelo microfone) e ele organiza tudo e monta o seu plano. Dá para testar 3 dias grátis, sem cartão: realwise.com.br',
+        content: 'Oi! O Realwise é um assistente financeiro com IA, o Elio. Você conta seus objetivos, manda seus extratos e faturas (ou fala com ele pelo microfone) e ele organiza tudo e monta o seu plano. Dá para testar 7 dias grátis, sem cartão: realwise.com.br',
       },
       {
         id: 'msg-preco',
         title: 'Resposta sobre preço',
-        content: 'Você testa 3 dias grátis, sem cartão. Depois, se quiser continuar, são R$ 8,99 por mês ou R$ 74,90 por ano (mais de 30% de desconto). Cancela quando quiser, direto no app.',
+        content: 'Você testa 7 dias grátis, sem cartão. Depois, se quiser continuar, são R$ 12,90 por mês ou R$ 106,90 por ano (mais de 30% de desconto). Cancela quando quiser, direto no app.',
       },
       {
         id: 'msg-seguranca',

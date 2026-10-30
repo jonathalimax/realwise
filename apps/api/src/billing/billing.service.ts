@@ -45,11 +45,20 @@ export function priceIdForPlan(plan: BillingPlan): string | null {
   return value?.trim() || null;
 }
 
-/** Maps a Stripe price id back to our plan; unknown prices yield `null`. */
+/** Price ids kept on purpose for subscribers who joined at an older price (comma separated in the env var). */
+function legacyPriceIds(plan: BillingPlan): string[] {
+  const raw = plan === 'monthly' ? process.env.STRIPE_PRICE_MONTHLY_LEGACY : process.env.STRIPE_PRICE_ANNUAL_LEGACY;
+  return (raw ?? '').split(',').map((v) => v.trim()).filter(Boolean);
+}
+
+/**
+ * Maps a Stripe price id back to our plan; unknown prices yield `null`. Besides the price new checkouts use, the
+ * *_LEGACY ids are accepted so a price change never leaves existing subscribers without a plan.
+ */
 export function planForPriceId(priceId: string | null | undefined): BillingPlan | null {
   if (!priceId) return null;
-  if (priceId === priceIdForPlan('monthly')) return 'monthly';
-  if (priceId === priceIdForPlan('annual')) return 'annual';
+  if (priceId === priceIdForPlan('monthly') || legacyPriceIds('monthly').includes(priceId)) return 'monthly';
+  if (priceId === priceIdForPlan('annual') || legacyPriceIds('annual').includes(priceId)) return 'annual';
   return null;
 }
 
@@ -88,7 +97,8 @@ export class BillingService {
       const current = plans.find((p) => p.plan === access.plan);
       return {
         ...base,
-        amountCents: current?.amount ?? null,
+        // What this subscriber really pays (their own price, after any coupon), not today's list price.
+        amountCents: user.subscriptionAmountCents ?? current?.amount ?? null,
         currency: current?.currency ?? null,
         nextPlanOptions: hasLiveSubscription(user) ? plans.filter((p) => p.plan !== access.plan) : [],
       };

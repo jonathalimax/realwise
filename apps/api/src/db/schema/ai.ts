@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, integer, bigint, timestamp, jsonb, text, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, integer, bigint, boolean, timestamp, jsonb, text, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 /** One row per LLM request: usage, cost estimate and failures. Drives the per-user monthly budget. */
@@ -16,6 +16,8 @@ export const llmCallLog = pgTable(
     latencyMs: integer('latency_ms').default(0).notNull(),
     costMicroCents: bigint('cost_micro_cents', { mode: 'number' }).default(0).notNull(),
     error: text('error'),
+    /** The call belonged to a chat turn with attached statements/invoices (the first import is free of the trial cap). */
+    statement: boolean('statement').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({ byUserMonth: index('llm_call_log_user_created_idx').on(t.userId, t.createdAt) }),
