@@ -793,25 +793,6 @@ export default function ChatPage() {
           />
         ))}
 
-        {!live && !sending && quickChips.length > 0 && (
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 pl-1 pr-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={pt ? 'Respostas rápidas' : 'Quick replies'}>
-            {quickChips.map((chip, i) => (
-              <button
-                key={chip.value}
-                type="button"
-                onClick={() => submit(chip.label)}
-                className={`shrink-0 snap-start whitespace-nowrap rounded-full border font-semibold transition-colors ${
-                  i === quickChips.length - 1
-                    ? 'border-gray-200 dark:border-gray-700 px-2.5 py-1 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    : 'border-violet-300 dark:border-violet-700 px-3.5 py-2 text-sm text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
-                }`}
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
-        )}
-
         {live && (
           <LiveBubble
             target={live.text}
@@ -865,6 +846,24 @@ export default function ChatPage() {
               </span>
               {pt ? 'Ouvindo em português… toque no microfone para parar.' : 'Listening… tap the microphone to stop.'}
             </p>
+          )}
+          {!live && !sending && quickChips.length > 0 && (
+            <div className="mb-2 flex flex-nowrap gap-2 overflow-x-auto pb-1 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={pt ? 'Respostas rápidas' : 'Quick replies'}>
+              {quickChips.map((chip, i) => (
+                <button
+                  key={chip.value}
+                  type="button"
+                  onClick={() => submit(chip.label)}
+                  className={`shrink-0 snap-start whitespace-nowrap rounded-full border font-semibold transition-colors ${
+                    i === quickChips.length - 1
+                      ? 'border-gray-200 dark:border-gray-700 px-2.5 py-1 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      : 'border-violet-300 dark:border-violet-700 px-3.5 py-2 text-sm text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
           )}
           <div className="flex items-end gap-2 rounded-2xl bg-white dark:bg-gray-800 shadow-lg p-2">
             {/* A <label> around the input opens the picker in every browser (hidden-input .click() is unreliable on iOS and in-app browsers). No `accept` filter: some mobile pickers grey out unusual extensions; unsupported files are rejected below with a clear message. */}
