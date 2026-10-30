@@ -151,7 +151,7 @@ export class ChatService {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const result = await this.llm.generate(
         // Reading statements needs the strong model; everything else (questions, edits, answers) runs on the cheap one.
-        { purpose: 'chat', tier: pendingFiles.length ? 'strong' : 'light', messages, tools: CHAT_TOOLS, maxTokens: 16000 },
+        { purpose: 'chat', tier: pendingFiles.length ? 'strong' : 'light', messages, tools: CHAT_TOOLS, maxTokens: 16000, statement: pendingFiles.length > 0 },
         scope,
         onEvent ? (text) => onEvent({ type: 'delta', text }) : undefined,
       );

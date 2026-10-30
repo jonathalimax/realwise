@@ -291,7 +291,7 @@ export class NotificationsService {
       trial_expired: {
         subject: 'Seu teste acabou, mas seus dados estão guardados',
         title: 'Seu teste terminou',
-        body: p('Seus dados continuam guardados. Para voltar a usar o Elio, escolha um plano a partir de R$ 8,99 por mês. Cancele quando quiser.'),
+        body: p('Seus dados continuam guardados. Para voltar a usar o Elio, escolha um plano a partir de R$ 12,90 por mês. Cancele quando quiser.'),
         cta: 'Ver planos',
         url: `${web}/`,
       },
