@@ -14,6 +14,7 @@ export const DEFAULT_RULE_MAPPING = {
   'Housing': 'needs', 'Moradia': 'needs',
   'Bills': 'needs', 'Contas': 'needs',
   'Food': 'needs', 'Alimentação': 'needs',
+  'Groceries': 'needs', 'Mercado': 'needs',
   'Healthcare': 'needs', 'Saúde': 'needs',
   'Vehicle': 'needs', 'Veículo': 'needs',
   'Taxes': 'needs', 'Impostos': 'needs',

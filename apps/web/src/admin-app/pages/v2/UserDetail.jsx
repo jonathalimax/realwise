@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Ban, CalendarClock, Clock, Crown, Play, Save, Trash2 } from 'lucide-react';
 import { usersResource } from '../../lib/api/resources/users';
+import { summaryResource } from '../../lib/api/resources/summary';
 import { friendlyError } from '../../lib/api/errors';
 import { useAsync } from '../../lib/useAsync';
 import { dateTime, date, num, usd, ms } from '../../lib/format';
@@ -73,6 +74,31 @@ function GrantUntilDialog({ open, onClose, onSubmit }) {
       </Field>
       {!valid && <InlineMessage tone="warning">Escolha uma data futura.</InlineMessage>}
     </ConfirmDialog>
+  );
+}
+
+function SummaryPreview({ userId, notify }) {
+  const [busy, setBusy] = useState('');
+  const run = async (send) => {
+    setBusy(send ? 'send' : 'open');
+    try {
+      const out = await summaryResource.preview({ userId, kind: 'on_demand', which: 'last', send });
+      if (send) notify(out.sentTo ? `Resumo enviado para ${out.sentTo}.` : 'Erro: não encontrei o seu e-mail de admin.');
+      else window.open(out.url, '_blank', 'noopener');
+    } catch (e) {
+      notify(`Erro: ${friendlyError(e)}`);
+    } finally {
+      setBusy('');
+    }
+  };
+  return (
+    <Card title="Resumo financeiro">
+      <p className="text-xs text-gray-400 mb-3">Gera o resumo do último mês deste usuário para você conferir. O e-mail vai sempre para o seu endereço, nunca para o do usuário.</p>
+      <div className="flex gap-2">
+        <Button size="sm" className="flex-1" loading={busy === 'open'} onClick={() => run(false)}>Abrir prévia</Button>
+        <Button size="sm" className="flex-1" loading={busy === 'send'} onClick={() => run(true)}>Enviar para mim</Button>
+      </div>
+    </Card>
   );
 }
 
@@ -295,6 +321,8 @@ function Detail({ user: u, reload, notify }) {
               <Row label="Assinatura Stripe"><span className="font-mono text-xs">{pick(sub, 'stripeSubscriptionId', 'subscriptionId')}</span></Row>
             </dl>
           </Card>
+
+          <SummaryPreview userId={u.id} notify={notify} />
 
           <Card title="Zona de risco">
             <p className="text-xs text-gray-400 mb-3">Excluir apaga a conta e todos os dados do usuário, e cancela a assinatura. Não há como desfazer.</p>
