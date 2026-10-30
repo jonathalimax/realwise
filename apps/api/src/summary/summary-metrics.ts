@@ -47,7 +47,7 @@ export function addMonths(month: string, delta: number): string {
 }
 
 /** Whole reais, Brazilian grouping: "R$ 1.520". */
-export const reais = (n: number) => `R$ ${Math.round(n).toLocaleString('pt-BR')}`;
+export const reais = (n: number) => `R$\u00A0${Math.round(n).toLocaleString('pt-BR')}`;
 
 /**
  * The month a card purchase is paid, from the card's closing and payment days. Same rule as the web's

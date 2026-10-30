@@ -8,8 +8,8 @@ import { shareSummaryCard } from './shareCard';
  * summary payload the API computed; this file only lays it out. Dark and phone-first, one number per row.
  */
 
-const reais = (n) => `R$ ${Math.round(Math.abs(n)).toLocaleString('pt-BR')}`;
-const short = (n) => (Math.abs(n) >= 10000 ? `R$ ${(Math.abs(n) / 1000).toFixed(1).replace('.', ',').replace(/,0$/, '')} mil` : reais(n));
+const reais = (n) => `R$\u00A0${Math.round(Math.abs(n)).toLocaleString('pt-BR')}`;
+const short = (n) => (Math.abs(n) >= 10000 ? `R$\u00A0${(Math.abs(n) / 1000).toFixed(1).replace('.', ',').replace(/,0$/, '')} mil` : reais(n));
 
 const SEGMENT = { slate: '#475569', violet: '#8b5cf6', sky: '#38bdf8', pink: '#f472b6', amber: '#f59e0b', saved: '#10b981', left: '#a7f3d0' };
 const CATEGORY_DOTS = ['#475569', '#8b5cf6', '#38bdf8', '#f472b6', '#f59e0b'];
@@ -189,15 +189,15 @@ function Trend({ s }) {
 function Budget({ s }) {
   if (!s.budget) return null;
   const dot = { needs: '#60a5fa', wants: '#f472b6', savings: '#5eead4' };
-  const phrase = (b) => (b.state === 'left' ? `Sobraram ${reais(b.amount)}` : b.state === 'over' ? `Passou ${reais(b.amount)}` : b.state === 'goal' ? 'Meta batida' : `Faltam ${reais(b.amount)}`);
+  const phrase = (b) => (b.state === 'left' ? `Sobrou ${reais(b.amount)}` : b.state === 'over' ? `Passou ${reais(b.amount)}` : b.state === 'goal' ? 'Meta batida' : `Faltam ${reais(b.amount)}`);
   const bar = (b) => (b.state === 'over' ? '#fb7185' : b.state === 'goal' ? dot.savings : b.usedPct >= 85 && b.key !== 'savings' ? '#fbbf24' : dot[b.key]);
   return (
     <Card title="Seu orçamento">
       {s.budget.map((b) => (
         <div key={b.key}>
           <div className="flex items-baseline justify-between gap-2.5">
-            <span className="flex items-center gap-2.5 text-lg"><span className="h-3 w-3 rounded-full" style={{ background: dot[b.key] }} />{b.label}</span>
-            <span className={`text-lg font-extrabold ${b.state === 'over' ? 'text-rose-400' : b.state === 'goal' ? 'text-teal-300' : 'text-white'}`}>{phrase(b)}</span>
+            <span className="flex min-w-0 items-center gap-2.5 text-lg"><span className="h-3 w-3 shrink-0 rounded-full" style={{ background: dot[b.key] }} /><span className="truncate">{b.label}</span></span>
+            <span className={`shrink-0 whitespace-nowrap text-lg font-extrabold ${b.state === 'over' ? 'text-rose-400' : b.state === 'goal' ? 'text-teal-300' : 'text-white'}`}>{phrase(b)}</span>
           </div>
           <div className="mt-2.5 h-3 overflow-hidden rounded-full bg-[#1f2937]">
             <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(b.usedPct > 0 ? 2 : 0, b.usedPct))}%`, background: bar(b) }} />
