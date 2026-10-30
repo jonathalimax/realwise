@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  BookOpen, Bot, LayoutDashboard, LifeBuoy, LogOut, Mail, Megaphone,
+  BookOpen, Bot, Bug, LayoutDashboard, LifeBuoy, LogOut, Mail, Megaphone,
   Menu, ScrollText, Ticket, ShieldCheck, Target, Users, X,
 } from 'lucide-react';
 import { supportResource } from '../lib/api/resources/support';
@@ -37,6 +37,7 @@ const GROUPS = [
   {
     label: 'Operação',
     items: [
+      { to: 'errors', label: 'Erros', icon: Bug },
       { to: 'audit', label: 'Auditoria', icon: ShieldCheck },
       { to: 'guia', label: 'Guia', icon: BookOpen },
     ],
