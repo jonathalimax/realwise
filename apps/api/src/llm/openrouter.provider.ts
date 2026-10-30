@@ -81,8 +81,13 @@ interface SseChunk {
 interface Usage {
   prompt_tokens?: number;
   completion_tokens?: number;
+  /** Credits charged for the call, in USD. */
+  cost?: number;
   prompt_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
 }
+
+/** The provider's reported cost, or undefined when missing or not a sane number (then the estimate is used). */
+const validCost = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined);
 
 @Injectable()
 export class OpenRouterProvider implements LlmProvider {
@@ -104,6 +109,8 @@ export class OpenRouterProvider implements LlmProvider {
       tools: req.tools?.length
         ? req.tools.map((t) => ({ type: 'function', function: { ...t, parameters: simplifySchema(t.parameters) } }))
         : undefined,
+      // Ask for the real billed cost in the response, so the admin's AI cost matches the OpenRouter invoice.
+      usage: { include: true },
       max_tokens: req.maxTokens ?? 4096,
       temperature: req.temperature ?? 0.2,
       // Financial documents: no upstream retention or training, same policy as the RealWise chat gateway.
@@ -153,6 +160,7 @@ export class OpenRouterProvider implements LlmProvider {
       outputTokens: data.usage?.completion_tokens ?? 0,
       cachedInputTokens: data.usage?.prompt_tokens_details?.cached_tokens ?? 0,
       cacheWriteTokens: data.usage?.prompt_tokens_details?.cache_write_tokens ?? 0,
+      costUsd: validCost(data.usage?.cost),
       latencyMs: Date.now() - start,
     };
   }
@@ -170,6 +178,7 @@ export class OpenRouterProvider implements LlmProvider {
     let outputTokens = 0;
     let cachedInputTokens = 0;
     let cacheWriteTokens = 0;
+    let costUsd: number | undefined;
     // Tool calls arrive as fragments keyed by index: id/name once, arguments in many small pieces.
     const calls = new Map<number, LlmToolCall>();
 
@@ -180,6 +189,7 @@ export class OpenRouterProvider implements LlmProvider {
         outputTokens = chunk.usage.completion_tokens ?? outputTokens;
         cachedInputTokens = chunk.usage.prompt_tokens_details?.cached_tokens ?? cachedInputTokens;
         cacheWriteTokens = chunk.usage.prompt_tokens_details?.cache_write_tokens ?? cacheWriteTokens;
+        costUsd = validCost(chunk.usage.cost) ?? costUsd;
       }
       const delta = chunk.choices?.[0]?.delta;
       if (!delta) return;
@@ -229,6 +239,7 @@ export class OpenRouterProvider implements LlmProvider {
       outputTokens,
       cachedInputTokens,
       cacheWriteTokens,
+      costUsd,
       latencyMs: Date.now() - start,
     };
   }

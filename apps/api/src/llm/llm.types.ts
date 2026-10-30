@@ -52,6 +52,8 @@ export interface LlmResult {
   cachedInputTokens?: number;
   /** Part of inputTokens written to the prompt cache (billed at a premium). */
   cacheWriteTokens?: number;
+  /** What the provider actually charged for this call (USD), when it reports it. Preferred over our estimate. */
+  costUsd?: number;
   latencyMs: number;
 }
 
