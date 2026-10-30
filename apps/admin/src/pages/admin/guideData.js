@@ -46,7 +46,7 @@ export const guideData = [
       {
         id: 'quanto-custa',
         title: 'Quanto custa depois do teste?',
-        content: 'Dois planos, cobrados pelo Stripe:\n• Mensal: R$ 8,99 por mês\n• Anual: R$ 74,90 por ano (equivale a cerca de R$ 6,24 por mês, mais de 30% de desconto)\n\nOs valores podem mudar: confirme sempre na tela de assinatura do app.',
+        content: 'Dois planos, cobrados pelo Stripe:\n• Mensal: R$ 12,90 por mês\n• Anual: R$ 106,90 por ano (equivale a cerca de R$ 8,91 por mês, mais de 30% de desconto)\n\nQuem assinou antes da mudança de preço continua pagando o valor antigo. Os valores podem mudar: confirme sempre na tela de assinatura do app.',
         channels: ['whatsapp', 'email'],
       },
       {
