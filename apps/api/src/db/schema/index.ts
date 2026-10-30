@@ -25,3 +25,4 @@ export * from './reminder-emails';
 export * from './admin-v2';
 export * from './bill-suggestions';
 export * from './user-memories';
+export * from './error-events';
