@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock, CreditCard, ExternalLink, RefreshCw, TriangleAlert, UserMinus, Users } from 'lucide-react';
+import { CalendarClock, CheckCircle2, CreditCard, ExternalLink, RefreshCw, TriangleAlert, UserMinus, Users } from 'lucide-react';
 import { subscriptionsResource } from '../../lib/api/resources/subscriptions';
 import { friendlyError } from '../../lib/api/errors';
 import { useAsync } from '../../lib/useAsync';
@@ -39,6 +39,42 @@ export default function Subscriptions() {
   const [syncing, setSyncing] = useState(null);
   const [toast, setToast] = useState({ message: '', tone: 'success' });
   const state = useAsync(() => subscriptionsResource.list({ filter, q }), `${filter}|${q}`);
+  const { reload } = state;
+  const health = useAsync(() => subscriptionsResource.webhookHealth(), 'webhook-health');
+  const [job, setJob] = useState(null);
+
+  // Pick up a catch-up that is already running (e.g. after a page reload).
+  useEffect(() => {
+    let alive = true;
+    subscriptionsResource.syncAllStatus().then((s) => { if (alive && s.running) setJob(s); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  // While it runs, ask for progress every 1.5 s; when it ends, report and refresh the list.
+  useEffect(() => {
+    if (!job?.running) return undefined;
+    const timer = setTimeout(async () => {
+      try {
+        const s = await subscriptionsResource.syncAllStatus();
+        setJob(s);
+        if (!s.running) {
+          setToast({ message: `Pronto: ${s.done} conferidos, ${s.updated} atualizados${s.failed ? `, ${s.failed} com erro` : ''}.`, tone: s.failed ? 'warning' : 'success' });
+          reload(true);
+        }
+      } catch {
+        setJob(null);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [job, reload]);
+
+  async function startSyncAll() {
+    try {
+      setJob(await subscriptionsResource.startSyncAll());
+    } catch (e) {
+      setToast({ message: friendlyError(e), tone: 'error' });
+    }
+  }
 
   async function sync(row) {
     setSyncing(row.userId);
@@ -55,7 +91,27 @@ export default function Subscriptions() {
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
-      <PageHeader title="Assinaturas" subtitle="Todas as assinaturas do Stripe: situação, plano, valor e renovação" />
+      <PageHeader
+        title="Assinaturas"
+        subtitle="Todas as assinaturas do Stripe: situação, plano, valor e renovação"
+        actions={
+          <Button icon={RefreshCw} loading={Boolean(job?.running)} onClick={startSyncAll} title="Relê do Stripe a assinatura de todos os clientes">
+            {job?.running ? `Sincronizando ${job.done}/${job.total}…` : 'Sincronizar todos'}
+          </Button>
+        }
+      />
+
+      {health.data && !health.data.ok && (
+        <div className="rounded-xl border border-red-900 bg-red-950/40 p-4 text-sm text-red-200 space-y-2">
+          <p className="flex items-center gap-2 font-semibold text-red-100"><TriangleAlert className="w-4 h-4" /> O webhook do Stripe não está configurado direito</p>
+          <p>Sem ele, pagamentos, renovações e cancelamentos feitos no Stripe não chegam ao app.</p>
+          <ul className="list-disc pl-5 space-y-1">{health.data.problems.map((p) => <li key={p} className="break-words">{p}</li>)}</ul>
+          <p className="text-red-300">No Stripe (Developers → Webhooks), o endpoint deve ser <code className="rounded bg-red-950 px-1.5 py-0.5 text-red-100">{health.data.expectedUrl}</code> e o segredo dele precisa estar em STRIPE_WEBHOOK_SECRET na API.</p>
+        </div>
+      )}
+      {health.data?.ok && (
+        <p className="flex items-center gap-1.5 text-xs text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" /> Webhook do Stripe configurado: {health.data.expectedUrl}</p>
+      )}
 
       <AsyncView state={state}>
         {(data) => (
