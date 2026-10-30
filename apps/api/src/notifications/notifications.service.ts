@@ -401,6 +401,16 @@ export class NotificationsService {
     });
   }
 
+  /** The monthly / trial financial summary. `html` is built by the summary module; this only delivers it. */
+  async sendSummaryEmail(to: string, mail: { subject: string; html: string; unsubscribeUrl: string }): Promise<void> {
+    await this.sendMail({
+      to,
+      subject: mail.subject,
+      html: mail.html,
+      headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>` },
+    });
+  }
+
   /**
    * Heads-up to the team inbox when a subscriber cancels (or their subscription ends), with the context needed to reach
    * out. Replying to the e-mail answers the customer directly. Throws when delivery fails; callers must not let that

@@ -5,7 +5,21 @@ import { Fragment } from 'react';
  * Everything is rendered as React text nodes (never HTML), so model output cannot inject markup.
  */
 
-const INLINE = /(\*\*[^*\n]+?\*\*|__[^_\n]+?__|`[^`\n]+?`)/g;
+// Links are only rendered for our own domain (and the current host in dev): the model's text is untrusted, and a
+// markdown link is the easiest way to smuggle in a look-alike address.
+const LINK = String.raw`\[[^\]\n]+\]\(https:\/\/[^)\s]+\)`;
+const INLINE = new RegExp(String.raw`(\*\*[^*\n]+?\*\*|__[^_\n]+?__|\x60[^\x60\n]+?\x60|${LINK})`, 'g');
+
+function safeHref(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname;
+    const ok = host === 'realwise.com.br' || host.endsWith('.realwise.com.br') || (typeof window !== 'undefined' && host === window.location.hostname);
+    return u.protocol === 'https:' && ok ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
 function inline(text, keyPrefix) {
   return text.split(INLINE).map((part, i) => {
@@ -15,6 +29,16 @@ function inline(text, keyPrefix) {
         <strong key={key} className="font-semibold">
           {part.slice(2, -2)}
         </strong>
+      );
+    }
+    const link = part.match(/^\[([^\]]+)\]\((https:\/\/[^)\s]+)\)$/);
+    if (link) {
+      const href = safeHref(link[2]);
+      if (!href) return <Fragment key={key}>{link[1]}</Fragment>;
+      return (
+        <a key={key} href={href} target="_blank" rel="noopener noreferrer" className="font-semibold text-violet-600 underline underline-offset-2 dark:text-violet-300">
+          {link[1]}
+        </a>
       );
     }
     if (/^`[^`]+`$/.test(part)) {

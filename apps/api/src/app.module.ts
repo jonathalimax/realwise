@@ -1,3 +1,4 @@
+import { SummaryModule } from './summary/summary.module';
 import { ErrorLogModule } from './error-log/error-log.module';
 import { AdminSubscriptionsModule } from './admin-subscriptions/admin-subscriptions.module';
 import { Module } from '@nestjs/common';
@@ -80,6 +81,7 @@ import { ChatModule } from './chat/chat.module';
     AdminCommsModule,
     AdminCouponsModule,
     ErrorLogModule,
+    SummaryModule,
     AdminSubscriptionsModule,
     LandingModule,
     BillActionsModule,

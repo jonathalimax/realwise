@@ -10,9 +10,10 @@ import { ChatCategoriesService } from './chat-categories.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { BillsModule } from '../bills/bills.module';
 import { BillSuggestionsModule } from '../bill-suggestions/bill-suggestions.module';
+import { SummaryModule } from '../summary/summary.module';
 
 @Module({
-  imports: [DrizzleModule, BillsModule, BillSuggestionsModule],
+  imports: [DrizzleModule, BillsModule, BillSuggestionsModule, SummaryModule],
   controllers: [ChatController],
   providers: [ChatService, ChatToolsService, ChatEditService, ChatBillsService, ChatCategoriesService, ChatMemoryService, InsightsService],
 })
