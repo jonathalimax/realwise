@@ -8,6 +8,7 @@ import postgres from 'postgres';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { AppLogger } from './error-log/app-logger';
 dotenv.config();
 
 async function bootstrap() {
@@ -19,7 +20,7 @@ async function bootstrap() {
   const allowedOrigin = process.env.FRONTEND_BASE_URL;
   if (!allowedOrigin) throw new Error('FRONTEND_BASE_URL must be set');
 
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, { rawBody: true, logger: new AppLogger() });
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
   app.enableCors({

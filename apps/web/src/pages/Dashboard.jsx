@@ -11,7 +11,7 @@ import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
 import AskChatBar from '../components/AskChatBar';
 import HomeSummaryCard from '../components/home/HomeSummaryCard';
 import PlanningCard from '../components/home/PlanningCard';
-import BillsMonthCard from '../components/home/BillsMonthCard';
+import OverdueBillsCard from '../components/home/OverdueBillsCard';
 import CategorySpendingCard from '../components/home/CategorySpendingCard';
 import TrendChart from '../components/charts/TrendChart';
 import PageHeader from '../components/PageHeader';
@@ -93,9 +93,9 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         <AskChatBar />
 
-        {/* One column on a phone, in reading order: summary (with Elio's insights), panorama, planning, bills, spending */}
-        {/* On a phone the two column wrappers disappear (display: contents) and `order` gives the reading order; on a wide
-            screen the left column carries summary, panorama and spending, the right one planning and bills. */}
+        {/* One column on a phone, in reading order: balance, late-bill alert, budget, where the money went, panorama.
+            On a phone the two column wrappers disappear (display: contents) and `order` gives that order; on a wide
+            screen the left column carries balance, alert and panorama, the right one budget and spending. */}
         <div className="flex flex-col gap-4 md:gap-6 lg:grid lg:grid-cols-3">
           <div className="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-6">
             <div className="order-1"><HomeSummaryCard
@@ -106,7 +106,8 @@ export default function DashboardPage() {
               onIncomeClick={handleIncomeClick}
               onExpensesClick={handleExpensesClick}
             /></div>
-            <div className="order-2">
+            <div className="order-2"><OverdueBillsCard /></div>
+            <div className="order-5">
               <TrendChart
                 transactions={transactions}
                 selectedMonth={selectedMonth}
@@ -115,12 +116,11 @@ export default function DashboardPage() {
                 rollover={monthlyRollover}
               />
             </div>
-            <div className="order-5"><CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
           </div>
 
           <div className="contents lg:flex lg:flex-col lg:gap-6">
             <div className="order-3"><PlanningCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
-            <div className="order-4"><BillsMonthCard selectedMonth={selectedMonth} /></div>
+            <div className="order-4"><CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
           </div>
         </div>
       </main>

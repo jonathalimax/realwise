@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SparklesIcon } from '@heroicons/react/24/outline';
 import { useSettings } from '../../contexts/SettingsContext';
 import BottomSheet from '../chat/BottomSheet';
 import HomeCard from './HomeCard';
 import useCategorySpending from './useCategorySpending';
 import { CATEGORY_COLORS, OTHERS_COLOR, iconFor } from './categoryMeta';
-import { trimCents } from './format';
+import { compactMoney, trimCents } from './format';
+import { isUncategorized } from './uncategorized';
 
-const TOP_ROWS = 6;
-const STRIP_SEGMENTS = 5;
+const TOP_ROWS = 3;
+const STRIP_SEGMENTS = 3;
+const UNCATEGORIZED_COLOR = '#4B5563';
 
 const AMBER = '#F59E0B';
 const ROSE = '#F43F5E';
@@ -63,23 +66,30 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
   const { language, formatCurrency } = useSettings();
   const navigate = useNavigate();
   const pt = language === 'pt';
-  const { rows, total, totalLimit, spentWithLimit, overCount } = useCategorySpending(transactions, selectedMonth);
+  const { rows, total, overCount } = useCategorySpending(transactions, selectedMonth);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('all'); // all | over | limit | none
 
-  // Colours follow the ranking among categories that have spending, so the strip and the rows always agree.
+  const uncategorizedRow = rows.find((r) => isUncategorized(r.category) && r.hasSpending);
+  const uncategorized = uncategorizedRow?.amount ?? 0;
+  // Real categories only: "no category" is its own grey segment and its own prompt, never a ranked category.
+  const spendingRows = useMemo(() => rows.filter((r) => r.hasSpending && !isUncategorized(r.category)), [rows]);
+
+  // Colours follow the ranking among real categories, so the strip, the list and the sheet always agree.
   const colorOf = useMemo(() => {
     const map = new Map();
-    rows.filter((r) => r.hasSpending).forEach((r, i) => map.set(r.category, CATEGORY_COLORS[i % CATEGORY_COLORS.length]));
-    return (category) => map.get(category) ?? OTHERS_COLOR;
-  }, [rows]);
+    spendingRows.forEach((r, i) => map.set(r.category, CATEGORY_COLORS[i % CATEGORY_COLORS.length]));
+    return (category) => (isUncategorized(category) ? UNCATEGORIZED_COLOR : map.get(category) ?? OTHERS_COLOR);
+  }, [spendingRows]);
 
-  const spendingRows = rows.filter((r) => r.hasSpending);
   const strip = useMemo(() => {
-    const top = spendingRows.slice(0, STRIP_SEGMENTS).map((r) => ({ key: r.category, label: r.category, amount: r.amount, color: colorOf(r.category) }));
-    const rest = spendingRows.slice(STRIP_SEGMENTS).reduce((s, r) => s + r.amount, 0);
-    return rest > 0 ? [...top, { key: '__rest', label: pt ? 'Outras' : 'Others', amount: rest, color: OTHERS_COLOR }] : top;
-  }, [spendingRows, colorOf, pt]);
+    const segs = [];
+    if (uncategorized > 0) segs.push({ key: '__uncategorized', label: pt ? 'Sem categoria' : 'Uncategorized', amount: uncategorized, color: UNCATEGORIZED_COLOR });
+    spendingRows.slice(0, STRIP_SEGMENTS).forEach((r) => segs.push({ key: r.category, label: r.category, amount: r.amount, color: colorOf(r.category) }));
+    const rest = spendingRows.slice(STRIP_SEGMENTS).reduce((sum, r) => sum + r.amount, 0);
+    if (rest > 0) segs.push({ key: '__rest', label: pt ? 'Outras' : 'Others', amount: rest, color: OTHERS_COLOR });
+    return segs;
+  }, [spendingRows, uncategorized, colorOf, pt]);
 
   if (rows.length === 0) return null;
 
@@ -91,7 +101,14 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
     navigate('/expenses');
   };
 
-  const top = rows.filter((r) => r.hasSpending || r.hasLimit).slice(0, TOP_ROWS);
+  const askElioToClassify = () => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const month = new Date(y, m - 1, 1).toLocaleDateString(pt ? 'pt-BR' : 'en-US', { month: 'long' });
+    const text = pt ? `Categorize as minhas despesas sem categoria de ${month}.` : `Categorize my uncategorized expenses from ${month}.`;
+    navigate(`/chat?q=${encodeURIComponent(text)}`);
+  };
+
+  const top = spendingRows.slice(0, TOP_ROWS);
   const filters = [
     { key: 'all', label: pt ? 'Todas' : 'All', test: () => true },
     { key: 'over', label: pt ? `Estouraram (${overCount})` : `Over (${overCount})`, test: (r) => r.over },
@@ -99,43 +116,49 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
     { key: 'none', label: pt ? 'Sem gasto' : 'No spending', test: (r) => !r.hasSpending },
   ];
   const sheetRows = rows.filter(filters.find((f) => f.key === filter).test);
-  const overallPct = totalLimit > 0 ? Math.round((spentWithLimit / totalLimit) * 100) : null;
+  const money = (v) => compactMoney(formatCurrency, v, pt);
 
   return (
     <>
-      <HomeCard
-        title={pt ? 'Gastos' : 'Spending'}
-        subtitle={
-          overallPct !== null
-            ? `${trimCents(formatCurrency(spentWithLimit))} ${pt ? 'de' : 'of'} ${trimCents(formatCurrency(totalLimit))}`
-            : trimCents(formatCurrency(total))
-        }
-        actionLabel={pt ? `Ver todas (${rows.length})` : `All (${rows.length})`}
-        onAction={() => setOpen(true)}
-      >
-        {strip.length > 0 && (
-          <div className="mb-3">
-            <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60" role="img" aria-label={pt ? 'Distribuição dos gastos' : 'Spending distribution'}>
+      <HomeCard title={pt ? 'Onde foi o dinheiro' : 'Where the money went'} actionLabel={pt ? 'Ver tudo' : 'See all'} onAction={() => setOpen(true)}>
+        {total === 0 ? (
+          <p className="text-base text-slate-500 dark:text-slate-400">{pt ? 'Nenhum gasto neste mês.' : 'No spending this month.'}</p>
+        ) : (
+          <>
+            <div className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-full" role="img" aria-label={pt ? 'Distribuição dos gastos' : 'Spending distribution'}>
               {strip.map((seg) => (
-                <div key={seg.key} title={`${seg.label}: ${trimCents(formatCurrency(seg.amount))}`} style={{ width: `${(seg.amount / total) * 100}%`, backgroundColor: seg.color }} className="h-full border-r border-white/60 last:border-r-0 dark:border-slate-800" />
+                <div key={seg.key} title={`${seg.label}: ${money(seg.amount)}`} style={{ width: `${(seg.amount / total) * 100}%`, backgroundColor: seg.color }} className="h-full" />
               ))}
             </div>
-            <div className="mt-2 hidden flex-wrap gap-x-3 gap-y-1 sm:flex">
-              {strip.map((seg) => (
-                <span key={seg.key} className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: seg.color }} />
-                  {seg.label} <span className="tabular-nums text-slate-400">{Math.round((seg.amount / total) * 100)}%</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
 
-        <div className="-mx-2.5 grid grid-cols-1 gap-y-1 lg:grid-cols-2 lg:gap-x-3">
-          {top.map((row) => (
-            <CategoryRow key={row.category} row={row} color={colorOf(row.category)} formatCurrency={formatCurrency} pt={pt} onClick={() => goTo(row.category)} />
-          ))}
-        </div>
+            <ul className="mt-4 space-y-3">
+              {top.map((row) => (
+                <li key={row.category}>
+                  <button onClick={() => goTo(row.category)} className="flex w-full items-baseline justify-between gap-3 text-left">
+                    <span className="flex min-w-0 items-center gap-3 text-xl text-slate-800 dark:text-slate-100">
+                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: colorOf(row.category) }} />
+                      <span className="truncate">{row.category}</span>
+                    </span>
+                    <span className="shrink-0 text-xl font-bold tabular-nums text-slate-900 dark:text-white">{money(row.amount)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            {uncategorized > 0 && (
+              <button
+                onClick={askElioToClassify}
+                className="mt-4 flex w-full items-start gap-3 rounded-2xl bg-violet-50 p-4 text-left text-lg leading-snug text-slate-700 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-slate-200 dark:hover:bg-violet-500/15"
+              >
+                <SparklesIcon className="mt-1 h-5 w-5 shrink-0 text-violet-500 dark:text-violet-300" />
+                <span>
+                  {money(uncategorized)} {pt ? 'estão sem categoria.' : 'have no category.'}{' '}
+                  <strong className="text-violet-600 dark:text-violet-300">{pt ? 'Elio classifica para você' : 'Let Elio sort them'}</strong>
+                </span>
+              </button>
+            )}
+          </>
+        )}
       </HomeCard>
 
       {open && (

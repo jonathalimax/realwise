@@ -17,6 +17,9 @@ const AiSettings = lazy(() => import('../v2/AiSettings'));
 const Audit = lazy(() => import('../v2/Audit'));
 const Leads = lazy(() => import('../v2/Leads'));
 const Coupons = lazy(() => import('../v2/Coupons'));
+const Errors = lazy(() => import('../v2/Errors'));
+const ErrorDetail = lazy(() => import('../v2/ErrorDetail'));
+const Subscriptions = lazy(() => import('../v2/Subscriptions'));
 const GuidePage = lazy(() => import('./GuidePage'));
 
 const PageLoader = () => (
@@ -91,6 +94,9 @@ export default function AdminApp() {
             <Route path="audit" element={<Audit />} />
             <Route path="leads" element={<Leads />} />
             <Route path="coupons" element={<Coupons />} />
+            <Route path="errors" element={<Errors />} />
+            <Route path="errors/:fingerprint" element={<ErrorDetail />} />
+            <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="guia" element={<GuidePage />} />
             <Route path="*" element={<Navigate to="/overview" replace />} />
           </Route>
