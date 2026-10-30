@@ -4,11 +4,12 @@ import { AdminCommonModule } from '../admin-common/admin-common.module';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { BillingModule } from '../billing/billing.module';
 import { DrizzleModule } from '../db/drizzle.module';
+import { SubscriptionSyncService } from './subscription-sync.service';
 import { AdminSubscriptionsController } from './admin-subscriptions.controller';
 
 @Module({
   imports: [BillingModule, DrizzleModule, AdminCommonModule],
   controllers: [AdminSubscriptionsController],
-  providers: [AdminGuard, AdminActorService],
+  providers: [AdminGuard, AdminActorService, SubscriptionSyncService],
 })
 export class AdminSubscriptionsModule {}
