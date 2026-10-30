@@ -109,9 +109,17 @@ export class ChatService {
     if (prepared.length === 0) {
       const scripted = await this.snippets.byTrigger(trimmed);
       if (scripted) {
+        // The goal chips of the welcome are remembered like a goal the user typed, then the next step is offered.
+        if (scripted.key.startsWith('goal_') && scripted.triggerLabel) {
+          await this.memory.add(scope, `Objetivo: ${scripted.triggerLabel}`, 'goal', 'user').catch(() => undefined);
+        }
+        const questions: ChatQuestion[] =
+          scripted.key === 'account_offer'
+            ? [{ id: 'q1', kind: 'account_form', title: 'Cadastre sua primeira conta ou cartão', subtitle: 'O nome do titular me ajuda a reconhecer transferências entre as suas contas.', options: BANKS.map((b) => ({ value: b.id, label: b.name })) }]
+            : [quickQuestion(scripted.quickReplies)];
         const [assistantMessage] = await this.db
           .insert(chatMessages)
-          .values({ ...scope, role: 'assistant', content: scripted.body, questions: [quickQuestion(scripted.quickReplies)] })
+          .values({ ...scope, role: 'assistant', content: scripted.body, questions })
           .returning();
         return { userMessage, assistantMessage };
       }
@@ -199,7 +207,9 @@ export class ChatService {
       }
       // A question sheet ends the turn: the user's answers start the next one.
       if (questions.length) {
-        reply = result.text || 'Preciso de uma ajudinha para continuar:';
+        // The model's own sentence wins; otherwise the question text; the generic line is the last resort.
+        const quickOnly = questions.every((q) => q.kind === 'quick');
+        reply = result.text || (quickOnly ? questions.find((q) => q.title)?.title || 'Escolha uma opção abaixo ou me conte do seu jeito:' : '') || 'Preciso de uma ajudinha para continuar:';
         break;
       }
     }

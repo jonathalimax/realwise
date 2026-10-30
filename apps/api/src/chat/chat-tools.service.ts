@@ -102,7 +102,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form', 'quick'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day). quick shows short tappable chips under your message (2 to 6 options, each under 40 characters, in the user\'s language; the app adds a "Pular" chip itself): use it for every conversational question that has predictable answers.' },
+              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form', 'quick'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day). quick shows short tappable chips above the message box (2 to 6 options, each under 40 characters, in the user\'s language; the app adds a "Pular" chip itself): use it for conversational questions with predictable answers. ALWAYS write your reply as normal text in the same message (react to what the user said, then ask the question): the chips carry only the options. Put the question itself in title.' },
               title: { type: 'string', description: 'Short question, e.g. "Qual conta é essa fatura?"' },
               subtitle: { type: 'string', description: 'What you saw that makes you unsure, e.g. "Final 4821, vence dia 10".' },
               fileName: { type: 'string', description: 'Exact filename this question is about, if any.' },
@@ -592,6 +592,11 @@ export class ChatToolsService {
   private async askUser(args: ToolArgs, ctx: ToolContext): Promise<ToolOutcome> {
     const raw: ToolArgs[] = Array.isArray(args.questions) ? args.questions.slice(0, 8) : [];
     if (raw.length === 0) return { result: { error: 'questions is required.' } };
+    // Chips with nothing to tap are worse than no question: send the model back to fix it instead of showing a bare "Pular".
+    const badQuick = raw.some((q) => q.kind === 'quick' && (!Array.isArray(q.options) || q.options.filter((o: unknown) => String(o ?? '').trim()).length < 2));
+    if (badQuick) {
+      return { result: { error: 'A "quick" question needs 2 to 6 short options. Reply to the user in normal text (a warm sentence plus the question) and call ask_user again with the options, or just ask in plain text.' } };
+    }
     const accs = await this.db
       .select()
       .from(accounts)
@@ -608,7 +613,7 @@ export class ChatToolsService {
         return { ...base, options: BANKS.map((b) => ({ value: b.id, label: b.name })) };
       }
       if (kind === 'quick') {
-        return quickQuestion(Array.isArray(q.options) ? q.options : []);
+        return quickQuestion(Array.isArray(q.options) ? q.options : [], String(q.title ?? ''));
       }
       if (kind === 'payment_method') {
         return { ...base, options: PAYMENT_METHODS.map((m) => ({ value: m, label: labels[m] })) };
