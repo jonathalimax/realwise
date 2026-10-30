@@ -18,9 +18,20 @@ export default function ContactSheet({ onClose }) {
   const [state, setState] = useState('idle'); // idle | sending | sent | error
   const loggedIn = Boolean(user);
 
-  const canSend = message.trim().length >= 5 && (loggedIn || /\S+@\S+\.\S+/.test(email)) && state !== 'sending';
+  const [problem, setProblem] = useState('');
 
+  // The button is never left disabled with no explanation: tapping it says what is missing.
   const send = async () => {
+    if (state === 'sending') return;
+    if (message.trim().length < 5) {
+      setProblem('Escreva um pouco mais para a gente entender como ajudar (mínimo de 5 letras).');
+      return;
+    }
+    if (!loggedIn && !/\S+@\S+\.\S+/.test(email)) {
+      setProblem('Informe um e-mail válido para a gente poder responder.');
+      return;
+    }
+    setProblem('');
     setState('sending');
     try {
       await supportResource.sendMessage({ message: message.trim(), name: name.trim() || undefined, email: email.trim() || undefined });
@@ -31,7 +42,26 @@ export default function ContactSheet({ onClose }) {
   };
 
   return (
-    <BottomSheet title="Fale com a gente" subtitle="Respondemos o mais rápido que conseguimos." onClose={onClose}>
+    <BottomSheet
+      title="Fale com a gente"
+      subtitle="Respondemos o mais rápido que conseguimos."
+      onClose={onClose}
+      footer={
+        state === 'sent' ? undefined : (
+          <div className="space-y-2">
+            {problem && <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{problem}</p>}
+            <button
+              type="button"
+              onClick={send}
+              disabled={state === 'sending'}
+              className="w-full rounded-xl bg-violet-600 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
+            >
+              {state === 'sending' ? 'Enviando…' : 'Enviar mensagem'}
+            </button>
+          </div>
+        )
+      }
+    >
       <div className="grid grid-cols-2 gap-3">
         <a
           href={whatsappUrl(config.whatsapp)}
@@ -71,18 +101,11 @@ export default function ContactSheet({ onClose }) {
               placeholder="Como podemos ajudar?"
               value={message}
               maxLength={4000}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => { setMessage(e.target.value); setProblem(''); }}
             />
             {state === 'error' && (
               <p className="text-sm text-gray-600 dark:text-gray-300">Não consegui enviar agora. Tente de novo ou fale pelo WhatsApp.</p>
             )}
-            <button
-              onClick={send}
-              disabled={!canSend}
-              className="w-full rounded-xl bg-violet-600 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
-            >
-              {state === 'sending' ? 'Enviando…' : 'Enviar mensagem'}
-            </button>
           </div>
         )}
       </div>
