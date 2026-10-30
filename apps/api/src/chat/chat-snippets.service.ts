@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { asc } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -47,7 +47,28 @@ export class ChatSnippetsService {
     return (await this.all()).find((s) => s.triggerLabel && norm(s.triggerLabel) === t) ?? null;
   }
 
-  async keys(): Promise<string[]> {
-    return (await this.all()).map((s) => s.key);
+  /** Everything, uncached, for the admin editor. */
+  async list(): Promise<(Snippet & { sortOrder: number; updatedAt: Date })[]> {
+    const rows = await this.db.select().from(chatSnippets).orderBy(asc(chatSnippets.sortOrder));
+    return rows.map((r) => ({
+      key: r.key,
+      title: r.title,
+      body: r.body,
+      quickReplies: Array.isArray(r.quickReplies) ? r.quickReplies : [],
+      triggerLabel: r.triggerLabel,
+      sortOrder: r.sortOrder,
+      updatedAt: r.updatedAt,
+    }));
+  }
+
+  /** Saves an edit and drops the cache so the chat uses it right away. Returns null when the key does not exist. */
+  async update(key: string, patch: { title: string; body: string; quickReplies: string[]; triggerLabel: string | null }): Promise<boolean> {
+    const rows = await this.db
+      .update(chatSnippets)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(chatSnippets.key, key))
+      .returning({ key: chatSnippets.key });
+    this.cache = null;
+    return rows.length > 0;
   }
 }

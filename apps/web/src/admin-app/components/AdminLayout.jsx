@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   BookOpen, Bot, Bug, CreditCard, LayoutDashboard, LifeBuoy, LogOut, Mail, Megaphone,
-  Menu, ScrollText, Ticket, ShieldCheck, Target, Users, X,
+  Menu, MessageSquareText, ScrollText, Ticket, ShieldCheck, Target, Users, X,
 } from 'lucide-react';
 import { supportResource } from '../lib/api/resources/support';
 
@@ -31,6 +31,7 @@ const GROUPS = [
     label: 'Comunicação',
     items: [
       { to: 'emails', label: 'E-mails', icon: Mail },
+      { to: 'snippets', label: 'Textos do Elio', icon: MessageSquareText },
       { to: 'campaigns', label: 'Campanhas', icon: Megaphone },
       { to: 'coupons', label: 'Códigos promo', icon: Ticket },
     ],
