@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
 const FAQS = [
   {
     q: 'Preciso de cartão ou pagar algo para testar?',
-    a: 'Não. Você usa tudo por 3 dias sem cadastrar cartão e sem pagar nada. Só depois do teste, se quiser continuar, escolhe um plano e paga. Se não assinar, o acesso fica pausado e seus dados continuam guardados.',
+    a: 'Não. Você usa tudo por 7 dias sem cadastrar cartão e sem pagar nada. Só depois do teste, se quiser continuar, escolhe um plano e paga. Se não assinar, o acesso fica pausado e seus dados continuam guardados.',
   },
   {
     q: 'Meus dados estão seguros?',
@@ -14,6 +14,14 @@ const FAQS = [
   {
     q: 'O que o Elio faz por mim?',
     a: 'Ele conversa com você no primeiro acesso para conhecer suas contas, sua renda e seus objetivos, monta o seu plano, lê seus extratos e faturas, lembra de contas a pagar e responde dúvidas com os seus números. Tudo por chat, digitando ou falando.',
+  },
+  {
+    q: 'O que é o resumo do mês?',
+    a: 'Todo começo de mês você recebe por e-mail (e pode pedir ao Elio a qualquer momento) um resumo do mês: uma nota de saúde financeira de 0 a 100, para onde foi cada real, o que subiu ou caiu e o que vale ajustar. Ele abre numa página só sua, feita para o celular.',
+  },
+  {
+    q: 'Quem pode ver o meu resumo?',
+    a: 'Só quem tiver o link, que é único, nunca é público e expira em 30 dias. Se você compartilhar o cartão de conquista, ele mostra apenas porcentagens, nunca valores. E dá para parar de receber o e-mail com um clique.',
   },
   {
     q: 'Posso falar em vez de digitar?',

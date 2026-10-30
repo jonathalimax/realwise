@@ -291,7 +291,7 @@ export class NotificationsService {
       trial_expired: {
         subject: 'Seu teste acabou, mas seus dados estão guardados',
         title: 'Seu teste terminou',
-        body: p('Seus dados continuam guardados. Para voltar a usar o Elio, escolha um plano a partir de R$ 8,99 por mês. Cancele quando quiser.'),
+        body: p('Seus dados continuam guardados. Para voltar a usar o Elio, escolha um plano a partir de R$ 12,90 por mês. Cancele quando quiser.'),
         cta: 'Ver planos',
         url: `${web}/`,
       },
@@ -398,6 +398,16 @@ export class NotificationsService {
         body: `<div style="font-size:14px;color:#1e293b;line-height:1.7;white-space:pre-wrap;">${escape(params.message)}</div>`,
         footerNote: 'Responda este e-mail para falar diretamente com o usuário.',
       }),
+    });
+  }
+
+  /** The monthly / trial financial summary. `html` is built by the summary module; this only delivers it. */
+  async sendSummaryEmail(to: string, mail: { subject: string; html: string; unsubscribeUrl: string }): Promise<void> {
+    await this.sendMail({
+      to,
+      subject: mail.subject,
+      html: mail.html,
+      headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>` },
     });
   }
 

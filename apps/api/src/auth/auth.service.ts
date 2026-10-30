@@ -7,7 +7,7 @@ import { users } from '../db/schema';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 type User = typeof users.$inferSelect;
-const PREMIUM_TRIAL_DAYS = 3;
+const PREMIUM_TRIAL_DAYS = 7;
 
 @Injectable()
 export class AuthService {
