@@ -7,6 +7,7 @@ import * as schema from '../db/schema';
 import { purchases, users } from '../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { planForPriceId } from './billing.service';
+import { notifyCancellation } from './cancellation-alert';
 import { StripeClient } from './stripe-client';
 
 type User = typeof users.$inferSelect;
@@ -124,6 +125,12 @@ export class StripeWebhookService {
     if (unchanged) return user;
 
     await this.db.update(users).set({ ...next, updatedAt: new Date() }).where(eq(users.id, user.id));
+
+    // Compared with what we had stored, so a retried or replayed event never alerts twice.
+    const requestedCancel = !user.subscriptionCancelAtPeriodEnd && next.subscriptionCancelAtPeriodEnd && isLiveStatus(subscription.status);
+    const ended = user.subscriptionStatus !== 'canceled' && subscription.status === 'canceled' && !user.subscriptionCancelAtPeriodEnd;
+    if (requestedCancel) await notifyCancellation(this.notifications, user, subscription, 'requested', plan);
+    else if (ended) await notifyCancellation(this.notifications, user, subscription, 'ended', plan);
     return { ...user, ...next };
   }
 

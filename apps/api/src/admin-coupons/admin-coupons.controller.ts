@@ -4,9 +4,12 @@ import { AdminActorService } from '../admin-comms/admin-actor.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { BillingService } from '../billing/billing.service';
 import { StripeClient } from '../billing/stripe-client';
 
 const CODE_RE = /^[A-Za-z0-9]{3,30}$/;
+/** Smallest amount Stripe will charge in BRL, in centavos. */
+const MIN_CHARGE_CENTS = 50;
 const DURATIONS = ['once', 'forever', 'repeating'] as const;
 
 const view = (p: Stripe.PromotionCode) => ({
@@ -31,6 +34,7 @@ export class AdminCouponsController {
   constructor(
     private readonly stripe: StripeClient,
     private readonly actor: AdminActorService,
+    private readonly billing: BillingService,
   ) {}
 
   @Get()
@@ -62,6 +66,8 @@ export class AdminCouponsController {
       expiresAt = Math.floor(t / 1000);
     }
 
+    await this.assertChargeable(hasPercent ? { percent } : { amountOffCents: Math.round(amount * 100) });
+
     const stripe = this.stripe.get();
     const coupon = await stripe.coupons.create({
       ...(hasPercent ? { percent_off: percent } : { amount_off: Math.round(amount * 100), currency: 'brl' }),
@@ -82,6 +88,31 @@ export class AdminCouponsController {
     } catch (e) {
       await stripe.coupons.del(coupon.id).catch(() => undefined);
       throw new BadRequestException(e instanceof Error ? e.message : 'O Stripe recusou o código (talvez ele já exista).');
+    }
+  }
+
+  /**
+   * Stripe cannot charge less than about R$ 0,50. A discount that leaves a price between R$ 0,01 and that minimum
+   * makes Checkout only validate the card and charge nothing (the subscription still starts), which looks like a
+   * broken payment. Zero is fine (no charge needed); so is anything at or above the minimum.
+   */
+  private async assertChargeable(discount: { percent: number } | { amountOffCents: number }): Promise<void> {
+    let plans: Awaited<ReturnType<BillingService['getPlans']>>;
+    try {
+      plans = await this.billing.getPlans();
+    } catch {
+      return; // prices unavailable: do not block the admin
+    }
+    for (const plan of plans) {
+      const after = 'percent' in discount
+        ? Math.round((plan.amount * (100 - discount.percent)) / 100)
+        : Math.max(0, plan.amount - discount.amountOffCents);
+      if (after > 0 && after < MIN_CHARGE_CENTS) {
+        const label = plan.plan === 'annual' ? 'anual' : 'mensal';
+        throw new BadRequestException(
+          `Com esse desconto o plano ${label} custaria R$ ${(after / 100).toFixed(2).replace('.', ',')}, abaixo do mínimo que o Stripe cobra (R$ 0,50). O cartão seria só validado, sem cobrança. Use um desconto menor ou 100%.`,
+        );
+      }
     }
   }
 

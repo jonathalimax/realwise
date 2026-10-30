@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Optional,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,6 +13,8 @@ import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { users } from '../db/schema';
 import { AccessInfo, BillingPlan, computeAccess, hasLiveSubscription } from './access';
+import { NotificationsService } from '../notifications/notifications.service';
+import { notifyCancellation } from './cancellation-alert';
 import { StripeClient } from './stripe-client';
 
 type User = typeof users.$inferSelect;
@@ -60,6 +63,7 @@ export class BillingService {
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly stripe: StripeClient,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   private async loadUser(userId: string): Promise<User> {
@@ -131,6 +135,39 @@ export class BillingService {
     return this.buildStatus({ ...user, ...next });
   }
 
+  /**
+   * Pulls the user's subscription straight from Stripe and stores it, so access does not depend on the webhook having
+   * arrived (or been configured). `sessionId` is the Checkout session from the success redirect; it is only trusted
+   * when it belongs to this user's Stripe customer. Without it the customer's subscriptions are listed instead.
+   */
+  async syncFromStripe(userId: string, sessionId?: string): Promise<BillingStatus> {
+    const user = await this.loadUser(userId);
+    if (!user.stripeCustomerId) return this.buildStatus(user);
+    const stripe = this.stripe.get();
+
+    let subscription: Stripe.Subscription | null = null;
+    if (sessionId && /^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
+      try {
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+        const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+        if (customerId === user.stripeCustomerId && subscriptionId) subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      } catch {
+        /* unknown session: fall back to the customer's subscriptions */
+      }
+    }
+    if (!subscription) {
+      const list = await stripe.subscriptions.list({ customer: user.stripeCustomerId, status: 'all', limit: 10 });
+      subscription = list.data.find((s) => hasLiveSubscription({ subscriptionStatus: s.status })) ?? list.data[0] ?? null;
+    }
+    if (!subscription) return this.buildStatus(user);
+
+    // An ended subscription must not replace a live one we already have stored.
+    const other = user.stripeSubscriptionId != null && user.stripeSubscriptionId !== subscription.id;
+    if (other && !hasLiveSubscription({ subscriptionStatus: subscription.status })) return this.buildStatus(user);
+    return this.applySubscription(user, subscription);
+  }
+
   async changePlan(userId: string, plan: BillingPlan): Promise<BillingStatus> {
     const user = await this.loadUser(userId);
     const subscription = await this.requireManageableSubscription(user);
@@ -159,7 +196,10 @@ export class BillingService {
     }
 
     const updated = await this.stripe.get().subscriptions.update(subscription.id, { cancel_at_period_end: true });
-    return this.applySubscription(user, updated);
+    const status = await this.applySubscription(user, updated);
+    // Written here first, so the webhook that follows sees no change and stays quiet: alert from this path too.
+    await notifyCancellation(this.notifications, user, updated, 'requested', status.plan);
+    return status;
   }
 
   async resumeSubscription(userId: string): Promise<BillingStatus> {

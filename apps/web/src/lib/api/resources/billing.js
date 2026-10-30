@@ -19,6 +19,10 @@ export function createBillingResource({ client = apiClient } = {}) {
     status() {
       return client.get('/billing/status');
     },
+    /** Asks the server to re-read the subscription from Stripe (used right after Checkout). */
+    sync(sessionId) {
+      return client.post('/billing/sync', sessionId ? { sessionId } : {});
+    },
     changePlan(plan) {
       return client.post('/billing/change-plan', { plan });
     },
