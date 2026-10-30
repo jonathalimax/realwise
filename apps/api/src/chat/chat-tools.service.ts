@@ -1,3 +1,4 @@
+import { SummaryService } from '../summary/summary.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
@@ -154,6 +155,15 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     },
   },
   {
+    name: 'show_summary',
+    description:
+      "Build the user's financial summary page (score, where the money went, trend, what to adjust) and return its private link. Use when the user asks for their summary / resumo / how their month went / how they are doing financially. period: 'this_month' (so far) or 'last_month' (the closed month); default to last_month in the first days of a month, otherwise this_month.",
+    parameters: {
+      type: 'object',
+      properties: { period: { type: 'string', enum: ['last_month', 'this_month'] } },
+    },
+  },
+  {
     name: 'create_account',
     description: 'Create a new account/card when the user confirms a document belongs to one that does not exist yet.',
     parameters: {
@@ -278,6 +288,7 @@ export class ChatToolsService {
     private readonly billsChat: ChatBillsService,
     private readonly cats: ChatCategoriesService,
     private readonly memory: ChatMemoryService,
+    private readonly summaries: SummaryService,
   ) {}
 
   /** Runs a previously previewed update/delete that the user explicitly confirmed. The action comes from the stored message, never from the client. */
@@ -319,6 +330,8 @@ export class ChatToolsService {
           return { result: await this.setMonthlyIncome(args, ctx) };
         case 'set_budget_plan':
           return { result: await this.setBudgetPlan(args, ctx) };
+        case 'show_summary':
+          return { result: await this.showSummary(args, ctx) };
         case 'create_account':
           return { result: await this.createAccount(args, ctx) };
         case 'create_category':
@@ -765,6 +778,22 @@ export class ChatToolsService {
       .set({ state: { ...state, plannerVersions: next }, updatedAt: new Date() })
       .where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
     return { month, allocation };
+  }
+
+  private async showSummary(args: ToolArgs, ctx: ToolContext) {
+    const which = args.period === 'this_month' ? 'this' : 'last';
+    const out = await this.summaries.generate(ctx.userId, 'on_demand', which);
+    const p = out.payload;
+    return {
+      link: out.url,
+      tone: p.tone,
+      score: p.score,
+      scoreLabel: p.scoreLabel,
+      headline: p.headline,
+      subline: p.subline,
+      monthSoFar: p.period.partial,
+      note: 'Reply in 1-3 short sentences using the headline and subline, then give the link as a markdown link, exactly: [Abrir meu resumo](LINK). Do not invent numbers.',
+    };
   }
 
   private async createCategory(args: ToolArgs, ctx: ToolContext) {

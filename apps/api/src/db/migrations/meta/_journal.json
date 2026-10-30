@@ -239,6 +239,13 @@
       "when": 1793300000000,
       "tag": "0033_subscription_amount",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793500000000,
+      "tag": "0035_financial_summaries",
+      "breakpoints": true
     }
   ]
 }
