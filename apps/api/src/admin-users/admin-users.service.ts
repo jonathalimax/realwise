@@ -85,7 +85,8 @@ export class AdminUsersService {
     }
     const dir = (orderParam ?? 'desc') === 'asc' ? sql`asc` : sql`desc`;
 
-    const conditions: SQL[] = [];
+    // Simulator sandbox users (undeliverable .invalid addresses) are not customers.
+    const conditions: SQL[] = [sql`${users.email} not ilike '%.invalid'`];
     if (search) {
       const pattern = likeContains(search);
       conditions.push(sql`(${users.email} ilike ${pattern} or ${users.name} ilike ${pattern})`);

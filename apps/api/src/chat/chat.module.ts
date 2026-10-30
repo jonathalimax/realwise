@@ -8,13 +8,16 @@ import { ChatEditService } from './chat-edit.service';
 import { ChatBillsService } from './chat-bills.service';
 import { ChatCategoriesService } from './chat-categories.service';
 import { ChatMemoryService } from './chat-memory.service';
+import { ChatSnippetsModule } from './chat-snippets.module';
+import { EngagementRemindersModule } from '../engagement-reminders/engagement-reminders.module';
 import { BillsModule } from '../bills/bills.module';
 import { BillSuggestionsModule } from '../bill-suggestions/bill-suggestions.module';
 import { SummaryModule } from '../summary/summary.module';
 
 @Module({
-  imports: [DrizzleModule, BillsModule, BillSuggestionsModule, SummaryModule],
+  imports: [DrizzleModule, BillsModule, BillSuggestionsModule, SummaryModule, EngagementRemindersModule, ChatSnippetsModule],
   controllers: [ChatController],
   providers: [ChatService, ChatToolsService, ChatEditService, ChatBillsService, ChatCategoriesService, ChatMemoryService, InsightsService],
+  exports: [ChatService],
 })
 export class ChatModule {}

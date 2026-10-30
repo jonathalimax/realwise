@@ -3,7 +3,7 @@ import { and, eq, gte, isNull, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { reminderEmailsSent, transactions, users } from '../db/schema';
+import { chatMessages, reminderEmailsSent, transactions, users } from '../db/schema';
 import { computeAccess } from '../billing/access';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -40,12 +40,18 @@ export class EngagementRemindersService {
           .from(transactions)
           .where(and(eq(transactions.userId, user.id), isNull(transactions.deletedAt)));
 
+        const [chat] = await this.db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(chatMessages)
+          .where(and(eq(chatMessages.userId, user.id), eq(chatMessages.role, 'user'), gte(chatMessages.createdAt, new Date(now.getTime() - 24 * 3_600_000))));
+
         const baseKind = pickReminder({
           access,
           trialStartedAt: user.premiumAccessStartedAt ?? user.createdAt,
           trialEndsAt: user.premiumAccessEndsAt,
           transactionCount: counts?.total ?? 0,
           transactionsThisMonth: counts?.thisMonth ?? 0,
+          chattedRecently: (chat?.n ?? 0) > 0,
           now,
         });
         let kind: ReminderKind | null = baseKind;
@@ -101,6 +107,36 @@ export class EngagementRemindersService {
     }
     this.logger.log(`[EngagementReminders] sent=${sent} skipped=${skipped} of ${rows.length}`);
     return { sent, skipped };
+  }
+
+  /**
+   * The warm welcome, sent once when the person first opens the chat (the start of the interview). Never throws:
+   * a failed e-mail must not break the chat. Honors the admin switches and the unsubscribe flag.
+   */
+  async sendWelcome(userId: string, now = new Date()): Promise<void> {
+    try {
+      const { engagement } = await this.settings.getEmails();
+      if (!engagement.enabled || !engagement.kinds.welcome.enabled) return;
+      const [user] = await this.db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.reminderEmailsOptOut) return;
+      const claimed = await this.db
+        .insert(reminderEmailsSent)
+        .values({ userId, kind: 'welcome', periodKey: 'once' })
+        .onConflictDoNothing()
+        .returning({ id: reminderEmailsSent.id });
+      if (!claimed.length) return;
+      const access = computeAccess(user, now);
+      await this.notifications.sendEngagementEmail(user.email, 'welcome', {
+        name: (user.name ?? '').split(' ')[0] || 'tudo bem',
+        trialDaysRemaining: access.state === 'trial' ? access.trialDaysRemaining : 0,
+        unsubscribeUserId: user.id,
+        unsubscribeToken: unsubscribeToken(user.id),
+        now,
+        clientId: user.clientId,
+      });
+    } catch (err) {
+      this.logger.error(`welcome e-mail failed for user ${userId}: ${(err as Error).message}`);
+    }
   }
 
   async optOut(userId: string): Promise<void> {

@@ -15,5 +15,6 @@ import { LastActiveInterceptor } from './last-active.interceptor';
     // Global: stamps users.last_active_at (throttled to once per 10 minutes per user).
     { provide: APP_INTERCEPTOR, useClass: LastActiveInterceptor },
   ],
+  exports: [AdminAnalyticsService],
 })
 export class AdminAnalyticsModule {}
