@@ -1,11 +1,18 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { IsIn } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BillingPlan } from './access';
 import { AllowWithoutSubscription } from './allow-without-subscription.decorator';
 import { BillingService, BillingStatus, PlanOption } from './billing.service';
+
+class SyncDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  sessionId?: string;
+}
 
 class CheckoutDto {
   @IsIn(['monthly', 'annual'])
@@ -37,6 +44,12 @@ export class BillingController {
   @Post('checkout')
   checkout(@CurrentUser() user: JwtPayload, @Body() dto: CheckoutDto): Promise<{ url: string }> {
     return this.service.createCheckout(user.sub, dto.plan);
+  }
+
+  /** Re-reads the subscription from Stripe; the success page calls this so access never waits on the webhook. */
+  @Post('sync')
+  sync(@CurrentUser() user: JwtPayload, @Body() dto: SyncDto): Promise<BillingStatus> {
+    return this.service.syncFromStripe(user.sub, dto.sessionId);
   }
 
   @Post('change-plan')

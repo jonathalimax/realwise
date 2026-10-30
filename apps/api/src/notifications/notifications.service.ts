@@ -401,6 +401,52 @@ export class NotificationsService {
     });
   }
 
+  /**
+   * Heads-up to the team inbox when a subscriber cancels (or their subscription ends), with the context needed to reach
+   * out. Replying to the e-mail answers the customer directly. Throws when delivery fails; callers must not let that
+   * break the billing flow.
+   */
+  async sendCancellationAlertEmail(params: {
+    kind: 'requested' | 'ended';
+    userId: string;
+    email: string;
+    name: string | null;
+    plan: string | null;
+    price: string | null;
+    accessUntil: Date | null;
+    reason: string | null;
+    comment: string | null;
+    stripeUrl: string | null;
+  }): Promise<void> {
+    const e = escapeHtml;
+    const web = (process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br').replace(/\/$/, '');
+    const until = params.accessUntil ? params.accessUntil.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—';
+    const row = (label: string, value: string) =>
+      `<tr><td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px;white-space:nowrap;">${label}</td><td style="padding:6px 0;color:#0f172a;font-size:14px;font-weight:600;">${value}</td></tr>`;
+    const rows = [
+      row('Cliente', `${e(params.name ?? '—')} &lt;${e(params.email)}&gt;`),
+      row('Plano', e([params.plan, params.price].filter(Boolean).join(' · ') || '—'),),
+      row(params.kind === 'requested' ? 'Acesso até' : 'Encerrada em', until),
+      row('Motivo', e(params.reason ?? 'não informado')),
+      ...(params.comment ? [row('Comentário', e(params.comment))] : []),
+    ].join('');
+    const links = [
+      `<a href="${web}/admin/users/${encodeURIComponent(params.userId)}" style="color:#7c3aed;">Abrir no admin</a>`,
+      ...(params.stripeUrl ? [`<a href="${e(params.stripeUrl)}" style="color:#7c3aed;">Ver no Stripe</a>`] : []),
+    ].join(' · ');
+    await this.sendMail({
+      to: this.supportEmail,
+      replyTo: params.email,
+      subject: `[Cancelamento] ${params.email.replace(/[\r\n]+/g, ' ')}`,
+      html: getBaseTemplate({
+        title: params.kind === 'requested' ? 'Um cliente cancelou a assinatura' : 'Uma assinatura foi encerrada',
+        subtitle: params.email,
+        body: `<table role="presentation" style="border-collapse:collapse;">${rows}</table><p style="margin-top:16px;font-size:14px;">${links}</p>`,
+        footerNote: 'Responda este e-mail para falar direto com o cliente.',
+      }),
+    });
+  }
+
   async sendAdminEmail(to: string, template: 'welcome' | 'access_granted' | 'accept_migration', fields: Record<string, unknown> = {}): Promise<void> {
     const name = typeof fields.name === 'string' && fields.name.trim() ? fields.name : 'Cliente';
     const loginUrl = typeof fields.loginUrl === 'string' && fields.loginUrl ? fields.loginUrl : 'https://realwise.com.br/login';

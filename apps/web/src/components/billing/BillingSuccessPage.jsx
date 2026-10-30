@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { billingResource } from '../../lib/api/resources/billing';
 import { useAccess } from '../../contexts/AccessContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getBillingCopy, resolveBillingLanguage } from './billingCopy';
@@ -8,10 +9,12 @@ const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 60000;
 const DARK_MODE_STORAGE_KEY = 'realwise:darkMode';
 
-// The Stripe webhook may land after the redirect, so we only poll the server (never trust the redirect itself).
+// The Stripe webhook may land after the redirect (or not at all if it is misconfigured), so each poll first asks the
+// server to re-read the subscription from Stripe, then reloads the user. The redirect itself is never trusted.
 export default function BillingSuccessPage() {
   const { access } = useAccess();
   const { reloadUser } = useAuth();
+  const sessionId = useSearchParams()[0].get('session_id') ?? undefined;
   const [copy] = useState(() => getBillingCopy(resolveBillingLanguage()));
   const [attempt, setAttempt] = useState(0);
   const [timedOut, setTimedOut] = useState(false);
@@ -34,6 +37,11 @@ export default function BillingSuccessPage() {
 
     const poll = async () => {
       try {
+        await billingResource.sync(sessionId);
+      } catch {
+        // Stripe unreachable or nothing to sync yet: the webhook may still bring the state, keep polling
+      }
+      try {
         await reloadUser();
       } catch {
         // transient failure: keep polling until the timeout
@@ -45,13 +53,13 @@ export default function BillingSuccessPage() {
       }
       timer = setTimeout(poll, POLL_INTERVAL_MS);
     };
-    timer = setTimeout(poll, POLL_INTERVAL_MS);
+    timer = setTimeout(poll, 0);
 
     return () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [allowed, reloadUser, attempt]);
+  }, [allowed, reloadUser, sessionId, attempt]);
 
   const retry = useCallback(() => {
     setTimedOut(false);
