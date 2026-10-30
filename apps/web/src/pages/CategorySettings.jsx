@@ -100,7 +100,8 @@ export default function CategorySettingsPage() {
     );
   };
 
-  const CategorySection = ({ type, label, color }) => {
+  // Called as a function (not <CategorySection />): a nested component remounts on every render and steals input focus.
+  const renderCategorySection = ({ type, label, color }) => {
     const isExpanded = expandedType === type;
     const icon = isExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />;
 
@@ -235,8 +236,8 @@ export default function CategorySettingsPage() {
       <PageHeader title={t('settings.categories')} showMonth={false} backTo="/settings" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 space-y-4">
-        <CategorySection type="expense" label={t('settings.expenseCategories')} color="rose" />
-        <CategorySection type="income" label={t('settings.incomeCategories')} color="emerald" />
+        {renderCategorySection({ type: 'expense', label: t('settings.expenseCategories'), color: 'rose' })}
+        {renderCategorySection({ type: 'income', label: t('settings.incomeCategories'), color: 'emerald' })}
       </main>
     </div>
   );
