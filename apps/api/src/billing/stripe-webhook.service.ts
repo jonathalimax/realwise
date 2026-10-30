@@ -8,6 +8,7 @@ import { purchases, users } from '../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { planForPriceId } from './billing.service';
 import { notifyCancellation } from './cancellation-alert';
+import { netRecurringCents, withDiscounts } from './subscription-amount';
 import { StripeClient } from './stripe-client';
 
 type User = typeof users.$inferSelect;
@@ -88,7 +89,8 @@ export class StripeWebhookService {
     return this.syncSubscription(subscription, hintUserId);
   }
 
-  private async syncSubscription(subscription: Stripe.Subscription, hintUserId?: string): Promise<User | null> {
+  private async syncSubscription(rawSubscription: Stripe.Subscription, hintUserId?: string): Promise<User | null> {
+    const subscription = await withDiscounts(this.stripe, rawSubscription);
     const customerId = idOf(subscription.customer);
     const user = await this.findUser(hintUserId ?? subscription.metadata?.userId, customerId);
     if (!user) {
@@ -111,6 +113,7 @@ export class StripeWebhookService {
       stripeSubscriptionId: subscription.id,
       subscriptionStatus: subscription.status,
       subscriptionPlan: plan,
+      subscriptionAmountCents: netRecurringCents(subscription),
       subscriptionCurrentPeriodEnd: periodEnd,
       subscriptionCancelAtPeriodEnd: subscription.cancel_at_period_end || subscription.cancel_at != null,
     };
@@ -120,6 +123,7 @@ export class StripeWebhookService {
       && next.stripeSubscriptionId === user.stripeSubscriptionId
       && next.subscriptionStatus === user.subscriptionStatus
       && next.subscriptionPlan === user.subscriptionPlan
+      && next.subscriptionAmountCents === user.subscriptionAmountCents
       && next.subscriptionCurrentPeriodEnd?.getTime() === user.subscriptionCurrentPeriodEnd?.getTime()
       && next.subscriptionCancelAtPeriodEnd === user.subscriptionCancelAtPeriodEnd;
     if (unchanged) return user;

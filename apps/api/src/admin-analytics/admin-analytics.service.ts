@@ -24,7 +24,8 @@ const TZ = sql.raw(`'${ADMIN_TZ}'`);
 /**
  * List prices in BRL cents used for MRR. They mirror the Stripe prices (R$ 8,99 / month and
  * R$ 74,90 / year); override with ADMIN_PRICE_MONTHLY_CENTS / ADMIN_PRICE_ANNUAL_CENTS if Stripe changes.
- * Discounts from promotion codes are not reflected (admin sees list-price MRR).
+ * They are only the fallback: each subscription's real amount (after coupons) is stored when it is synced from Stripe,
+ * and MRR is built from that. The list prices also give the "without discounts" figure.
  */
 function priceCents(): { monthly: number; annual: number } {
   const read = (name: string, def: number) => {
@@ -32,6 +33,20 @@ function priceCents(): { monthly: number; annual: number } {
     return Number.isFinite(n) && n > 0 ? n : def;
   };
   return { monthly: read('ADMIN_PRICE_MONTHLY_CENTS', 899), annual: read('ADMIN_PRICE_ANNUAL_CENTS', 7490) };
+}
+
+/** Assumptions for the revenue-vs-cost estimate; env vars override them. */
+function financeAssumptions(): { usdBrl: number; feePct: number; feeFixedCents: number } {
+  const read = (name: string, def: number) => {
+    const v = Number(process.env[name]);
+    return Number.isFinite(v) && v >= 0 ? v : def;
+  };
+  return {
+    usdBrl: read('ADMIN_USD_BRL', 5.5),
+    // Stripe Brazil, domestic card: 3.99% + R$ 0,39 per charge.
+    feePct: read('ADMIN_STRIPE_FEE_PCT', 3.99),
+    feeFixedCents: read('ADMIN_STRIPE_FEE_FIXED_CENTS', 39),
+  };
 }
 
 const n = (v: unknown) => Number(v ?? 0);
@@ -48,6 +63,7 @@ export class AdminAnalyticsService {
     const since = new Date(startOfBrtDay(now).getTime() - (days - 1) * DAY_MS);
     const state = accessStateSql();
     const sinceTs = ts(since);
+    const prices = priceCents();
     const dayList = sql`select generate_series((${sinceTs} at time zone ${TZ})::date, (now() at time zone ${TZ})::date, interval '1 day')::date as d`;
     const isError = sql`(${llmCallLog.error} is not null and ${llmCallLog.error} <> '')`;
 
@@ -79,7 +95,12 @@ export class AdminAnalyticsService {
         this.db.execute(sql`
           select (count(*) filter (where ${users.subscriptionPlan} = 'monthly'))::int as monthly,
                  (count(*) filter (where ${users.subscriptionPlan} = 'annual'))::int as annual,
-                 (count(*) filter (where ${users.subscriptionCancelAtPeriodEnd}))::int as canceling
+                 (count(*) filter (where ${users.subscriptionCancelAtPeriodEnd}))::int as canceling,
+                 (count(*) filter (where coalesce(${users.subscriptionAmountCents}, 1) > 0 and ${users.subscriptionPlan} = 'monthly'))::int as paying_monthly,
+                 (count(*) filter (where coalesce(${users.subscriptionAmountCents}, 1) > 0 and ${users.subscriptionPlan} = 'annual'))::int as paying_annual,
+                 coalesce(sum(case when ${users.subscriptionPlan} = 'annual'
+                                   then coalesce(${users.subscriptionAmountCents}, ${prices.annual}) / 12.0
+                                   else coalesce(${users.subscriptionAmountCents}, ${prices.monthly}) end), 0)::float8 as mrr_cents
           from ${users}
           where ${state} = 'subscribed' and ${users.stripeSubscriptionId} is not null
             and ${users.subscriptionStatus} in ('active', 'trialing', 'past_due')`),
@@ -140,11 +161,28 @@ export class AdminAnalyticsService {
     const a = aiTotals[0] ?? {};
     const usage = usageRows[0] ?? {};
     const h = health[0] ?? {};
-    const prices = priceCents();
     const monthly = n(r.monthly);
     const annual = n(r.annual);
-    const mrrCents = Math.round(monthly * prices.monthly + (annual * prices.annual) / 12);
+    const listMrrCents = Math.round(monthly * prices.monthly + (annual * prices.annual) / 12);
+    const mrrCents = Math.round(n(r.mrr_cents));
     const aiCostUsd = microCentsToUsd(n(a.cost));
+
+    // Revenue vs cost, on a monthly basis: AI cost in the window is scaled to 30 days and converted to BRL.
+    const fx = financeAssumptions();
+    const aiMonthlyCents = Math.round((aiCostUsd / days) * 30 * fx.usdBrl * 100);
+    const feeCents = Math.round(mrrCents * (fx.feePct / 100) + (n(r.paying_monthly) + n(r.paying_annual) / 12) * fx.feeFixedCents);
+    const netCents = mrrCents - feeCents - aiMonthlyCents;
+    const finance = {
+      mrrCents,
+      feeCents,
+      aiCostCents: aiMonthlyCents,
+      netCents,
+      /** Share of revenue the AI eats; null without revenue. */
+      aiShareOfRevenue: mrrCents > 0 ? aiMonthlyCents / mrrCents : null,
+      /** Net as a share of revenue; null without revenue. */
+      margin: mrrCents > 0 ? netCents / mrrCents : null,
+      assumptions: { usdBrl: fx.usdBrl, feePct: fx.feePct, feeFixedCents: fx.feeFixedCents, windowDays: days },
+    };
     const aiCalls = n(a.calls);
     const signups = n(f.signups);
     const converted = n(f.converted);
@@ -178,7 +216,10 @@ export class AdminAnalyticsService {
         cancelingAtPeriodEnd: n(r.canceling),
         mrrCents,
         arrCents: mrrCents * 12,
+        /** MRR at list price, to show what coupons are costing. */
+        listMrrCents,
       },
+      finance,
       ai: {
         costUsd: aiCostUsd,
         calls: aiCalls,
