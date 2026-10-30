@@ -1,6 +1,9 @@
 import { checkBuildHash } from './lib/buildHash'
 checkBuildHash()
 
+import { installErrorReporter } from './lib/errorReporter'
+installErrorReporter()
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

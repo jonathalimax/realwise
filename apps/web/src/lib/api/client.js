@@ -1,3 +1,5 @@
+import { normalizePath, reportError } from '../errorReporter';
+
 const DEFAULT_PRODUCTION_API_BASE_URL = 'https://api.realwise.com.br';
 
 export function resolveApiBaseUrl(envBaseUrl = import.meta.env.VITE_API_BASE_URL) {
@@ -70,7 +72,16 @@ export function createApiClient({ baseUrl, defaultHeaders = {} } = {}) {
       }
     }
 
-    const response = await fetch(joinUrl(resolvedBaseUrl, path), init);
+    let response;
+    try {
+      response = await fetch(joinUrl(resolvedBaseUrl, path), init);
+    } catch (error) {
+      // The request never reached the server (so the API could not log it). Being offline is not our bug.
+      if (error?.name !== 'AbortError' && typeof navigator !== 'undefined' && navigator.onLine !== false) {
+        reportError(error, { kind: 'network', request: `${method} ${normalizePath(path)}` });
+      }
+      throw error;
+    }
     const data = await readResponseBody(response);
 
     if (!response.ok) {

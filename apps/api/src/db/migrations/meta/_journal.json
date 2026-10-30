@@ -225,6 +225,13 @@
       "when": 1793100000000,
       "tag": "0031_dedupe_bills",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793200000000,
+      "tag": "0032_error_events",
+      "breakpoints": true
     }
   ]
 }
