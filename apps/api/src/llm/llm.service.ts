@@ -45,7 +45,8 @@ export class LlmService {
         onText && this.provider.generateStream
           ? await this.provider.generateStream(request, onText)
           : await this.provider.generate(request);
-      const usd = estimateCostUsd(
+      // The provider's own billed amount when it sends one; the rate table is only the fallback.
+      const usd = result.costUsd ?? estimateCostUsd(
         result.provider,
         result.model,
         result.inputTokens,
