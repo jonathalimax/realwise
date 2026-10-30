@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, boolean, uniqueIndex, text, numeric } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, boolean, integer, uniqueIndex, text, numeric } from 'drizzle-orm/pg-core';
 import { premiumStatusEnum, userRoleEnum } from './enums';
 
 export const users = pgTable(
@@ -24,6 +24,8 @@ export const users = pgTable(
     subscriptionStatus: varchar('subscription_status'),
     subscriptionPlan: varchar('subscription_plan'),
     subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end', { withTimezone: true }),
+    /** What the subscriber really pays per billing interval, in centavos, after any active coupon. Set when synced from Stripe. */
+    subscriptionAmountCents: integer('subscription_amount_cents'),
     subscriptionCancelAtPeriodEnd: boolean('subscription_cancel_at_period_end').default(false).notNull(),
     reminderEmailsOptOut: boolean('reminder_emails_opt_out').default(false).notNull(),
     marketingEmailsOptOut: boolean('marketing_emails_opt_out').default(false).notNull(),

@@ -15,6 +15,7 @@ import { users } from '../db/schema';
 import { AccessInfo, BillingPlan, computeAccess, hasLiveSubscription } from './access';
 import { NotificationsService } from '../notifications/notifications.service';
 import { notifyCancellation } from './cancellation-alert';
+import { netRecurringCents, withDiscounts } from './subscription-amount';
 import { StripeClient } from './stripe-client';
 
 type User = typeof users.$inferSelect;
@@ -122,12 +123,14 @@ export class BillingService {
   }
 
   /** Writes the state Stripe just returned so the UI is right before the webhook arrives (which converges to the same values). */
-  private async applySubscription(user: User, subscription: Stripe.Subscription): Promise<BillingStatus> {
+  private async applySubscription(user: User, rawSubscription: Stripe.Subscription): Promise<BillingStatus> {
+    const subscription = await withDiscounts(this.stripe, rawSubscription);
     const periodEnds = subscription.items.data.map((item) => item.current_period_end);
     const next = {
       stripeSubscriptionId: subscription.id,
       subscriptionStatus: subscription.status,
       subscriptionPlan: planForPriceId(subscription.items.data[0]?.price.id),
+      subscriptionAmountCents: netRecurringCents(subscription),
       subscriptionCurrentPeriodEnd: periodEnds.length > 0 ? new Date(Math.max(...periodEnds) * 1000) : null,
       subscriptionCancelAtPeriodEnd: subscription.cancel_at_period_end || subscription.cancel_at != null,
     };

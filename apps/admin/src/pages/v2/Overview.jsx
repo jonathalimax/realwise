@@ -69,6 +69,59 @@ function TopUsers() {
   );
 }
 
+/** Revenue against what it costs to serve it: what is left after payment fees and the AI, per month. */
+function ResultCard({ f }) {
+  const a = f.assumptions ?? {};
+  const revenue = f.mrrCents ?? 0;
+  const net = f.netCents ?? 0;
+  const positive = net >= 0;
+  const share = (cents) => (revenue > 0 ? Math.min(100, Math.max(0, (cents / revenue) * 100)) : 0);
+  const row = (label, hint, value, tone = 'text-white') => (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-gray-400">{label}{hint && <span className="block text-xs text-gray-500">{hint}</span>}</dt>
+      <dd className={`font-medium tabular-nums ${tone}`}>{value}</dd>
+    </div>
+  );
+  return (
+    <Card title="Resultado do mês" subtitle="Quanto sobra da receita depois das taxas e da IA (estimativa mensal)">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+        <dl className="space-y-3 text-sm">
+          {row('Receita recorrente (MRR)', 'o que os assinantes realmente pagam, com descontos', brl(revenue), 'text-emerald-400')}
+          {row('Taxas do Stripe', `estimadas: ${a.feePct}% + ${brl(a.feeFixedCents)} por cobrança`, `− ${brl(f.feeCents)}`, 'text-amber-300')}
+          {row('Custo de IA', `média dos últimos ${a.windowDays} dias, para 30 dias · câmbio R$ ${Number(a.usdBrl).toFixed(2).replace('.', ',')}`, `− ${brl(f.aiCostCents)}`, 'text-violet-300')}
+          <div className="border-t border-gray-800 pt-3">
+            {row('Resultado líquido', f.margin == null ? 'sem receita ainda' : `${pct(f.margin)} da receita`, brl(net), positive ? 'text-emerald-400 text-lg' : 'text-red-400 text-lg')}
+          </div>
+        </dl>
+        <div>
+          {revenue > 0 ? (
+            <>
+              <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-800" role="img" aria-label="Divisão da receita">
+                <div className="bg-violet-500" style={{ width: `${share(f.aiCostCents)}%` }} title="IA" />
+                <div className="bg-amber-500" style={{ width: `${share(f.feeCents)}%` }} title="Taxas" />
+                <div className="bg-emerald-500" style={{ width: `${positive ? share(net) : 0}%` }} title="Sobra" />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+                <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-violet-500" />IA {pct(f.aiShareOfRevenue)}</span>
+                <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />Taxas {pct(revenue ? f.feeCents / revenue : 0)}</span>
+                <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />Sobra {pct(positive && revenue ? net / revenue : 0)}</span>
+              </div>
+              <p className="mt-3 text-sm text-gray-300">
+                {positive
+                  ? `A cada R$ 1,00 recebido, sobram R$ ${(Math.max(0, net) / revenue).toFixed(2).replace('.', ',')} depois da IA e das taxas.`
+                  : `A IA e as taxas custam mais do que a receita: faltam ${brl(-net)} por mês para empatar.`}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-gray-400">Quando houver assinaturas pagas, aparece aqui quanto da receita fica depois da IA e das taxas.</p>
+          )}
+          <p className="mt-3 text-xs text-gray-500">O custo de IA inclui todos os usuários (também quem está no teste ou usa de graça). Ajuste câmbio e taxas pelas variáveis ADMIN_USD_BRL, ADMIN_STRIPE_FEE_PCT e ADMIN_STRIPE_FEE_FIXED_CENTS.</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function Dashboard({ data, days }) {
   const u = data.users ?? {};
   const f = data.funnel ?? {};
@@ -86,9 +139,11 @@ function Dashboard({ data, days }) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Usuários" value={num(u.total)} hint={`+${num(u.new)} nos últimos ${days} dias`} icon={Users} />
         <Stat label="Ativos no mês (MAU)" value={num(u.mau)} hint={`${num(u.dau)} por dia · ${num(u.wau)} por semana`} icon={Activity} />
-        <Stat label="MRR" value={brl(r.mrrCents)} hint={`ARR ${brl(r.arrCents)}`} icon={Wallet} tone="text-emerald-400" />
+        <Stat label="MRR" value={brl(r.mrrCents)} hint={r.listMrrCents > r.mrrCents ? `ARR ${brl(r.arrCents)} · ${brl(r.listMrrCents)} sem descontos` : `ARR ${brl(r.arrCents)}`} icon={Wallet} tone="text-emerald-400" />
         <Stat label="Custo de IA" value={usd(ai.costUsd)} hint={`${usd(ai.costPerActiveUserUsd)} por usuário ativo`} icon={Bot} tone="text-violet-300" />
       </div>
+
+      {data.finance && <ResultCard f={data.finance} />}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Em teste" value={num(u.trial)} icon={UserPlus} />
@@ -126,6 +181,9 @@ function Dashboard({ data, days }) {
             <div className="flex justify-between"><dt className="text-gray-400">Anuais</dt><dd className="text-white font-medium">{num(r.annual)}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-400">MRR</dt><dd className="text-emerald-400 font-semibold">{brl(r.mrrCents)}</dd></div>
             <div className="flex justify-between"><dt className="text-gray-400">ARR</dt><dd className="text-white font-medium">{brl(r.arrCents)}</dd></div>
+            {r.listMrrCents > r.mrrCents && (
+              <div className="flex justify-between"><dt className="text-gray-400">MRR sem descontos</dt><dd className="text-gray-300">{brl(r.listMrrCents)}</dd></div>
+            )}
           </dl>
         </Card>
         <Card title="Uso no período">

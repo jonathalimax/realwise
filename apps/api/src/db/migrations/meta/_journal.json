@@ -232,6 +232,13 @@
       "when": 1793200000000,
       "tag": "0032_error_events",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793300000000,
+      "tag": "0033_subscription_amount",
+      "breakpoints": true
     }
   ]
 }
