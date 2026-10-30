@@ -11,6 +11,11 @@ export function BanksTabContent() {
   const [view, setView] = useState('list'); // 'list', 'form'
   const [editingBank, setEditingBank] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  // State of the edit modal lives here: the modal is rendered through renderEditBankModal() below, not as a
+  // nested component, because a component declared inside this one gets a new identity on every render and
+  // would remount (losing input focus) on each keystroke.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -143,11 +148,8 @@ export function BanksTabContent() {
   // Generate day options (1-31)
   const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1);
 
-  // Edit Bank Modal Component
-  const EditBankModal = () => {
-    const [confirmDelete, setConfirmDelete] = useState(false);
-    const [saving, setSaving] = useState(false);
-
+  // Edit Bank Modal (plain render function, see the note on `confirmDelete` above)
+  const renderEditBankModal = () => {
     if (!showEditModal || !editingBank) return null;
 
     const handleModalSubmit = async (e) => {
@@ -635,7 +637,7 @@ export function BanksTabContent() {
         )}
 
         {/* Edit Bank Modal */}
-        <EditBankModal />
+        {renderEditBankModal()}
 
         {/* FAB — only on list view */}
         {view === 'list' && (
