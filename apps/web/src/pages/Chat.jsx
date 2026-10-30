@@ -794,13 +794,13 @@ export default function ChatPage() {
         ))}
 
         {!live && !sending && quickChips.length > 0 && (
-          <div className="flex flex-wrap gap-2 pl-1" role="group" aria-label={pt ? 'Respostas rápidas' : 'Quick replies'}>
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 pl-1 pr-2 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label={pt ? 'Respostas rápidas' : 'Quick replies'}>
             {quickChips.map((chip, i) => (
               <button
                 key={chip.value}
                 type="button"
                 onClick={() => submit(chip.label)}
-                className={`rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                className={`shrink-0 snap-start whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${
                   i === quickChips.length - 1
                     ? 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     : 'border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
