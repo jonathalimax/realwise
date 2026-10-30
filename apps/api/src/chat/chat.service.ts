@@ -11,8 +11,10 @@ import { buildSystemPrompt } from './chat.prompt';
 import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.service';
 import { ChatCategoriesService } from './chat-categories.service';
 import { ChatMemoryService } from './chat-memory.service';
-import { MAX_REVIEW_ITEMS, TOOL_STATUS, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
-import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, welcomeMessage } from './onboarding';
+import { MAX_REVIEW_ITEMS, TOOL_STATUS, quickQuestion, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
+import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, WELCOME_GOALS, welcomeMessage } from './onboarding';
+import { ChatSnippetsService } from './chat-snippets.service';
+import { EngagementRemindersService } from '../engagement-reminders/engagement-reminders.service';
 
 const HISTORY_LIMIT = 16;
 /** Messages older than this are neither shown nor sent to the model (keeps the context, and token cost, small). Rows are kept, not destroyed. */
@@ -38,6 +40,8 @@ export class ChatService {
     private readonly tools: ChatToolsService,
     private readonly cats: ChatCategoriesService,
     private readonly memory: ChatMemoryService,
+    private readonly snippets: ChatSnippetsService,
+    private readonly engagement: EngagementRemindersService,
   ) {}
 
   async history(scope: ChatScope, limit = 50): Promise<ChatMessageRow[]> {
@@ -101,6 +105,18 @@ export class ChatService {
 
     onEvent?.({ type: 'user', message: userMessage });
 
+    // A tapped quick-reply chip that stands for a ready-made explanation is answered from the database: no model call.
+    if (prepared.length === 0) {
+      const scripted = await this.snippets.byTrigger(trimmed);
+      if (scripted) {
+        const [assistantMessage] = await this.db
+          .insert(chatMessages)
+          .values({ ...scope, role: 'assistant', content: scripted.body, questions: [quickQuestion(scripted.quickReplies)] })
+          .returning();
+        return { userMessage, assistantMessage };
+      }
+    }
+
     if (prepared.length) {
       // A re-upload (e.g. retrying after an error) replaces the earlier copy instead of piling up next to it.
       await this.db
@@ -147,6 +163,7 @@ export class ChatService {
     const reviewByKey = new Map<string, ReviewGroup>();
     let questions: ChatQuestion[] = [];
     let reply = '';
+    let staticReply = '';
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const result = await this.llm.generate(
@@ -170,7 +187,15 @@ export class ChatService {
         if (outcome.saved) saved.push(outcome.saved);
         for (const g of outcome.review ?? []) this.mergeReviewGroup(reviewByKey, g);
         if (outcome.questions) questions = outcome.questions;
+        if (outcome.staticReply) staticReply = outcome.staticReply;
         messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(outcome.result) });
+      }
+      // A ready-made explanation from the database is the whole reply: show it and stop, no second model call.
+      if (staticReply) {
+        reply = staticReply;
+        onEvent?.({ type: 'reset' });
+        onEvent?.({ type: 'delta', text: staticReply });
+        break;
       }
       // A question sheet ends the turn: the user's answers start the next one.
       if (questions.length) {
@@ -240,24 +265,27 @@ export class ChatService {
     }
 
     const recent = await this.history(scope, 50);
+    // Earlier versions opened the account form with the welcome, so that counts as welcomed too.
     const alreadyWelcomed = recent.some(
-      (m) => m.role === 'assistant' && Array.isArray(m.questions) && (m.questions as ChatQuestion[]).some((q) => q.kind === 'account_form'),
+      (m) =>
+        m.role === 'assistant' &&
+        Array.isArray(m.questions) &&
+        (m.questions as ChatQuestion[]).some((q) => q.kind === 'account_form' || q.id === 'welcome'),
     );
     if (alreadyWelcomed) return { needsSetup: true, message: null };
 
     const [s] = await this.db.select().from(settings).where(and(eq(settings.userId, scope.userId), eq(settings.clientId, scope.clientId)));
-    const w = welcomeMessage(String(s?.language ?? 'pt-BR').toLowerCase().startsWith('en') ? 'en' : 'pt');
-    const question: ChatQuestion = {
-      id: 'q1',
-      kind: 'account_form',
-      title: w.formTitle,
-      subtitle: w.formSubtitle,
-      options: BANKS.map((b) => ({ value: b.id, label: b.name })),
-    };
+    const lang = String(s?.language ?? 'pt-BR').toLowerCase().startsWith('en') ? 'en' : 'pt';
+    // Portuguese welcome and chips come from the database (editable, no model call); English falls back to code.
+    const snippet = lang === 'pt' ? await this.snippets.get('welcome') : null;
+    const content = snippet?.body ?? welcomeMessage(lang).content;
+    const chips = quickQuestion(snippet?.quickReplies?.length ? snippet.quickReplies : WELCOME_GOALS[lang]);
     const [message] = await this.db
       .insert(chatMessages)
-      .values({ ...scope, role: 'assistant', content: w.content, questions: [question] })
+      .values({ ...scope, role: 'assistant', content, questions: [{ ...chips, id: 'welcome' }] })
       .returning();
+    // The first chat open is the start of the interview: send the warm welcome e-mail (once, never blocks the chat).
+    void this.engagement.sendWelcome(scope.userId);
     return { needsSetup: true, message };
   }
 

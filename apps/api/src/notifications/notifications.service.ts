@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 import { escapeHtml, safeHttpUrl, textToParagraphs } from './email-text';
+import type { EngagementKind } from '../app-settings/app-settings.types';
 
 interface BillEntry {
   id: string;
@@ -172,6 +173,8 @@ export class NotificationsService {
     replyTo?: string;
     headers?: Record<string, string>;
   }): Promise<void> {
+    // Simulator users have undeliverable `.invalid` addresses: never spend a send (or log an error) on them.
+    if (/\.invalid$/i.test(params.to)) return;
     if (!this.resend) return;
     const { error } = await this.resend.emails.send({
       from: params.from ?? this.from,
@@ -240,7 +243,7 @@ export class NotificationsService {
 
   async sendEngagementEmail(
     to: string,
-    kind: 'trial_import' | 'trial_ending' | 'trial_expired' | 'monthly_import' | 'bill_suggestion',
+    kind: EngagementKind,
     ctx: {
       name: string;
       trialDaysRemaining: number;
@@ -260,9 +263,73 @@ export class NotificationsService {
     const p = (t: string) => `<div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:14px;">${t}</div>`;
     const app = (path: string) => (ctx.clientId ? `${web.replace(/\/$/, '')}/${ctx.clientId}${path}` : `${web.replace(/\/$/, '')}/login`);
     const sg = ctx.suggestion;
+    const days = ctx.trialDaysRemaining;
+    const daysText = `${days} ${days === 1 ? 'dia' : 'dias'}`;
+    const trialLine = days > 0 ? p(`Você tem <strong>${daysText} de teste grátis</strong>, sem cartão e sem cobrança. Dá tempo de sobra para ver se faz sentido para você.`) : '';
+    const list = (items: [string, string][]) =>
+      `<div style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#374151;line-height:1.8;">${items
+        .map(([icon, text]) => `<div style="margin-bottom:8px;">${icon} ${text}</div>`)
+        .join('')}</div>`;
     const money = (v: string) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
     const copy = {
+      welcome: {
+        subject: `${ctx.name}, que bom ter você aqui 💜`,
+        title: `Que bom ter você aqui, ${escapeHtml(ctx.name)}!`,
+        body:
+          p('Eu sou o Elio, seu assistente financeiro. Você acabou de abrir o chat e eu já deixei tudo pronto para a gente começar, no seu ritmo.') +
+          p('Veja o que eu faço por você:') +
+          list([
+            ['💬', '<strong>Anoto seus gastos conversando.</strong> Escreva ou fale "gastei 45 no mercado" e pronto.'],
+            ['📄', '<strong>Leio seu extrato ou fatura</strong> (PDF, foto, CSV) e categorizo tudo, sem você digitar nada.'],
+            ['🔔', '<strong>Aviso suas contas antes de vencer</strong>, para nunca mais pagar multa por esquecimento.'],
+            ['📊', '<strong>Todo mês, o seu resumo:</strong> uma nota de saúde financeira, para onde foi cada real e o que ajustar.'],
+            ['🎯', '<strong>Monto um plano para os seus objetivos</strong>, seja uma reserva, uma viagem ou sair das dívidas.'],
+          ]) +
+          trialLine +
+          p('Sem pressa: para começar, basta me contar o que você quer alcançar com o seu dinheiro.'),
+        cta: 'Continuar no chat',
+        url: app('/chat'),
+      },
+      activation_day1: {
+        subject: `${ctx.name}, o Elio está esperando você`,
+        title: `Seu primeiro passo leva 2 minutos, ${escapeHtml(ctx.name)}`,
+        body:
+          p('Você criou sua conta, mas ainda não registrou nada. Sem problema, é mais rápido do que parece:') +
+          list([
+            ['1️⃣', 'Abra o chat e me conte o que você quer conquistar com o seu dinheiro.'],
+            ['2️⃣', 'Cadastre sua conta ou cartão (só o banco e o nome do titular).'],
+            ['3️⃣', 'Diga um gasto de hoje, ou mande o extrato quando tiver à mão.'],
+          ]) +
+          trialLine,
+        cta: 'Abrir o chat',
+        url: app('/chat'),
+      },
+      activation_day3: {
+        subject: 'Menos planilha, mais clareza sobre o seu dinheiro',
+        title: 'O que o Realwise faz por você',
+        body:
+          p(`${escapeHtml(ctx.name)}, uma conversa de 2 minutos já deixa tudo no lugar. Depois disso, o Realwise trabalha por você:`) +
+          list([
+            ['📊', '<strong>Resumo do mês</strong> com nota de saúde financeira, para onde foi o seu dinheiro e o que ajustar.'],
+            ['🔔', '<strong>Lembretes de contas</strong> por e-mail, antes do vencimento.'],
+            ['🔁', '<strong>Transferência entre as suas contas não vira gasto.</strong> Os números saem certos.'],
+            ['🥧', '<strong>Orçamento que fala português:</strong> "este mês sobrou R$ 340", sem tabela complicada.'],
+          ]) +
+          trialLine,
+        cta: 'Começar agora',
+        url: app('/chat'),
+      },
+      activation_day5: {
+        subject: days > 0 ? `${ctx.name}, ainda dá tempo: faltam ${daysText} do seu teste grátis` : `${ctx.name}, seu teste grátis está acabando`,
+        title: 'Ainda dá tempo de ver o seu mês com clareza',
+        body:
+          (days > 0 ? p(`Seu teste grátis ainda tem <strong>${daysText}</strong>. Não precisa de cartão e nada é cobrado automaticamente.`) : '') +
+          p('O caminho mais curto: abra o chat, mande o extrato mais recente e veja, em poucos segundos, para onde o seu dinheiro foi.') +
+          p('Ficou com alguma dúvida ou travou em alguma parte? É só responder este e-mail que a gente ajuda.'),
+        cta: 'Ver o meu mês',
+        url: app('/chat'),
+      },
       bill_suggestion: {
         subject: sg ? `${ctx.name}, quer um lembrete para ${sg.name}?` : 'Quer criar um lembrete?',
         title: 'O Elio percebeu uma coisa 👀',

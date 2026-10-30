@@ -12,13 +12,16 @@ import {
 } from '../../components/ui';
 
 const KINDS = [
-  { key: 'trial_import', label: 'Teste: importe seu extrato', desc: 'Convida quem está em teste e ainda não importou nada.' },
+  { key: 'welcome', label: 'Boas-vindas ao abrir o chat', desc: 'Enviado uma vez, quando a pessoa abre o chat pela primeira vez (início da entrevista).' },
+  { key: 'activation_day1', label: 'Ativação: dia 1', desc: 'Quem se cadastrou, não registrou nada e não conversou nas últimas 24h: o primeiro passo em 2 minutos.' },
+  { key: 'activation_day3', label: 'Ativação: dia 3', desc: 'Mostra os benefícios (resumo do mês, lembretes, orçamento) e lembra dos dias de teste.' },
+  { key: 'activation_day5', label: 'Ativação: dia 5', desc: 'Último convite antes do aviso de fim do teste, com os dias restantes.' },
   { key: 'trial_ending', label: 'Teste terminando', desc: 'Avisa que o período de teste está acabando.' },
   { key: 'trial_expired', label: 'Teste expirado', desc: 'Convida a assinar após o fim do teste.' },
   { key: 'monthly_import', label: 'Importação mensal', desc: 'Lembra assinantes de importar o extrato do mês.' },
   { key: 'bill_suggestion', label: 'Sugestão de lembrete', desc: 'O Elio percebe um pagamento mensal e pergunta se quer criar um lembrete (no máx. 1 a cada 14 dias).' },
 ];
-const SENT_KINDS = [...KINDS, { key: 'bill_reminder', label: 'Lembrete de contas' }];
+const SENT_KINDS = [...KINDS, { key: 'bill_reminder', label: 'Lembrete de contas' }, { key: 'trial_import', label: 'Teste: importe seu extrato (antigo)' }];
 const kindLabel = (k) => SENT_KINDS.find((x) => x.key === k)?.label ?? k ?? '—';
 
 const DEFAULTS = {
@@ -52,7 +55,7 @@ function SettingsTab() {
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
   const [runJob, setRunJob] = useState(null);
-  const [testKind, setTestKind] = useState('trial_import');
+  const [testKind, setTestKind] = useState('welcome');
   const [testTo, setTestTo] = useState('');
   const [testing, setTesting] = useState(false);
   const [testMsg, setTestMsg] = useState(null);

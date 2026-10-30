@@ -1,4 +1,15 @@
-export const ENGAGEMENT_KINDS = ['trial_import', 'trial_ending', 'trial_expired', 'monthly_import', 'bill_suggestion'] as const;
+/** `trial_import` is retired (replaced by the activation_* series) but stays listed so stored settings and sent history keep working. */
+export const ENGAGEMENT_KINDS = [
+  'welcome',
+  'activation_day1',
+  'activation_day3',
+  'activation_day5',
+  'trial_import',
+  'trial_ending',
+  'trial_expired',
+  'monthly_import',
+  'bill_suggestion',
+] as const;
 export type EngagementKind = (typeof ENGAGEMENT_KINDS)[number];
 
 /** Stored `ai` setting. Every field is optional: a missing field falls back to env, then to the built-in default. */
@@ -39,6 +50,10 @@ export const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
     enabled: true,
     hourBrt: 10,
     kinds: {
+      welcome: { enabled: true },
+      activation_day1: { enabled: true },
+      activation_day3: { enabled: true },
+      activation_day5: { enabled: true },
       trial_import: { enabled: true },
       trial_ending: { enabled: true },
       trial_expired: { enabled: true },

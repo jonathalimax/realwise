@@ -49,31 +49,24 @@ export const BANK_IDS = BANKS.map((b) => b.id);
 
 export const ACCOUNT_TYPES = ['checking', 'credit', 'wallet', 'savings'] as const;
 
-export function welcomeMessage(lang: 'pt' | 'en'): { content: string; formTitle: string; formSubtitle: string } {
-  const exp = DEFAULT_CATEGORIES.filter((c) => c.type === 'expense').map((c) => c.name).join(', ');
-  const inc = [...new Set(DEFAULT_CATEGORIES.filter((c) => c.type === 'income').map((c) => c.name))].join(', ');
+/** Goal chips offered by the welcome. The first question is about what the person wants, never about money amounts. */
+export const WELCOME_GOALS: Record<'pt' | 'en', string[]> = {
+  pt: ['Organizar meu mês', 'Juntar uma reserva', 'Quitar dívidas', 'Realizar um sonho', 'Entender para onde vai meu dinheiro', 'Como o Realwise funciona?'],
+  en: ['Get my month in order', 'Build an emergency fund', 'Pay off debt', 'Save for a dream', 'See where my money goes'],
+};
+
+/** Fallback welcome (the Portuguese one normally comes from the `welcome` snippet in the database). Scripted: no model call. */
+export function welcomeMessage(lang: 'pt' | 'en'): { content: string } {
   if (lang === 'en') {
     return {
-      content: `Hi! I'm Elio, your financial assistant 💜 I'll get everything ready for you, right here in the chat.
+      content: `Hi! I'm Elio, your financial assistant 💜 I'm here to give you clarity about your money, with no spreadsheets and no hassle.
 
-I already created your categories:
-- **Expenses:** ${exp}
-- **Income:** ${inc}
-
-Here is how we'll do it: a quick chat where I learn your accounts, your income and your goals, then I build your plan and read your statements. You can type or use the mic to talk to me. First, I need your first account or card: fill in the sheet that just opened.`,
-      formTitle: 'Add your first account or card',
-      formSubtitle: 'The holder name helps me recognise transfers between your own accounts.',
+I already set up your categories. To start, just one question: **what do you want most from your finances right now?** Tap an option or tell me in your own words, typing or using the mic.`,
     };
   }
   return {
-    content: `Oi! Eu sou o Elio, seu assistente financeiro 💜 Vou deixar tudo pronto para você, aqui mesmo no chat.
+    content: `Oi! Eu sou o Elio, seu assistente financeiro 💜 Estou aqui para te dar clareza sobre o seu dinheiro, sem planilha e sem burocracia.
 
-Já criei as suas categorias:
-- **Despesas:** ${exp}
-- **Receitas:** ${inc}
-
-Vai ser assim: uma conversa rápida em que eu conheço suas contas, sua renda e seus objetivos, monto seu plano e leio seus extratos. Você pode digitar ou usar o microfone para falar comigo. Primeiro, preciso da sua primeira conta ou cartão: preencha a folha que acabou de abrir.`,
-    formTitle: 'Cadastre sua primeira conta ou cartão',
-    formSubtitle: 'O nome do titular me ajuda a reconhecer transferências entre as suas contas.',
+Já deixei as suas categorias prontas. Para começar, só uma pergunta: **o que você mais quer da sua vida financeira agora?** Toque numa opção ou me conte do seu jeito, digitando ou falando.`,
   };
 }

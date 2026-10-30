@@ -10,7 +10,8 @@ import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
 import { looksLikeInvoicePayment, matchesHolder, pairTransfers } from './transfer';
 import { BANKS } from './onboarding';
-import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, type ChatQuestion, type ReviewGroup } from './chat.types';
+import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, quickQuestion, type ChatQuestion, type ReviewGroup } from './chat.types';
+import { ChatSnippetsService } from './chat-snippets.service';
 import { ChatEditService, EDIT_TOOLS } from './chat-edit.service';
 import { ChatBillsService } from './chat-bills.service';
 import { ChatCategoriesService } from './chat-categories.service';
@@ -43,6 +44,8 @@ export interface ToolOutcome {
   review?: ReviewGroup[];
   /** Multiple-choice questions to show the user; the turn ends so they can answer. */
   questions?: ChatQuestion[];
+  /** Fixed text (from the database) posted as Elio's whole reply; ends the turn without another model call. */
+  staticReply?: string;
 }
 
 // Model-produced JSON: untrusted and untyped by nature. Every field is validated before use.
@@ -90,7 +93,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
   {
     name: 'ask_user',
     description:
-      'Show the user a sheet of multiple-choice questions and END your turn to wait for the answers. Use it when you cannot determine, with confidence, which ACCOUNT a document belongs to or how it was paid (payment method). Ask about all documents in one call (one question per document). Do not use it for categories: save the rows and mark them confidence "low" instead. Write one short friendly sentence in the same message.',
+      'Show the user a sheet of multiple-choice questions and END your turn to wait for the answers. Use it when you cannot determine, with confidence, which ACCOUNT a document belongs to or how it was paid (payment method). Ask about all documents in one call (one question per document). Also use it, with kind "quick", for the short onboarding questions. Do not use it for categories: save the rows and mark them confidence "low" instead. Write one short friendly sentence in the same message.',
     parameters: {
       type: 'object',
       properties: {
@@ -99,7 +102,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day).' },
+              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form', 'quick'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day). quick shows short tappable chips under your message (2 to 6 options, each under 40 characters, in the user\'s language; the app adds a "Pular" chip itself): use it for every conversational question that has predictable answers.' },
               title: { type: 'string', description: 'Short question, e.g. "Qual conta é essa fatura?"' },
               subtitle: { type: 'string', description: 'What you saw that makes you unsure, e.g. "Final 4821, vence dia 10".' },
               fileName: { type: 'string', description: 'Exact filename this question is about, if any.' },
@@ -152,6 +155,16 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
         poupanca: { type: 'number', description: 'Percent for savings, investments and goals, e.g. 20.' },
       },
       required: ['necessidades', 'desejos', 'poupanca'],
+    },
+  },
+  {
+    name: 'show_guide',
+    description:
+      'Show a ready-made explanation about the product, written by the team and stored in the database. Use it INSTEAD of explaining yourself whenever the user asks how Realwise works or what you can do (intro), how to import a statement (import), about bill reminders (bills), the monthly plan (planner), the monthly summary (summary) or data privacy (privacy). The text is posted to the user as your whole reply and your turn ends, so write nothing else.',
+    parameters: {
+      type: 'object',
+      properties: { topic: { type: 'string', enum: ['intro', 'import', 'bills', 'planner', 'summary', 'privacy'] } },
+      required: ['topic'],
     },
   },
   {
@@ -289,6 +302,7 @@ export class ChatToolsService {
     private readonly cats: ChatCategoriesService,
     private readonly memory: ChatMemoryService,
     private readonly summaries: SummaryService,
+    private readonly snippets: ChatSnippetsService,
   ) {}
 
   /** Runs a previously previewed update/delete that the user explicitly confirmed. The action comes from the stored message, never from the client. */
@@ -332,6 +346,8 @@ export class ChatToolsService {
           return { result: await this.setBudgetPlan(args, ctx) };
         case 'show_summary':
           return { result: await this.showSummary(args, ctx) };
+        case 'show_guide':
+          return await this.showGuide(args);
         case 'create_account':
           return { result: await this.createAccount(args, ctx) };
         case 'create_category':
@@ -561,6 +577,17 @@ export class ChatToolsService {
     return [...groups.values()];
   }
 
+  /** Fixed, database-stored explanation: posted verbatim, so it costs no output tokens and cannot drift. */
+  private async showGuide(args: ToolArgs): Promise<ToolOutcome> {
+    const snippet = await this.snippets.get(String(args.topic ?? ''));
+    if (!snippet) return { result: { error: 'Unknown topic.' } };
+    return {
+      result: { shownToUser: snippet.key, note: 'The text is already on screen. Do not add anything.' },
+      staticReply: snippet.body,
+      questions: [quickQuestion(snippet.quickReplies)],
+    };
+  }
+
   /** Turns the model's question list into a sheet. Account options always come from the database, never the model. */
   private async askUser(args: ToolArgs, ctx: ToolContext): Promise<ToolOutcome> {
     const raw: ToolArgs[] = Array.isArray(args.questions) ? args.questions.slice(0, 8) : [];
@@ -572,13 +599,16 @@ export class ChatToolsService {
     const labels: Record<string, string> = { credit: 'Cartão de crédito', debit: 'Débito', pix: 'PIX', transfer: 'Transferência', boleto: 'Boleto', cash: 'Dinheiro', other: 'Outro' };
 
     const questions: ChatQuestion[] = raw.map((q, i) => {
-      const kind = ['account', 'payment_method', 'choice', 'account_form'].includes(q.kind) ? (q.kind as ChatQuestion['kind']) : 'choice';
+      const kind = ['account', 'payment_method', 'choice', 'account_form', 'quick'].includes(q.kind) ? (q.kind as ChatQuestion['kind']) : 'choice';
       const base = { id: `q${i + 1}`, kind, title: String(q.title ?? '').slice(0, 140), subtitle: q.subtitle ? String(q.subtitle).slice(0, 200) : undefined, fileName: q.fileName ? String(q.fileName) : undefined };
       if (kind === 'account') {
         return { ...base, allowNew: true, options: accs.map((a) => ({ value: a.id, label: a.name, hint: a.type ?? undefined })) };
       }
       if (kind === 'account_form') {
         return { ...base, options: BANKS.map((b) => ({ value: b.id, label: b.name })) };
+      }
+      if (kind === 'quick') {
+        return quickQuestion(Array.isArray(q.options) ? q.options : []);
       }
       if (kind === 'payment_method') {
         return { ...base, options: PAYMENT_METHODS.map((m) => ({ value: m, label: labels[m] })) };
