@@ -102,8 +102,8 @@ export const SKIP_LABEL = 'Pular';
  * Tappable chips shown under Elio's message (not a sheet). Tapping one just sends its text as the user's next
  * message, so nothing needs to be stored when it is "answered". The skip chip is always last.
  */
-export function quickQuestion(options: string[]): ChatQuestion {
+export function quickQuestion(options: string[], title = ''): ChatQuestion {
   const labels = options.map((o) => String(o).trim().slice(0, 60)).filter(Boolean).slice(0, 7);
   if (!labels.some((l) => l.toLowerCase() === SKIP_LABEL.toLowerCase())) labels.push(SKIP_LABEL);
-  return { id: 'quick', kind: 'quick', title: '', options: labels.map((l) => ({ value: l, label: l })) };
+  return { id: 'quick', kind: 'quick', title: title.trim().slice(0, 140), options: labels.map((l) => ({ value: l, label: l })) };
 }
