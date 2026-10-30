@@ -239,6 +239,13 @@
       "when": 1793300000000,
       "tag": "0033_subscription_amount",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793400000000,
+      "tag": "0034_llm_statement_flag",
+      "breakpoints": true
     }
   ]
 }

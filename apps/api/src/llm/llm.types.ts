@@ -39,6 +39,8 @@ export interface LlmRequest {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  /** The call reads attached statements/invoices (so the user's first import can be left out of the trial cap). */
+  statement?: boolean;
 }
 
 export interface LlmResult {

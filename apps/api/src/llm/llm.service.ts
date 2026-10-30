@@ -3,7 +3,7 @@ import { and, eq, gte, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
-import { llmCallLog, users } from '../db/schema';
+import { imports, llmCallLog, users } from '../db/schema';
 import { computeAccess } from '../billing/access';
 import { estimateCostUsd } from './model-pricing';
 import type { AiSettings } from '../app-settings/app-settings.types';
@@ -11,10 +11,17 @@ import { AppSettingsService } from '../app-settings/app-settings.service';
 import { LLM_PROVIDER } from './llm.types';
 import type { LlmProvider, LlmRequest, LlmResult } from './llm.types';
 
-const DEFAULT_MONTHLY_BUDGET_USD = 5;
-const DEFAULT_HARD_CAP_MULTIPLIER = 3;
+// Per paying user per month. Past it Elio switches to the cheaper fallback model; the hard cap (budget x multiplier,
+// multiplier must be above 1) stops it. A paid user is worth about US$ 2 net, so even the hard cap leaves a margin.
+// Stored admin settings and per-user overrides win over these defaults (see applyBudget).
+const DEFAULT_MONTHLY_BUDGET_USD = 1;
+const DEFAULT_HARD_CAP_MULTIPLIER = 1.5;
 // Trial users run on no card, so their AI spend is capped far below a paying user's (statements still use the strong model).
 const DEFAULT_TRIAL_BUDGET_USD = 0.15;
+// The first statement a trial user imports (and the follow-ups within a few minutes) is the "aha" moment, so it never
+// counts against the trial cap. The allowance is itself capped so it cannot be abused.
+const FIRST_IMPORT_ALLOWANCE_USD = 0.6;
+const FIRST_IMPORT_GRACE_MINUTES = 10;
 
 @Injectable()
 export class LlmService {
@@ -79,6 +86,26 @@ export class LlmService {
     return Number(rows[0]?.micro ?? 0) / 100 / 1_000_000;
   }
 
+  /**
+   * Trial spend that counts against the cap: everything except the user's first statement import. A call is part of
+   * it when it read attached documents and the user had no earlier import (more than the grace minutes before the call).
+   * The exempt part is limited to FIRST_IMPORT_ALLOWANCE_USD.
+   */
+  private async trialChargeableUsd(userId: string, since: Date): Promise<number> {
+    const rows = await this.db.execute(sql`
+      select coalesce(sum(${llmCallLog.costMicroCents}), 0)::float8 as total,
+             coalesce(sum(${llmCallLog.costMicroCents}) filter (where ${llmCallLog.statement} and not exists (
+               select 1 from ${imports}
+               where ${imports.userId} = ${llmCallLog.userId}
+                 and ${imports.createdAt} < ${llmCallLog.createdAt} - make_interval(mins => ${FIRST_IMPORT_GRACE_MINUTES})
+             )), 0)::float8 as exempt
+      from ${llmCallLog}
+      where ${llmCallLog.userId} = ${userId} and ${llmCallLog.createdAt} >= ${since.toISOString()}::timestamptz`);
+    const row = (Array.isArray(rows) ? rows[0] : (rows as { rows?: unknown[] }).rows?.[0]) as { total?: number; exempt?: number } | undefined;
+    const toUsd = (micro: number) => micro / 100 / 1_000_000;
+    return Math.max(0, toUsd(Number(row?.total ?? 0)) - Math.min(toUsd(Number(row?.exempt ?? 0)), FIRST_IMPORT_ALLOWANCE_USD));
+  }
+
   private async applyBudget(req: LlmRequest, userId: string): Promise<LlmRequest> {
     const ai = await this.settings.getAi();
     const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -124,7 +151,7 @@ export class LlmService {
 
     if (!user || computeAccess(user, new Date()).state !== 'trial') return;
 
-    const spent = await this.monthToDateUsd(userId, user.premiumAccessStartedAt ?? user.createdAt);
+    const spent = await this.trialChargeableUsd(userId, user.premiumAccessStartedAt ?? user.createdAt);
     if (spent < cap) return;
     throw new HttpException(
       { message: 'Você usou todo o limite do teste grátis. Para continuar com o Elio, assine um plano.', code: 'TRIAL_LIMIT' },
@@ -151,6 +178,7 @@ export class LlmService {
         latencyMs: result?.latencyMs ?? 0,
         costMicroCents: Math.round(usd * 100 * 1_000_000),
         error,
+        statement: req.statement ?? false,
       });
     } catch (e) {
       console.error('[llm] failed to write call log', e);
