@@ -56,7 +56,7 @@ export default function HeroSection() {
 
           <motion.p {...rise(0.16)} className="mx-auto mt-5 max-w-xl text-lg text-slate-600 dark:text-slate-300 lg:mx-0">
             Seu assistente financeiro com IA. Fale ou escreva o que você quer conquistar e ele monta seu plano, lê seus extratos e
-            faturas, lembra suas contas e mostra para onde seu dinheiro vai.
+            faturas, lembra suas contas e, todo mês, mostra para onde seu dinheiro foi.
           </motion.p>
 
           <motion.div {...rise(0.24)} className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start justify-center">

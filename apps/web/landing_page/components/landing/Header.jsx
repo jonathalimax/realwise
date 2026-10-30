@@ -21,6 +21,12 @@ export default function Header() {
             Como funciona
           </button>
           <button
+            onClick={() => scrollTo('resumo')}
+            className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+          >
+            Resumo do mês
+          </button>
+          <button
             onClick={() => scrollTo('preco')}
             className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
