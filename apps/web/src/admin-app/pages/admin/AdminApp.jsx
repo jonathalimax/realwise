@@ -12,6 +12,7 @@ const LlmLogs = lazy(() => import('../v2/LlmLogs'));
 const Support = lazy(() => import('../v2/Support'));
 const Emails = lazy(() => import('../v2/Emails'));
 const Snippets = lazy(() => import('../v2/Snippets'));
+const Simulator = lazy(() => import('../v2/Simulator'));
 const Campaigns = lazy(() => import('../v2/Campaigns'));
 const CampaignEditor = lazy(() => import('../v2/CampaignEditor'));
 const AiSettings = lazy(() => import('../v2/AiSettings'));
@@ -89,6 +90,7 @@ export default function AdminApp() {
             <Route path="support/:id" element={<Support />} />
             <Route path="emails" element={<Emails />} />
             <Route path="snippets" element={<Snippets />} />
+            <Route path="simulator" element={<Simulator />} />
             <Route path="campaigns" element={<Campaigns />} />
             <Route path="campaigns/new" element={<CampaignEditor />} />
             <Route path="campaigns/:id" element={<CampaignEditor />} />

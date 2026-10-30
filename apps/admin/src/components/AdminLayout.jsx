@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  BookOpen, Bot, Bug, CreditCard, LayoutDashboard, LifeBuoy, LogOut, Mail, Megaphone,
+  BookOpen, Bot, Bug, CreditCard, FlaskConical, LayoutDashboard, LifeBuoy, LogOut, Mail, Megaphone,
   Menu, MessageSquareText, ScrollText, Ticket, ShieldCheck, Target, Users, X,
 } from 'lucide-react';
 import { supportResource } from '../lib/api/resources/support';
@@ -24,6 +24,7 @@ const GROUPS = [
     label: 'Inteligência artificial',
     items: [
       { to: 'ai-logs', label: 'Logs de IA', icon: ScrollText },
+      { to: 'simulator', label: 'Simulador do Elio', icon: FlaskConical },
       { to: 'settings', label: 'IA e Avisos', icon: Bot },
     ],
   },

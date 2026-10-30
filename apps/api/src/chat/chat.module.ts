@@ -18,5 +18,6 @@ import { SummaryModule } from '../summary/summary.module';
   imports: [DrizzleModule, BillsModule, BillSuggestionsModule, SummaryModule, EngagementRemindersModule, ChatSnippetsModule],
   controllers: [ChatController],
   providers: [ChatService, ChatToolsService, ChatEditService, ChatBillsService, ChatCategoriesService, ChatMemoryService, InsightsService],
+  exports: [ChatService],
 })
 export class ChatModule {}

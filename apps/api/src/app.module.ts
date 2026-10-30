@@ -38,6 +38,7 @@ import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AdminLlmModule } from './admin-llm/admin-llm.module';
 import { AdminAnalyticsModule } from './admin-analytics/admin-analytics.module';
 import { AdminCommsModule } from './admin-comms/admin-comms.module';
+import { AdminSimulatorModule } from './admin-simulator/admin-simulator.module';
 import { AdminCouponsModule } from './admin-coupons/admin-coupons.module';
 import { LandingModule } from './landing/landing.module';
 import { BillActionsModule } from './bill-actions/bill-actions.module';
@@ -79,6 +80,7 @@ import { ChatModule } from './chat/chat.module';
     AdminLlmModule,
     AdminAnalyticsModule,
     AdminCommsModule,
+    AdminSimulatorModule,
     AdminCouponsModule,
     ErrorLogModule,
     SummaryModule,

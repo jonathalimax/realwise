@@ -173,6 +173,8 @@ export class NotificationsService {
     replyTo?: string;
     headers?: Record<string, string>;
   }): Promise<void> {
+    // Simulator users have undeliverable `.invalid` addresses: never spend a send (or log an error) on them.
+    if (/\.invalid$/i.test(params.to)) return;
     if (!this.resend) return;
     const { error } = await this.resend.emails.send({
       from: params.from ?? this.from,
