@@ -18,7 +18,8 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
   const cardAmounts = useCardBillAmounts(bills, selectedMonth);
 
-  const getBillAmount = (bill) => cardAmounts.get(bill.id) ?? bill.amount ?? 0;
+  // The API returns amounts as strings; always coerce so the totals add instead of concatenating (-> NaN).
+  const getBillAmount = (bill) => Number(cardAmounts.get(bill.id) ?? bill.amount ?? 0) || 0;
   const [selectedYear, selectedMonthNum] = selectedMonth
     ? selectedMonth.split('-').map(Number)
     : [new Date().getFullYear(), new Date().getMonth() + 1];

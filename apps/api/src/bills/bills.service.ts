@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'crypto';
 import { DRIZZLE } from '../db/drizzle.module';
@@ -196,7 +196,41 @@ export class BillsService {
     return rows[0];
   }
 
+  /** An unpaid bill the user already has with the same name, amount, due date and recurrence. */
+  async findDuplicate(
+    input: { name: string; amount: string | number; dueDate: string; recurrence?: string | null },
+    clientId: string,
+    userId: string,
+  ): Promise<Bill | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(bills)
+      .where(and(
+        eq(bills.clientId, clientId),
+        eq(bills.userId, userId),
+        isNull(bills.deletedAt),
+        eq(bills.status, 'pending'),
+        sql`lower(btrim(${bills.name})) = ${input.name.trim().toLowerCase()}`,
+        eq(bills.amount, Number(input.amount).toFixed(2)),
+        eq(bills.dueDate, input.dueDate.slice(0, 10)),
+        input.recurrence && input.recurrence !== 'none'
+          ? eq(bills.recurrence, input.recurrence as 'monthly' | 'weekly' | 'yearly')
+          : isNull(bills.recurrence),
+      ))
+      .limit(1);
+    return row;
+  }
+
   async create(dto: CreateBillDto, clientId: string, userId: string): Promise<Bill> {
+    // Idempotent: a retry or double tap must not add a second identical reminder.
+    if (dto.name && dto.dueDate && dto.amount !== undefined && (dto.status ?? 'pending') === 'pending') {
+      const existing = await this.findDuplicate(
+        { name: dto.name, amount: dto.amount, dueDate: dto.dueDate, recurrence: dto.recurrence },
+        clientId,
+        userId,
+      );
+      if (existing) return existing;
+    }
     const rows = await this.db
       .insert(bills)
       .values({ ...this.mapCreateBillDto(dto), clientId, userId })
