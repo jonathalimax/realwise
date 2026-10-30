@@ -1,7 +1,7 @@
 /** A multiple-choice question Elio shows the user as a sheet (account, payment method, free choice). */
 export interface ChatQuestion {
   id: string;
-  kind: 'account' | 'payment_method' | 'choice' | 'confirm' | 'account_form';
+  kind: 'account' | 'payment_method' | 'choice' | 'confirm' | 'account_form' | 'quick';
   title: string;
   subtitle?: string;
   /** Attachment this question is about, if any. */
@@ -90,6 +90,20 @@ export const TOOL_STATUS: Record<string, string> = {
   set_monthly_income: 'Anotando sua renda…',
   set_budget_plan: 'Montando seu plano…',
   show_summary: 'Montando seu resumo…',
+  show_guide: 'Buscando a explicação…',
 };
 
 export const MAX_REVIEW_ITEMS = 40;
+
+/** Label of the last chip of every quick-reply set: the user can always move on without answering. */
+export const SKIP_LABEL = 'Deixar para depois';
+
+/**
+ * Tappable chips shown under Elio's message (not a sheet). Tapping one just sends its text as the user's next
+ * message, so nothing needs to be stored when it is "answered". The skip chip is always last.
+ */
+export function quickQuestion(options: string[]): ChatQuestion {
+  const labels = options.map((o) => String(o).trim().slice(0, 60)).filter(Boolean).slice(0, 7);
+  if (!labels.some((l) => l.toLowerCase() === SKIP_LABEL.toLowerCase())) labels.push(SKIP_LABEL);
+  return { id: 'quick', kind: 'quick', title: '', options: labels.map((l) => ({ value: l, label: l })) };
+}

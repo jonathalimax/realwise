@@ -24,7 +24,8 @@ const MAX_FILES = 6;
 /** Which sheet (if any) a message is still waiting on. */
 function pendingSheet(message) {
   if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer && q.kind === 'account_form')) return 'account_form';
-  if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer)) return 'questions';
+  // `quick` questions are chips under the message, not a sheet.
+  if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer && q.kind !== 'quick')) return 'questions';
   if (message.review && !message.review.resolved && message.review.groups?.length) return 'review';
   if (message.billsPanel && !message.billsPanel.resolved && message.billsPanel.items?.length) return 'bills';
   return null;
@@ -452,6 +453,12 @@ export default function ChatPage() {
     : manualSheet ??
     (lastAssistant && autoType && !dismissed.has(lastAssistant.id) ? { id: lastAssistant.id, type: autoType } : null);
   const sheetMessage = sheet ? messages.find((m) => m.id === sheet.id) : null;
+  // Quick-reply chips belong to the very last message, and vanish as soon as the user answers (by tap or typing).
+  const lastMessage = messages[messages.length - 1];
+  const quickChips =
+    lastMessage && lastMessage.role === 'assistant' && !lastMessage.local && Array.isArray(lastMessage.questions)
+      ? lastMessage.questions.find((q) => q.kind === 'quick' && !q.answer)?.options ?? []
+      : [];
 
   // A sheet locks the page's scroll while it is open. When it closes, make sure the view is on the latest message
   // if the user was following the chat.
@@ -785,6 +792,25 @@ export default function ChatPage() {
             }}
           />
         ))}
+
+        {!live && !sending && quickChips.length > 0 && (
+          <div className="flex flex-wrap gap-2 pl-1" role="group" aria-label={pt ? 'Respostas rápidas' : 'Quick replies'}>
+            {quickChips.map((chip, i) => (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => submit(chip.label)}
+                className={`rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                  i === quickChips.length - 1
+                    ? 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    : 'border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {live && (
           <LiveBubble
