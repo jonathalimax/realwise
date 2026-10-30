@@ -6,6 +6,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { BillingService, PlanOption } from '../billing/billing.service';
+import { WebhookHealthService } from '../billing/webhook-health.service';
+import { SubscriptionSyncService } from './subscription-sync.service';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { users } from '../db/schema';
@@ -24,6 +26,8 @@ export class AdminSubscriptionsController {
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly billing: BillingService,
     private readonly actor: AdminActorService,
+    private readonly webhookHealth: WebhookHealthService,
+    private readonly syncAll: SubscriptionSyncService,
   ) {}
 
   @Get()
@@ -91,6 +95,25 @@ export class AdminSubscriptionsController {
     const counts = Object.fromEntries(FILTERS.map((f) => [f, all.filter((r) => bucket(r) === f).length])) as Record<(typeof FILTERS)[number], number>;
     const rowsOut = (FILTERS as readonly string[]).includes(filter) ? all.filter((r) => bucket(r) === filter) : all;
     return { counts, total: all.length, rows: rowsOut };
+  }
+
+  /** Is Stripe really configured to call this API (right URL, enabled, the events we handle, secret set)? */
+  @Get('webhook-health')
+  health() {
+    return this.webhookHealth.check();
+  }
+
+  @Get('sync-all')
+  syncAllStatus() {
+    return this.syncAll.status();
+  }
+
+  /** Catch-up for everyone: re-reads every Stripe customer's subscription in the background. */
+  @Post('sync-all')
+  async startSyncAll(@CurrentUser() admin: JwtPayload) {
+    const status = await this.syncAll.start();
+    await this.actor.record(admin, { action: 'subscription.sync_all', details: { total: status.total } });
+    return status;
   }
 
   /** Re-reads one user's subscription from Stripe: the fix when a webhook was missed. */
