@@ -800,10 +800,10 @@ export default function ChatPage() {
                 key={chip.value}
                 type="button"
                 onClick={() => submit(chip.label)}
-                className={`shrink-0 snap-start whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                className={`shrink-0 snap-start whitespace-nowrap rounded-full border font-semibold transition-colors ${
                   i === quickChips.length - 1
-                    ? 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    : 'border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
+                    ? 'border-gray-200 dark:border-gray-700 px-2.5 py-1 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    : 'border-violet-300 dark:border-violet-700 px-3.5 py-2 text-sm text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
                 }`}
               >
                 {chip.label}

@@ -96,7 +96,7 @@ export const TOOL_STATUS: Record<string, string> = {
 export const MAX_REVIEW_ITEMS = 40;
 
 /** Label of the last chip of every quick-reply set: the user can always move on without answering. */
-export const SKIP_LABEL = 'Deixar para depois';
+export const SKIP_LABEL = 'Pular';
 
 /**
  * Tappable chips shown under Elio's message (not a sheet). Tapping one just sends its text as the user's next

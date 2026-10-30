@@ -102,7 +102,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form', 'quick'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day). quick shows short tappable chips under your message (2 to 6 options, each under 40 characters, in the user\'s language; the app adds a "Deixar para depois" chip itself): use it for every conversational question that has predictable answers.' },
+              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form', 'quick'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day). quick shows short tappable chips under your message (2 to 6 options, each under 40 characters, in the user\'s language; the app adds a "Pular" chip itself): use it for every conversational question that has predictable answers.' },
               title: { type: 'string', description: 'Short question, e.g. "Qual conta é essa fatura?"' },
               subtitle: { type: 'string', description: 'What you saw that makes you unsure, e.g. "Final 4821, vence dia 10".' },
               fileName: { type: 'string', description: 'Exact filename this question is about, if any.' },
