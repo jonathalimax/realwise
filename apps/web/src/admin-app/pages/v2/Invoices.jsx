@@ -344,8 +344,8 @@ function SettingsTab({ config, reloadConfig }) {
 
       <Card title="Tributação do serviço" subtitle="Peça ao seu contador estes valores. Eles definem como o ISS é calculado; o sistema não os inventa.">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Item da lista de serviços (LC 116)" hint="Ex.: formato 0107, conforme o contador."><input className={inputClass} value={form.itemListaServico} onChange={set('itemListaServico')} /></Field>
-          <Field label="Código de serviço da Prefeitura" hint="Tabela de códigos de serviço de São Paulo."><input className={inputClass} value={form.codigoTributarioMunicipio} onChange={set('codigoTributarioMunicipio')} /></Field>
+          <Field label="Item da lista de serviços (LC 116)" hint="Sugerido: 0105 (licenciamento ou cessão de direito de uso de programas de computação)."><input className={inputClass} value={form.itemListaServico} onChange={set('itemListaServico')} /></Field>
+          <Field label="Código de serviço da Prefeitura" hint="Sugerido: 02800. Precisa estar habilitado no seu CCM (Prefeitura)."><input className={inputClass} value={form.codigoTributarioMunicipio} onChange={set('codigoTributarioMunicipio')} /></Field>
           <Field label="CNAE (opcional)"><input className={inputClass} value={form.codigoCnae} onChange={set('codigoCnae')} /></Field>
           <Field label="Alíquota do ISS (opcional)" hint="Em branco = não enviamos. Se preencher, confirme na homologação se o valor saiu certo (ex.: 2,9 para 2,9%)."><input className={inputClass} value={form.aliquota} onChange={set('aliquota')} inputMode="decimal" /></Field>
           <Field label="Natureza da operação">

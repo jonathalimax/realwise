@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { digits } from './br-documents';
 import { FocusNfeProvider } from './focusnfe.provider';
@@ -77,6 +77,11 @@ export class InvoicingSettingsService {
       description: input.description === undefined ? current.description : str(input.description),
       tokenEnc: input.clearToken ? null : input.token?.trim() ? encryptSecret(input.token.trim()) : current.tokenEnc,
     });
+    // Nothing may start issuing real notas until the setup is complete: production + on needs every field.
+    if (next.environment === 'producao' && (next.enabled || next.autoIssue)) {
+      const missing = missingConfig(next, Boolean(decryptSecret(next.tokenEnc) ?? process.env.FOCUSNFE_TOKEN));
+      if (missing.length > 0) throw new BadRequestException(`Para ligar a produção, falta: ${missing.join(', ')}.`);
+    }
     await this.settings.set(KEY, next, updatedBy);
     return this.view();
   }

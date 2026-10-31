@@ -34,3 +34,5 @@ Stripe-only subscriptions (monthly and annual) with a 3-day no-card trial and a 
 - `fiscal_invoices.user_id` has no FK and `AccountDeletionService` unlinks (sets NULL) before its generic erase, so fiscal records survive account deletion (legal retention). The privacy policy says so.
 - Stripe webhook must also deliver `charge.refunded` (listed in `REQUIRED_WEBHOOK_EVENTS`).
 - Admin API: `/admin/invoicing` (list, stats, settings, settings/check, settings/test-emission, backfill, queue-all, `:id/{issue,refresh,skip,cancel,customer}`).
+
+- Defaults: CCM, ME/EPP regime, Simples on, item 0105 + SP code 02800 (SC SF/DEJUG 15/2024, IN SF/SUREM 08/2011 Anexo 1; not among the codes closed on 31/12/2025). Saving `environment=producao` with `enabled` or `autoIssue` is refused until token, CCM, codes and text are all set.
