@@ -9,6 +9,7 @@ import { computeAccess } from '../billing/access';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { periodKeyFor, pickReminder, type ReminderKind } from './reminder-rules';
+import { WinbackService, type WinbackCode } from '../retention/winback.service';
 import { BillSuggestionsService, type SuggestionRow } from '../bill-suggestions/bill-suggestions.service';
 import { suggestionToken, unsubscribeToken } from './unsubscribe-token';
 
@@ -25,6 +26,7 @@ export class EngagementRemindersService {
     private readonly notifications: NotificationsService,
     private readonly settings: AppSettingsService,
     private readonly suggestions: BillSuggestionsService,
+    private readonly winback: WinbackService,
   ) {}
 
   async runForAllUsers(now = new Date()): Promise<{ sent: number; skipped: number }> {
@@ -64,6 +66,7 @@ export class EngagementRemindersService {
           transactionCount: counts?.total ?? 0,
           transactionsThisMonth: counts?.thisMonth ?? 0,
           chattedRecently: (chat?.n ?? 0) > 0,
+          lostAt: user.subscriptionStatus ? user.subscriptionCurrentPeriodEnd : user.premiumAccessEndsAt,
           installAppSent: Boolean(install),
           now,
         });
@@ -88,10 +91,26 @@ export class EngagementRemindersService {
           .limit(1);
         if (recent.length) { skipped++; continue; }
 
+        const periodKey = periodKeyFor(kind, now, user.premiumAccessEndsAt, suggestion?.id, access.currentPeriodEnd);
+
+        // The 30- and 60-day win-back e-mails carry a personal code. It is created only when this e-mail is really
+        // due (not already sent), so the hourly job never piles up unused codes in Stripe.
+        let promo: WinbackCode | undefined;
+        if (kind === 'winback_30' || kind === 'winback_60') {
+          const [already] = await this.db
+            .select({ id: reminderEmailsSent.id })
+            .from(reminderEmailsSent)
+            .where(and(eq(reminderEmailsSent.userId, user.id), eq(reminderEmailsSent.kind, kind), eq(reminderEmailsSent.periodKey, periodKey)))
+            .limit(1);
+          if (already) { skipped++; continue; }
+          promo = (await this.winback.createCode(user)) ?? undefined;
+          if (!promo) { skipped++; continue; } // Stripe unavailable: try again next hour, nothing was claimed
+        }
+
         // Claim first (unique index), send second: a crash can drop one email but can never double-send.
         const claimed = await this.db
           .insert(reminderEmailsSent)
-          .values({ userId: user.id, kind, periodKey: periodKeyFor(kind, now, user.premiumAccessEndsAt, suggestion?.id) })
+          .values({ userId: user.id, kind, periodKey })
           .onConflictDoNothing()
           .returning({ id: reminderEmailsSent.id });
         if (!claimed.length) { skipped++; continue; }
@@ -103,6 +122,7 @@ export class EngagementRemindersService {
           unsubscribeToken: unsubscribeToken(user.id),
           now,
           clientId: user.clientId,
+          promo,
           suggestion: suggestion
             ? {
                 id: suggestion.id,

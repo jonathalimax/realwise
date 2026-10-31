@@ -274,6 +274,13 @@
       "when": 1793800000000,
       "tag": "0038_fiscal_invoices",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793900000000,
+      "tag": "0039_cancellation_feedback",
+      "breakpoints": true
     }
   ]
 }
