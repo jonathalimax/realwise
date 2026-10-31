@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 import { escapeHtml, safeHttpUrl, textToParagraphs } from './email-text';
+import { buildEmail, chat, detailRows, para, rows, sectionLabel } from './email-layout';
 import type { EngagementKind } from '../app-settings/app-settings.types';
 
 interface BillEntry {
@@ -33,121 +34,47 @@ interface ImportIssueNotification {
 }
 
 type RecoveryStage = 1 | 2 | 3;
-const BRAND_LOGO_URL = 'https://realwise.com.br/logo.png';
-
-function getBaseTemplate({
-  title,
-  subtitle,
-  body,
-  cta,
-  ctaUrl,
-  footerNote,
-  support = false,
-}: {
-  title: string;
-  subtitle?: string;
-  body: string;
-  cta?: string;
-  ctaUrl?: string;
-  footerNote?: string;
-  /** Adds the WhatsApp support button. Only for e-mails where the person may be stuck (support replies, checkout trouble): never as a way to chat with Elio. */
-  support?: boolean;
-}) {
-  const whatsapp = (process.env.SUPPORT_WHATSAPP ?? '').replace(/\D/g, '') || '5541992310339';
-  // Same width and shape for every button so the primary and the support one line up.
-  const buttonBase = 'display:block;box-sizing:border-box;width:100%;max-width:280px;margin:0 auto;padding:13px 0;text-align:center;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;';
-  return `
-    <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background-color:#ffffff;">
-      <tr><td align="center" style="padding:8px 0;">
-        <table width="600" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:600px;width:100%;background-color:#ffffff;">
-          <tr><td style="padding:16px 16px 12px;">
-            <img src="${BRAND_LOGO_URL}" alt="Realwise" width="44" height="44" style="display:block;width:44px;height:44px;border-radius:12px;object-fit:contain;" />
-            <div style="color:#10b981;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:8px;">Realwise</div>
-          </td></tr>
-          <tr><td style="padding:0 16px 8px;">
-            <div style="color:#1e293b;font-size:22px;font-weight:700;line-height:1.3;">${title}</div>
-            ${subtitle ? `<div style="color:#6b7280;font-size:13px;margin-top:6px;">${subtitle}</div>` : ''}
-          </td></tr>
-          <tr><td style="padding:12px 16px 0;">${body}</td></tr>
-          ${cta ? `
-            <tr><td style="padding:20px 16px 8px;">
-              <a href="${ctaUrl || 'https://realwise.com.br'}" style="${buttonBase}background:#10b981;color:#ffffff;">${cta}</a>
-            </td></tr>
-          ` : ''}
-          ${support ? `
-            <tr><td style="padding:8px 16px 0;">
-              <a href="https://wa.me/${whatsapp}?text=${encodeURIComponent('Olá! Preciso de ajuda com o Realwise.')}" style="${buttonBase}background:#ffffff;color:#16a34a;border:2px solid #25d366;">Falar com o suporte no WhatsApp</a>
-              <div style="text-align:center;font-size:11px;color:#9ca3af;line-height:1.5;margin-top:6px;">Atendimento para problemas e dúvidas. Para conversar com o Elio, abra o app.</div>
-            </td></tr>
-          ` : `
-            <tr><td style="padding:8px 16px 0;text-align:center;font-size:12px;color:#9ca3af;line-height:1.5;">Algum problema? É só responder este e-mail.</td></tr>
-          `}
-          <tr><td style="padding:20px 16px 12px;text-align:center;font-size:11px;color:#9ca3af;">
-            © 2026 Realwise · ${footerNote || 'Todos os direitos reservados.'}
-          </td></tr>
-        </table>
-      </td></tr>
-    </table>
-  `;
-}
 
 function welcomeTemplate(name: string) {
-  return getBaseTemplate({
-    title: `Bem-vindo ao Realwise, ${name}! 🎉`,
-    subtitle: 'Sua compra foi confirmada. Veja o que acontece a seguir.',
-    body: `
-      <div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:20px;">
-        Estamos configurando seu ambiente. Você receberá um novo e-mail assim que tudo estiver pronto e seu acesso liberado.
-      </div>
-      <div style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">O que está acontecendo agora?</div>
-        <div style="font-size:13px;color:#374151;line-height:1.8;">
-          <div style="margin-bottom:8px;">🔐 <strong>Criando seu banco de dados exclusivo</strong></div>
-          <div>🔑 <strong>Configurando seu acesso</strong></div>
-        </div>
-      </div>
-    `,
-    footerNote: 'Você está recebendo este e-mail porque se cadastrou no Realwise.',
+  return buildEmail({
+    variant: 'centered',
+    icon: 'check',
+    title: `Bem-vindo, ${escapeHtml(name)}!`,
+    lead: 'Sua compra foi confirmada. Você recebe outro e-mail quando o acesso estiver liberado.',
+    body: rows([
+      ['🔐', 'Criando seu banco de dados'],
+      ['🔑', 'Configurando seu acesso'],
+    ]),
+    footerNote: 'Você recebeu este e-mail porque se cadastrou no Realwise.',
   });
 }
 
 function accessGrantedTemplate(name: string, loginUrl = 'https://realwise.com.br/login') {
-  return getBaseTemplate({
-    title: `Tudo pronto, ${name}! 🟢`,
-    subtitle: 'Seu acesso está liberado. Veja por onde começar.',
-    body: `
-      <div style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;">Por onde começar?</div>
-        <div style="font-size:13px;color:#374151;line-height:1.8;">
-          <div style="margin-bottom:8px;">🏦 <strong>Adicione seu banco ou cartão</strong></div>
-          <div style="margin-bottom:8px;">📥 <strong>Importe seus extratos</strong></div>
-          <div>✏️ <strong>Ou lance manualmente</strong></div>
-        </div>
-      </div>
-      <div style="font-size:13px;color:#4b5563;">Qualquer dúvida, basta responder a este e-mail.</div>
-    `,
-    cta: 'Acessar o Sistema Agora',
+  return buildEmail({
+    variant: 'centered',
+    icon: 'check',
+    title: `Tudo pronto, ${escapeHtml(name)}!`,
+    lead: 'Seu acesso está liberado.',
+    cta: 'Acessar agora',
     ctaUrl: loginUrl,
-    footerNote: 'Você está recebendo este e-mail porque é um cliente Realwise.',
+    body: rows([
+      ['🏦', 'Adicione seu banco ou cartão'],
+      ['📥', 'Importe seus extratos'],
+      ['✏️', 'Ou lance manualmente'],
+    ]),
+    footerNote: 'Você recebeu este e-mail porque é cliente do Realwise.',
   });
 }
 
 function acceptMigrationTemplate(name: string, migrationUrl = 'https://realwise.com.br/login') {
-  return getBaseTemplate({
-    title: `Ação necessária, ${name}`,
-    subtitle: 'Aceite sua migração de conta para continuar.',
-    body: `
-      <div style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;color:#1e3a8a;margin-bottom:8px;">Migração pendente</div>
-        <div style="font-size:13px;color:#374151;line-height:1.8;">
-          <div>Revise e confirme a migração para manter seu acesso e seus dados sincronizados.</div>
-        </div>
-      </div>
-      <div style="font-size:13px;color:#4b5563;">Se tiver dúvidas, responda este e-mail.</div>
-    `,
-    cta: 'Aceitar Migração',
+  return buildEmail({
+    icon: 'alarm',
+    chip: { text: 'Ação necessária', tone: 'warn' },
+    title: `Aceite a migração, ${escapeHtml(name)}`,
+    lead: para('Aceite a migração da sua conta para manter seu acesso e seus dados sincronizados.'),
+    cta: 'Aceitar migração',
     ctaUrl: migrationUrl,
-    footerNote: 'Você está recebendo este e-mail porque é um cliente Realwise.',
+    footerNote: 'Você recebeu este e-mail porque é cliente do Realwise.',
   });
 }
 
@@ -208,10 +135,12 @@ export class NotificationsService {
   /** Reply from the admin inbox to a support message; goes out from SUPPORT_EMAIL. Throws when delivery fails. */
   async sendSupportReply(to: string, ctx: { name?: string | null; subject?: string | null; reply: string; original: string }): Promise<void> {
     const first = (ctx.name ?? '').trim().split(' ')[0];
-    const quoted = `<div style="border-left:3px solid #e5e7eb;padding:4px 12px;margin-top:8px;font-size:12px;color:#9ca3af;line-height:1.6;">${escapeHtml(ctx.original.slice(0, 1000)).replace(/\n/g, '<br />')}</div>`;
-    const html = getBaseTemplate({
+    const quoted = `<div class="rw-muted" style="padding:2px 0;font-size:14px;line-height:21px;color:#566072;">${escapeHtml(ctx.original.slice(0, 1000)).replace(/\n/g, '<br />')}</div>`;
+    const html = buildEmail({
+      icon: 'heart',
       title: first ? `Olá, ${escapeHtml(first)}` : 'Olá',
-      body: textToParagraphs(ctx.reply) + `<div style="font-size:12px;color:#9ca3af;margin-top:18px;">Sua mensagem:</div>${quoted}`,
+      lead: textToParagraphs(ctx.reply),
+      body: sectionLabel('Sua mensagem') + quoted,
       footerNote: 'Responda este e-mail para continuar a conversa.',
       support: true,
     });
@@ -227,12 +156,13 @@ export class NotificationsService {
   /** Brand-template HTML for a marketing campaign (also used by the admin preview). Everything user-provided is escaped. */
   renderCampaignEmail(c: { subject: string; body: string; ctaLabel?: string | null; ctaUrl?: string | null }, unsubscribeUrl: string): string {
     const ctaUrl = safeHttpUrl(c.ctaUrl);
-    return getBaseTemplate({
+    return buildEmail({
+      icon: 'sparkle',
       title: escapeHtml(c.subject),
-      body: textToParagraphs(c.body),
+      lead: textToParagraphs(c.body),
       cta: ctaUrl && c.ctaLabel?.trim() ? escapeHtml(c.ctaLabel.trim()) : undefined,
       ctaUrl: ctaUrl ? escapeHtml(ctaUrl) : undefined,
-      footerNote: `Não quer mais receber novidades? <a href="${escapeHtml(unsubscribeUrl)}" style="color:#9ca3af;">Cancelar inscrição</a>`,
+      footerNote: `Não quer mais receber novidades? <a href="${escapeHtml(unsubscribeUrl)}">Cancelar inscrição</a>`,
     });
   }
 
@@ -274,101 +204,96 @@ export class NotificationsService {
     const api = process.env.API_BASE_URL ?? 'https://api.realwise.com.br';
     const unsub = `${api}/reminders/unsubscribe?u=${ctx.unsubscribeUserId}&t=${ctx.unsubscribeToken}`;
     const prevMonth = new Date(ctx.now.getFullYear(), ctx.now.getMonth() - 1, 1).toLocaleDateString('pt-BR', { month: 'long' });
-    const p = (t: string) => `<div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:14px;">${t}</div>`;
     const app = (path: string) => (ctx.clientId ? `${web.replace(/\/$/, '')}/${ctx.clientId}${path}` : `${web.replace(/\/$/, '')}/login`);
     const sg = ctx.suggestion;
     const days = ctx.trialDaysRemaining;
     const daysText = `${days} ${days === 1 ? 'dia' : 'dias'}`;
-    const trialLine = days > 0 ? p(`Você tem <strong>${daysText} de teste grátis</strong>, sem cartão e sem cobrança. Dá tempo de sobra para ver se faz sentido para você.`) : '';
-    const list = (items: [string, string][]) =>
-      `<div style="background:#ecfdf5;border-left:4px solid #10b981;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#374151;line-height:1.8;">${items
-        .map(([icon, text]) => `<div style="margin-bottom:8px;">${icon} ${text}</div>`)
-        .join('')}</div>`;
+    const trialChip = days > 0 ? { text: `Teste grátis: ${daysText}`, tone: 'brand' as const } : undefined;
     const money = (v: string) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     // One platform of the "add to your home screen" e-mail: a looping cartoon, then the same three steps as text
     // (mail apps that do not play GIFs, such as desktop Outlook, still show the first frame and the steps).
     const installBlock = (icon: string, heading: string, hint: string, gif: string, alt: string, steps: string[]) =>
-      `<div style="margin:0 0 22px;">
-        <div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:2px;">${icon} ${heading}</div>
-        <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">${hint}</div>
-        <img src="https://realwise.com.br/email/${gif}" width="568" alt="${alt}" style="display:block;width:100%;max-width:568px;height:auto;border-radius:14px;border:0;" />
-        <div style="font-size:13px;color:#374151;line-height:1.9;margin-top:10px;">${steps.map((t, i) => `<div>${['1️⃣', '2️⃣', '3️⃣'][i]} ${t}</div>`).join('')}</div>
+      `<div style="margin:0 0 28px;">
+        <div class="rw-ink" style="font-size:20px;line-height:28px;font-weight:800;color:#0e1420;">${icon} ${heading}</div>
+        <div class="rw-muted" style="font-size:14px;line-height:20px;color:#566072;margin-bottom:12px;">${hint}</div>
+        <img src="https://realwise.com.br/email/${gif}" width="544" alt="${alt}" style="display:block;width:100%;max-width:544px;height:auto;border-radius:16px;border:0;" />
+        <div class="rw-ink" style="font-size:16px;line-height:1.9;margin-top:12px;color:#0e1420;">${steps.map((t, i) => `<div>${['1️⃣', '2️⃣', '3️⃣'][i]} ${t}</div>`).join('')}</div>
       </div>`;
-
+    // The personal win-back code: big letters, no box.
     const promoBox = () => {
       const pr = ctx.promo;
       if (!pr) return '';
       const months = `${pr.months} ${pr.months === 1 ? 'mês' : 'meses'}`;
-      return `<div style="background:#f5f3ff;border:2px dashed #8b5cf6;border-radius:12px;padding:18px 20px;margin:0 0 16px;text-align:center;">
-        <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">Seu código</div>
-        <div style="font-size:26px;font-weight:800;letter-spacing:3px;color:#5b21b6;">${escapeHtml(pr.code)}</div>
-        <div style="font-size:13px;color:#4b5563;margin-top:8px;">${pr.percent}% de desconto nos primeiros ${months} · válido por ${pr.validDays} dias · uso único</div>
+      return `<div style="text-align:center;margin:18px 0 10px;">
+        <div class="rw-brand" style="font-size:34px;line-height:42px;font-weight:800;letter-spacing:4px;color:#6d28d9;">${escapeHtml(pr.code)}</div>
+        <div class="rw-muted" style="font-size:15px;line-height:22px;color:#566072;margin-top:6px;">${pr.percent}% de desconto nos primeiros ${months} · vale ${pr.validDays} dias · uso único</div>
       </div>`;
     };
 
     const copy = {
       welcome: {
         subject: `${ctx.name}, que bom ter você aqui 💜`,
+        icon: 'sparkle',
         title: `Que bom ter você aqui, ${escapeHtml(ctx.name)}!`,
+        lead: 'Eu sou o Elio, seu assistente financeiro. É só conversar.',
+        chip: trialChip,
         body:
-          p('Eu sou o Elio, seu assistente financeiro. Você acabou de abrir o chat e eu já deixei tudo pronto para a gente começar, no seu ritmo.') +
-          p('Veja o que eu faço por você:') +
-          list([
-            ['💬', '<strong>Anoto seus gastos conversando.</strong> Escreva ou fale "gastei 45 no mercado" e pronto.'],
-            ['📄', '<strong>Leio seu extrato ou fatura</strong> (PDF, foto, CSV) e categorizo tudo, sem você digitar nada.'],
-            ['🔔', '<strong>Aviso suas contas antes de vencer</strong>, para nunca mais pagar multa por esquecimento.'],
-            ['📊', '<strong>Todo mês, o seu resumo:</strong> uma nota de saúde financeira, para onde foi cada real e o que ajustar.'],
-            ['🎯', '<strong>Monto um plano para os seus objetivos</strong>, seja uma reserva, uma viagem ou sair das dívidas.'],
+          chat([
+            { from: 'me', html: 'Paguei R$ 54 no mercado' },
+            { from: 'elio', html: '<strong>Anotado em Mercado.</strong><br />Ainda sobram <strong class="rw-pos" style="color:#047857;">R$ 4.324</strong> neste mês.' },
+            { from: 'me', html: 'E se eu juntar R$ 500?' },
           ]) +
-          trialLine +
-          p('Sem pressa: para começar, basta me contar o que você quer alcançar com o seu dinheiro.'),
-        cta: 'Continuar no chat',
+          rows([
+            ['📄', 'Mande o extrato', 'PDF ou foto do seu banco.'],
+            ['🏷️', 'Tudo categorizado', 'O Elio separa e aprende com você.'],
+            ['🔔', 'Contas no radar', 'Aviso antes de vencer.'],
+          ]),
+        cta: 'Falar com o Elio',
         url: app('/chat'),
       },
       activation_day1: {
         subject: `${ctx.name}, o Elio está esperando você`,
-        title: `Seu primeiro passo leva 2 minutos, ${escapeHtml(ctx.name)}`,
-        body:
-          p('Você criou sua conta, mas ainda não registrou nada. Sem problema, é mais rápido do que parece:') +
-          list([
-            ['1️⃣', 'Abra o chat e me conte o que você quer conquistar com o seu dinheiro.'],
-            ['2️⃣', 'Cadastre sua conta ou cartão (só o banco e o nome do titular).'],
-            ['3️⃣', 'Diga um gasto de hoje, ou mande o extrato quando tiver à mão.'],
-          ]) +
-          trialLine,
+        icon: 'activation',
+        title: 'Seu primeiro passo leva 2 minutos',
+        lead: 'Três toques e o Elio já sabe como te ajudar.',
+        chip: trialChip,
+        body: rows([
+          ['1️⃣', 'Diga o que você quer alcançar'],
+          ['2️⃣', 'Cadastre sua conta ou cartão'],
+          ['3️⃣', 'Conte um gasto de hoje'],
+        ]),
         cta: 'Abrir o chat',
         url: app('/chat'),
       },
       activation_day3: {
         subject: 'Menos planilha, mais clareza sobre o seu dinheiro',
+        icon: 'insights',
         title: 'O que o Realwise faz por você',
-        body:
-          p(`${escapeHtml(ctx.name)}, uma conversa de 2 minutos já deixa tudo no lugar. Depois disso, o Realwise trabalha por você:`) +
-          list([
-            ['📊', '<strong>Resumo do mês</strong> com nota de saúde financeira, para onde foi o seu dinheiro e o que ajustar.'],
-            ['🔔', '<strong>Lembretes de contas</strong> por e-mail, antes do vencimento.'],
-            ['🔁', '<strong>Transferência entre as suas contas não vira gasto.</strong> Os números saem certos.'],
-            ['🥧', '<strong>Orçamento que fala português:</strong> "este mês sobrou R$ 340", sem tabela complicada.'],
-          ]) +
-          trialLine,
+        lead: 'Menos planilha, mais clareza.',
+        chip: trialChip,
+        body: rows([
+          ['📊', 'Resumo do mês', 'Com nota de saúde financeira.'],
+          ['🔔', 'Lembrete de contas', 'Antes de vencer.'],
+          ['🔁', 'Transferência não vira gasto', 'Entre as suas contas.'],
+          ['🥧', 'Orçamento em português claro'],
+        ]),
         cta: 'Começar agora',
         url: app('/chat'),
       },
       activation_day5: {
         subject: days > 0 ? `${ctx.name}, ainda dá tempo: faltam ${daysText} do seu teste grátis` : `${ctx.name}, seu teste grátis está acabando`,
-        title: 'Ainda dá tempo de ver o seu mês com clareza',
-        body:
-          (days > 0 ? p(`Seu teste grátis ainda tem <strong>${daysText}</strong>. Não precisa de cartão e nada é cobrado automaticamente.`) : '') +
-          p('O caminho mais curto: abra o chat, mande o extrato mais recente e veja, em poucos segundos, para onde o seu dinheiro foi.') +
-          p('Ficou com alguma dúvida ou travou em alguma parte? É só responder este e-mail que a gente ajuda.'),
+        icon: 'hourglass',
+        title: 'Ainda dá tempo de ver seu mês',
+        lead: days > 0 ? `Faltam ${daysText} de teste, sem cartão e sem cobrança. Mande seu extrato mais recente.` : 'Mande seu extrato mais recente e veja para onde o dinheiro foi.',
         cta: 'Ver o meu mês',
         url: app('/chat'),
       },
       install_app: {
         subject: `${ctx.name}, deixe o Realwise a um toque do seu celular 📲`,
-        title: 'Deixe o Realwise na tela do seu celular',
+        icon: '📲',
+        title: 'Deixe o Realwise na tela do celular',
+        lead: 'Em 3 toques ele vira um app, sem loja.',
         body:
-          p('Em 3 toques o Realwise vira um app no seu celular, sem loja de aplicativos. Assim o Elio fica a um toque e anotar um gasto leva segundos.') +
           installBlock('📱', 'No iPhone', 'Abra no Safari', 'install-ios.gif', 'Animação: toque em Compartilhar, depois em Adicionar à Tela de Início, depois em Adicionar', [
             'Toque em <strong>Compartilhar</strong> (o quadradinho com a seta)',
             'Escolha <strong>Adicionar à Tela de Início</strong>',
@@ -378,108 +303,126 @@ export class NotificationsService {
             'Toque nos <strong>3 pontinhos</strong> no canto de cima',
             'Escolha <strong>Instalar app</strong>',
             'Toque em <strong>Instalar</strong>',
-          ]) +
-          p('Dica: abra este e-mail no celular e toque no botão abaixo. Pronto, é só seguir os passos.'),
+          ]),
         cta: 'Abrir o Realwise',
         url: app('/chat'),
       },
       bill_suggestion: {
         subject: sg ? `${ctx.name}, quer um lembrete para ${sg.name}?` : 'Quer criar um lembrete?',
-        title: 'O Elio percebeu uma coisa 👀',
-        body: sg
-          ? p(`Notei que você paga <strong>${escapeHtml(sg.name)}</strong> todo mês, por volta do dia <strong>${sg.dayOfMonth}</strong> (cerca de <strong>${money(sg.amount)}</strong>).`) +
-            p('Quer que eu crie um lembrete para você não esquecer? É só tocar no botão e eu cuido do resto.') +
-            `<div style="text-align:center;font-size:12px;margin-top:6px;"><a href="${sg.dismissUrl}" style="color:#9ca3af;">Agora não, obrigado</a></div>`
+        icon: 'idea',
+        variant: 'panel' as const,
+        title: 'O Elio percebeu uma coisa',
+        lead: sg
+          ? para(`Você paga <strong>${escapeHtml(sg.name)}</strong> todo mês, por volta do dia <strong>${sg.dayOfMonth}</strong> (cerca de <strong>${money(sg.amount)}</strong>). Quer que eu crie um lembrete?`)
           : '',
+        body: sg ? `<div style="text-align:center;font-size:14px;"><a class="rw-subtle" href="${sg.dismissUrl}" style="color:#6a7385;">Agora não, obrigado</a></div>` : '',
         cta: 'Sim, criar o lembrete',
         url: sg ? app(`/chat?suggestion=${encodeURIComponent(sg.id)}`) : app('/chat'),
       },
       trial_import: {
         subject: `${ctx.name}, falta só o seu extrato`,
-        title: `Falta só um passo, ${escapeHtml(ctx.name)} 👋`,
-        body: p('Você ainda não mandou nenhum extrato. É rápido: abra o chat, anexe o PDF ou CSV do seu banco e o Elio organiza tudo em segundos.') + p('Seu teste é grátis, sem cartão e sem cobrança.'),
+        icon: 'import',
+        title: 'Falta só o seu extrato',
+        lead: 'Anexe o PDF ou CSV do banco no chat e o Elio organiza tudo em segundos.',
         cta: 'Abrir o chat e importar',
         url: app('/chat'),
       },
       trial_ending: {
         subject: 'Seu teste grátis termina amanhã',
+        icon: 'hourglass',
         title: 'Seu teste termina amanhã',
-        body: p('Aproveite as últimas horas: importe o extrato mais recente e veja o resumo do mês.') + p('Nada será cobrado automaticamente. Se quiser continuar depois, é só escolher um plano; se não, seus dados ficam guardados.'),
+        lead: 'Importe o extrato mais recente e veja o resumo do mês. Nada é cobrado sozinho: se não quiser continuar, seus dados ficam guardados.',
+        chip: { text: 'Termina amanhã', tone: 'warn' as const },
         cta: 'Importar meu extrato',
         url: app('/chat'),
       },
       trial_expired: {
         subject: 'Seu teste acabou, mas seus dados estão guardados',
+        icon: 'locked',
         title: 'Seu teste terminou',
-        body: p('Seus dados continuam guardados. Para voltar a usar o Elio, escolha um plano a partir de R$ 12,90 por mês. Cancele quando quiser.'),
+        lead: 'Seus dados continuam guardados. Escolha um plano para voltar ao Elio e cancele quando quiser.',
         cta: 'Ver planos',
         url: `${web}/`,
       },
+      monthly_import: {
+        subject: `Hora de importar o extrato de ${prevMonth}`,
+        icon: 'import',
+        title: `Seu extrato de ${prevMonth} já saiu`,
+        lead: 'Anexe o PDF ou CSV no chat e o Elio categoriza tudo em segundos.',
+        cta: 'Importar agora',
+        url: app('/chat'),
+      },
       payment_failed: {
         subject: 'Não conseguimos renovar sua assinatura do Realwise',
-        title: 'Houve um problema com o pagamento',
-        body:
-          p('Tentamos cobrar a renovação da sua assinatura, mas o pagamento não foi aprovado. Isso costuma acontecer por limite do cartão, cartão vencido ou troca de cartão.') +
-          p('Para continuar usando o Elio sem interrupção, atualize a forma de pagamento. Leva menos de um minuto, e seus dados continuam guardados.'),
+        icon: 'payment',
+        variant: 'panel' as const,
+        chip: { text: 'Pagamento recusado', tone: 'bad' as const },
+        title: 'O pagamento não foi aprovado',
+        lead: para('Não conseguimos renovar sua assinatura. Atualize o cartão para continuar sem interrupção. Leva 1 minuto.'),
         cta: 'Atualizar pagamento',
         url: app('/subscription'),
       },
       payment_failed_followup: {
         subject: 'Seu acesso ao Realwise pode ser pausado em breve',
-        title: 'Falta pouco para pausarmos seu acesso',
-        body:
-          p('Ainda não conseguimos receber o pagamento da sua assinatura. Para o acesso não ser pausado, atualize a forma de pagamento agora.') +
-          p('Se você já resolveu, pode ignorar este e-mail.'),
+        icon: 'alarm',
+        variant: 'panel' as const,
+        chip: { text: 'Acesso em risco', tone: 'bad' as const },
+        title: 'Seu acesso será pausado em breve',
+        lead: para('Ainda não recebemos o pagamento. Atualize a forma de pagamento para manter o acesso.'),
+        body: `<div class="rw-muted" style="font-size:14px;line-height:20px;color:#566072;text-align:center;">Já resolveu? É só ignorar este e-mail.</div>`,
         cta: 'Atualizar pagamento',
         url: app('/subscription'),
       },
       winback_7: {
         subject: `${ctx.name}, seus dados continuam guardados`,
+        icon: 'heart',
         title: `Sentimos sua falta, ${escapeHtml(ctx.name)}`,
-        body:
-          p('Faz uma semana que seu acesso ao Realwise terminou. Seus dados continuam guardados, então é só voltar de onde parou.') +
-          p('Se algo não funcionou como você esperava, escreva para <strong>contato@realwise.com.br</strong>: a gente lê tudo e usa o que você disser para melhorar.'),
+        lead: 'Seus dados continuam guardados. Volte quando quiser, de onde parou. Algo não funcionou? Conte para contato@realwise.com.br.',
         cta: 'Voltar ao Realwise',
         url: app('/subscription'),
       },
       winback_30: {
         subject: `${ctx.name}, um código só seu para voltar ao Realwise`,
-        title: ctx.promo ? `Volte com ${ctx.promo.percent}% de desconto` : `Que tal voltar, ${escapeHtml(ctx.name)}?`,
-        body:
-          p('Faz um mês que você saiu e seus dados continuam guardados. Preparamos um código só seu para facilitar a volta:') +
-          promoBox() +
-          p('Basta digitar o código na hora de assinar.'),
+        icon: 'gift',
+        title: ctx.promo ? `${ctx.promo.percent}% de desconto para você voltar` : 'Que tal voltar?',
+        lead: promoBox() + '<div style="text-align:center;">Digite o código na hora de assinar.</div>',
         cta: 'Voltar com desconto',
         url: app('/subscription'),
       },
       winback_60: {
         subject: `${ctx.name}, seu código para voltar ao Realwise expira em breve`,
-        title: 'Este é o nosso último lembrete',
-        body:
-          p('Não queremos encher sua caixa de entrada, então este é o último e-mail sobre isso. Seus dados continuam guardados, e o código abaixo é só seu:') +
-          promoBox() +
-          p('Se não fizer sentido voltar agora, tudo bem: desejamos o melhor com as suas finanças. 💜'),
+        icon: 'gift',
+        title: 'Último lembrete: seu código',
+        lead: promoBox() + '<div style="text-align:center;">Se não fizer sentido agora, tudo bem. Seus dados continuam guardados.</div>',
+        chip: { text: 'Expira em breve', tone: 'warn' as const },
         cta: 'Voltar ao Realwise',
         url: app('/subscription'),
       },
-      monthly_import: {
-        subject: `Hora de importar o extrato de ${prevMonth}`,
-        title: `Seu extrato de ${prevMonth} já saiu`,
-        body: p('Leva menos de um minuto: anexe o PDF ou CSV no chat e o Elio categoriza tudo, detecta transferências entre suas contas e atualiza seu resumo.'),
-        cta: 'Importar agora',
-        url: app('/chat'),
-      },
-    }[kind];
+    }[kind] as {
+      subject: string;
+      icon: string;
+      title: string;
+      lead: string;
+      body?: string;
+      chip?: { text: string; tone: 'warn' | 'ok' | 'bad' | 'brand' };
+      variant?: 'panel' | 'centered';
+      cta: string;
+      url: string;
+    };
 
     const billing = kind === 'payment_failed' || kind === 'payment_failed_followup';
-    const html = getBaseTemplate({
+    const html = buildEmail({
+      variant: copy.variant ?? 'centered',
+      icon: copy.icon,
       title: copy.title,
+      lead: copy.lead,
       body: copy.body,
+      chip: copy.chip,
       cta: copy.cta,
       ctaUrl: copy.url,
       footerNote: billing
         ? 'Você recebeu este e-mail porque há uma assinatura ativa no Realwise.'
-        : `Não quer mais lembretes? <a href="${unsub}" style="color:#9ca3af;">Cancelar inscrição</a>`,
+        : `Não quer mais lembretes? <a href="${unsub}">Cancelar inscrição</a>`,
     });
     await this.sendMail({ to, subject: copy.subject, html });
   }
@@ -495,38 +438,35 @@ export class NotificationsService {
     };
     const sum = [...groups.overdue, ...groups.dueToday, ...groups.dueSoon].reduce((acc, b) => acc + Number(b.amount), 0);
 
-    const section = (title: string, color: string, bills: BillEntry[], note: (b: BillEntry) => string) => {
+    const section = (title: string, bills: BillEntry[], tone: 'neg' | 'warn' | undefined, note: (b: BillEntry) => string) => {
       if (!bills.length) return '';
-      return `
-        <div style="margin:0 0 18px;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${color};margin-bottom:6px;">${title}</div>
-          ${bills
-            .map(
-              (b) => `
-            <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #f1f5f9;"><tr>
-              <td style="padding:9px 0;font-size:14px;color:#1e293b;"><strong>${escapeHtml(b.name)}</strong><br /><span style="font-size:12px;color:#94a3b8;">${note(b)}</span></td>
-              <td style="padding:9px 0;font-size:14px;font-weight:700;color:#1e293b;text-align:right;white-space:nowrap;">${money(b.amount)}</td>
-            </tr></table>`,
-            )
-            .join('')}
-        </div>`;
+      return `<div style="margin:0 0 22px;">${sectionLabel(title)}${detailRows(
+        bills.map((b) => ({ label: escapeHtml(b.name), sub: note(b), value: money(b.amount), tone })),
+      )}</div>`;
     };
 
-    const body = `
-      <div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:16px;">
-        Separei as contas que precisam da sua atenção. Já pagou alguma? Toque no botão abaixo e me conte quais (e os valores, se mudaram): eu marco tudo para você.
-      </div>
-      ${section('⚠️ Em atraso', '#e11d48', groups.overdue, (b) => `venceu em ${day(b.dueDate)}${b.daysOverdue ? ` · ${b.daysOverdue} dia${b.daysOverdue > 1 ? 's' : ''} de atraso` : ''}`)}
-      ${section('📅 Vence hoje', '#d97706', groups.dueToday, () => 'vence hoje')}
-      ${section('🔔 Vence em breve', '#2563eb', groups.dueSoon, (b) => `vence em ${day(b.dueDate)}`)}
-      <div style="font-size:13px;color:#64748b;margin-top:4px;">${total} conta${total > 1 ? 's' : ''} · total de <strong>${money(String(sum))}</strong></div>
-    `;
+    const body =
+      section('Em atraso', groups.overdue, 'neg', (b) => `venceu em ${day(b.dueDate)}${b.daysOverdue ? ` · ${b.daysOverdue} dia${b.daysOverdue > 1 ? 's' : ''} de atraso` : ''}`) +
+      section('Vence hoje', groups.dueToday, 'warn', () => 'vence hoje') +
+      section('Vence em breve', groups.dueSoon, undefined, (b) => `vence em ${day(b.dueDate)}`);
 
-    const html = getBaseTemplate({
+    const chip = groups.overdue.length
+      ? { text: 'Em atraso', tone: 'bad' as const }
+      : groups.dueToday.length
+        ? { text: 'Vence hoje', tone: 'warn' as const }
+        : { text: 'Vence em breve', tone: 'brand' as const };
+
+    const html = buildEmail({
+      icon: 'bills',
+      chip,
       title: total > 1 ? 'Suas contas pedem atenção' : 'Uma conta pede atenção',
-      subtitle: 'Resolva tudo em um minuto, direto no chat com o Elio.',
+      lead: para(
+        total > 1
+          ? `São <strong>${money(String(sum))}</strong> em ${total} contas. Já pagou alguma? Me diga quais e eu marco para você.`
+          : `São <strong>${money(String(sum))}</strong>. Já pagou? Me diga e eu marco para você.`,
+      ),
       body,
-      cta: 'Resolver minhas contas com o Elio',
+      cta: 'Resolver com o Elio',
       ctaUrl: ctaUrl ?? 'https://realwise.com.br',
       footerNote: 'Você recebe este lembrete porque tem contas cadastradas no Realwise.',
     });
@@ -562,10 +502,11 @@ export class NotificationsService {
       to: params.to,
       replyTo: params.fromEmail,
       subject: `[Suporte] ${subject.replace(/[\r\n]+/g, ' ').slice(0, 150)}`,
-      html: getBaseTemplate({
+      html: buildEmail({
+        icon: 'check',
         title: escape(subject),
-        subtitle: `De ${who} · ${origin}`,
-        body: `<div style="font-size:14px;color:#1e293b;line-height:1.7;white-space:pre-wrap;">${escape(params.message)}</div>`,
+        lead: `De ${who} · ${origin}`,
+        body: `<div style="font-size:16px;line-height:25px;white-space:pre-wrap;">${escape(params.message)}</div>`,
         footerNote: 'Responda este e-mail para falar diretamente com o usuário.',
       }),
     });
@@ -601,27 +542,30 @@ export class NotificationsService {
     const e = escapeHtml;
     const web = (process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br').replace(/\/$/, '');
     const until = params.accessUntil ? params.accessUntil.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '—';
-    const row = (label: string, value: string) =>
-      `<tr><td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px;white-space:nowrap;">${label}</td><td style="padding:6px 0;color:#0f172a;font-size:14px;font-weight:600;">${value}</td></tr>`;
-    const rows = [
-      row('Cliente', `${e(params.name ?? '—')} &lt;${e(params.email)}&gt;`),
-      row('Plano', e([params.plan, params.price].filter(Boolean).join(' · ') || '—'),),
-      row(params.kind === 'requested' ? 'Acesso até' : 'Encerrada em', until),
-      row('Motivo', e(params.reason ?? 'não informado')),
-      ...(params.comment ? [row('Comentário', e(params.comment))] : []),
-    ].join('');
+    const details = [
+      { label: 'Cliente', value: `${e(params.name ?? '—')}` },
+      { label: 'Plano', value: e([params.plan, params.price].filter(Boolean).join(' · ') || '—') },
+      { label: params.kind === 'requested' ? 'Acesso até' : 'Encerrada em', value: until },
+      { label: 'Motivo', value: e(params.reason ?? 'não informado') },
+      ...(params.comment ? [{ label: 'Comentário', value: e(params.comment) }] : []),
+    ];
     const links = [
-      `<a href="${web}/admin/users/${encodeURIComponent(params.userId)}" style="color:#7c3aed;">Abrir no admin</a>`,
-      ...(params.stripeUrl ? [`<a href="${e(params.stripeUrl)}" style="color:#7c3aed;">Ver no Stripe</a>`] : []),
+      `<a class="rw-link" href="${web}/admin/users/${encodeURIComponent(params.userId)}" style="color:#6d28d9;font-weight:700;">Abrir no admin</a>`,
+      ...(params.stripeUrl ? [`<a class="rw-link" href="${e(params.stripeUrl)}" style="color:#6d28d9;font-weight:700;">Ver no Stripe</a>`] : []),
     ].join(' · ');
     await this.sendMail({
       to: this.supportEmail,
       replyTo: params.email,
       subject: `[Cancelamento] ${params.email.replace(/[\r\n]+/g, ' ')}`,
-      html: getBaseTemplate({
+      html: buildEmail({
+        icon: 'alarm',
+        chip: { text: params.kind === 'requested' ? 'Cancelamento' : 'Encerrada', tone: 'warn' },
         title: params.kind === 'requested' ? 'Um cliente cancelou a assinatura' : 'Uma assinatura foi encerrada',
-        subtitle: params.email,
-        body: `<table role="presentation" style="border-collapse:collapse;">${rows}</table><p style="margin-top:16px;font-size:14px;">${links}</p>`,
+        lead: escapeHtml(params.email),
+        body:
+          details
+            .map((d) => `<div style="margin:0 0 14px;">${sectionLabel(d.label)}<div style="font-size:17px;line-height:25px;font-weight:600;">${d.value}</div></div>`)
+            .join('') + `<div style="font-size:15px;">${links}</div>`,
         footerNote: 'Responda este e-mail para falar direto com o cliente.',
       }),
     });
@@ -668,22 +612,14 @@ export class NotificationsService {
       await this.sendMail({
         to,
         subject: `${displayName}, você esqueceu algo 👀`,
-        html: getBaseTemplate({
-          title: `Você deixou algo no carrinho, ${displayName}!`,
-          subtitle: 'Ainda dá tempo de garantir seu acesso ao Realwise.',
-          body: `
-            <div style="background:#fefce8;border-left:4px solid #eab308;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:16px;">
-              <div style="font-size:13px;color:#713f12;line-height:1.7;">
-                Sua sessão ainda está ativa. Complete o checkout agora e comece a organizar suas finanças hoje mesmo.
-              </div>
-            </div>
-            <div style="font-size:13px;color:#4b5563;line-height:1.7;">
-              Clique no botão abaixo para continuar de onde parou.
-            </div>
-          `,
-          cta: 'Continuar Checkout',
+        html: buildEmail({
+          variant: 'centered',
+          icon: 'cart',
+          title: `Você deixou algo no carrinho, ${escapeHtml(displayName)}`,
+          lead: 'Complete o checkout e comece a organizar suas finanças hoje.',
+          cta: 'Continuar checkout',
           ctaUrl: buildCheckoutUrl({ email: to, name }),
-          footerNote: 'Você está recebendo este e-mail porque iniciou um cadastro no Realwise.',
+          footerNote: 'Você recebeu este e-mail porque iniciou um cadastro no Realwise.',
           support: true,
         }),
       });
@@ -700,30 +636,18 @@ export class NotificationsService {
       subject: isLastChance
         ? `⏰ Última chance: cupom ${couponCode.toUpperCase()} expira hoje`
         : `🎁 Seu cupom especial: ${couponCode.toUpperCase()} — ${discountPercent}% off`,
-      html: getBaseTemplate({
-        title: isLastChance
-          ? `Última chance: cupom expira às ${expiresStr} ⏰`
-          : `Seu cupom especial chegou, ${displayName}! 🎁`,
-        subtitle: isLastChance
-          ? 'Não perca seu desconto exclusivo. Esta é a última vez que vamos lembrar.'
-          : `${discountPercent}% de desconto exclusivo para você. Válido por 24 horas.`,
-        body: `
-          <div style="text-align:center;margin:20px 0;">
-            <div style="display:inline-block;border:2px dashed ${isLastChance ? '#ef4444' : '#10b981'};border-radius:8px;padding:16px 32px;${isLastChance ? 'background:#fef2f2;' : 'background:#ecfdf5;'}">
-              <div style="font-size:11px;font-weight:700;${isLastChance ? 'color:#991b1b;' : 'color:#065f46;'}letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Seu Cupom</div>
-              <div style="font-size:28px;font-weight:800;${isLastChance ? 'color:#ef4444;' : 'color:#10b981;'}letter-spacing:4px;font-family:monospace;">${couponCode.toUpperCase()}</div>
-              <div style="font-size:11px;color:#6b7280;margin-top:6px;">${isLastChance ? `⚠️ Expira ${expiresStr}` : `Expira em ${expiresStr}`}</div>
-            </div>
-          </div>
-          <div style="font-size:13px;color:#4b5563;line-height:1.7;text-align:center;">
-            ${isLastChance
-              ? 'Este é o último aviso. Após o vencimento, o cupom expira definitivamente.'
-              : `Use este código no checkout e ganhe <strong>${discountPercent}% de desconto</strong>.`}
-          </div>
-        `,
-        cta: isLastChance ? 'Finalizar Compra Agora' : 'Usar Cupom e Finalizar',
+      html: buildEmail({
+        variant: 'centered',
+        icon: isLastChance ? 'alarm' : 'coupon',
+        chip: isLastChance ? { text: 'Expira hoje', tone: 'bad' } : undefined,
+        title: isLastChance ? 'Última chance: seu cupom expira hoje' : `${discountPercent}% de desconto para você, ${escapeHtml(displayName)}`,
+        lead: `<div style="text-align:center;margin:0 0 6px;">
+            <div class="${isLastChance ? 'rw-neg' : 'rw-brand'}" style="font-size:36px;line-height:44px;font-weight:800;letter-spacing:4px;font-family:'Courier New',monospace;color:${isLastChance ? '#be123c' : '#6d28d9'};">${couponCode.toUpperCase()}</div>
+            <div style="font-size:15px;line-height:22px;margin-top:6px;">${isLastChance ? `Expira ${expiresStr}` : `Vale até ${expiresStr}`}</div>
+          </div>`,
+        cta: isLastChance ? 'Finalizar agora' : 'Usar cupom e finalizar',
         ctaUrl: buildCheckoutUrl({ email: to, name, couponCode }),
-        footerNote: 'Você está recebendo este e-mail porque iniciou um cadastro no Realwise.',
+        footerNote: 'Você recebeu este e-mail porque iniciou um cadastro no Realwise.',
         support: true,
       }),
     });
@@ -747,30 +671,18 @@ export class NotificationsService {
       ['Observacao', issue.userNote || '-'],
     ];
 
-    const body = `
-      <div style="font-size:14px;color:#4b5563;line-height:1.8;margin-bottom:20px;">
-        Um usuario reportou um problema na importacao de arquivo.
-      </div>
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-        ${details
-          .map(
-            ([label, value]) => `
-              <tr>
-                <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-weight:700;color:#1f2937;width:140px;">${label}</td>
-                <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#4b5563;">${String(value)}</td>
-              </tr>
-            `,
-          )
-          .join('')}
-      </table>
-    `;
+    const body = details
+      .map(([label, value]) => `<div style="margin:0 0 12px;">${sectionLabel(label)}<div style="font-size:16px;line-height:24px;word-break:break-word;">${escapeHtml(String(value))}</div></div>`)
+      .join('');
 
     await this.sendMail({
       to: recipient,
       subject: `Realwise import issue: ${issue.fileName}`,
-      html: getBaseTemplate({
-        title: 'Novo report de importacao',
-        subtitle: 'Detalhes do problema reportado pelo usuario.',
+      html: buildEmail({
+        icon: 'import',
+        chip: { text: 'Importação', tone: 'warn' },
+        title: 'Novo report de importação',
+        lead: 'Um usuário reportou um problema ao importar um arquivo.',
         body,
         footerNote: 'Notificacao automatica do fluxo de importacao do Realwise.',
       }),
