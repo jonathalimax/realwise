@@ -96,7 +96,7 @@ export default function SummaryShowcase() {
               className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-800"
             >
               <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/60">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">R</span>
+                <img src="/logo.png" alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">Realwise <span className="font-normal text-slate-400">· contato@realwise.com.br</span></p>
                   <p className="truncate text-xs text-slate-500 dark:text-slate-400">{active.subject}</p>

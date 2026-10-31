@@ -7,7 +7,8 @@
  * Realwise design-system tokens: page `bg`, white `surface` card, tinted panel, one violet `brand`.
  */
 
-export const LOGO_URL = 'https://realwise.com.br/logo.png';
+/** 128px violet tile with the mark (shown at 32px): reads on both the light and the dark card. */
+export const LOGO_URL = 'https://realwise.com.br/email/logo.png';
 const FONT = "'Plus Jakarta Sans','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 /** Emoji for the round tile at the top, by name. Emoji (not SVG or images) so Gmail and Outlook render them everywhere. */

@@ -87,11 +87,21 @@ function buildCheckoutUrl({ email, name, couponCode }: { email?: string; name?: 
   return `https://realwise.com.br/?${params.toString()}`;
 }
 
+/**
+ * Inboxes show the sender's display name, and fall back to the part of the address before the "@" ("contato") and a
+ * letter avatar when there is none. Always send as "Realwise" (override with EMAIL_FROM_NAME), whatever form
+ * EMAIL_FROM has: `contato@realwise.com.br` or `Contato <contato@realwise.com.br>`.
+ */
+export function senderWithName(raw: string, name = process.env.EMAIL_FROM_NAME || 'Realwise'): string {
+  const address = raw.match(/<([^>]+)>/)?.[1] ?? raw;
+  return `${name} <${address.trim()}>`;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly resend: Resend | null;
-  private readonly from = process.env.EMAIL_FROM ?? 'noreply@realwise.com.br';
+  private readonly from = senderWithName(process.env.EMAIL_FROM ?? 'noreply@realwise.com.br');
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;

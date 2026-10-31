@@ -50,8 +50,8 @@ export default defineConfig(() => {
           short_name: 'Realwise',
           start_url: '/loading',
           description: 'Controle financeiro pessoal simples e eficiente.',
-          theme_color: '#f43f5e',
-          background_color: '#f43f5e',
+          theme_color: '#7c3aed',
+          background_color: '#7c3aed',
           display: 'standalone',
           icons: [
             { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
