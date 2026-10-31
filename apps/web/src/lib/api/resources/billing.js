@@ -29,6 +29,18 @@ export function createBillingResource({ client = apiClient } = {}) {
     cancel() {
       return client.post('/billing/cancel');
     },
+    /** Cancel flow: 1) record the reason and learn whether an offer applies. */
+    cancelFlowStart(reason, comment) {
+      return client.post('/billing/cancel-flow/start', { reason, comment });
+    },
+    /** 2a) take the offer and stay. */
+    cancelFlowAccept(feedbackId) {
+      return client.post('/billing/cancel-flow/accept', { feedbackId });
+    },
+    /** 2b) cancel (the reason, if any, travels to Stripe). */
+    cancelFlowConfirm(feedbackId) {
+      return client.post('/billing/cancel-flow/confirm', feedbackId ? { feedbackId } : {});
+    },
     resume() {
       return client.post('/billing/resume');
     },

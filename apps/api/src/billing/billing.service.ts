@@ -201,14 +201,20 @@ export class BillingService {
     return this.applySubscription(user, updated);
   }
 
-  async cancelSubscription(userId: string): Promise<BillingStatus> {
+  async cancelSubscription(userId: string, details?: { feedback?: string; comment?: string }): Promise<BillingStatus> {
     const user = await this.loadUser(userId);
     const subscription = await this.requireManageableSubscription(user);
     if (subscription.cancel_at_period_end || subscription.cancel_at != null) {
       return this.applySubscription(user, subscription);
     }
 
-    const updated = await this.stripe.get().subscriptions.update(subscription.id, { cancel_at_period_end: true });
+    const updated = await this.stripe.get().subscriptions.update(subscription.id, {
+      cancel_at_period_end: true,
+      // The reason the customer gave in our cancel flow, so the team alert and the Stripe dashboard both show it.
+      ...(details?.feedback || details?.comment
+        ? { cancellation_details: { ...(details.feedback ? { feedback: details.feedback as Stripe.SubscriptionUpdateParams.CancellationDetails.Feedback } : {}), ...(details.comment ? { comment: details.comment } : {}) } }
+        : {}),
+    });
     const status = await this.applySubscription(user, updated);
     // Written here first, so the webhook that follows sees no change and stays quiet: alert from this path too.
     await notifyCancellation(this.notifications, user, updated, 'requested', status.plan);

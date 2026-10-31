@@ -12,6 +12,8 @@ export interface ReminderFacts {
   transactionsThisMonth: number;
   /** The user wrote to Elio in the last 24h: they are engaged right now, so a nudge would only be noise. */
   chattedRecently?: boolean;
+  /** When paid access (or the trial) ended; basis of the win-back series. Null when unknown. */
+  lostAt?: Date | null;
   /** The "add to your home screen" e-mail already went out (it is sent once per person). */
   installAppSent?: boolean;
   now: Date;
@@ -55,9 +57,24 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
     return null;
   }
 
-  if (access.state === 'blocked' && f.trialEndsAt) {
-    const since = nowMs - f.trialEndsAt.getTime();
-    if (since >= 0 && since <= 72 * HOUR_MS && !access.subscriptionStatus) return 'trial_expired';
+  if (access.state === 'blocked') {
+    if (f.trialEndsAt && !access.subscriptionStatus) {
+      const since = nowMs - f.trialEndsAt.getTime();
+      if (since >= 0 && since <= 72 * HOUR_MS) return 'trial_expired';
+    }
+    // Win-back: one e-mail per window (a week, a month, two months after leaving), then silence after four months.
+    if (f.lostAt) {
+      const days = (nowMs - f.lostAt.getTime()) / (24 * HOUR_MS);
+      if (days >= 60 && days <= 120) return 'winback_60';
+      if (days >= 30 && days < 60) return 'winback_30';
+      if (days >= 7 && days < 30) return 'winback_7';
+    }
+    return null;
+  }
+
+  // Past due: the failed-charge e-mail already went out; remind once when the grace period is about to run out.
+  if (access.state === 'subscribed' && access.subscriptionStatus === 'past_due' && access.currentPeriodEnd) {
+    if (nowMs - new Date(access.currentPeriodEnd).getTime() >= 48 * HOUR_MS) return 'payment_failed_followup';
     return null;
   }
 
@@ -69,8 +86,10 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
   return null;
 }
 
-export function periodKeyFor(kind: ReminderKind, now: Date, trialEndsAt: Date | null, suggestionId?: string): string {
+export function periodKeyFor(kind: ReminderKind, now: Date, trialEndsAt: Date | null, suggestionId?: string, periodEnd?: string | null): string {
   if (kind === 'bill_suggestion') return suggestionId ?? 'none';
+  if (kind === 'payment_failed_followup') return (periodEnd ?? '').slice(0, 10) || 'once';
+  if (kind.startsWith('winback_')) return 'once';
   if (kind === 'monthly_import') return now.toISOString().slice(0, 7);
   if (kind === 'welcome' || kind === 'install_app' || kind.startsWith('activation_')) return 'once';
   return trialEndsAt ? trialEndsAt.toISOString().slice(0, 10) : 'once';

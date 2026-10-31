@@ -20,6 +20,11 @@ const KINDS = [
   { key: 'trial_ending', label: 'Teste terminando', desc: 'Avisa que o período de teste está acabando.' },
   { key: 'trial_expired', label: 'Teste expirado', desc: 'Convida a assinar após o fim do teste.' },
   { key: 'monthly_import', label: 'Importação mensal', desc: 'Lembra assinantes de importar o extrato do mês.' },
+  { key: 'payment_failed', label: 'Pagamento falhou', desc: 'Na hora em que a renovação é recusada: avisa e leva para atualizar o cartão. Um por fatura; ignora o descadastro de lembretes (é sobre a conta).' },
+  { key: 'payment_failed_followup', label: 'Aviso: acesso será pausado', desc: 'Dois dias depois da cobrança recusada, se ainda não foi resolvido: o acesso está perto de ser pausado.' },
+  { key: 'winback_7', label: 'Volta: 7 dias depois de sair', desc: 'Quem cancelou ou deixou o teste vencer: seus dados continuam guardados e um convite para contar o motivo.' },
+  { key: 'winback_30', label: 'Volta: 30 dias, com código', desc: 'Código pessoal de desconto (uso único, com validade), configurado em Cancelamentos.' },
+  { key: 'winback_60', label: 'Volta: 60 dias, com código', desc: 'Último lembrete, com um novo código pessoal. Depois disso, silêncio.' },
   { key: 'bill_suggestion', label: 'Sugestão de lembrete', desc: 'O Elio percebe um pagamento mensal e pergunta se quer criar um lembrete (no máx. 1 a cada 14 dias).' },
 ];
 const SENT_KINDS = [...KINDS, { key: 'bill_reminder', label: 'Lembrete de contas' }, { key: 'trial_import', label: 'Teste: importe seu extrato (antigo)' }];

@@ -264,6 +264,8 @@ export class NotificationsService {
       now: Date;
       /** The user's client id; app links are `${web}/${clientId}/...`. */
       clientId?: string;
+      /** For `winback_30` / `winback_60`: the personal single-use code created for this person. */
+      promo?: { code: string; percent: number; months: number; validDays: number };
       /** For `bill_suggestion`: the recurring payment Elio noticed. */
       suggestion?: { id: string; name: string; amount: string; dayOfMonth: number; dismissUrl: string };
     },
@@ -292,6 +294,17 @@ export class NotificationsService {
         <img src="https://realwise.com.br/email/${gif}" width="568" alt="${alt}" style="display:block;width:100%;max-width:568px;height:auto;border-radius:14px;border:0;" />
         <div style="font-size:13px;color:#374151;line-height:1.9;margin-top:10px;">${steps.map((t, i) => `<div>${['1️⃣', '2️⃣', '3️⃣'][i]} ${t}</div>`).join('')}</div>
       </div>`;
+
+    const promoBox = () => {
+      const pr = ctx.promo;
+      if (!pr) return '';
+      const months = `${pr.months} ${pr.months === 1 ? 'mês' : 'meses'}`;
+      return `<div style="background:#f5f3ff;border:2px dashed #8b5cf6;border-radius:12px;padding:18px 20px;margin:0 0 16px;text-align:center;">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">Seu código</div>
+        <div style="font-size:26px;font-weight:800;letter-spacing:3px;color:#5b21b6;">${escapeHtml(pr.code)}</div>
+        <div style="font-size:13px;color:#4b5563;margin-top:8px;">${pr.percent}% de desconto nos primeiros ${months} · válido por ${pr.validDays} dias · uso único</div>
+      </div>`;
+    };
 
     const copy = {
       welcome: {
@@ -402,6 +415,53 @@ export class NotificationsService {
         cta: 'Ver planos',
         url: `${web}/`,
       },
+      payment_failed: {
+        subject: 'Não conseguimos renovar sua assinatura do Realwise',
+        title: 'Houve um problema com o pagamento',
+        body:
+          p('Tentamos cobrar a renovação da sua assinatura, mas o pagamento não foi aprovado. Isso costuma acontecer por limite do cartão, cartão vencido ou troca de cartão.') +
+          p('Para continuar usando o Elio sem interrupção, atualize a forma de pagamento. Leva menos de um minuto, e seus dados continuam guardados.'),
+        cta: 'Atualizar pagamento',
+        url: app('/subscription'),
+      },
+      payment_failed_followup: {
+        subject: 'Seu acesso ao Realwise pode ser pausado em breve',
+        title: 'Falta pouco para pausarmos seu acesso',
+        body:
+          p('Ainda não conseguimos receber o pagamento da sua assinatura. Para o acesso não ser pausado, atualize a forma de pagamento agora.') +
+          p('Se você já resolveu, pode ignorar este e-mail.'),
+        cta: 'Atualizar pagamento',
+        url: app('/subscription'),
+      },
+      winback_7: {
+        subject: `${ctx.name}, seus dados continuam guardados`,
+        title: `Sentimos sua falta, ${escapeHtml(ctx.name)}`,
+        body:
+          p('Faz uma semana que seu acesso ao Realwise terminou. Seus dados continuam guardados, então é só voltar de onde parou.') +
+          p('Se algo não funcionou como você esperava, escreva para <strong>contato@realwise.com.br</strong>: a gente lê tudo e usa o que você disser para melhorar.'),
+        cta: 'Voltar ao Realwise',
+        url: app('/subscription'),
+      },
+      winback_30: {
+        subject: `${ctx.name}, um código só seu para voltar ao Realwise`,
+        title: ctx.promo ? `Volte com ${ctx.promo.percent}% de desconto` : `Que tal voltar, ${escapeHtml(ctx.name)}?`,
+        body:
+          p('Faz um mês que você saiu e seus dados continuam guardados. Preparamos um código só seu para facilitar a volta:') +
+          promoBox() +
+          p('Basta digitar o código na hora de assinar.'),
+        cta: 'Voltar com desconto',
+        url: app('/subscription'),
+      },
+      winback_60: {
+        subject: `${ctx.name}, seu código para voltar ao Realwise expira em breve`,
+        title: 'Este é o nosso último lembrete',
+        body:
+          p('Não queremos encher sua caixa de entrada, então este é o último e-mail sobre isso. Seus dados continuam guardados, e o código abaixo é só seu:') +
+          promoBox() +
+          p('Se não fizer sentido voltar agora, tudo bem: desejamos o melhor com as suas finanças. 💜'),
+        cta: 'Voltar ao Realwise',
+        url: app('/subscription'),
+      },
       monthly_import: {
         subject: `Hora de importar o extrato de ${prevMonth}`,
         title: `Seu extrato de ${prevMonth} já saiu`,
@@ -411,12 +471,15 @@ export class NotificationsService {
       },
     }[kind];
 
+    const billing = kind === 'payment_failed' || kind === 'payment_failed_followup';
     const html = getBaseTemplate({
       title: copy.title,
       body: copy.body,
       cta: copy.cta,
       ctaUrl: copy.url,
-      footerNote: `Não quer mais lembretes? <a href="${unsub}" style="color:#9ca3af;">Cancelar inscrição</a>`,
+      footerNote: billing
+        ? 'Você recebeu este e-mail porque há uma assinatura ativa no Realwise.'
+        : `Não quer mais lembretes? <a href="${unsub}" style="color:#9ca3af;">Cancelar inscrição</a>`,
     });
     await this.sendMail({ to, subject: copy.subject, html });
   }

@@ -40,6 +40,7 @@ import { AdminAnalyticsModule } from './admin-analytics/admin-analytics.module';
 import { AdminCommsModule } from './admin-comms/admin-comms.module';
 import { AdminSimulatorModule } from './admin-simulator/admin-simulator.module';
 import { AdminCouponsModule } from './admin-coupons/admin-coupons.module';
+import { RetentionModule } from './retention/retention.module';
 import { LandingModule } from './landing/landing.module';
 import { BillActionsModule } from './bill-actions/bill-actions.module';
 import { AdminModule } from './admin/admin.module';
@@ -82,6 +83,7 @@ import { ChatModule } from './chat/chat.module';
     AdminCommsModule,
     AdminSimulatorModule,
     AdminCouponsModule,
+    RetentionModule,
     ErrorLogModule,
     SummaryModule,
     AdminSubscriptionsModule,

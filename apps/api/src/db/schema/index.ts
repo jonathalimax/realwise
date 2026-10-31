@@ -29,3 +29,4 @@ export * from './error-events';
 export * from './summaries';
 export * from './chat-snippets';
 export * from './fiscal-invoices';
+export * from './cancellation-feedback';
