@@ -10,6 +10,12 @@ export const ENGAGEMENT_KINDS = [
   'trial_expired',
   'monthly_import',
   'bill_suggestion',
+  // Billing recovery and win-back (see retention/ and billing/payment-failed.service.ts).
+  'payment_failed',
+  'payment_failed_followup',
+  'winback_7',
+  'winback_30',
+  'winback_60',
 ] as const;
 export type EngagementKind = (typeof ENGAGEMENT_KINDS)[number];
 
@@ -61,6 +67,11 @@ export const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
       trial_expired: { enabled: true },
       monthly_import: { enabled: true },
       bill_suggestion: { enabled: true },
+      payment_failed: { enabled: true },
+      payment_failed_followup: { enabled: true },
+      winback_7: { enabled: true },
+      winback_30: { enabled: true },
+      winback_60: { enabled: true },
     },
   },
   billReminders: { enabled: true, hourBrt: 9 },

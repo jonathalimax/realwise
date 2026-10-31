@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Crown, CreditCard, Repeat, XCircle, RotateCcw } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import BottomSheet from '../components/chat/BottomSheet';
+import CancelFlowSheet from '../components/billing/CancelFlowSheet';
 import { useAccess } from '../contexts/AccessContext';
 import { useAuth } from '../contexts/AuthContext';
 import { billingResource } from '../lib/api/resources/billing';
@@ -175,21 +176,18 @@ export default function SubscriptionPage() {
       </main>
 
       {confirm === 'cancel' && (
-        <BottomSheet title="Cancelar assinatura?" onClose={() => !busy && setConfirm(null)}>
-          <p className="text-sm text-gray-700 dark:text-gray-200">
-            {periodEnd ? `Você continua com acesso completo até ${periodEnd}.` : 'Você continua com acesso completo até o fim do período já pago.'} Depois disso o acesso é pausado e seus dados ficam guardados. Você pode reativar quando quiser.
-          </p>
-          <button
-            disabled={busy}
-            onClick={() => run(() => billingResource.cancel(), 'Assinatura cancelada. Você mantém o acesso até o fim do período.')}
-            className="w-full rounded-xl bg-rose-600 py-3 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50"
-          >
-            {busy ? 'Cancelando…' : 'Cancelar assinatura'}
-          </button>
-          <button onClick={() => setConfirm(null)} className="w-full rounded-xl py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800">
-            Manter minha assinatura
-          </button>
-        </BottomSheet>
+        <CancelFlowSheet
+          periodEnd={periodEnd}
+          onClose={() => setConfirm(null)}
+          onDone={async (result) => {
+            await Promise.all([reloadUser(), loadStatus()]);
+            setConfirm(null);
+            setNotice({
+              tone: 'ok',
+              text: result === 'accepted' ? 'Oferta aplicada! Que bom continuar com você. 💜' : 'Assinatura cancelada. Você mantém o acesso até o fim do período.',
+            });
+          }}
+        />
       )}
 
       {(confirm === 'monthly' || confirm === 'annual') && (
