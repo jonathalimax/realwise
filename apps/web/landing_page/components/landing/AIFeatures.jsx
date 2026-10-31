@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeftRight, BellRing, BrainCircuit, FileText, Mic, PieChart, PiggyBank, ShieldCheck, Target } from 'lucide-react';
+import { BellRing, BrainCircuit, FileText, Mic, PiggyBank, Target } from 'lucide-react';
 
 const FEATURES = [
   {
@@ -29,24 +29,9 @@ const FEATURES = [
     text: 'Ele lembra o que vence, dá baixa quando você diz “paguei” e descobre assinaturas e contas que se repetem todo mês.',
   },
   {
-    icon: PieChart,
-    title: 'Orçamento que fala português',
-    text: 'Nada de percentual solto: você vê “sobrou R$ 340” ou “passou R$ 120” em necessidades, desejos e poupança.',
-  },
-  {
-    icon: ArrowLeftRight,
-    title: 'Transferência não é gasto',
-    text: 'Quando você move dinheiro entre as suas contas (ou as da família), o Elio reconhece e não conta como despesa.',
-  },
-  {
     icon: BrainCircuit,
     title: 'Um assistente que te conhece',
     text: 'Ele lembra do que você contou e usa isso nos conselhos. Você vê, edita e apaga tudo que ele sabe, quando quiser.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Seus dados, sob o seu controle',
-    text: 'Os extratos vão para a IA com retenção zero e sem treino. Você vê e apaga o que quiser, inclusive a conta inteira.',
   },
 ];
 
