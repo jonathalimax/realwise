@@ -240,7 +240,7 @@ function NotesTab({ config, goToSettings }) {
       </ConfirmDialog>
 
       <ConfirmDialog open={bulk} onClose={() => setBulk(false)} tone="primary" title="Emitir todas as pendentes" confirmLabel="Colocar na fila"
-        description={`${count('review')} notas aguardando revisão vão para a fila e são enviadas à Prefeitura em lotes de 20 a cada 2 minutos. Notas emitidas de verdade só podem ser canceladas dentro do prazo da Prefeitura.`}
+        description={`${count('review')} notas aguardando revisão vão para a fila e são enviadas à Prefeitura na próxima rodada automática (segunda, quarta e sexta, às 10h). Notas emitidas de verdade só podem ser canceladas dentro do prazo da Prefeitura.`}
         onConfirm={async () => { const r = await invoicingResource.queueAll(); say(`${num(r.queued)} notas na fila.`); refresh(); }} />
 
       <Toast message={toast.message} tone={toast.tone} onDone={() => setToast({ message: '', tone: 'success' })} />
@@ -383,7 +383,7 @@ function SettingsTab({ config, reloadConfig }) {
       <Card title="Automação">
         <div className="space-y-3">
           <div className="flex items-center gap-3"><Toggle checked={form.enabled} onChange={tog('enabled')} label="Sistema de notas ligado" /><span className="text-sm text-gray-300">Sistema ligado (acompanha as notas e consulta a Prefeitura)</span></div>
-          <div className="flex items-center gap-3"><Toggle checked={form.autoIssue} onChange={tog('autoIssue')} label="Emitir automaticamente" disabled={!prod} /><span className="text-sm text-gray-300">Emitir a nota assim que o pagamento é aprovado {!prod && <em className="text-gray-500">(só em produção)</em>}</span></div>
+          <div className="flex items-center gap-3"><Toggle checked={form.autoIssue} onChange={tog('autoIssue')} label="Emitir automaticamente" disabled={!prod} /><span className="text-sm text-gray-300">Emitir as notas na rodada automática (segunda, quarta e sexta, 10h) {!prod && <em className="text-gray-500">(só em produção)</em>}</span></div>
           <Field label="Emitir notas a partir de" hint="Pagamentos anteriores a esta data nunca geram nota. Necessária também para “Importar do Stripe”."><input className={`${inputClass} sm:max-w-xs`} type="date" value={form.startFrom} onChange={set('startFrom')} /></Field>
         </div>
       </Card>

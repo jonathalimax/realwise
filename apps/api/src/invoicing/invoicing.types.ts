@@ -44,7 +44,7 @@ export const DEFAULT_INVOICING_SETTINGS: InvoicingSettings = {
   startFrom: null,
   issuer: { cnpj: '49725579000149', inscricaoMunicipal: '', municipioIbge: '3550308' },
   tax: {
-    optanteSimplesNacional: false,
+    optanteSimplesNacional: true,
     regimeEspecialTributacao: '',
     naturezaOperacao: '1',
     itemListaServico: '',

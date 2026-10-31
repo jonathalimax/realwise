@@ -322,7 +322,7 @@ export class InvoicingService {
 
   // ---------------------------------------------------------------- background work
 
-  /** Scheduler tick: emit what is queued and due, then follow up on notas the Prefeitura is still processing. */
+  /** One pass: emit what is queued and due, then follow up on notas the Prefeitura is still processing. */
   async tick(): Promise<{ emitted: number; refreshed: number }> {
     const s = await this.settings.get();
     if (!s.enabled) return { emitted: 0, refreshed: 0 };
@@ -335,7 +335,7 @@ export class InvoicingService {
         .from(fiscalInvoices)
         .where(and(eq(fiscalInvoices.status, 'queued'), or(isNull(fiscalInvoices.nextAttemptAt), lte(fiscalInvoices.nextAttemptAt, new Date()))))
         .orderBy(fiscalInvoices.createdAt)
-        .limit(20);
+        .limit(100);
       for (const { id } of due) {
         try {
           await this.issue(id);
@@ -356,6 +356,11 @@ export class InvoicingService {
       }
     }
     return { emitted, refreshed };
+  }
+
+  async hasProcessing(): Promise<boolean> {
+    const [row] = await this.db.select({ id: fiscalInvoices.id }).from(fiscalInvoices).where(eq(fiscalInvoices.status, 'processing')).limit(1);
+    return Boolean(row);
   }
 
   // ---------------------------------------------------------------- admin reads
