@@ -16,7 +16,7 @@ export function textToParagraphs(text: string): string {
     .filter(Boolean)
     .map(
       (block) =>
-        `<div style="font-size:17px;color:#475569;line-height:1.55;margin:0 0 12px;">${escapeHtml(block).replace(/\n/g, '<br />')}</div>`,
+        `<div style="font-size:17px;line-height:26px;margin:0 0 12px;">${escapeHtml(block).replace(/\n/g, '<br />')}</div>`,
     )
     .join('');
 }
