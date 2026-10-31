@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { OPERATOR } from './operator';
+import { CONSENT_REOPEN_EVENT } from '../../components/ConsentBanner';
 
 /** Public page shell for the legal texts: no login, light/dark by system preference, readable on a phone. */
 export default function LegalLayout({ title, updatedAt, intro, sections }) {
@@ -66,6 +67,13 @@ export default function LegalLayout({ title, updatedAt, intro, sections }) {
         ))}
 
         <footer className="mt-14 border-t border-slate-200 pt-6 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(CONSENT_REOPEN_EVENT))}
+            className="mb-3 block font-medium text-emerald-700 underline dark:text-emerald-400"
+          >
+            Preferências de cookies
+          </button>
           {OPERATOR.name} · CNPJ {OPERATOR.cnpj} ·{' '}
           <a href={`mailto:${OPERATOR.email}`} className="underline">
             {OPERATOR.email}

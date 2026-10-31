@@ -16,7 +16,7 @@ const sections = [
     id: 'dados',
     title: 'Quais dados coletamos',
     body: [
-      'Dados da sua conta: e-mail, nome e foto de perfil, vindos do login com Google ou Apple. Não existe senha no Realwise: o acesso é sempre por uma dessas duas contas.',
+      'Dados da sua conta: e-mail, nome e foto de perfil, vindos do login com o Google. Não existe senha no Realwise: o acesso é sempre pela sua conta Google.',
       'Dados financeiros que você mesmo informa: lançamentos, contas, cartões, contas a pagar, orçamentos, categorias, investimentos, renda e metas. Eles entram quando você digita, conversa com o Elio ou envia extratos, faturas, planilhas, OFX, PDFs e fotos.',
       'Conversa com o Elio: as mensagens que você troca e os arquivos que anexa. O Elio também guarda “memórias” (fatos como um objetivo ou uma preferência que você contou). Você vê, edita e apaga essas memórias em Configurações.',
       'Assinatura: identificadores do cliente e da assinatura no Stripe, plano, situação, data de renovação e valor cobrado. Os dados do seu cartão são digitados direto no Stripe e nunca chegam aos nossos servidores.',
@@ -59,12 +59,12 @@ const sections = [
         'OpenRouter e Anthropic: processamento de IA (seção anterior).',
         'Stripe: cobrança e gestão da assinatura.',
         'Resend: envio dos e-mails do Realwise (recebe seu e-mail, nome e o conteúdo do e-mail).',
-        'Google e Apple: login. O Google também fornece o Google Analytics do site (medição de visitas, que usa cookies).',
+        'Google: login com a sua conta Google e, só se você aceitar os cookies, o Google Analytics do site (medição de visitas).',
         'brapi.dev: cotações de ações da B3. Recebe apenas os códigos dos ativos (tickers), sem ligação com você.',
-        'Provedor de infraestrutura onde o Realwise está hospedado.',
+        'Hetzner: hospedagem dos servidores e das cópias de segurança do Realwise, em data center na Alemanha.',
       ],
       'Podemos ainda divulgar dados quando houver ordem judicial ou obrigação legal.',
-      'Alguns desses fornecedores ficam fora do Brasil. Nesses casos, a transferência internacional acontece para executar o contrato que você tem conosco, como a LGPD permite.',
+      'Seus dados ficam guardados em servidores na Alemanha (União Europeia) e alguns outros fornecedores também ficam fora do Brasil. Essa transferência internacional acontece para executar o contrato que você tem conosco, como a LGPD permite.',
     ],
   },
   {
@@ -73,9 +73,9 @@ const sections = [
     body: [
       [
         'Cookies de sessão (access_token e refresh_token): mantêm você logado por até 30 dias. São restritos ao envio por HTTPS e não podem ser lidos por scripts da página.',
-        'Cookie de login (oauth_state): dura 10 minutos e só existe durante o login com Google ou Apple, para proteger contra fraude.',
+        'Cookie de login (oauth_state): dura 10 minutos e só existe durante o login com o Google, para proteger contra fraude.',
         'Armazenamento local: um identificador anônimo de visitante no site e preferências do app (como tema e último cliente acessado).',
-        'Google Analytics: carregado no site e mede visitas, origem do acesso, rolagem e seções vistas. Ele define cookies próprios do Google. Hoje o site não mostra um aviso para recusar esses cookies; se você não quer ser medido, bloqueie-os no navegador ou use uma extensão de bloqueio.',
+        'Google Analytics: mede visitas, origem do acesso, rolagem e seções vistas, e define cookies próprios do Google. Só é carregado depois que você clica em “Aceitar” no aviso de cookies; antes disso, e se você recusar, nada do Google Analytics é carregado. Você muda a sua escolha quando quiser pelo botão “Preferências de cookies” no fim desta página.',
       ],
     ],
   },
@@ -89,6 +89,7 @@ const sections = [
         'Arquivos que você anexa no chat: ficam guardados só temporariamente, até o Elio salvar os lançamentos ou por no máximo 24 horas.',
         'Link do resumo mensal: vale por 30 dias e o registro é apagado 60 dias depois de vencer.',
         'Relatórios de erro: apagados automaticamente após 90 dias.',
+        'Cópias de segurança: ficam na Hetzner, na Alemanha. Ao excluir a conta, os dados saem do sistema na hora, mas ainda podem existir nas cópias de segurança até elas serem substituídas pelas mais recentes.',
         'Contatos do formulário de novidades: até você pedir a remoção ou retirar o consentimento.',
       ],
     ],
@@ -104,10 +105,15 @@ const sections = [
     ],
   },
   {
+    id: 'encarregado',
+    title: 'Encarregado pelos dados (DPO)',
+    body: [`O canal do encarregado pelo tratamento de dados pessoais do Realwise é ${OPERATOR.email}. Use-o para exercer seus direitos, tirar dúvidas ou reclamar sobre o tratamento dos seus dados.`],
+  },
+  {
     id: 'seguranca',
     title: 'Segurança',
     body: [
-      'O acesso ao app exige login com Google ou Apple e usa cookies seguros. O token de renovação da sessão é guardado só em forma de hash. O acesso interno aos dados é restrito a quem opera o Realwise e é usado para suporte e manutenção.',
+      'O acesso ao app exige login com o Google e usa cookies seguros. O token de renovação da sessão é guardado só em forma de hash. O acesso interno aos dados é restrito a quem opera o Realwise e é usado para suporte e manutenção.',
       'Nenhum sistema é 100% seguro. Se houver um incidente que possa causar risco relevante a você, avisaremos você e a ANPD, como a lei exige.',
     ],
   },

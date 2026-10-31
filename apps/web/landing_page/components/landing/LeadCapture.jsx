@@ -81,7 +81,7 @@ export default function LeadCapture() {
               <input type="text" tabIndex={-1} autoComplete="off" aria-hidden value={website} onChange={(e) => setWebsite(e.target.value)} className="hidden" name="website" />
               <label className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-violet-600" />
-                <span>Aceito receber e-mails (e mensagens, se eu informar o WhatsApp) com novidades e promoções do Realwise. Posso cancelar quando quiser.</span>
+                <span>Aceito receber e-mails (e mensagens, se eu informar o WhatsApp) com novidades e promoções do Realwise. Posso cancelar quando quiser. Veja a <a href="/privacidade" className="underline">Política de Privacidade</a>.</span>
               </label>
               {error && <p className="text-sm text-rose-600">{error}</p>}
               <button

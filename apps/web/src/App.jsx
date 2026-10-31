@@ -13,6 +13,7 @@ import { BillsProvider } from './contexts/BillsContext';
 import { PWAInstallProvider } from './contexts/PWAInstallContext';
 import { MonthProvider } from './contexts/MonthContext';
 import AppErrorBoundary from './components/AppErrorBoundary';
+import ConsentBanner from './components/ConsentBanner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
 import SubscriptionGate from './components/billing/SubscriptionGate';
@@ -220,7 +221,14 @@ function App() {
     );
   }
 
-  return <AppErrorBoundary>{inner}</AppErrorBoundary>;
+  const asksForConsent = /^\/(login|privacidade|termos)?\/?$/.test(window.location.pathname);
+
+  return (
+    <AppErrorBoundary>
+      {inner}
+      {asksForConsent && <ConsentBanner />}
+    </AppErrorBoundary>
+  );
 }
 
 export default App;

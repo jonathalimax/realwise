@@ -32,7 +32,7 @@ const sections = [
     id: 'conta',
     title: 'Sua conta',
     body: [
-      'O acesso é feito com sua conta Google ou Apple. Você é responsável pelo que acontece na sua conta e por manter o acesso a ela em segurança. Avise-nos em caso de uso indevido.',
+      'O acesso é feito com sua conta Google. Você é responsável pelo que acontece na sua conta e por manter o acesso a ela em segurança. Avise-nos em caso de uso indevido.',
       'Cada conta é pessoal. Não revenda nem compartilhe o acesso de forma que o desvirtue.',
     ],
   },
@@ -54,7 +54,7 @@ const sections = [
     title: 'Cancelamento e reembolso',
     body: [
       'Você cancela quando quiser em Configurações → Assinatura, sem multa. O cancelamento impede novas cobranças e o acesso continua até o fim do período já pago.',
-      `Se você contratou o plano pela internet, tem o direito de arrependimento previsto no art. 49 do Código de Defesa do Consumidor: pode desistir em até 7 dias corridos da contratação e receber de volta o valor pago. Para isso, escreva para ${OPERATOR.email}.`,
+      `Se você contratou o plano pela internet, tem o direito de arrependimento previsto no art. 49 do Código de Defesa do Consumidor: pode desistir em até 7 dias corridos, contados da data em que assinou um plano pago (o teste grátis não conta), e receber de volta o valor pago. Para isso, escreva para ${OPERATOR.email}.`,
       'Você também pode excluir a conta em Configurações. A exclusão cancela a assinatura e apaga seus dados de forma definitiva.',
     ],
   },
