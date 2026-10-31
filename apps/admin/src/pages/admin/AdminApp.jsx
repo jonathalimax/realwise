@@ -22,6 +22,7 @@ const Coupons = lazy(() => import('../v2/Coupons'));
 const Errors = lazy(() => import('../v2/Errors'));
 const ErrorDetail = lazy(() => import('../v2/ErrorDetail'));
 const Subscriptions = lazy(() => import('../v2/Subscriptions'));
+const Invoices = lazy(() => import('../v2/Invoices'));
 const GuidePage = lazy(() => import('./GuidePage'));
 
 const PageLoader = () => (
@@ -101,6 +102,7 @@ export default function AdminApp() {
             <Route path="errors" element={<Errors />} />
             <Route path="errors/:fingerprint" element={<ErrorDetail />} />
             <Route path="subscriptions" element={<Subscriptions />} />
+            <Route path="invoices" element={<Invoices />} />
             <Route path="guia" element={<GuidePage />} />
             <Route path="*" element={<Navigate to="/overview" replace />} />
           </Route>

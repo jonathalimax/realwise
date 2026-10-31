@@ -20,6 +20,7 @@ const sections = [
       'Dados financeiros que você mesmo informa: lançamentos, contas, cartões, contas a pagar, orçamentos, categorias, investimentos, renda e metas. Eles entram quando você digita, conversa com o Elio ou envia extratos, faturas, planilhas, OFX, PDFs e fotos.',
       'Conversa com o Elio: as mensagens que você troca e os arquivos que anexa. O Elio também guarda “memórias” (fatos como um objetivo ou uma preferência que você contou). Você vê, edita e apaga essas memórias em Configurações.',
       'Assinatura: identificadores do cliente e da assinatura no Stripe, plano, situação, data de renovação e valor cobrado. Os dados do seu cartão são digitados direto no Stripe e nunca chegam aos nossos servidores.',
+      'Nota fiscal: para emitir a NFS-e de cada pagamento usamos seu nome, e-mail e o valor pago. Pedimos seu CPF (ou CNPJ) na tela de pagamento do Stripe somente para emitir a nota fiscal, e não o usamos para mais nada. Endereço só entra na nota se você o informar.',
       'Uso e diagnóstico: data do último acesso; um registro de cada chamada de IA (modelo, quantidade de tokens, custo e erro, sem o conteúdo da conversa); e relatórios de erro com a rota afetada, mensagem de erro, versão do app, navegador e o seu identificador e e-mail, para sabermos quem foi afetado.',
       'Suporte e contato: o nome, o e-mail e a mensagem que você envia pelo app, e o histórico do que respondemos.',
       'Site (página inicial): um identificador anônimo guardado no seu navegador e eventos de visita e cliques em botões, com a origem do acesso (por exemplo, UTM). Se você preencher o formulário de novidades, guardamos nome, e-mail, WhatsApp (opcional) e o registro do seu consentimento.',
@@ -58,6 +59,7 @@ const sections = [
       [
         'OpenRouter e Anthropic: processamento de IA (seção anterior).',
         'Stripe: cobrança e gestão da assinatura.',
+        'Focus NFe: emissão e transmissão da nota fiscal de serviço (NFS-e) à Prefeitura de São Paulo, com os dados que constam da nota.',
         'Resend: envio dos e-mails do Realwise (recebe seu e-mail, nome e o conteúdo do e-mail).',
         'Google: login com a sua conta Google e, só se você aceitar os cookies, o Google Analytics do site (medição de visitas).',
         'brapi.dev: cotações de ações da B3. Recebe apenas os códigos dos ativos (tickers), sem ligação com você.',
@@ -90,6 +92,7 @@ const sections = [
         'Link do resumo mensal: vale por 30 dias e o registro é apagado 60 dias depois de vencer.',
         'Relatórios de erro: apagados automaticamente após 90 dias.',
         'Cópias de segurança: ficam na Hetzner, na Alemanha. Ao excluir a conta, os dados saem do sistema na hora, mas ainda podem existir nas cópias de segurança até elas serem substituídas pelas mais recentes.',
+        'Notas fiscais: quando você paga uma assinatura, emitimos a nota fiscal de serviço (NFS-e) pela Prefeitura de São Paulo, com seu nome, e-mail, valor e, se você informar, CPF ou CNPJ. A lei tributária obriga a guardar esses documentos por anos, então eles não são apagados com a conta; ao excluir a conta, a nota deixa de estar ligada a você no app.',
         'Contatos do formulário de novidades: até você pedir a remoção ou retirar o consentimento.',
       ],
     ],

@@ -267,6 +267,13 @@
       "when": 1793700000000,
       "tag": "0037_goal_snippets",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793800000000,
+      "tag": "0038_fiscal_invoices",
+      "breakpoints": true
     }
   ]
 }

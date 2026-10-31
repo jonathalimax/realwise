@@ -24,3 +24,16 @@ Stripe-only subscriptions (monthly and annual) with a 3-day no-card trial and a 
 - Entitlement is computed server-side from the DB; client/redirect state is never trusted.
 - The guard fails closed (missing user row or DB error never grants access).
 - Provider secrets stay server-side only.
+
+## Notas fiscais (NFS-e, Prefeitura de São Paulo)
+
+- Module `apps/api/src/invoicing` (imported by `BillingModule`, never the reverse). Every Stripe `invoice.paid` is registered once in `fiscal_invoices` (unique on `stripe_invoice_id`); `charge.refunded` only flags the row (`refunded_cents`) for the admin, it never cancels a nota by itself.
+- Emission goes through a provider adapter (`focusnfe.provider.ts`, Focus NFe REST: POST/GET/DELETE `/v2/nfse/{ref}`, HTTP Basic token). `ref = rw-{h|p}-{row id}` makes retries idempotent. The Prefeitura authorizes asynchronously: `InvoicingScheduler` runs Mon/Wed/Fri 10:00 BRT: emits due `queued` rows (up to 100), then re-checks `processing` ones up to 6 times, 30 s apart. Admin clicks (Emitir / Atualizar) are immediate.
+- Status: `review` -> `queued` -> `processing` -> `issued` | `error`; also `canceled`, `skipped`. New rows are `queued` only when settings are `enabled && autoIssue && environment=producao`; otherwise `review` (admin issues by hand). Homologação notas are marked TESTE and can be re-issued in production.
+- Settings live in `app_settings.invoicing` (admin: Notas fiscais -> Configuração). The provider token is AES-256-GCM encrypted (`INVOICING_SECRET`, else `JWT_SECRET`) and write-only; `FOCUSNFE_TOKEN` env is the fallback. Tax codes (item LC 116, código de serviço SP, CCM, alíquota) are never defaulted: the admin must fill them in.
+- `fiscal_invoices.user_id` has no FK and `AccountDeletionService` unlinks (sets NULL) before its generic erase, so fiscal records survive account deletion (legal retention). The privacy policy says so.
+- Stripe webhook must also deliver `charge.refunded` (listed in `REQUIRED_WEBHOOK_EVENTS`).
+- Admin API: `/admin/invoicing` (list, stats, settings, settings/check, settings/test-emission, backfill, queue-all, `:id/{issue,refresh,skip,cancel,customer}`).
+
+- Defaults: CCM, ME/EPP regime, Simples on, item 0103 + SP code 02684 (hosting/application systems; matches the company's CNAE 6311-9/00). Alternative: item 0105 + 02800 (software licensing, SC SF/DEJUG 15/2024). Neither code is among those closed on 31/12/2025. Saving `environment=producao` with `enabled` or `autoIssue` is refused until token, CCM, codes and text are all set.
+- Manual path (works without any emitter token): admin "Emitir manualmente" shows copy-ready data (`GET /admin/invoicing/:id/manual-data`) and records the number issued in the Prefeitura portal (`POST /admin/invoicing/:id/manual` → `provider='manual'`, status `issued`). Cancelling a manual nota only records it locally (cancel in the portal too).
