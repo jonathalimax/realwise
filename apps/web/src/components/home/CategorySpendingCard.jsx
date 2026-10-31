@@ -42,7 +42,7 @@ function CategoryRow({ row, color, formatCurrency: formatFull, pt, onClick }) {
           <span className="text-lg leading-none" aria-hidden>{iconFor(row.category)}</span>
           <span className="truncate">{row.category}</span>
         </span>
-        <span className="shrink-0 text-base font-black tabular-nums text-slate-900 dark:text-white">{formatCurrency(row.amount)}</span>
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900 dark:text-white">{formatCurrency(row.amount)}</span>
       </div>
       <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60">
         <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${fill}%`, backgroundColor: tone }} />
@@ -122,7 +122,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
     <>
       <HomeCard title={pt ? 'Onde foi o dinheiro' : 'Where the money went'} actionLabel={pt ? 'Ver tudo' : 'See all'} onAction={() => setOpen(true)}>
         {total === 0 ? (
-          <p className="text-base text-slate-500 dark:text-slate-400">{pt ? 'Nenhum gasto neste mês.' : 'No spending this month.'}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{pt ? 'Nenhum gasto neste mês.' : 'No spending this month.'}</p>
         ) : (
           <>
             <div className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-full" role="img" aria-label={pt ? 'Distribuição dos gastos' : 'Spending distribution'}>
@@ -135,11 +135,11 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
               {top.map((row) => (
                 <li key={row.category}>
                   <button onClick={() => goTo(row.category)} className="flex w-full items-baseline justify-between gap-3 text-left">
-                    <span className="flex min-w-0 items-center gap-3 text-xl text-slate-800 dark:text-slate-100">
+                    <span className="flex min-w-0 items-center gap-3 text-base text-slate-800 dark:text-slate-100">
                       <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: colorOf(row.category) }} />
                       <span className="truncate">{row.category}</span>
                     </span>
-                    <span className="shrink-0 text-xl font-bold tabular-nums text-slate-900 dark:text-white">{money(row.amount)}</span>
+                    <span className="shrink-0 text-base font-semibold tabular-nums text-slate-900 dark:text-white">{money(row.amount)}</span>
                   </button>
                 </li>
               ))}
@@ -148,7 +148,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
             {uncategorized > 0 && (
               <button
                 onClick={askElioToClassify}
-                className="mt-4 flex w-full items-start gap-3 rounded-2xl bg-violet-50 p-4 text-left text-lg leading-snug text-slate-700 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-slate-200 dark:hover:bg-violet-500/15"
+                className="mt-4 flex w-full items-start gap-3 rounded-2xl bg-violet-50 p-4 text-left text-base leading-snug text-slate-700 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-slate-200 dark:hover:bg-violet-500/15"
               >
                 <SparklesIcon className="mt-1 h-5 w-5 shrink-0 text-violet-500 dark:text-violet-300" />
                 <span>
