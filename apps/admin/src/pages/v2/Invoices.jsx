@@ -426,9 +426,17 @@ export default function Invoices() {
         ))}
       </div>
       <AsyncView state={config}>
-        {(c) => (tab === 'notes'
+        {(c) => (<>
+          {!c.tokenConfigured && (
+            <InlineMessage tone="warning">
+              <strong>Integração com a Focus NFe pendente.</strong> Nenhuma nota será emitida até você criar a conta na Focus NFe, enviar o certificado A1 e colar o token na aba Configuração.{' '}
+              {tab !== 'settings' && <button type="button" className="underline" onClick={() => setTab('settings')}>Abrir configuração</button>}
+            </InlineMessage>
+          )}
+          {tab === 'notes'
           ? <NotesTab config={c} goToSettings={() => setTab('settings')} />
-          : <SettingsTab config={c} reloadConfig={() => config.reload(true)} />)}
+          : <SettingsTab config={c} reloadConfig={() => config.reload(true)} />}
+        </>)}
       </AsyncView>
     </div>
   );
