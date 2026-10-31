@@ -27,6 +27,7 @@ const view = (r: Row) => ({
   status: r.status,
   skipReason: r.skipReason,
   environment: r.environment,
+  provider: r.provider,
   nfseNumber: r.nfseNumber,
   verificationCode: r.verificationCode,
   nfseUrl: r.nfseUrl,
@@ -128,6 +129,23 @@ export class AdminInvoicingController {
   async issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() admin: JwtPayload) {
     const row = await this.invoicing.issue(id);
     await this.actor.record(admin, { action: 'invoicing.issue', targetUserId: row.userId, targetLabel: row.stripeInvoiceNumber ?? row.id, details: { status: row.status, environment: row.environment } });
+    return view(row);
+  }
+
+  @Get(':id/manual-data')
+  manualData(@Param('id', ParseUUIDPipe) id: string) {
+    return this.invoicing.manualData(id);
+  }
+
+  @Post(':id/manual')
+  async manual(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() admin: JwtPayload, @Body() body: Record<string, unknown>) {
+    const row = await this.invoicing.markManual(id, {
+      number: String(body?.number ?? ''),
+      verificationCode: body?.verificationCode === undefined ? undefined : String(body.verificationCode),
+      issuedAt: body?.issuedAt === undefined ? undefined : String(body.issuedAt),
+      url: body?.url === undefined ? undefined : String(body.url),
+    });
+    await this.actor.record(admin, { action: 'invoicing.manual', targetUserId: row.userId, targetLabel: row.nfseNumber ?? row.id });
     return view(row);
   }
 

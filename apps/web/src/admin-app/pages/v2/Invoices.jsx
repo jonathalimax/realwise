@@ -28,6 +28,7 @@ function StatusBadge({ row }) {
     <span className="inline-flex flex-wrap items-center gap-1">
       <Badge tone={s.tone}>{s.label}</Badge>
       {row.status === 'issued' && row.environment === 'homologacao' && <Badge tone="purple">TESTE</Badge>}
+      {row.status === 'issued' && row.provider === 'manual' && <Badge tone="gray">Manual</Badge>}
       {row.refundedCents > 0 && row.status === 'issued' && <Badge tone="red">Reembolsada</Badge>}
     </span>
   );
@@ -81,6 +82,84 @@ function CustomerModal({ row, onClose, onSaved }) {
   );
 }
 
+
+/* ------------------------------------------------------------------ manual issue (guide + copy buttons) */
+
+function CopyRow({ label, value }) {
+  const [copied, setCopied] = useState(false);
+  const text = value == null ? '' : String(value);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard blocked: the value is still on screen to select */ }
+  };
+  return (
+    <div className="flex items-start justify-between gap-3 py-1.5 border-b border-gray-800 last:border-0">
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
+        <p className="text-sm text-gray-200 break-words">{text || <span className="text-gray-600">não informado</span>}</p>
+      </div>
+      <Button size="sm" variant="ghost" disabled={!text} onClick={copy}>{copied ? 'Copiado ✓' : 'Copiar'}</Button>
+    </div>
+  );
+}
+
+function ManualModal({ row, onClose, onSaved }) {
+  const data = useAsync(() => invoicingResource.manualData(row.id), row.id);
+  const [form, setForm] = useState({ number: '', verificationCode: '', issuedAt: new Date().toISOString().slice(0, 10), url: '' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const save = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await invoicingResource.markManual(row.id, { ...form, issuedAt: form.issuedAt ? `${form.issuedAt}T12:00:00-03:00` : undefined });
+      onSaved();
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal open onClose={onClose} wide title="Emitir manualmente na Prefeitura"
+      footer={<><Button onClick={onClose}>Fechar</Button><Button variant="primary" loading={busy} disabled={!form.number.trim()} onClick={save}>Registrar nota emitida</Button></>}>
+      <ol className="list-decimal pl-5 space-y-1 text-sm text-gray-300">
+        <li>Abra o portal de NFS-e da Prefeitura de São Paulo (o mesmo onde você já emite) e escolha emitir uma nova nota.</li>
+        <li>Copie os dados abaixo, um a um, para os campos da nota (tomador, código de serviço, valor e discriminação).</li>
+        <li>Emita a nota e anote o <strong>número</strong> e o <strong>código de verificação</strong> que a Prefeitura mostrar.</li>
+        <li>Volte aqui e registre esses dados no fim desta janela. A nota passa a constar como emitida.</li>
+      </ol>
+      <AsyncView state={data}>
+        {(d) => (
+          <div className="rounded-xl border border-gray-800 bg-gray-950/60 px-3">
+            <CopyRow label="Tomador: nome" value={d.customer.name} />
+            <CopyRow label="Tomador: CPF/CNPJ" value={d.customer.doc} />
+            <CopyRow label="Tomador: e-mail" value={d.customer.email} />
+            <CopyRow label="Código de serviço (Prefeitura)" value={d.codigoTributarioMunicipio} />
+            <CopyRow label="Item da lista de serviços (LC 116)" value={d.itemListaServico} />
+            <CopyRow label="Valor do serviço" value={(d.amountCents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} />
+            <CopyRow label="Discriminação do serviço" value={d.description} />
+            <CopyRow label="Competência" value={d.competencia} />
+          </div>
+        )}
+      </AsyncView>
+      <InlineMessage>{error}</InlineMessage>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Field label="Número da nota *"><input className={inputClass} value={form.number} onChange={set('number')} /></Field>
+        <Field label="Código de verificação"><input className={inputClass} value={form.verificationCode} onChange={set('verificationCode')} /></Field>
+        <Field label="Data de emissão"><input className={inputClass} type="date" value={form.issuedAt} onChange={set('issuedAt')} /></Field>
+        <Field label="Link da nota (opcional)" hint="Precisa começar com https://"><input className={inputClass} value={form.url} onChange={set('url')} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
 /* ------------------------------------------------------------------ notes tab */
 
 function NotesTab({ config, goToSettings }) {
@@ -93,6 +172,7 @@ function NotesTab({ config, goToSettings }) {
   const [busyId, setBusyId] = useState(null);
   const [toast, setToast] = useState({ message: '', tone: 'success' });
   const [edit, setEdit] = useState(null);
+  const [manual, setManual] = useState(null);
   const [cancel, setCancel] = useState(null);
   const [reason, setReason] = useState('');
   const [bulk, setBulk] = useState(false);
@@ -211,6 +291,7 @@ function NotesTab({ config, goToSettings }) {
                             {(r.status === 'processing' || r.status === 'queued') && r.attempts > 0 && (
                               <Button size="sm" icon={RefreshCw} loading={busyId === r.id} onClick={() => act(r.id, () => invoicingResource.refresh(r.id), 'Status atualizado.')}>Atualizar</Button>
                             )}
+                            {['review', 'queued', 'error', 'skipped'].includes(r.status) && <Button size="sm" icon={FileText} onClick={() => setManual(r)}>Emitir manualmente</Button>}
                             {['review', 'queued', 'error', 'skipped'].includes(r.status) && <Button size="sm" icon={UserRound} onClick={() => setEdit(r)}>Tomador</Button>}
                             {['review', 'queued', 'error'].includes(r.status) && (
                               <Button size="sm" variant="ghost" onClick={() => act(r.id, () => invoicingResource.skip(r.id, 'Dispensada pelo admin.'), 'Nota dispensada.')}>Dispensar</Button>
@@ -230,6 +311,8 @@ function NotesTab({ config, goToSettings }) {
       </Card>
 
       {edit && <CustomerModal key={edit.id} row={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); say('Dados do tomador atualizados.'); refresh(); }} />}
+
+      {manual && <ManualModal key={manual.id} row={manual} onClose={() => setManual(null)} onSaved={() => { setManual(null); say('Nota registrada como emitida.'); refresh(); }} />}
 
       <ConfirmDialog open={!!cancel} onClose={() => setCancel(null)} title="Cancelar nota fiscal" confirmLabel="Cancelar nota" confirmDisabled={reason.trim().length < 15}
         description={cancel ? `Nota nº ${cancel.nfseNumber} de ${cancel.customerName || 'cliente'} (${brl(cancel.amountCents)}). O cancelamento é definitivo e segue as regras de prazo da Prefeitura.` : ''}
@@ -429,7 +512,7 @@ export default function Invoices() {
         {(c) => (<>
           {!c.tokenConfigured && (
             <InlineMessage tone="warning">
-              <strong>Integração com a Focus NFe pendente.</strong> Nenhuma nota será emitida até você criar a conta na Focus NFe, enviar o certificado A1 e colar o token na aba Configuração.{' '}
+              <strong>Integração com a Focus NFe pendente.</strong> Nenhuma nota será emitida automaticamente até você criar a conta na Focus NFe, enviar o certificado A1 e colar o token na aba Configuração. Enquanto isso, use <strong>Emitir manualmente</strong> em cada pagamento.{' '}
               {tab !== 'settings' && <button type="button" className="underline" onClick={() => setTab('settings')}>Abrir configuração</button>}
             </InlineMessage>
           )}

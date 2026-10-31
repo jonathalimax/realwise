@@ -36,3 +36,4 @@ Stripe-only subscriptions (monthly and annual) with a 3-day no-card trial and a 
 - Admin API: `/admin/invoicing` (list, stats, settings, settings/check, settings/test-emission, backfill, queue-all, `:id/{issue,refresh,skip,cancel,customer}`).
 
 - Defaults: CCM, ME/EPP regime, Simples on, item 0103 + SP code 02684 (hosting/application systems; matches the company's CNAE 6311-9/00). Alternative: item 0105 + 02800 (software licensing, SC SF/DEJUG 15/2024). Neither code is among those closed on 31/12/2025. Saving `environment=producao` with `enabled` or `autoIssue` is refused until token, CCM, codes and text are all set.
+- Manual path (works without any emitter token): admin "Emitir manualmente" shows copy-ready data (`GET /admin/invoicing/:id/manual-data`) and records the number issued in the Prefeitura portal (`POST /admin/invoicing/:id/manual` → `provider='manual'`, status `issued`). Cancelling a manual nota only records it locally (cancel in the portal too).

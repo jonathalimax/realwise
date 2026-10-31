@@ -29,6 +29,12 @@ export const invoicingResource = {
   issue(id) {
     return apiClient.post(`/admin/invoicing/${id}/issue`);
   },
+  manualData(id) {
+    return apiClient.get(`/admin/invoicing/${id}/manual-data`);
+  },
+  markManual(id, data) {
+    return apiClient.post(`/admin/invoicing/${id}/manual`, data);
+  },
   refresh(id) {
     return apiClient.post(`/admin/invoicing/${id}/refresh`);
   },

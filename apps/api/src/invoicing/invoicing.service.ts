@@ -266,7 +266,17 @@ export class InvoicingService {
     const row = await this.get(id);
     const text = reason.trim();
     if (text.length < 15 || text.length > 255) throw new BadRequestException('A justificativa precisa ter de 15 a 255 caracteres.');
-    if (row.status !== 'issued' || !row.providerRef) throw new BadRequestException('Só é possível cancelar notas emitidas.');
+    if (row.status !== 'issued') throw new BadRequestException('Só é possível cancelar notas emitidas.');
+    if (row.provider === 'manual') {
+      // Issued by hand in the Prefeitura portal: it has to be cancelled there too; here we only record it.
+      const [next] = await this.db
+        .update(fiscalInvoices)
+        .set({ status: 'canceled', canceledAt: new Date(), cancelReason: text, updatedAt: new Date() })
+        .where(eq(fiscalInvoices.id, id))
+        .returning();
+      return next;
+    }
+    if (!row.providerRef) throw new BadRequestException('Esta nota não foi enviada ao emissor.');
     const token = await this.settings.token();
     if (!token) throw new BadRequestException('Token do emissor não configurado.');
     const provider = new FocusNfeProvider(token, (row.environment as 'homologacao' | 'producao') ?? 'producao');
@@ -280,6 +290,57 @@ export class InvoicingService {
       return next;
     }
     throw new BadRequestException(result.error ?? 'O emissor recusou o cancelamento.');
+  }
+
+  /** Everything the admin needs to type into the Prefeitura portal for this payment. */
+  async manualData(id: string) {
+    const row = await this.get(id);
+    const s = await this.settings.get();
+    return {
+      customer: { name: row.customerName, email: row.customerEmail, doc: row.customerDoc, address: row.customerAddress },
+      amountCents: row.amountCents,
+      paidAt: row.paidAt,
+      competencia: competenciaLabel(row.paidAt),
+      itemListaServico: s.tax.itemListaServico,
+      codigoTributarioMunicipio: s.tax.codigoTributarioMunicipio,
+      issRetido: s.tax.issRetido,
+      description: renderDescription(s.description, {
+        plano: row.planLabel ?? 'assinatura',
+        competencia: competenciaLabel(row.paidAt),
+        fatura: row.stripeInvoiceNumber ?? row.stripeInvoiceId,
+      }),
+    };
+  }
+
+  /** Records a nota the admin issued by hand in the Prefeitura portal (no emitter involved). */
+  async markManual(id: string, input: { number: string; verificationCode?: string; issuedAt?: string; url?: string }): Promise<Row> {
+    const row = await this.get(id);
+    if (!['review', 'queued', 'error', 'skipped'].includes(row.status)) throw new BadRequestException('Esta nota não pode ser registrada agora.');
+    const number = String(input.number ?? '').trim();
+    if (!/^[A-Za-z0-9./-]{1,20}$/.test(number)) throw new BadRequestException('Informe o número da nota (até 20 caracteres).');
+    const code = String(input.verificationCode ?? '').trim().slice(0, 30);
+    const url = String(input.url ?? '').trim();
+    if (url && !/^https:\/\//i.test(url)) throw new BadRequestException('O link da nota precisa começar com https://');
+    const issuedAt = input.issuedAt ? new Date(input.issuedAt) : new Date();
+    if (Number.isNaN(issuedAt.getTime()) || issuedAt.getTime() > Date.now() + 24 * 3_600_000) throw new BadRequestException('Data de emissão inválida.');
+    const [next] = await this.db
+      .update(fiscalInvoices)
+      .set({
+        status: 'issued',
+        provider: 'manual',
+        environment: 'producao',
+        nfseNumber: number,
+        verificationCode: code || null,
+        nfseUrl: url || null,
+        issuedAt,
+        errorMessage: null,
+        nextAttemptAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(fiscalInvoices.id, id), inArray(fiscalInvoices.status, ['review', 'queued', 'error', 'skipped'])))
+      .returning();
+    if (!next) throw new BadRequestException('Esta nota mudou de estado; atualize a página.');
+    return next;
   }
 
   async skip(id: string, reason: string): Promise<Row> {
