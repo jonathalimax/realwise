@@ -184,6 +184,16 @@ function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, onSpeak, speaking
                 : `Confirm categories (${message.review.groups.length})`}
           </button>
         )}
+        {Array.isArray(message.questions) &&
+          message.questions
+            .filter((q) => q.kind === 'confirm' && q.answer)
+            .map((q) =>
+              q.answer.value === 'yes' ? (
+                <p key={q.id} className="mt-2 text-xs font-semibold text-emerald-600">{pt ? '✓ Confirmado' : '✓ Confirmed'}</p>
+              ) : (
+                <p key={q.id} className="mt-2 text-xs font-semibold text-gray-500">{pt ? 'Cancelado, nada foi alterado' : 'Cancelled, nothing was changed'}</p>
+              ),
+            )}
         {message.review?.resolved && (
           <p className="mt-2 text-xs font-semibold text-emerald-600">{pt ? '✓ Categorias confirmadas' : '✓ Categories confirmed'}</p>
         )}
@@ -584,7 +594,17 @@ export default function ChatPage() {
     setSheetBusy(true);
     setSending(true);
     const id = sheetMessage.id;
+    const before = sheetMessage.questions;
     setManualSheet(null);
+    // The server records the answers before Elio starts working, but this screen only learns that when the whole
+    // turn ends. Show them now, so the button does not keep asking for something already given.
+    replaceMessage({
+      ...sheetMessage,
+      questions: before.map((q) => {
+        const a = answers.find((x) => x.questionId === q.id);
+        return a && !q.answer ? { ...q, answer: { value: a.value, label: a.label } } : q;
+      }),
+    });
     try {
       await runTurn((onEvent) => chatResource.answerStream(id, answers, onEvent), null);
     } catch (e) {
@@ -592,6 +612,7 @@ export default function ChatPage() {
         await recoverAfterDrop();
         return;
       }
+      replaceMessage({ ...sheetMessage, questions: before });
       setLive(null);
       setSending(false);
       setDismissed((prev) => new Set(prev).add(id));
