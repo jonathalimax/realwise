@@ -12,10 +12,24 @@ export interface ReminderFacts {
   transactionsThisMonth: number;
   /** The user wrote to Elio in the last 24h: they are engaged right now, so a nudge would only be noise. */
   chattedRecently?: boolean;
+  /** The "add to your home screen" e-mail already went out (it is sent once per person). */
+  installAppSent?: boolean;
   now: Date;
 }
 
 const HOUR_MS = 3_600_000;
+
+/** Tuesday to Thursday in Brasilia time: the install e-mail is read on the phone and needs a few quiet minutes. */
+function isMidweekInBrasilia(now: Date): boolean {
+  const day = new Date(now.getTime() - 3 * HOUR_MS).getUTCDay();
+  return day >= 2 && day <= 4;
+}
+
+/** Someone who already added something is worth an "install the app" nudge; sent once, never on a Monday or a weekend. */
+function installAppDue(f: ReminderFacts, sinceStartMs: number | null): boolean {
+  if (f.installAppSent || f.transactionCount === 0 || !isMidweekInBrasilia(f.now)) return false;
+  return sinceStartMs === null || sinceStartMs >= 48 * HOUR_MS;
+}
 
 /**
  * Pure decision: which reminder (if any) is due for this user today.
@@ -37,6 +51,7 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
       if (sinceStart >= 72 * HOUR_MS) return 'activation_day3';
       if (sinceStart >= 24 * HOUR_MS) return 'activation_day1';
     }
+    if (f.trialStartedAt && installAppDue(f, nowMs - f.trialStartedAt.getTime())) return 'install_app';
     return null;
   }
 
@@ -50,12 +65,13 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
   if ((access.state === 'subscribed' || access.state === 'lifetime') && now.getDate() >= 5) {
     if (f.transactionsThisMonth === 0) return 'monthly_import';
   }
+  if ((access.state === 'subscribed' || access.state === 'lifetime') && installAppDue(f, null)) return 'install_app';
   return null;
 }
 
 export function periodKeyFor(kind: ReminderKind, now: Date, trialEndsAt: Date | null, suggestionId?: string): string {
   if (kind === 'bill_suggestion') return suggestionId ?? 'none';
   if (kind === 'monthly_import') return now.toISOString().slice(0, 7);
-  if (kind === 'welcome' || kind.startsWith('activation_')) return 'once';
+  if (kind === 'welcome' || kind === 'install_app' || kind.startsWith('activation_')) return 'once';
   return trialEndsAt ? trialEndsAt.toISOString().slice(0, 10) : 'once';
 }
