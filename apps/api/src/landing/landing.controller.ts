@@ -53,20 +53,24 @@ export class PublicLandingController {
     const email = str(body?.email, 200)?.toLowerCase() ?? '';
     if (!EMAIL_RE.test(email)) throw new BadRequestException('Digite um e-mail válido.');
     if (body?.consent !== true) throw new BadRequestException('Marque a caixa para receber novidades.');
+    const name = str(body?.name, 120)?.replace(/\s+/g, ' ').trim() ?? '';
+    if (name.length < 2) throw new BadRequestException('Digite o seu nome.');
+    // Brazilian numbers only: DDD + 9 + 8 digits (mobile) or DDD + 8 digits (landline); stored with the 55 country code.
     const rawPhone = str(body?.phone, 30);
-    const digits = rawPhone?.replace(/\D/g, '') ?? '';
-    if (rawPhone && (digits.length < 10 || digits.length > 13)) throw new BadRequestException('Telefone inválido. Use DDD + número.');
-    const phone = rawPhone ? digits : null;
+    let digits = rawPhone?.replace(/\D/g, '') ?? '';
+    if (digits.length === 12 || digits.length === 13) digits = digits.startsWith('55') ? digits.slice(2) : digits;
+    if (rawPhone && !/^[1-9][0-9](9\d{8}|[2-5]\d{7})$/.test(digits)) throw new BadRequestException('WhatsApp inválido. Use o DDD e o número, por exemplo (11) 91234-5678.');
+    const phone = rawPhone ? `55${digits}` : null;
     const source = str(body?.source, 80) ?? 'landing';
 
     const [existing] = await this.db.select().from(leads).where(sql`lower(${leads.email}) = ${email}`).limit(1);
     if (existing) {
       await this.db
         .update(leads)
-        .set({ phone: phone ?? existing.phone, marketingConsent: true, updatedAt: new Date() })
+        .set({ phone: phone ?? existing.phone, name: existing.name ?? name, marketingConsent: true, updatedAt: new Date() })
         .where(eq(leads.id, existing.id));
     } else {
-      await this.db.insert(leads).values({ email, phone, source, marketingConsent: true, status: 'new' });
+      await this.db.insert(leads).values({ email, name, phone, source, marketingConsent: true, status: 'new' });
     }
     return { ok: true };
   }
