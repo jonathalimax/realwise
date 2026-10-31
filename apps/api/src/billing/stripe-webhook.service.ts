@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { purchases, users } from '../db/schema';
+import { InvoicingService } from '../invoicing/invoicing.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { planForPriceId } from './billing.service';
 import { notifyCancellation } from './cancellation-alert';
@@ -41,6 +42,7 @@ export class StripeWebhookService {
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly stripe: StripeClient,
     private readonly notifications: NotificationsService,
+    private readonly invoicing: InvoicingService,
   ) {}
 
   async handleEvent(event: Stripe.Event): Promise<void> {
@@ -53,8 +55,13 @@ export class StripeWebhookService {
       case 'customer.subscription.deleted':
         await this.syncById(event.data.object.id, event.data.object);
         return;
+      case 'charge.refunded':
+        await this.invoicing.onChargeRefunded(event.data.object);
+        return;
       case 'invoice.paid':
       case 'invoice.payment_failed': {
+        // Every paid invoice becomes a row to issue a nota fiscal for (never throws into the webhook).
+        if (event.type === 'invoice.paid') await this.invoicing.recordPaidInvoice(event.data.object);
         const subscriptionId = idOf(event.data.object.parent?.subscription_details?.subscription);
         if (subscriptionId) await this.syncById(subscriptionId, null);
         return;
