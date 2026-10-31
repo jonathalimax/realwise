@@ -526,7 +526,7 @@ export class NotificationsService {
       title: total > 1 ? 'Suas contas pedem atenção' : 'Uma conta pede atenção',
       subtitle: 'Resolva tudo em um minuto, direto no chat com o Elio.',
       body,
-      cta: 'Resolver minhas contas com o Elio',
+      cta: 'Resolver com o Elio',
       ctaUrl: ctaUrl ?? 'https://realwise.com.br',
       footerNote: 'Você recebe este lembrete porque tem contas cadastradas no Realwise.',
     });
