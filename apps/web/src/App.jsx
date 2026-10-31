@@ -20,6 +20,8 @@ import SubscriptionPage from './pages/SubscriptionPage';
 import { consumeDeepLink, peekDeepLink, rememberDeepLink } from './lib/auth/deepLink';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
+const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicy'));
+const TermsPage = lazy(() => import('./pages/legal/Terms'));
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const CategorySettingsPage = lazy(() => import('./pages/CategorySettings'));
@@ -174,6 +176,14 @@ function App() {
     inner = (
       <Suspense fallback={<PageLoader />}>
         <LandingPage />
+      </Suspense>
+    );
+  } else if (/^\/(privacidade|termos)\/?$/.test(window.location.pathname)) {
+    // Public legal pages (linked from the landing footer): no login, no client in the path.
+    const Page = window.location.pathname.startsWith('/privacidade') ? PrivacyPolicyPage : TermsPage;
+    inner = (
+      <Suspense fallback={<PageLoader />}>
+        <Page />
       </Suspense>
     );
   } else if (window.location.pathname === '/login') {
