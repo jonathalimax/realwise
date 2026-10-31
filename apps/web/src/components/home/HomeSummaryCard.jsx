@@ -46,10 +46,10 @@ export default function HomeSummaryCard({ transactions, previousTransactions, ca
       <p className="text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {pt ? `Saldo de ${monthName}` : `${monthName} balance`}
       </p>
-      <p className={`mt-1 text-5xl font-black tabular-nums tracking-tight ${positive ? 'text-slate-900 dark:text-white' : 'text-rose-500'}`}>
+      <p className={`mt-1 text-5xl font-extrabold tabular-nums tracking-tight ${positive ? 'text-slate-900 dark:text-white' : 'text-rose-500'}`}>
         {positive ? '' : '-'}{formatCurrency(Math.abs(balance)).replace(/,00(?=\D*$)/, '')}
       </p>
-      {sentence && <p className="mt-2 text-lg leading-snug text-slate-500 dark:text-slate-400">{sentence}</p>}
+      {sentence && <p className="mt-2 text-base leading-snug text-slate-500 dark:text-slate-400">{sentence}</p>}
       {carryoverSaldo !== 0 && (
         <p className="mt-1 text-sm text-slate-400">
           {pt ? 'inclui saldo anterior de' : 'includes previous balance of'} {compactMoney(formatCurrency, Math.abs(carryoverSaldo), pt)}
@@ -58,12 +58,12 @@ export default function HomeSummaryCard({ transactions, previousTransactions, ca
 
       <div className="mt-4 flex gap-10 border-t border-slate-200/70 pt-4 dark:border-slate-700/60">
         <button onClick={onIncomeClick} className="text-left">
-          <p className="text-base text-slate-500 dark:text-slate-400">{pt ? 'Entrou' : 'In'}</p>
-          <p className="text-xl font-bold tabular-nums text-emerald-500 dark:text-emerald-400">+{compactMoney(formatCurrency, now.income, pt)}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{pt ? 'Entrou' : 'In'}</p>
+          <p className="text-lg font-semibold tabular-nums text-emerald-500 dark:text-emerald-400">+{compactMoney(formatCurrency, now.income, pt)}</p>
         </button>
         <button onClick={onExpensesClick} className="text-left">
-          <p className="text-base text-slate-500 dark:text-slate-400">{pt ? 'Saiu' : 'Out'}</p>
-          <p className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">{compactMoney(formatCurrency, now.expense, pt)}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{pt ? 'Saiu' : 'Out'}</p>
+          <p className="text-lg font-semibold tabular-nums text-slate-900 dark:text-white">{compactMoney(formatCurrency, now.expense, pt)}</p>
         </button>
       </div>
     </HomeCard>

@@ -56,7 +56,7 @@ export default function PlanningCard({ transactions, selectedMonth }) {
       <HomeCard title={pt ? 'Orçamento' : 'Budget'} subtitle={pt ? 'Defina quanto planeja gastar e poupar' : 'Set how much you plan to spend and save'}>
         <button
           onClick={() => navigate('/planner?tab=alocacao')}
-          className="w-full rounded-2xl bg-violet-50 px-4 py-3 text-base font-bold text-violet-700 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-300"
+          className="w-full rounded-2xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-300"
         >
           {pt ? 'Criar meu planejamento' : 'Create my plan'}
         </button>
@@ -99,11 +99,11 @@ export default function PlanningCard({ transactions, selectedMonth }) {
           return (
             <Wrapper key={r.key} onClick={r.onClick} className="block w-full text-left">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="flex min-w-0 items-center gap-3 text-xl text-slate-800 dark:text-slate-100">
+                <p className="flex min-w-0 items-center gap-3 text-base text-slate-800 dark:text-slate-100">
                   <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: r.dot }} />
                   <span className="truncate">{r.label}</span>
                 </p>
-                <span className="shrink-0 text-xl font-bold tabular-nums text-slate-900 dark:text-white" style={r.phraseColor ? { color: r.phraseColor } : undefined}>
+                <span className="shrink-0 text-base font-semibold tabular-nums text-slate-900 dark:text-white" style={r.phraseColor ? { color: r.phraseColor } : undefined}>
                   {r.phrase}
                 </span>
               </div>
