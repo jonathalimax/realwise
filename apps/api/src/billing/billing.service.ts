@@ -304,6 +304,11 @@ export class BillingService {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: { metadata: { userId: user.id, clientId: user.clientId } },
       allow_promotion_codes: true,
+      // CPF/CNPJ for the nota fiscal (NFS-e). Stripe keeps it on the customer and copies it onto every invoice.
+      tax_id_collection: { enabled: true, required: 'if_supported' },
+      // Stripe refuses tax_id_collection for an existing customer unless it may save the name and address back.
+      customer_update: { name: 'auto', address: 'auto' },
+      custom_text: { submit: { message: 'Pedimos seu CPF (ou CNPJ) somente para emitir a nota fiscal da sua assinatura. Não usamos para mais nada.' } },
       locale: 'pt-BR',
       success_url: `${base}/${user.clientId}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}/${user.clientId}/billing/cancelled`,
