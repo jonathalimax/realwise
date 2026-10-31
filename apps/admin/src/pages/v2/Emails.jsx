@@ -16,6 +16,7 @@ const KINDS = [
   { key: 'activation_day1', label: 'Ativação: dia 1', desc: 'Quem se cadastrou, não registrou nada e não conversou nas últimas 24h: o primeiro passo em 2 minutos.' },
   { key: 'activation_day3', label: 'Ativação: dia 3', desc: 'Mostra os benefícios (resumo do mês, lembretes, orçamento) e lembra dos dias de teste.' },
   { key: 'activation_day5', label: 'Ativação: dia 5', desc: 'Último convite antes do aviso de fim do teste, com os dias restantes.' },
+  { key: 'install_app', label: 'Instalar o app na tela do celular', desc: 'Uma vez por pessoa, de terça a quinta, para quem já registrou algo: passo a passo animado de iPhone e Android.' },
   { key: 'trial_ending', label: 'Teste terminando', desc: 'Avisa que o período de teste está acabando.' },
   { key: 'trial_expired', label: 'Teste expirado', desc: 'Convida a assinar após o fim do teste.' },
   { key: 'monthly_import', label: 'Importação mensal', desc: 'Lembra assinantes de importar o extrato do mês.' },
