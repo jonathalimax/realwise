@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, gte, isNull, sql } from 'drizzle-orm';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
@@ -10,6 +11,10 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { periodKeyFor, pickReminder, type ReminderKind } from './reminder-rules';
 import { BillSuggestionsService, type SuggestionRow } from '../bill-suggestions/bill-suggestions.service';
 import { suggestionToken, unsubscribeToken } from './unsubscribe-token';
+
+/** The install e-mail goes to everyone eligible the first time it runs: spread that wave out so the mail provider's rate limit is respected. */
+const INSTALL_APP_MAX_PER_RUN = 150;
+const INSTALL_APP_GAP_MS = 500;
 
 @Injectable()
 export class EngagementRemindersService {
@@ -28,6 +33,7 @@ export class EngagementRemindersService {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     let sent = 0;
     let skipped = 0;
+    let installSent = 0;
 
     for (const user of rows) {
       try {
@@ -45,6 +51,12 @@ export class EngagementRemindersService {
           .from(chatMessages)
           .where(and(eq(chatMessages.userId, user.id), eq(chatMessages.role, 'user'), gte(chatMessages.createdAt, new Date(now.getTime() - 24 * 3_600_000))));
 
+        const [install] = await this.db
+          .select({ id: reminderEmailsSent.id })
+          .from(reminderEmailsSent)
+          .where(and(eq(reminderEmailsSent.userId, user.id), eq(reminderEmailsSent.kind, 'install_app')))
+          .limit(1);
+
         const baseKind = pickReminder({
           access,
           trialStartedAt: user.premiumAccessStartedAt ?? user.createdAt,
@@ -52,6 +64,7 @@ export class EngagementRemindersService {
           transactionCount: counts?.total ?? 0,
           transactionsThisMonth: counts?.thisMonth ?? 0,
           chattedRecently: (chat?.n ?? 0) > 0,
+          installAppSent: Boolean(install),
           now,
         });
         let kind: ReminderKind | null = baseKind;
@@ -63,6 +76,7 @@ export class EngagementRemindersService {
           if (suggestion) kind = 'bill_suggestion';
         }
         if (!kind || !engagement.kinds[kind].enabled) continue;
+        if (kind === 'install_app' && installSent >= INSTALL_APP_MAX_PER_RUN) continue; // the rest go out on the next eligible day
 
         // Never two reminders inside 20h, whatever the kind.
         const recent = await this.db
@@ -101,6 +115,10 @@ export class EngagementRemindersService {
         });
         if (suggestion) await this.suggestions.markEmailed(suggestion.id);
         sent++;
+        if (kind === 'install_app') {
+          installSent++;
+          await sleep(INSTALL_APP_GAP_MS);
+        }
       } catch (err) {
         this.logger.error(`reminder failed for user ${user.id}: ${(err as Error).message}`);
       }

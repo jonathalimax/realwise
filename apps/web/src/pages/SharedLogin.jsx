@@ -221,6 +221,12 @@ export default function SharedLogin() {
               Primeira vez por aqui? Entre com o Google e criamos a sua conta na hora.
             </p>
 
+            <p className="mt-4 text-center text-xs text-slate-500">
+              Ao continuar, você concorda com os{' '}
+              <a href="/termos" className="underline hover:text-slate-300">Termos de Uso</a> e a{' '}
+              <a href="/privacidade" className="underline hover:text-slate-300">Política de Privacidade</a>.
+            </p>
+
             <p className="mt-6 flex items-center justify-center gap-2 border-t border-white/10 pt-5 text-xs text-slate-500">
               <ShieldCheck className="h-4 w-4 text-emerald-400" /> Ambiente seguro e protegido.
             </p>

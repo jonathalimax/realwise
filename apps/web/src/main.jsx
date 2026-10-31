@@ -4,6 +4,9 @@ checkBuildHash()
 import { installErrorReporter } from './lib/errorReporter'
 installErrorReporter()
 
+import { initAnalytics } from './lib/analyticsConsent'
+initAnalytics()
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

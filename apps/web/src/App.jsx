@@ -13,6 +13,7 @@ import { BillsProvider } from './contexts/BillsContext';
 import { PWAInstallProvider } from './contexts/PWAInstallContext';
 import { MonthProvider } from './contexts/MonthContext';
 import AppErrorBoundary from './components/AppErrorBoundary';
+import ConsentBanner from './components/ConsentBanner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoadingPage from './pages/LoadingPage';
 import SubscriptionGate from './components/billing/SubscriptionGate';
@@ -20,6 +21,8 @@ import SubscriptionPage from './pages/SubscriptionPage';
 import { consumeDeepLink, peekDeepLink, rememberDeepLink } from './lib/auth/deepLink';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
 
+const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicy'));
+const TermsPage = lazy(() => import('./pages/legal/Terms'));
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const CategorySettingsPage = lazy(() => import('./pages/CategorySettings'));
@@ -176,6 +179,14 @@ function App() {
         <LandingPage />
       </Suspense>
     );
+  } else if (/^\/(privacidade|termos)\/?$/.test(window.location.pathname)) {
+    // Public legal pages (linked from the landing footer): no login, no client in the path.
+    const Page = window.location.pathname.startsWith('/privacidade') ? PrivacyPolicyPage : TermsPage;
+    inner = (
+      <Suspense fallback={<PageLoader />}>
+        <Page />
+      </Suspense>
+    );
   } else if (window.location.pathname === '/login') {
     inner = (
       <Suspense fallback={<PageLoader />}>
@@ -210,7 +221,14 @@ function App() {
     );
   }
 
-  return <AppErrorBoundary>{inner}</AppErrorBoundary>;
+  const asksForConsent = /^\/(login|privacidade|termos)?\/?$/.test(window.location.pathname);
+
+  return (
+    <AppErrorBoundary>
+      {inner}
+      {asksForConsent && <ConsentBanner />}
+    </AppErrorBoundary>
+  );
 }
 
 export default App;

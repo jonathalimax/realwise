@@ -283,6 +283,15 @@ export class NotificationsService {
         .map(([icon, text]) => `<div style="margin-bottom:8px;">${icon} ${text}</div>`)
         .join('')}</div>`;
     const money = (v: string) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    // One platform of the "add to your home screen" e-mail: a looping cartoon, then the same three steps as text
+    // (mail apps that do not play GIFs, such as desktop Outlook, still show the first frame and the steps).
+    const installBlock = (icon: string, heading: string, hint: string, gif: string, alt: string, steps: string[]) =>
+      `<div style="margin:0 0 22px;">
+        <div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:2px;">${icon} ${heading}</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:10px;">${hint}</div>
+        <img src="https://realwise.com.br/email/${gif}" width="568" alt="${alt}" style="display:block;width:100%;max-width:568px;height:auto;border-radius:14px;border:0;" />
+        <div style="font-size:13px;color:#374151;line-height:1.9;margin-top:10px;">${steps.map((t, i) => `<div>${['1️⃣', '2️⃣', '3️⃣'][i]} ${t}</div>`).join('')}</div>
+      </div>`;
 
     const copy = {
       welcome: {
@@ -340,6 +349,25 @@ export class NotificationsService {
           p('O caminho mais curto: abra o chat, mande o extrato mais recente e veja, em poucos segundos, para onde o seu dinheiro foi.') +
           p('Ficou com alguma dúvida ou travou em alguma parte? É só responder este e-mail que a gente ajuda.'),
         cta: 'Ver o meu mês',
+        url: app('/chat'),
+      },
+      install_app: {
+        subject: `${ctx.name}, deixe o Realwise a um toque do seu celular 📲`,
+        title: 'Deixe o Realwise na tela do seu celular',
+        body:
+          p('Em 3 toques o Realwise vira um app no seu celular, sem loja de aplicativos. Assim o Elio fica a um toque e anotar um gasto leva segundos.') +
+          installBlock('📱', 'No iPhone', 'Abra no Safari', 'install-ios.gif', 'Animação: toque em Compartilhar, depois em Adicionar à Tela de Início, depois em Adicionar', [
+            'Toque em <strong>Compartilhar</strong> (o quadradinho com a seta)',
+            'Escolha <strong>Adicionar à Tela de Início</strong>',
+            'Toque em <strong>Adicionar</strong>',
+          ]) +
+          installBlock('🤖', 'No Android', 'Abra no Chrome', 'install-android.gif', 'Animação: toque nos 3 pontinhos, depois em Instalar app, depois em Instalar', [
+            'Toque nos <strong>3 pontinhos</strong> no canto de cima',
+            'Escolha <strong>Instalar app</strong>',
+            'Toque em <strong>Instalar</strong>',
+          ]) +
+          p('Dica: abra este e-mail no celular e toque no botão abaixo. Pronto, é só seguir os passos.'),
+        cta: 'Abrir o Realwise',
         url: app('/chat'),
       },
       bill_suggestion: {

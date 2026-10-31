@@ -11,24 +11,10 @@ import LeadCapture from '../components/landing/LeadCapture';
 import { trackLandingView } from '../landingTracking';
 import FooterSection from '../components/landing/FooterSection';
 import WhatsAppFloatingButton from '../components/landing/WhatsAppFloatingButton';
-import { landingAnalytics } from '../landingAnalytics';
-
-const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
 
 export default function Home() {
   useEffect(() => {
     trackLandingView();
-  }, []);
-
-  useEffect(() => {
-    if (!GA_MEASUREMENT_ID) return;
-
-    const script = document.createElement('script');
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-    script.async = true;
-    document.head.appendChild(script);
-
-    script.onload = () => landingAnalytics.init(GA_MEASUREMENT_ID);
   }, []);
 
   return (

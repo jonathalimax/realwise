@@ -253,7 +253,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
             >
               <ChevronLeftIcon className="h-5 w-5" />
             </button>
-            <span className="min-w-[4rem] text-center text-lg font-black tabular-nums text-slate-900 dark:text-white">{year}</span>
+            <span className="min-w-[4rem] text-center text-lg font-bold tabular-nums text-slate-900 dark:text-white">{year}</span>
             <button
               onClick={() => yearIndex < years.length - 1 && setSheetYear(years[yearIndex + 1])}
               disabled={yearIndex >= years.length - 1}
