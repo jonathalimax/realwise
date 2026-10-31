@@ -28,3 +28,4 @@ export * from './user-memories';
 export * from './error-events';
 export * from './summaries';
 export * from './chat-snippets';
+export * from './fiscal-invoices';

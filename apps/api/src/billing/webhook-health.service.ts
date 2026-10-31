@@ -10,6 +10,8 @@ export const REQUIRED_WEBHOOK_EVENTS = [
   'customer.subscription.deleted',
   'invoice.paid',
   'invoice.payment_failed',
+  // Flags a nota fiscal for review when a payment is refunded.
+  'charge.refunded',
 ] as const;
 
 export interface WebhookHealth {

@@ -72,6 +72,8 @@ export class AccountDeletionService {
     ).map((row) => row.key);
 
     await this.db.transaction(async (tx) => {
+      // Notas fiscais must be kept for tax purposes: unlink them from the account so the generic erase below skips them.
+      await tx.execute(sql`UPDATE fiscal_invoices SET user_id = NULL WHERE user_id = ${userId}`);
       const tables = await this.discoverOwnedTables(tx, userId);
       await this.deleteWithRetries(tx, tables);
 
