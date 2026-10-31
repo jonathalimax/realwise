@@ -34,6 +34,9 @@ export function summarySubject(p: SummaryPayload): string {
   }
 }
 
+/** Bold the money amounts in an already-escaped sentence. */
+const emphasize = (html: string, color: string) => html.replace(/R\$\s?[0-9][0-9.,]*( mil)?/g, (m) => `<strong style="color:${color};">${m}</strong>`);
+
 const spacer = (h: number) => `<tr><td height="${h}" style="font-size:0;line-height:0;">&nbsp;</td></tr>`;
 
 function dot(color: string): string {
@@ -44,22 +47,35 @@ function heading(title: string, sub?: string): string {
   return `<tr><td style="padding:0 0 10px;"><div style="font-size:19px;font-weight:800;color:#0f172a;">${e(title)}</div>${sub ? `<div style="font-size:13px;color:#64748b;margin-top:2px;">${e(sub)}</div>` : ''}</td></tr>`;
 }
 
+/** Rose to amber to green scale with a dark marker at the score, built from table cells (gradients and absolute positions are unreliable in mail apps). */
+function scaleBar(score: number): string {
+  const pos = Math.min(98, Math.max(2, Math.round(score)));
+  const zones: [number, number, string][] = [[0, 40, '#fda4af'], [40, 75, '#fcd34d'], [75, 100, '#34d399']];
+  const cells: string[] = [];
+  const cell = (w: number, color: string) => `<td width="${w}%" height="12" bgcolor="${color}" style="font-size:0;line-height:0;">&nbsp;</td>`;
+  for (const [from, to, color] of zones) {
+    if (pos > from && pos < to) {
+      cells.push(cell(pos - from, color), '<td width="2%" height="12" bgcolor="#78350f" style="font-size:0;line-height:0;">&nbsp;</td>', cell(to - pos, color));
+    } else cells.push(cell(to - from, color));
+  }
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;border-radius:999px;overflow:hidden;"><tr>${cells.join('')}</tr></table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;"><tr>
+      <td align="left" style="font-size:11px;color:#64748b;">Precisa de atenção</td><td align="center" style="font-size:11px;color:#64748b;">Equilibrada</td><td align="right" style="font-size:11px;color:#64748b;">Muito boa</td>
+    </tr></table>`;
+}
+
 function scoreBlock(p: SummaryPayload): string {
   if (p.score === null) return '';
   const t = TONES[p.tone];
   const delta = p.scoreDelta;
   const prev = p.period.prevMonthName;
   const deltaText = delta === null || !prev || delta === 0 ? '' : delta > 0 ? `+${delta} pontos desde ${prev}` : `${-delta} pontos abaixo de ${prev}`;
-  const pos = Math.min(100, Math.max(0, p.score));
   return `<tr><td style="background:${t.bg};border-radius:16px;padding:20px 22px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
       <td valign="bottom"><span style="font-size:60px;line-height:1;font-weight:800;color:${t.fg};letter-spacing:-2px;">${p.score}</span><span style="font-size:18px;font-weight:700;color:${t.fg};opacity:.6;"> / 100</span></td>
       <td valign="bottom" align="right"><div style="font-size:15px;font-weight:800;color:${t.sub};">Saúde financeira: ${e(p.scoreLabel ?? '')}</div>${deltaText ? `<div style="font-size:13px;color:${t.fg};">${e(deltaText)}</div>` : ''}</td>
     </tr></table>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;"><tr>
-      <td width="${pos}%" height="12" bgcolor="${t.bar}" style="border-radius:999px 0 0 999px;font-size:0;line-height:0;">&nbsp;</td>
-      <td width="${100 - pos}%" height="12" bgcolor="#ffffff" style="border-radius:0 999px 999px 0;font-size:0;line-height:0;">&nbsp;</td>
-    </tr></table>
+    ${scaleBar(p.score)}
   </td></tr>`;
 }
 
@@ -83,9 +99,25 @@ function flowBlock(p: SummaryPayload): string {
   const { segments, totalPct, overflow } = p.flow;
   if (p.totals.income <= 0 || segments.length === 0) return '';
   const base = Math.max(100, totalPct);
-  const bar = segments
-    .map((s, i) => `<td width="${Math.max(1, Math.round((s.pct / base) * 100))}%" height="20" bgcolor="${SEGMENT_COLORS[s.tone]}" style="font-size:0;line-height:0;${i < segments.length - 1 ? 'border-right:2px solid #ffffff;' : ''}">&nbsp;</td>`)
+  // Cells in order; when spending passed the income, a dark divider marks where the income ends.
+  const cells: { w: number; color: string }[] = [];
+  let cum = 0;
+  let marked = false;
+  for (const s of segments) {
+    const start = cum;
+    cum += s.pct;
+    if (overflow && !marked && start < 100 && cum > 100) {
+      cells.push({ w: 100 - start, color: SEGMENT_COLORS[s.tone] }, { w: -1, color: '#0f172a' }, { w: cum - 100, color: SEGMENT_COLORS[s.tone] });
+      marked = true;
+    } else cells.push({ w: s.pct, color: SEGMENT_COLORS[s.tone] });
+    if (overflow && !marked && cum === 100) { cells.push({ w: -1, color: '#0f172a' }); marked = true; }
+  }
+  const bar = cells
+    .map((c, i) => c.w < 0
+      ? '<td width="1%" height="20" bgcolor="#0f172a" style="font-size:0;line-height:0;">&nbsp;</td>'
+      : `<td width="${Math.max(1, Math.round((c.w / base) * 100))}%" height="20" bgcolor="${c.color}" style="font-size:0;line-height:0;${i < cells.length - 1 && cells[i + 1].w >= 0 && c.w >= 0 ? 'border-right:2px solid #ffffff;' : ''}">&nbsp;</td>`)
     .join('');
+  const incomeNote = overflow ? `<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td width="${Math.round((100 / base) * 100)}%" align="right" style="padding-top:5px;font-size:11px;font-weight:700;color:#0f172a;">sua renda (R$ 100)&nbsp;↑</td><td></td></tr></table></td></tr>` : '';
   const legend = segments
     .map((s) => `<td width="50%" style="padding:3px 0;font-size:14px;color:#334155;">${dot(SEGMENT_COLORS[s.tone])}${e(s.label)} <strong style="color:#0f172a;">${reais(s.amount)}</strong></td>`)
     .reduce<string[]>((rows, cell, i) => { if (i % 2 === 0) rows.push(cell); else rows[rows.length - 1] += cell; return rows; }, [])
@@ -94,6 +126,7 @@ function flowBlock(p: SummaryPayload): string {
   const sub = overflow ? `De cada R$ 100 que entraram, saíram R$ ${Math.round(totalPct)}. O trecho que passou da renda é o que faltou.` : 'Cada R$ 100 que entraram, e para onde foram.';
   return `${heading('Para onde foi sua renda', sub)}
   <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:999px;overflow:hidden;"><tr>${bar}</tr></table></td></tr>
+  ${incomeNote}
   ${spacer(10)}
   <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${legend}</table></td></tr>`;
 }
@@ -102,10 +135,10 @@ function trendBlock(p: SummaryPayload): string {
   const pts = p.trend.filter((x) => x.income + x.spent > 0);
   if (pts.length < 2) return '';
   const scale = Math.max(...p.trend.map((x) => Math.max(x.income, x.spent)), 1);
-  const bar = (v: number, color: string) => `<table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td width="14" height="${Math.max(2, Math.round((v / scale) * 90))}" bgcolor="${color}" style="font-size:0;line-height:0;">&nbsp;</td></tr></table>`;
+  const bar = (v: number, color: string, label = '') => `${label ? `<div style="font-size:11px;font-weight:800;color:#0f172a;text-align:center;padding-bottom:3px;">${e(label)}</div>` : ''}<table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td width="20" height="${Math.max(2, Math.round((v / scale) * 90))}" bgcolor="${color}" style="border-radius:6px 6px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr></table>`;
   const last = p.trend[p.trend.length - 1];
   const cols = p.trend
-    .map((m) => `<td align="center" valign="bottom" width="${Math.floor(100 / p.trend.length)}%"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td valign="bottom" style="padding:0 2px;">${bar(m.income, '#ddd6fe')}</td><td valign="bottom" style="padding:0 2px;">${bar(m.spent, m === last ? TONES[p.tone].bar : '#94a3b8')}</td></tr></table></td>`)
+    .map((m) => `<td align="center" valign="bottom" width="${Math.floor(100 / p.trend.length)}%"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td valign="bottom" style="padding:0 2px;">${bar(m.income, '#ddd6fe')}</td><td valign="bottom" style="padding:0 2px;">${bar(m.spent, m.spent > m.income ? (m === last ? '#f43f5e' : '#fbbf24') : m === last ? TONES[p.tone].bar : '#94a3b8', m === last ? short(m.spent) : '')}</td></tr></table></td>`)
     .join('');
   const labels = p.trend.map((m) => `<td align="center" style="font-size:12px;padding-top:6px;color:${m === last ? '#0f172a' : '#64748b'};font-weight:${m === last ? 800 : 400};">${e(m.label)}</td>`).join('');
   return `${heading('Seus últimos meses', 'Cada mês tem duas barras: a renda (lilás) e o que você gastou.')}
@@ -115,7 +148,7 @@ function trendBlock(p: SummaryPayload): string {
 function insightRows(title: string, items: Insight[], mark: (i: Insight, n: number) => string): string {
   if (items.length === 0) return '';
   const rows = items
-    .map((it, n) => `<tr><td valign="top" width="34" style="padding:7px 0;">${mark(it, n + 1)}</td><td valign="top" style="padding:7px 0;"><div style="font-size:15px;font-weight:700;color:#0f172a;">${e(it.title)}</div><div style="font-size:13px;color:#64748b;line-height:1.5;">${e(it.detail)}</div>${it.frees ? `<div style="margin-top:4px;"><span style="display:inline-block;font-size:12px;font-weight:800;color:#047857;background:#ecfdf5;border-radius:999px;padding:3px 9px;">libera ${reais(it.frees)}</span></div>` : ''}</td></tr>`)
+    .map((it, n) => `<tr><td valign="top" width="34" style="padding:7px 0;">${mark(it, n + 1)}</td><td valign="top" style="padding:7px 0;"><div style="font-size:15px;font-weight:700;color:#0f172a;">${e(it.title)}</div><div style="font-size:13px;color:#64748b;line-height:1.5;">${e(it.detail)}</div></td>${it.frees ? `<td valign="top" align="right" width="110" style="padding:7px 0 7px 8px;"><span style="display:inline-block;font-size:12px;font-weight:800;color:#047857;background:#ecfdf5;border-radius:999px;padding:5px 10px;white-space:nowrap;">libera ${reais(it.frees)}</span></td>` : '<td></td>'}</tr>`)
     .join('');
   return `${heading(title)}<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table></td></tr>`;
 }
@@ -154,16 +187,16 @@ export function buildSummaryEmail(p: SummaryPayload, pageUrl: string, unsubscrib
     scoreBlock(p), kpis(p), flowBlock(p), trendBlock(p), missingBlock(p), winsHtml, fixesHtml, nextStepBlock(p, pageUrl),
   ].filter(Boolean).join(spacer(22));
 
-  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(summarySubject(p))}</title></head>
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(summarySubject(p))}</title><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"></head>
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:${FONT};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9"><tr><td align="center" style="padding:24px 12px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;"><tr><td style="padding:30px 30px 26px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;"><tr><td style="padding:30px 30px 26px;font-family:${FONT};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr><td><table role="presentation" cellpadding="0" cellspacing="0"><tr><td width="34" height="34" bgcolor="#10b981" align="center" style="border-radius:10px;font-weight:800;font-size:17px;color:#ffffff;">R</td><td style="padding-left:10px;font-size:11px;font-weight:800;letter-spacing:3px;color:#047857;">REALWISE</td></tr></table></td></tr>
     ${spacer(22)}
     <tr><td><div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#64748b;">${e(eyebrow)}</div>
       <div style="font-size:34px;line-height:1.1;font-weight:800;color:#0f172a;letter-spacing:-1px;margin:8px 0;">${e(p.headline)}</div>
-      <div style="font-size:16px;line-height:1.55;color:#334155;">${e(p.subline)}</div></td></tr>
+      <div style="font-size:16px;line-height:1.55;color:#334155;">${emphasize(e(p.subline), p.tone === 'improve' ? '#be123c' : '#0f172a')}</div></td></tr>
     ${spacer(22)}
     ${sections}
     ${spacer(24)}

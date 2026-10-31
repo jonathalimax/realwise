@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Mail } from 'lucide-react';
 import { submitLead } from '../../landingTracking';
+import { formatBrPhone, isValidBrPhone } from '../../phoneMask';
 
-/** "Receive news and promotions" form: email required, WhatsApp optional, explicit consent (LGPD). */
+/** "Receive news and promotions" form: name and email required, WhatsApp optional (Brazilian mask), explicit consent (LGPD). */
 export default function LeadCapture() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [consent, setConsent] = useState(false);
@@ -14,10 +16,14 @@ export default function LeadCapture() {
   const submit = async (e) => {
     e.preventDefault();
     if (state === 'sending') return;
+    if (!isValidBrPhone(phone)) {
+      setError('Confira o WhatsApp: use o DDD e o número, por exemplo (11) 91234-5678.');
+      return;
+    }
     setError('');
     setState('sending');
     try {
-      await submitLead({ email, phone, consent, website });
+      await submitLead({ name: name.trim(), email, phone, consent, website });
       setState('done');
     } catch (err) {
       setError(err.message);
@@ -43,6 +49,17 @@ export default function LeadCapture() {
             <p className="mt-2 text-slate-600 dark:text-slate-300">Receba novidades do Elio, dicas de dinheiro e promoções antes de todo mundo.</p>
             <form onSubmit={submit} className="mt-6 space-y-3 text-left">
               <input
+                type="text"
+                required
+                minLength={2}
+                maxLength={120}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Seu nome"
+                autoComplete="name"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+              <input
                 type="email"
                 required
                 value={email}
@@ -54,10 +71,11 @@ export default function LeadCapture() {
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="WhatsApp com DDD (opcional)"
-                autoComplete="tel"
+                onChange={(e) => setPhone(formatBrPhone(e.target.value))}
+                placeholder="WhatsApp: (11) 91234-5678 (opcional)"
+                autoComplete="tel-national"
                 inputMode="tel"
+                maxLength={16}
                 className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <input type="text" tabIndex={-1} autoComplete="off" aria-hidden value={website} onChange={(e) => setWebsite(e.target.value)} className="hidden" name="website" />
@@ -68,7 +86,7 @@ export default function LeadCapture() {
               {error && <p className="text-sm text-rose-600">{error}</p>}
               <button
                 type="submit"
-                disabled={!consent || !email || state === 'sending'}
+                disabled={!consent || !email || name.trim().length < 2 || state === 'sending'}
                 className="h-12 w-full rounded-xl bg-violet-600 font-semibold text-white transition hover:bg-violet-700 disabled:opacity-40"
               >
                 {state === 'sending' ? 'Enviando…' : 'Quero receber novidades'}

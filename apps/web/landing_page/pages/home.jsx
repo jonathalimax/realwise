@@ -4,7 +4,6 @@ import HeroSection from '../components/landing/HeroSection';
 import HowItWorks from '../components/landing/HowItWorks';
 import SummaryShowcase from '../components/landing/SummaryShowcase';
 import AIFeatures from '../components/landing/AIFeatures';
-import Comparison from '../components/landing/Comparison';
 import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
@@ -40,7 +39,6 @@ export default function Home() {
         <HowItWorks />
         <SummaryShowcase />
         <AIFeatures />
-        <Comparison />
         <PricingSection />
         <FAQSection />
         <LeadCapture />

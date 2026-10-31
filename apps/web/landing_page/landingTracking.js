@@ -44,11 +44,11 @@ export function trackLandingView() {
   trackLandingEvent('view');
 }
 
-export async function submitLead({ email, phone, consent, website }) {
+export async function submitLead({ name, email, phone, consent, website }) {
   const res = await fetch(url('lead'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, phone: phone || undefined, consent, website, source: utmSource().slice(0, 80) }),
+    body: JSON.stringify({ name: name || undefined, email, phone: phone || undefined, consent, website, source: utmSource().slice(0, 80) }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
