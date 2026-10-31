@@ -42,10 +42,10 @@ export const DEFAULT_INVOICING_SETTINGS: InvoicingSettings = {
   autoIssue: false,
   environment: 'homologacao',
   startFrom: null,
-  issuer: { cnpj: '49725579000149', inscricaoMunicipal: '', municipioIbge: '3550308' },
+  issuer: { cnpj: '49725579000149', inscricaoMunicipal: '76133621', municipioIbge: '3550308' },
   tax: {
     optanteSimplesNacional: true,
-    regimeEspecialTributacao: '',
+    regimeEspecialTributacao: '6',
     naturezaOperacao: '1',
     itemListaServico: '',
     codigoTributarioMunicipio: '',
