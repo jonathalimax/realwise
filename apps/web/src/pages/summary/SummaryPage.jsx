@@ -323,7 +323,7 @@ function Shell({ children }) {
 function Brand({ s }) {
   return (
     <div className="flex items-center gap-2.5 px-1 pb-0.5 pt-1.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-emerald-500 text-base font-extrabold text-emerald-950">R</span>
+      <img src="/logo.png" alt="" className="h-8 w-8 rounded-[9px] object-contain" />
       <span className="text-[13px] font-bold text-slate-400">{s ? (s.tone === 'trial' ? 'Seu teste' : s.period.label) : 'Realwise'}</span>
     </div>
   );
