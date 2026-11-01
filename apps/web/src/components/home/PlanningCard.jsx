@@ -8,8 +8,8 @@ import HomeCard from './HomeCard';
 import { compactMoney } from './format';
 import { uncategorizedTotal, withoutUncategorized } from './uncategorized';
 
-const AMBER = '#F59E0B';
-const ROSE = '#F43F5E';
+const AMBER = 'var(--rw-warn)';
+const ROSE = 'var(--rw-neg)';
 
 /**
  * "Orçamento": the month's plan as three plain rows (needs, wants, savings): a name, one phrase that says what is left
@@ -34,9 +34,9 @@ export default function PlanningCard({ transactions, selectedMonth }) {
     const alloc = version.allocation ?? { necessidades: 70, poupanca: 20, desejos: 10 };
     const spent = calculate50_30_20(withoutUncategorized(transactions), 0);
     const defs = [
-      { key: 'needs', label: pt ? 'Necessidades' : 'Needs', pct: alloc.necessidades, base: '#60A5FA', goal: false },
-      { key: 'wants', label: pt ? 'Desejos' : 'Wants', pct: alloc.desejos, base: '#F472B6', goal: false },
-      { key: 'savings', label: pt ? 'Poupança' : 'Savings', pct: alloc.poupanca, base: '#5EEAD4', goal: true },
+      { key: 'needs', label: pt ? 'Necessidades' : 'Needs', pct: alloc.necessidades, base: 'var(--rw-needs)', goal: false },
+      { key: 'wants', label: pt ? 'Desejos' : 'Wants', pct: alloc.desejos, base: 'var(--rw-wants)', goal: false },
+      { key: 'savings', label: pt ? 'Poupança' : 'Savings', pct: alloc.poupanca, base: 'var(--rw-save)', goal: true },
     ];
     const groups = defs.map((d) => {
       const planned = (net * d.pct) / 100;
@@ -55,7 +55,7 @@ export default function PlanningCard({ transactions, selectedMonth }) {
     return (
       <HomeCard title={pt ? 'Orçamento' : 'Budget'} subtitle={pt ? 'Defina quanto planeja gastar e poupar' : 'Set how much you plan to spend and save'}>
         <button
-          onClick={() => navigate('/planner?tab=alocacao')}
+          onClick={() => navigate('/planning')}
           className="w-full rounded-2xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-300"
         >
           {pt ? 'Criar meu planejamento' : 'Create my plan'}
@@ -92,22 +92,22 @@ export default function PlanningCard({ transactions, selectedMonth }) {
   }
 
   return (
-    <HomeCard title={pt ? 'Orçamento' : 'Budget'} actionLabel={pt ? 'Ver tudo' : 'See all'} onAction={() => navigate('/planner?tab=alocacao')}>
+    <HomeCard title={pt ? 'Orçamento' : 'Budget'} actionLabel={pt ? 'Ver tudo' : 'See all'} onAction={() => navigate('/planning')}>
       <div className="space-y-5">
         {rows.map((r) => {
           const Wrapper = r.onClick ? 'button' : 'div';
           return (
             <Wrapper key={r.key} onClick={r.onClick} className="block w-full text-left">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="flex min-w-0 items-center gap-3 text-base text-slate-800 dark:text-slate-100">
+                <p className="flex min-w-0 items-center gap-3 text-base text-[var(--rw-ink)]">
                   <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: r.dot }} />
                   <span className="truncate">{r.label}</span>
                 </p>
-                <span className="shrink-0 text-base font-semibold tabular-nums text-slate-900 dark:text-white" style={r.phraseColor ? { color: r.phraseColor } : undefined}>
+                <span className="shrink-0 text-base font-semibold tabular-nums text-[var(--rw-ink)]" style={r.phraseColor ? { color: r.phraseColor } : undefined}>
                   {r.phrase}
                 </span>
               </div>
-              <div className="mt-2.5 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/50">
+              <div className="mt-2.5 h-3 overflow-hidden rounded-full bg-[var(--rw-track)]">
                 <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${r.fill}%`, backgroundColor: r.bar }} />
               </div>
             </Wrapper>

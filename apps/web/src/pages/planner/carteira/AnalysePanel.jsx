@@ -72,16 +72,16 @@ export default function AnalysePanel({ layers, poupancaValue, onApplySuggestions
             const isAccepted = accepted.has(i);
             const isRejected = rejected.has(i);
             return (
-              <div key={i} className={`bg-white dark:bg-gray-800 rounded-xl p-3 border transition-all ${isAccepted ? 'border-emerald-300 dark:border-emerald-700' : isRejected ? 'border-gray-200 dark:border-gray-700 opacity-50' : 'border-gray-200 dark:border-gray-700'}`}>
+              <div key={i} className={`bg-[var(--rw-surface)] rounded-xl p-3 border transition-all ${isAccepted ? 'border-emerald-300 dark:border-emerald-700' : isRejected ? 'border-[var(--rw-border)] opacity-50' : 'border-[var(--rw-border)]'}`}>
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${TYPE_BADGE[s.type] ?? TYPE_BADGE.allocation}`}>
                         {s.type === 'allocation' ? 'Alocação' : s.type === 'instrument' ? 'Instrumento' : 'Produto'}
                       </span>
-                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{s.title}</span>
+                      <span className="text-xs font-bold text-[var(--rw-ink)]">{s.title}</span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{s.reason}</p>
+                    <p className="text-xs text-[var(--rw-muted)]">{s.reason}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0 mt-0.5">
                     <button

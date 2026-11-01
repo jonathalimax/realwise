@@ -30,7 +30,7 @@ function TextCell({ value, onChange, className = '' }) {
       type="text"
       value={value}
       onChange={e => onChange(e.target.value)}
-      className={`w-full px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 ${className}`}
+      className={`w-full px-2 py-1 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] text-sm focus:outline-none focus:ring-1 focus:ring-violet-500 ${className}`}
     />
   );
 }
@@ -39,13 +39,13 @@ function TextCell({ value, onChange, className = '' }) {
 
 function ClassRow({ cls, index, onChange, onRemove }) {
   return (
-    <tr className="border-t border-gray-100 dark:border-gray-700">
+    <tr className="border-t border-[var(--rw-border)]">
       <td className="px-3 py-2">
         <input
           type="text"
           value={cls.name}
           onChange={e => onChange(index, 'name', e.target.value)}
-          className="w-full px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
+          className="w-full px-2 py-1 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
         />
       </td>
       <td className="px-3 py-2 w-24">
@@ -71,7 +71,7 @@ function ClassRow({ cls, index, onChange, onRemove }) {
           type="text"
           value={cls.vehicle}
           onChange={e => onChange(index, 'vehicle', e.target.value)}
-          className="w-full px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
+          className="w-full px-2 py-1 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] text-sm focus:outline-none focus:ring-1 focus:ring-violet-500"
         />
       </td>
       <td className="px-3 py-2 text-center">
@@ -225,8 +225,8 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
 
   if (liquidezFinal <= 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-        <p className="text-gray-500 dark:text-gray-400">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-8 shadow-sm border border-[var(--rw-border)] text-center">
+        <p className="text-[var(--rw-muted)]">
           Preencha o Dashboard Financeiro para ver as projeções de investimento.
         </p>
       </div>
@@ -260,7 +260,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
       </div>
 
       {/* Reserves table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm border border-[var(--rw-border)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -280,7 +280,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
             </thead>
             <tbody>
               {/* Carro (auto-computed, read-only) */}
-              <tr className="border-t border-gray-100 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/10">
+              <tr className="border-t border-[var(--rw-border)] bg-orange-50 dark:bg-orange-900/10">
                 <td className="px-4 py-2.5">
                   <span className="font-bold text-red-600 dark:text-red-400">
                     Amortização Extra Carro (boleto)
@@ -289,14 +289,14 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
                 <td className={`px-4 py-2.5 text-right tabular-nums font-bold text-red-600 dark:text-red-400 ${!isPhase2ForSelectedMonth ? '' : 'opacity-40'}`}>
                   {formatBRL.format(carInitialBoleto)}
                 </td>
-                <td className={`px-4 py-2.5 text-right tabular-nums text-gray-400 dark:text-gray-500 ${isPhase2ForSelectedMonth ? '' : 'opacity-40'}`}>
+                <td className={`px-4 py-2.5 text-right tabular-nums text-[var(--rw-subtle)] ${isPhase2ForSelectedMonth ? '' : 'opacity-40'}`}>
                   —
                 </td>
-                <td className="px-4 py-2.5 text-right text-gray-400 dark:text-gray-500 text-xs hidden sm:table-cell">—</td>
-                <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 italic text-xs hidden md:table-cell">
+                <td className="px-4 py-2.5 text-right text-[var(--rw-subtle)] text-xs hidden sm:table-cell">—</td>
+                <td className="px-4 py-2.5 text-[var(--rw-muted)] italic text-xs hidden md:table-cell">
                   Sobe ao longo do tempo — ver Carro
                 </td>
-                <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 italic text-xs hidden lg:table-cell">
+                <td className="px-4 py-2.5 text-[var(--rw-muted)] italic text-xs hidden lg:table-cell">
                   Bradesco — app Antecipar Parcelas
                 </td>
                 <td className="px-4 py-2.5" />
@@ -306,7 +306,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
               {savingsRows.map((row, i) => (
                 <tr
                   key={row.id}
-                  className={`border-t border-gray-100 dark:border-gray-700 ${
+                  className={`border-t border-[var(--rw-border)] ${
                     row.id === 'casa'
                       ? 'bg-yellow-50/60 dark:bg-yellow-900/10'
                       : i % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-700/20'
@@ -342,14 +342,14 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
                     <TextCell
                       value={row.tipo}
                       onChange={v => updateRow(row.id, 'tipo', v)}
-                      className="text-gray-500 dark:text-gray-400 italic"
+                      className="text-[var(--rw-muted)] italic"
                     />
                   </td>
                   <td className="px-3 py-2 hidden lg:table-cell">
                     <TextCell
                       value={row.onde}
                       onChange={v => updateRow(row.id, 'onde', v)}
-                      className="text-gray-500 dark:text-gray-400 italic"
+                      className="text-[var(--rw-muted)] italic"
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
@@ -359,7 +359,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
               ))}
 
               {/* Investimentos Livres (computed remainder) */}
-              <tr className="border-t border-gray-100 dark:border-gray-700 bg-emerald-50/60 dark:bg-emerald-900/10">
+              <tr className="border-t border-[var(--rw-border)] bg-emerald-50/60 dark:bg-emerald-900/10">
                 <td className="px-4 py-2.5 font-bold text-emerald-700 dark:text-emerald-400">
                   Investimentos Livres
                 </td>
@@ -380,14 +380,14 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
               </tr>
 
               {/* Total */}
-              <tr className="border-t-2 border-slate-400 dark:border-slate-600 bg-slate-100 dark:bg-slate-700/50">
-                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">
+              <tr className="border-t-2 border-slate-400 dark:border-slate-600 bg-[var(--rw-raised)]/50">
+                <td className="px-4 py-3 font-bold text-[var(--rw-ink)]">
                   TOTAL POUPANÇA ({state.poupanca}%)
                 </td>
-                <td className={`px-4 py-3 text-right tabular-nums font-bold text-gray-900 dark:text-white ${!isPhase2ForSelectedMonth ? '' : 'opacity-50'}`}>
+                <td className={`px-4 py-3 text-right tabular-nums font-bold text-[var(--rw-ink)] ${!isPhase2ForSelectedMonth ? '' : 'opacity-50'}`}>
                   {formatBRL.format(poupancaPhase1)}
                 </td>
-                <td className={`px-4 py-3 text-right tabular-nums font-bold text-gray-900 dark:text-white ${isPhase2ForSelectedMonth ? '' : 'opacity-50'}`}>
+                <td className={`px-4 py-3 text-right tabular-nums font-bold text-[var(--rw-ink)] ${isPhase2ForSelectedMonth ? '' : 'opacity-50'}`}>
                   {formatBRL.format(poupancaPhase2)}
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell" />
@@ -404,7 +404,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
         </div>
 
         {/* Add row button */}
-        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="px-4 py-3 border-t border-[var(--rw-border)]">
           <button onClick={addRow} className="text-sm text-violet-600 dark:text-violet-400 hover:underline font-medium">
             + Adicionar linha
           </button>
@@ -438,10 +438,10 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
       </div>
 
       {/* ── SECTION 2: FREE INVESTMENT CLASSES ──────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm border border-[var(--rw-border)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--rw-border)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Classes de Ativos — Investimentos Livres</h3>
+            <h3 className="text-sm font-bold text-[var(--rw-ink)]">Classes de Ativos — Investimentos Livres</h3>
             {pctValid ? (
               <Badge variant="default">✓ 100%</Badge>
             ) : (
@@ -458,11 +458,11 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">Classe</th>
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">% Carteira</th>
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">Retorno</th>
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500 dark:text-gray-400">Veículo</th>
+              <tr className="bg-[var(--rw-raised)]">
+                <th className="px-3 py-2 text-left text-xs font-bold text-[var(--rw-muted)]">Classe</th>
+                <th className="px-3 py-2 text-left text-xs font-bold text-[var(--rw-muted)]">% Carteira</th>
+                <th className="px-3 py-2 text-left text-xs font-bold text-[var(--rw-muted)]">Retorno</th>
+                <th className="px-3 py-2 text-left text-xs font-bold text-[var(--rw-muted)]">Veículo</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -482,8 +482,8 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
       </div>
 
       {/* Projections */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Projeções de Patrimônio (Invest. Livres: {formatBRL.format(livresPhase2 ?? poupancaValue)}/mês)
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -502,10 +502,10 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
       </div>
 
       {/* ── SECTION 3: GEMINI AI WITH JSON DIFF ─────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-base">✨</span>
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Análise com Gemini AI</h3>
+          <h3 className="text-sm font-bold text-[var(--rw-ink)]">Análise com Gemini AI</h3>
         </div>
 
         {!geminiApiKey ? (
@@ -537,12 +537,12 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
               <div className="mt-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 overflow-hidden">
                 <div className="px-4 py-3 border-b border-violet-200 dark:border-violet-800">
                   <p className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase mb-1">Sugestão Gemini AI</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{geminiSuggestion.analysis}</p>
+                  <p className="text-sm text-[var(--rw-ink)]">{geminiSuggestion.analysis}</p>
                 </div>
 
                 {geminiSuggestion.risks?.length > 0 && (
                   <div className="px-4 py-2 border-b border-violet-200 dark:border-violet-800">
-                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Riscos identificados:</p>
+                    <p className="text-xs font-bold text-[var(--rw-muted)] mb-1">Riscos identificados:</p>
                     <div className="flex flex-wrap gap-1.5">
                       {geminiSuggestion.risks.map((r, i) => (
                         <span key={i} className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full">
@@ -569,14 +569,14 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
                         const delta = s.suggestedPct - s.currentPct;
                         return (
                           <tr key={i} className="border-t border-violet-100 dark:border-violet-800">
-                            <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
+                            <td className="px-4 py-2 text-sm text-[var(--rw-ink)]">
                               <div>{s.name}</div>
-                              {s.reason && <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{s.reason}</div>}
+                              {s.reason && <div className="text-xs text-[var(--rw-subtle)] mt-0.5">{s.reason}</div>}
                             </td>
-                            <td className="px-4 py-2 text-center tabular-nums text-gray-600 dark:text-gray-400">
+                            <td className="px-4 py-2 text-center tabular-nums text-[var(--rw-muted)]">
                               {s.currentPct}%
                             </td>
-                            <td className="px-4 py-2 text-center tabular-nums font-bold text-gray-700 dark:text-gray-300">
+                            <td className="px-4 py-2 text-center tabular-nums font-bold text-[var(--rw-ink)]">
                               {s.suggestedPct}%
                             </td>
                             <td className={`px-4 py-2 text-center tabular-nums font-bold ${
@@ -595,7 +595,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
 
                 {geminiSuggestion.summary && (
                   <div className="px-4 py-3 border-t border-violet-200 dark:border-violet-800">
-                    <p className="text-xs text-gray-600 dark:text-gray-400 italic">{geminiSuggestion.summary}</p>
+                    <p className="text-xs text-[var(--rw-muted)] italic">{geminiSuggestion.summary}</p>
                   </div>
                 )}
 
@@ -608,7 +608,7 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
                   </button>
                   <button
                     onClick={() => setGeminiSuggestion(null)}
-                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl transition-colors"
+                    className="px-4 py-2 bg-[var(--rw-raised)] hover:bg-gray-200 dark:hover:bg-gray-600 text-[var(--rw-ink)] text-sm font-medium rounded-xl transition-colors"
                   >
                     Descartar
                   </button>
@@ -618,9 +618,9 @@ suggestions deve incluir TODAS as classes. suggestedPct deve somar 100.`;
 
             {/* Raw fallback if JSON parse fails */}
             {geminiRawFallback && (
-              <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+              <div className="mt-3 p-4 bg-[var(--rw-raised)] rounded-xl border border-[var(--rw-border)]">
                 <p className="text-xs font-bold text-gray-400 uppercase mb-2">Análise Gemini</p>
-                <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                <div className="text-sm text-[var(--rw-ink)] whitespace-pre-wrap leading-relaxed">
                   {geminiRawFallback}
                 </div>
               </div>

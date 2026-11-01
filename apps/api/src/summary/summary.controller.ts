@@ -46,6 +46,16 @@ export class SummaryController {
     const out = await this.summaries.generate(user.sub, 'on_demand', which);
     return { url: out.url, tone: out.payload.tone, score: out.payload.score, headline: out.payload.headline };
   }
+
+  /** The Home "Insights do Elio" card: this month's fixes first (they are what moves money), then the wins. No model call. */
+  @Get('insights')
+  async insights(@CurrentUser() user: JwtPayload) {
+    const row = await this.summaries.userRow(user.sub);
+    const { payload } = await this.summaries.compute(row, 'on_demand', 'this');
+    const fixes = payload.fixes.map((i) => ({ ...i, kind: i.urgent ? 'urgent' : 'fix' }));
+    const wins = payload.wins.map((i) => ({ ...i, kind: 'win' }));
+    return { tone: payload.tone, items: [...fixes, ...wins].slice(0, 6) };
+  }
 }
 
 /** Admin: preview a user's summary, or send it to yourself, to check wording and layout without waiting for the 1st. */

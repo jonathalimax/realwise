@@ -21,19 +21,19 @@ export default function UsdCalculatorTab({ state, selectedMonthIncome, yearIncom
         </p>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Bruto USD</p>
-            <p className="text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+            <p className="text-xs text-[var(--rw-muted)]">Bruto USD</p>
+            <p className="text-base font-bold text-[var(--rw-ink)] tabular-nums">
               {formatUSD(selectedMonthIncome.grossUSD)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Líquido USD</p>
+            <p className="text-xs text-[var(--rw-muted)]">Líquido USD</p>
             <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {formatUSD(selectedMonthIncome.netUSD)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Líquido BRL</p>
+            <p className="text-xs text-[var(--rw-muted)]">Líquido BRL</p>
             <p className="text-base font-bold text-violet-700 dark:text-violet-300 tabular-nums">
               {formatBRL.format(selectedMonthIncome.netBRL)}
             </p>
@@ -42,9 +42,9 @@ export default function UsdCalculatorTab({ state, selectedMonthIncome, yearIncom
       </div>
 
       {/* Year overview table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm border border-[var(--rw-border)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--rw-border)]">
+          <h3 className="text-sm font-bold text-[var(--rw-ink)]">
             Visão anual — {new Date().getFullYear()}
           </h3>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -54,12 +54,12 @@ export default function UsdCalculatorTab({ state, selectedMonthIncome, yearIncom
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Mês</th>
-                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">Dias úteis</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Bruto (USD)</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Líquido (USD)</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Líquido (BRL)</th>
+              <tr className="bg-[var(--rw-raised)]">
+                <th className="px-4 py-3 text-left font-bold text-[var(--rw-muted)]">Mês</th>
+                <th className="px-4 py-3 text-center font-bold text-[var(--rw-muted)]">Dias úteis</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Bruto (USD)</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Líquido (USD)</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Líquido (BRL)</th>
               </tr>
             </thead>
             <tbody>
@@ -76,17 +76,17 @@ export default function UsdCalculatorTab({ state, selectedMonthIncome, yearIncom
                 else if (isMax) rowClass = 'bg-emerald-50 dark:bg-emerald-900/10';
 
                 return (
-                  <tr key={row.month} className={`border-t border-gray-100 dark:border-gray-700 ${rowClass}`}>
-                    <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-white">
+                  <tr key={row.month} className={`border-t border-[var(--rw-border)] ${rowClass}`}>
+                    <td className="px-4 py-2.5 font-medium text-[var(--rw-ink)]">
                       {isSelected && <span className="text-xs font-bold text-violet-500 block">→ Selecionado</span>}
                       {isMin && !isSelected && <span className="text-xs font-bold text-amber-500 block">↓ Mínimo</span>}
                       {isMax && !isSelected && <span className="text-xs font-bold text-emerald-500 block">↑ Máximo</span>}
                       {MONTH_NAMES_PT[row.month - 1]}
                     </td>
-                    <td className="px-4 py-2.5 text-center text-gray-600 dark:text-gray-400 tabular-nums">
+                    <td className="px-4 py-2.5 text-center text-[var(--rw-muted)] tabular-nums">
                       {row.bDays}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-gray-600 dark:text-gray-400 tabular-nums">
+                    <td className="px-4 py-2.5 text-right text-[var(--rw-muted)] tabular-nums">
                       {formatUSD(grossUSD)}
                     </td>
                     <td className="px-4 py-2.5 text-right text-emerald-600 dark:text-emerald-400 tabular-nums font-medium">

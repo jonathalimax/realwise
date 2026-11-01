@@ -57,47 +57,47 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 my-4">
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 my-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">{isNew ? 'Novo Produto' : 'Editar Produto'}</h2>
+          <h2 className="text-base font-bold text-[var(--rw-ink)]">{isNew ? 'Novo Produto' : 'Editar Produto'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg">✕</button>
         </div>
 
         {/* Icon + Label */}
         <div className="flex gap-3">
           <div className="w-16">
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Ícone</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Ícone</label>
             <input type="text" value={icon} onChange={e => setIcon(e.target.value)} maxLength={2}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-center text-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-[var(--rw-border)] rounded-lg px-2 py-2 text-center text-lg bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500" />
           </div>
           <div className="flex-1">
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Nome</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Nome</label>
             <input type="text" value={label} onChange={e => setLabel(e.target.value)} placeholder="Ex: Fundo Emergência"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-[var(--rw-border)] rounded-lg px-3 py-2 text-sm bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500" />
           </div>
         </div>
 
         {/* Type + Bank */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Tipo</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Tipo</label>
             <select value={type} onChange={e => setType(e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500">
+              className="w-full border border-[var(--rw-border)] rounded-lg px-2 py-2 text-xs bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500">
               {SUBLAYER_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Banco / Corretora</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Banco / Corretora</label>
             <input type="text" value={bank} onChange={e => setBank(e.target.value)}
               placeholder="Ex: Nubank, XP, BTG..."
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-[var(--rw-border)] rounded-lg px-2 py-2 text-xs bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500" />
           </div>
         </div>
 
         {/* Return + Tax */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Retorno bruto % a.m.</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Retorno bruto % a.m.</label>
             <NumericFormat
               value={returnPct === '0' || returnPct === '' ? '' : returnPct}
               onValueChange={vals => setReturnPct(String(vals.floatValue ?? 0))}
@@ -106,12 +106,12 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
               suffix=" %/mês"
               allowNegative={false}
               placeholder="1,000 %/mês"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-[var(--rw-border)] rounded-lg px-3 py-2 text-sm bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
             <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Líq: {net.toFixed(3)}% a.m.</p>
           </div>
           <div>
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Alíquota IRPF %</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Alíquota IRPF %</label>
             <NumericFormat
               value={taxRate === '0' || taxRate === '' ? '' : taxRate}
               onValueChange={vals => setTaxRate(String(vals.floatValue ?? 0))}
@@ -120,21 +120,21 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
               suffix=" %"
               allowNegative={false}
               placeholder="15 %"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-[var(--rw-border)] rounded-lg px-3 py-2 text-sm bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
         </div>
 
         {/* Contribution mode */}
         <div>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2">Aporte mensal</label>
+          <label className="text-xs font-bold text-[var(--rw-muted)] block mb-2">Aporte mensal</label>
           <div className="flex gap-2 mb-2">
             <button onClick={() => setMode('pct')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${mode === 'pct' ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${mode === 'pct' ? 'bg-violet-600 text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}>
               % da camada
             </button>
             <button onClick={() => setMode('value')}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${mode === 'value' ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${mode === 'value' ? 'bg-violet-600 text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}>
               Valor fixo R$
             </button>
           </div>
@@ -148,7 +148,7 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
                 suffix=" %"
                 allowNegative={false}
                 placeholder="0 %"
-                className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="flex-1 border border-[var(--rw-border)] rounded-lg px-3 py-2 text-sm bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
               <span className="text-xs text-gray-400">% → {formatBRL.format(monthlyContrib)}/mês</span>
             </div>
@@ -163,14 +163,14 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
 
         {/* Goal target */}
         <div>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2">Meta</label>
+          <label className="text-xs font-bold text-[var(--rw-muted)] block mb-2">Meta</label>
           <div className="flex gap-2 mb-2">
             <button onClick={() => setHasGoal(true)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${hasGoal ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${hasGoal ? 'bg-violet-600 text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}>
               Com meta
             </button>
             <button onClick={() => setHasGoal(false)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${!hasGoal ? 'bg-violet-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${!hasGoal ? 'bg-violet-600 text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}>
               Reserva contínua
             </button>
           </div>
@@ -185,10 +185,10 @@ export default function SublayerModal({ sublayer, layerMonthlyAmount, onSave, on
 
         {/* Description */}
         <div>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Descrição <span className="font-normal">(opcional)</span></label>
+          <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Descrição <span className="font-normal">(opcional)</span></label>
           <input type="text" value={description} onChange={e => setDescription(e.target.value)}
             placeholder="Ex: CDB liq. diária / Tesouro Selic 2027"
-            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-[var(--rw-border)] rounded-lg px-3 py-2 text-sm bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500" />
         </div>
 
         {/* Actions */}

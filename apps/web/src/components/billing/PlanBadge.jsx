@@ -25,7 +25,7 @@ export function PlanBadge({ onNavigate }) {
         <Link
           to="/billing"
           onClick={onNavigate}
-          className="mt-2 flex min-h-9 w-full items-center justify-center rounded-lg bg-violet-600 text-sm font-bold text-white hover:bg-violet-700"
+          className="mt-2 flex min-h-9 w-full items-center justify-center rounded-lg bg-[var(--rw-brand)] text-sm font-bold text-white hover:bg-violet-700"
         >
           {c.subscribeNow}
         </Link>
@@ -73,7 +73,7 @@ export function PlanBar() {
         </span>
         <Link
           to="/billing"
-          className="inline-flex min-h-9 shrink-0 items-center rounded-lg bg-violet-600 px-3 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+          className="inline-flex min-h-9 shrink-0 items-center rounded-lg bg-[var(--rw-brand)] px-3 text-sm font-semibold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
         >
           {c.subscribeNow}
         </Link>

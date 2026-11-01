@@ -172,22 +172,22 @@ export default function BudgetPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--rw-bg)]">
       {/* Page Header */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
+      <div className="sticky top-0 z-40 bg-[var(--rw-surface)] border-b border-[var(--rw-border)] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 h-14 sm:h-16">
             <button
               onClick={handleClose}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
             >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <ArrowLeftIcon className="w-5 h-5 text-[var(--rw-muted)]" />
             </button>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-lg sm:text-xl font-bold text-[var(--rw-ink)]">
                 {t('budget.budgetSettings')}
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 capitalize">
+              <p className="text-xs sm:text-sm text-[var(--rw-muted)] capitalize">
                 {getMonthLabel(selectedMonth)}
               </p>
             </div>
@@ -209,13 +209,13 @@ export default function BudgetPage() {
         </div>
 
         <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-          <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-6">
+          <Tab.List className="flex space-x-1 rounded-xl bg-[var(--rw-raised)] p-1 mb-6">
             <Tab
               className={({ selected }) =>
                 `flex-1 rounded-lg py-2.5 sm:py-3 px-2 text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5
                 ${selected
-                  ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-[var(--rw-raised)] text-blue-600 dark:text-blue-400 shadow'
+                  : 'text-[var(--rw-muted)] hover:text-gray-900 dark:hover:text-white'
                 }`
               }
             >
@@ -227,8 +227,8 @@ export default function BudgetPage() {
               className={({ selected }) =>
                 `flex-1 rounded-lg py-2.5 sm:py-3 px-2 text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5
                 ${selected
-                  ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-[var(--rw-raised)] text-blue-600 dark:text-blue-400 shadow'
+                  : 'text-[var(--rw-muted)] hover:text-gray-900 dark:hover:text-white'
                 }`
               }
             >
@@ -240,8 +240,8 @@ export default function BudgetPage() {
               className={({ selected }) =>
                 `flex-1 rounded-lg py-2.5 sm:py-3 px-2 text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5
                 ${selected
-                  ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-[var(--rw-raised)] text-blue-600 dark:text-blue-400 shadow'
+                  : 'text-[var(--rw-muted)] hover:text-gray-900 dark:hover:text-white'
                 }`
               }
             >
@@ -254,10 +254,10 @@ export default function BudgetPage() {
           <Tab.Panels>
             {/* Per Category Budget Tab */}
             <Tab.Panel className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-100 dark:border-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-4 sm:p-6 border border-[var(--rw-border)]">
                 {/* Total Budget Input */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('budget.totalBudget')}
                   </label>
                   <CurrencyInput
@@ -273,7 +273,7 @@ export default function BudgetPage() {
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-colors font-medium ${
                     previousMonthBudget
                       ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'bg-[var(--rw-raised)] text-[var(--rw-subtle)] cursor-not-allowed'
                   }`}
                 >
                   <DocumentDuplicateIcon className="w-5 h-5" />
@@ -292,7 +292,7 @@ export default function BudgetPage() {
                   const targetAmount = totalBudget * (percent / 100);
 
                   return (
-                    <div key={key} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div key={key} className="bg-[var(--rw-surface)] rounded-xl border border-[var(--rw-border)] overflow-hidden">
                       {/* Group header */}
                       <div className={`flex items-center justify-between px-4 py-3 ${colors.light} border-b ${colors.border}`}>
                         <div className="flex items-center gap-2">
@@ -301,7 +301,7 @@ export default function BudgetPage() {
                             {label} ({percent}%)
                           </span>
                         </div>
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                        <span className="text-xs text-[var(--rw-muted)]">
                           {formatCurrency(groupTotal)} / {formatCurrency(targetAmount)}
                         </span>
                       </div>
@@ -311,9 +311,9 @@ export default function BudgetPage() {
                         {categories.map(category => (
                           <div
                             key={category}
-                            className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                            className="flex items-center justify-between p-3 rounded-lg bg-[var(--rw-raised)]"
                           >
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            <span className="text-sm font-medium text-[var(--rw-ink)]">
                               {category}
                             </span>
                             <CurrencyInput
@@ -330,12 +330,12 @@ export default function BudgetPage() {
               </div>
 
               {/* Total summary */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-4 border border-[var(--rw-border)]">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
+                  <span className="text-[var(--rw-muted)]">
                     {language === 'pt' ? 'Total Alocado:' : 'Total Allocated:'}
                   </span>
-                  <span className="font-bold text-gray-900 dark:text-white">
+                  <span className="font-bold text-[var(--rw-ink)]">
                     {formatCurrency(expenseCategories.reduce((sum, cat) => sum + (categoryBudgets[cat] || 0), 0))}
                   </span>
                 </div>
@@ -344,8 +344,8 @@ export default function BudgetPage() {
 
             {/* Category Assignment Tab */}
             <Tab.Panel className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-100 dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-4 sm:p-6 border border-[var(--rw-border)]">
+                <p className="text-sm text-[var(--rw-muted)] mb-4">
                   {t('budget.configureRule')}
                 </p>
 
@@ -363,7 +363,7 @@ export default function BudgetPage() {
                           </span>
                         </div>
                         <p className={`text-lg sm:text-xl font-bold ${colors.text}`}>{percent}%</p>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                        <p className="text-[10px] text-[var(--rw-muted)]">
                           {categories.length} {language === 'pt' ? 'cat.' : 'cat.'}
                         </p>
                       </div>
@@ -373,8 +373,8 @@ export default function BudgetPage() {
               </div>
 
               {/* Category assignment list */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl border border-[var(--rw-border)] overflow-hidden">
+                <div className="divide-y divide-[var(--rw-border)]">
                   {expenseCategories.map(category => {
                     const currentRule = localRuleMapping[category] || 'wants';
                     const currentRuleColors = RULE_COLORS[currentRule];
@@ -383,7 +383,7 @@ export default function BudgetPage() {
                         key={category}
                         className="flex items-center justify-between p-3 sm:p-4"
                       >
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{category}</span>
+                        <span className="text-sm font-medium text-[var(--rw-ink)]">{category}</span>
                         <select
                           value={currentRule}
                           onChange={(e) => handleRuleChange(category, e.target.value)}
@@ -402,7 +402,7 @@ export default function BudgetPage() {
               {/* Reset to defaults */}
               <button
                 onClick={handleResetDefaults}
-                className="w-full py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                className="w-full py-3 text-sm font-medium text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200 underline"
               >
                 {t('budget.resetDefaults')}
               </button>
@@ -410,11 +410,11 @@ export default function BudgetPage() {
 
             {/* Target Percentages Tab */}
             <Tab.Panel className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-100 dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-4 sm:p-6 border border-[var(--rw-border)]">
+                <p className="text-sm text-[var(--rw-muted)] mb-2">
                   {t('budget.customizePercentages')}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 italic mb-6">
+                <p className="text-xs text-[var(--rw-subtle)] italic mb-6">
                   {t('budget.guideline')}
                 </p>
 
@@ -436,7 +436,7 @@ export default function BudgetPage() {
                           <span className="hidden sm:inline text-2xl">{emoji}</span>
                           <div>
                             <span className={`font-bold text-sm sm:text-base ${colors.text}`}>{label}</span>
-                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                            <p className="text-[10px] sm:text-xs text-[var(--rw-muted)]">
                               {language === 'pt' ? 'Padrao' : 'Default'}: {defaultVal}%
                             </p>
                           </div>
@@ -448,9 +448,9 @@ export default function BudgetPage() {
                             max="100"
                             value={localPercentages[key]}
                             onChange={(e) => handlePercentageChange(key, e.target.value)}
-                            className="w-20 px-3 py-2 text-right text-lg font-bold rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-20 px-3 py-2 text-right text-lg font-bold rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
-                          <span className="text-lg font-medium text-gray-500 dark:text-gray-400">%</span>
+                          <span className="text-lg font-medium text-[var(--rw-muted)]">%</span>
                         </div>
                       </div>
                     );
@@ -486,7 +486,7 @@ export default function BudgetPage() {
               {/* Reset to 50/30/20 */}
               <button
                 onClick={handleResetPercentages}
-                className="w-full py-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                className="w-full py-3 text-sm font-medium text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200 underline"
               >
                 {t('budget.resetToDefault')}
               </button>
@@ -495,11 +495,11 @@ export default function BudgetPage() {
         </Tab.Group>
 
         {/* Save button - Fixed at bottom on mobile */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 sm:relative sm:mt-6 sm:p-0 sm:bg-transparent sm:border-0">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--rw-surface)] border-t border-[var(--rw-border)] sm:relative sm:mt-6 sm:p-0 sm:bg-transparent sm:border-0">
           <div className="max-w-7xl mx-auto flex gap-3">
             <button
               onClick={handleClose}
-              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-3 rounded-xl border-2 border-[var(--rw-border)] text-[var(--rw-ink)] font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               {t('common.cancel')}
             </button>

@@ -27,7 +27,7 @@ const REGRAS = [
 const PROXIMOS_PASSOS = [
   { label: 'Aumentar aporte',  status: 'Em progresso', note: null,                    statusColor: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
   { label: 'Reduzir custo',    status: 'Em progresso', note: null,                    statusColor: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
-  { label: 'Criar holding',    status: 'Pendente',     note: 'Trigger: R$ 300–500k',  statusColor: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' },
+  { label: 'Criar holding',    status: 'Pendente',     note: 'Trigger: R$ 300–500k',  statusColor: 'bg-[var(--rw-raised)] text-[var(--rw-muted)]' },
   { label: 'Expandir renda',   status: 'Em progresso', note: null,                    statusColor: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' },
 ];
 
@@ -36,7 +36,7 @@ function AllocationBar({ label, values }) {
   const names = ['Necessidades', 'Poupança', 'Desejos'];
   return (
     <div>
-      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">{label}</p>
+      <p className="text-xs font-bold text-[var(--rw-muted)] mb-1.5">{label}</p>
       <div className="flex h-3 rounded-full overflow-hidden gap-px">
         {values.map((v, i) => (
           <div key={i} className={`${colors[i]} transition-all`} style={{ width: `${v}%` }} title={`${names[i]}: ${v}%`} />
@@ -57,7 +57,7 @@ function CashFlowRow({ label, value, type, indent }) {
   const isAlloc = type === 'allocation';
 
   return (
-    <div className={`flex items-center justify-between py-2 ${isTotal ? 'border-t-2 border-violet-500 mt-1 pt-3' : 'border-t border-gray-100 dark:border-gray-700'} ${indent ? 'pl-4' : ''}`}>
+    <div className={`flex items-center justify-between py-2 ${isTotal ? 'border-t-2 border-violet-500 mt-1 pt-3' : 'border-t border-[var(--rw-border)]'} ${indent ? 'pl-4' : ''}`}>
       <div className="flex items-center gap-2">
         {isDeduction && (
           <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold shrink-0">−</span>
@@ -65,7 +65,7 @@ function CashFlowRow({ label, value, type, indent }) {
         {isAlloc && (
           <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-xs font-bold shrink-0">→</span>
         )}
-        <span className={`text-sm ${isTotal ? 'font-bold text-gray-900 dark:text-white' : isAlloc ? 'text-gray-500 dark:text-gray-400' : 'text-gray-600 dark:text-gray-400'}`}>
+        <span className={`text-sm ${isTotal ? 'font-bold text-[var(--rw-ink)]' : isAlloc ? 'text-[var(--rw-muted)]' : 'text-[var(--rw-muted)]'}`}>
           {label}
         </span>
       </div>
@@ -75,8 +75,8 @@ function CashFlowRow({ label, value, type, indent }) {
           : isDeduction
             ? 'text-red-500 dark:text-red-400'
             : isAlloc
-              ? 'text-gray-500 dark:text-gray-400'
-              : 'text-gray-900 dark:text-white'
+              ? 'text-[var(--rw-muted)]'
+              : 'text-[var(--rw-ink)]'
       }`}>
         {formatBRL.format(value)}
       </span>
@@ -98,11 +98,11 @@ export default function SistemaTab({
     <div className="space-y-4">
 
       {/* ① Visão Geral */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Visão Geral
         </h3>
-        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+        <p className="text-sm text-[var(--rw-ink)] mb-3">
           Sistema financeiro para proteger a família, construir patrimônio e alcançar
           <span className="font-bold text-violet-600 dark:text-violet-400"> independência financeira (~R$ 20k/mês)</span>.
         </p>
@@ -121,8 +121,8 @@ export default function SistemaTab({
       </div>
 
       {/* ② Arquitetura em Camadas */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Arquitetura em Camadas
         </h3>
         <div className="space-y-2">
@@ -142,8 +142,8 @@ export default function SistemaTab({
       </div>
 
       {/* ③ Fluxo de Caixa — live */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-1">
           Fluxo de Caixa
         </h3>
         <p className="text-xs text-gray-400 mb-3">
@@ -161,8 +161,8 @@ export default function SistemaTab({
       </div>
 
       {/* ④ Distribuição Atual vs Meta */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-4">
           Distribuição: Atual vs Meta
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -190,8 +190,8 @@ export default function SistemaTab({
       </div>
 
       {/* ⑤ Regras de Ouro */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Regras de Ouro
         </h3>
         <ol className="space-y-2">
@@ -200,25 +200,25 @@ export default function SistemaTab({
               <span className="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-xs font-bold flex items-center justify-center shrink-0">
                 {i + 1}
               </span>
-              <span className="text-sm text-gray-700 dark:text-gray-300">{regra}</span>
+              <span className="text-sm text-[var(--rw-ink)]">{regra}</span>
             </li>
           ))}
         </ol>
       </div>
 
       {/* ⑥ Próximos Passos */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Próximos Passos
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {PROXIMOS_PASSOS.map(({ label, status, note, statusColor }) => (
             <div
               key={label}
-              className="flex items-center justify-between rounded-xl px-3 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700"
+              className="flex items-center justify-between rounded-xl px-3 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)]"
             >
               <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</p>
+                <p className="text-sm font-medium text-[var(--rw-ink)]">{label}</p>
                 {note && <p className="text-xs text-gray-400 mt-0.5">{note}</p>}
               </div>
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor}`}>

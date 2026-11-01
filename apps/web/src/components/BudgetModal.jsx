@@ -143,27 +143,27 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--rw-surface)] p-6 shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-lg font-bold text-[var(--rw-ink)]">
                     {t('budget.budgetSettings')}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <XMarkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <XMarkIcon className="w-5 h-5 text-[var(--rw-muted)]" />
                   </button>
                 </div>
 
                 <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-                  <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 dark:bg-gray-700 p-1 mb-4">
+                  <Tab.List className="flex space-x-1 rounded-xl bg-[var(--rw-raised)] p-1 mb-4">
                     <Tab
                       className={({ selected }) =>
                         `flex-1 rounded-lg py-2.5 sm:py-2 px-2 text-[11px] leading-tight sm:text-sm font-medium transition-colors flex items-center justify-center gap-1
                         ${selected
-                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                          ? 'bg-[var(--rw-raised)] text-blue-600 dark:text-blue-400 shadow'
+                          : 'text-[var(--rw-muted)] hover:text-gray-900 dark:hover:text-white'
                         }`
                       }
                     >
@@ -174,8 +174,8 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                       className={({ selected }) =>
                         `flex-1 rounded-lg py-2.5 sm:py-2 px-2 text-[11px] leading-tight sm:text-sm font-medium transition-colors flex items-center justify-center gap-1
                         ${selected
-                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                          ? 'bg-[var(--rw-raised)] text-blue-600 dark:text-blue-400 shadow'
+                          : 'text-[var(--rw-muted)] hover:text-gray-900 dark:hover:text-white'
                         }`
                       }
                     >
@@ -186,8 +186,8 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                       className={({ selected }) =>
                         `flex-1 rounded-lg py-2.5 sm:py-2 px-2 text-[11px] leading-tight sm:text-sm font-medium transition-colors flex items-center justify-center gap-1
                         ${selected
-                          ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                          ? 'bg-[var(--rw-raised)] text-blue-600 dark:text-blue-400 shadow'
+                          : 'text-[var(--rw-muted)] hover:text-gray-900 dark:hover:text-white'
                         }`
                       }
                     >
@@ -202,13 +202,13 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                     <Tab.Panel className="space-y-4">
                       {/* Total Budget Input */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-[var(--rw-ink)] mb-1">
                           {t('budget.totalBudget')}
                         </label>
                         <CurrencyInput
                           value={totalBudget}
                           onChange={(value) => setTotalBudgetLocal(value)}
-                          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                          className="w-full px-3 py-2 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                         />
                       </div>
 
@@ -241,7 +241,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                                     {label} ({percent}%)
                                   </span>
                                 </div>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                <span className="text-xs text-[var(--rw-muted)]">
                                   {formatCurrency(groupTotal)} / {formatCurrency(targetAmount)}
                                 </span>
                               </div>
@@ -251,15 +251,15 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                                 {categories.map(category => (
                                   <div
                                     key={category}
-                                    className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                                    className="flex items-center justify-between p-2 rounded-lg bg-[var(--rw-raised)]"
                                   >
-                                    <span className="text-sm text-gray-900 dark:text-white">
+                                    <span className="text-sm text-[var(--rw-ink)]">
                                       {category}
                                     </span>
                                     <CurrencyInput
                                       value={categoryBudgets[category] || 0}
                                       onChange={(value) => handleCategoryBudgetChange(category, value)}
-                                      className="w-28 px-2 py-1 text-right text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      className="w-28 px-2 py-1 text-right text-sm rounded border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                   </div>
                                 ))}
@@ -270,10 +270,10 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                       </div>
 
                       {/* Total summary */}
-                      <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="pt-3 border-t border-[var(--rw-border)]">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Total Allocated:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">
+                          <span className="text-[var(--rw-muted)]">Total Allocated:</span>
+                          <span className="font-medium text-[var(--rw-ink)]">
                             {formatCurrency(expenseCategories.reduce((sum, cat) => sum + (categoryBudgets[cat] || 0), 0))}
                           </span>
                         </div>
@@ -282,7 +282,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
 
                     {/* Category Assignment Tab */}
                     <Tab.Panel className="space-y-4">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-[var(--rw-muted)]">
                         {t('budget.configureRule')}
                       </p>
 
@@ -301,14 +301,14 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                               </div>
                               <div className="space-y-1 max-h-40 overflow-y-auto">
                                 {categories.length === 0 ? (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                                  <p className="text-xs text-[var(--rw-subtle)] italic">
                                     No categories
                                   </p>
                                 ) : (
                                   categories.map(cat => (
                                     <div
                                       key={cat}
-                                      className="text-xs text-gray-700 dark:text-gray-300 bg-white/50 dark:bg-gray-700/50 rounded px-2 py-1"
+                                      className="text-xs text-[var(--rw-ink)] bg-white/50 dark:bg-gray-700/50 rounded px-2 py-1"
                                     >
                                       {cat}
                                     </div>
@@ -327,13 +327,13 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                           return (
                             <div
                               key={category}
-                              className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50"
+                              className="flex items-center justify-between p-2 rounded-lg bg-[var(--rw-raised)]"
                             >
-                              <span className="text-sm text-gray-900 dark:text-white">{category}</span>
+                              <span className="text-sm text-[var(--rw-ink)]">{category}</span>
                               <select
                                 value={currentRule}
                                 onChange={(e) => handleRuleChange(category, e.target.value)}
-                                className="text-sm pl-2 pr-8 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="text-sm pl-2 pr-8 py-1 rounded border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
                                 {rules.map(({ key, label }) => (
                                   <option key={key} value={key}>{label}</option>
@@ -347,7 +347,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                       {/* Reset to defaults */}
                       <button
                         onClick={handleResetDefaults}
-                        className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                        className="w-full text-sm text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200 underline"
                       >
                         {t('budget.resetDefaults')}
                       </button>
@@ -355,11 +355,11 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
 
                     {/* Target Percentages Tab */}
                     <Tab.Panel className="space-y-4">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-[var(--rw-muted)]">
                         {t('budget.customizePercentages')}
                       </p>
 
-                      <p className="text-xs text-gray-400 dark:text-gray-500 italic">
+                      <p className="text-xs text-[var(--rw-subtle)] italic">
                         {t('budget.guideline')}
                       </p>
 
@@ -379,7 +379,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                               <div className="flex items-center gap-2">
                                 <span className="text-xl">{emoji}</span>
                                 <span className={`font-medium ${colors.text}`}>{label}</span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                <span className="text-xs text-[var(--rw-subtle)]">
                                   (default: {defaultVal}%)
                                 </span>
                               </div>
@@ -390,9 +390,9 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                                   max="100"
                                   value={localPercentages[key]}
                                   onChange={(e) => handlePercentageChange(key, e.target.value)}
-                                  className="w-20 px-2 py-1 text-right text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  className="w-20 px-2 py-1 text-right text-sm rounded border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
-                                <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
+                                <span className="text-sm text-[var(--rw-muted)]">%</span>
                               </div>
                             </div>
                           );
@@ -416,7 +416,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                       {/* Reset to 50/30/20 */}
                       <button
                         onClick={handleResetPercentages}
-                        className="w-full text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
+                        className="w-full text-sm text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200 underline"
                       >
                         {t('budget.resetToDefault')}
                       </button>
@@ -428,7 +428,7 @@ export default function BudgetModal({ isOpen, onClose, currentMonth, totalIncome
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={onClose}
-                    className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="flex-1 px-4 py-2 rounded-lg border border-[var(--rw-border)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     {t('common.cancel')}
                   </button>

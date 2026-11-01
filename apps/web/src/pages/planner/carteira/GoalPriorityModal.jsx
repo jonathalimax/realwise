@@ -79,12 +79,12 @@ Schema: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 my-4">
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 my-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">✨ Analisar Carteira</h2>
+          <h2 className="text-base font-bold text-[var(--rw-ink)]">✨ Analisar Carteira</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg">✕</button>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400">Ordene seus objetivos por prioridade. A IA vai balancear sua carteira respeitando essa ordem.</p>
+        <p className="text-xs text-[var(--rw-muted)]">Ordene seus objetivos por prioridade. A IA vai balancear sua carteira respeitando essa ordem.</p>
 
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Arraste para reordenar</p>
@@ -96,27 +96,27 @@ Schema: {
                 onDragStart={() => handleDragStart(i)}
                 onDragOver={e => handleDragOver(e, i)}
                 onDrop={handleDrop}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 cursor-grab active:cursor-grabbing select-none"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[var(--rw-border)] bg-[var(--rw-raised)] cursor-grab active:cursor-grabbing select-none"
               >
                 <span className="text-gray-300 dark:text-gray-500 text-sm">⠿</span>
                 <span className="text-base">{sub.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{sub.label}</p>
+                  <p className="text-xs font-bold text-[var(--rw-ink)] truncate">{sub.label}</p>
                   <p className="text-xs text-gray-400">{sub.layerLabel}{sub.goalTarget > 0 ? ` · meta ${formatBRL.format(sub.goalTarget)}` : ''}</p>
                 </div>
-                <span className="text-xs font-bold text-gray-300 dark:text-gray-500 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-md px-2 py-0.5">#{i + 1}</span>
+                <span className="text-xs font-bold text-gray-300 dark:text-gray-500 bg-[var(--rw-raised)] border border-gray-200 dark:border-gray-500 rounded-md px-2 py-0.5">#{i + 1}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Contexto adicional <span className="font-normal">(opcional)</span></label>
+          <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Contexto adicional <span className="font-normal">(opcional)</span></label>
           <textarea
             value={context}
             onChange={e => setContext(e.target.value)}
             placeholder="Ex: estou pensando em trocar de carro em 2027..."
-            className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none h-16"
+            className="w-full border border-[var(--rw-border)] rounded-xl px-3 py-2 text-xs bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none h-16"
           />
         </div>
 

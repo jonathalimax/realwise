@@ -115,7 +115,7 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
     };
 
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all">
+      <div className="bg-[var(--rw-surface)] rounded-xl p-3 sm:p-4 border border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-600 transition-all">
         <button
           onClick={() => handleInvestmentClick(investment)}
           className="w-full text-left"
@@ -132,15 +132,15 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate flex-1">
+                <h3 className="font-bold text-[var(--rw-ink)] text-sm sm:text-base truncate flex-1">
                   {investment.name}
                 </h3>
-                <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap flex-shrink-0">
+                <span className="font-bold text-[var(--rw-ink)] text-xs sm:text-base whitespace-nowrap flex-shrink-0">
                   {formatCurrency(currentValue)}
                 </span>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 sm:mt-1">
-                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
+                <span className="text-[10px] sm:text-xs text-[var(--rw-muted)] truncate">
                   {t(`investments.types.${investment.type}`)} • {daysHeld}d
                 </span>
                 <span className={`text-xs sm:text-sm font-medium whitespace-nowrap ${growth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
@@ -148,7 +148,7 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
                 </span>
               </div>
               {investment.expectedReturn > 0 && (
-                <div className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <div className="text-[10px] sm:text-xs text-[var(--rw-subtle)] mt-1">
                   {investment.returnType === 'cdi' && `${(investment.expectedReturn * 100).toFixed(0)}% CDI`}
                   {investment.returnType === 'annual' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.a.' : 'p.a.'}`}
                   {investment.returnType === 'monthly' && `${(investment.expectedReturn * 100).toFixed(2)}% ${language === 'pt' ? 'a.m.' : 'p.m.'}`}
@@ -160,7 +160,7 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
         </button>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--rw-border)]">
           <button
             onClick={(e) => handleOpenWithdraw(e, investment)}
             className="flex-1 py-2 bg-emerald-500 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-emerald-600 transition"
@@ -169,7 +169,7 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
           </button>
           <button
             onClick={() => handleInvestmentClick(investment)}
-            className="flex-1 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+            className="flex-1 py-2 bg-[var(--rw-raised)] text-[var(--rw-ink)] text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
           >
             {t('common.edit')}
           </button>
@@ -181,22 +181,22 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-[var(--rw-bg)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between p-4 sm:p-6 bg-[var(--rw-surface)] border-b border-[var(--rw-border)]">
+          <h2 className="text-lg sm:text-xl font-bold text-[var(--rw-ink)]">
             {language === 'pt' ? 'Investimentos' : 'Investments'}
           </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
           >
-            <XMarkIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+            <XMarkIcon className="w-6 h-6 text-[var(--rw-muted)]" />
           </button>
         </div>
 
         {/* Summary - Very compact on mobile, standard on desktop */}
-        <div className="p-2 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+        <div className="p-2 sm:p-6 bg-[var(--rw-surface)] border-b border-[var(--rw-border)]">
           <div className="grid grid-cols-4 gap-1.5 sm:gap-4">
             <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg sm:rounded-xl p-1.5 sm:p-4">
               <p className="text-[9px] sm:text-xs text-blue-600 dark:text-blue-400 uppercase tracking-tight sm:tracking-wide mb-0.5 truncate">
@@ -234,14 +234,14 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
         </div>
 
         {/* Filters and Sort - Much more compact on mobile */}
-        <div className="p-2 sm:p-4 sm:px-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+        <div className="p-2 sm:p-4 sm:px-6 bg-[var(--rw-surface)] border-b border-[var(--rw-border)]">
           <div className="flex items-center gap-1.5 sm:gap-3">
             {/* Filter by Type */}
             <FunnelIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 flex-1 min-w-0"
+              className="text-xs sm:text-sm bg-[var(--rw-raised)] border-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-[var(--rw-ink)] focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 flex-1 min-w-0"
             >
               <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
               {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
@@ -256,7 +256,7 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 border-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 flex-1 min-w-0"
+              className="text-xs sm:text-sm bg-[var(--rw-raised)] border-0 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 text-[var(--rw-ink)] focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-500 flex-1 min-w-0"
             >
               <option value="value">{language === 'pt' ? 'Valor' : 'Value'}</option>
               <option value="growth">{language === 'pt' ? 'Rend. %' : 'Growth %'}</option>
@@ -265,15 +265,15 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
             </select>
             <button
               onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-              className="p-1.5 sm:p-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition flex-shrink-0"
+              className="p-1.5 sm:p-2 bg-[var(--rw-raised)] rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition flex-shrink-0"
               title={sortOrder === 'desc' ? (language === 'pt' ? 'Maior primeiro' : 'Highest first') : (language === 'pt' ? 'Menor primeiro' : 'Lowest first')}
             >
-              <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-300 transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--rw-muted)] transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
-          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1.5 sm:mt-2 text-center">
+          <div className="text-xs sm:text-sm text-[var(--rw-muted)] mt-1.5 sm:mt-2 text-center">
             {sortedInvestments.length} {language === 'pt' ? 'investimentos' : 'investments'}
           </div>
         </div>
@@ -289,17 +289,17 @@ export default function InvestmentsListModal({ isOpen, onClose }) {
             </div>
           ) : sortedInvestments.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-[var(--rw-raised)] rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
-              <p className="font-medium text-gray-900 dark:text-white mb-1">
+              <p className="font-medium text-[var(--rw-ink)] mb-1">
                 {filterType !== 'all'
                   ? (language === 'pt' ? 'Nenhum investimento deste tipo' : 'No investments of this type')
                   : (language === 'pt' ? 'Nenhum investimento' : 'No investments')}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-[var(--rw-muted)]">
                 {language === 'pt' ? 'Adicione investimentos pelo botão +' : 'Add investments using the + button'}
               </p>
             </div>

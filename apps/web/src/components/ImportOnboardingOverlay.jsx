@@ -20,7 +20,7 @@ export default function ImportOnboardingOverlay({ onDismiss }) {
 
         {/* Tooltip */}
         <div className="text-center">
-          <span className="inline-block bg-violet-500 text-white text-xs font-bold px-4 py-2 rounded-xl">
+          <span className="inline-block bg-[var(--rw-brand)] text-white text-xs font-bold px-4 py-2 rounded-xl">
             Use os botões para navegar entre as transações
           </span>
         </div>
@@ -41,7 +41,7 @@ export default function ImportOnboardingOverlay({ onDismiss }) {
         {/* Dismiss */}
         <button
           onClick={onDismiss}
-          className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all"
+          className="w-full py-4 bg-[var(--rw-brand)] text-white rounded-2xl font-black uppercase tracking-widest text-sm active:scale-95 transition-all"
         >
           Entendi, vamos lá
         </button>

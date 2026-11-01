@@ -20,51 +20,51 @@ export default function LayerModal({ layer, onSave, onDelete, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white">{isNew ? 'Nova Meta' : 'Editar Meta'}</h2>
+          <h2 className="text-base font-bold text-[var(--rw-ink)]">{isNew ? 'Nova Meta' : 'Editar Meta'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg">✕</button>
         </div>
 
         {/* Icon + Label */}
         <div className="flex gap-3">
           <div className="w-16">
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Ícone</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Ícone</label>
             <input
               type="text"
               value={icon}
               onChange={e => setIcon(e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-center text-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-[var(--rw-border)] rounded-lg px-2 py-2 text-center text-lg bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
               maxLength={2}
             />
           </div>
           <div className="flex-1">
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Nome</label>
+            <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Nome</label>
             <input
               type="text"
               value={label}
               onChange={e => setLabel(e.target.value)}
               placeholder="Ex: Aposentadoria"
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-[var(--rw-border)] rounded-lg px-3 py-2 text-sm bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
         </div>
 
         {/* Description */}
         <div>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-1">Descrição <span className="font-normal">(opcional)</span></label>
+          <label className="text-xs font-bold text-[var(--rw-muted)] block mb-1">Descrição <span className="font-normal">(opcional)</span></label>
           <input
             type="text"
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="Breve descrição do objetivo desta camada"
-            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full border border-[var(--rw-border)] rounded-lg px-3 py-2 text-sm bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
 
         {/* Color */}
         <div>
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 block mb-2">Cor</label>
+          <label className="text-xs font-bold text-[var(--rw-muted)] block mb-2">Cor</label>
           <div className="flex gap-2 flex-wrap">
             {LAYER_COLOR_PALETTE.map(p => (
               <button

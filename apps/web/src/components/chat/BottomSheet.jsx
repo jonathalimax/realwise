@@ -31,11 +31,11 @@ export default function BottomSheet({ title, subtitle, onClose, footer, children
   return (
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-black/50 touch-none" onClick={onClose} />
-      <div className="relative w-full sm:max-w-lg max-h-[88vh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-white dark:bg-gray-900 shadow-2xl">
+      <div className="relative w-full sm:max-w-lg max-h-[88vh] flex flex-col rounded-t-3xl sm:rounded-3xl bg-[var(--rw-surface)] shadow-2xl">
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
           <div className="min-w-0">
-            <h2 className="text-base font-black text-gray-900 dark:text-white">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>}
+            <h2 className="text-base font-black text-[var(--rw-ink)]">{title}</h2>
+            {subtitle && <p className="mt-0.5 text-xs text-[var(--rw-muted)]">{subtitle}</p>}
           </div>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="Fechar">
             <XMarkIcon className="w-6 h-6" />

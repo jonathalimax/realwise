@@ -23,7 +23,7 @@ export function PageSkeleton() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       {/* Header skeleton */}
-      <div className="sticky top-0 h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
+      <div className="sticky top-0 h-16 border-b border-[var(--rw-border)] bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto h-full flex items-center justify-between px-6">
           <Shimmer className="w-32 h-5" />
           <div className="flex items-center gap-3">
@@ -128,7 +128,7 @@ export function LandingPageSkeleton() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <div key={i} className="p-6 rounded-2xl border border-[var(--rw-border)]">
                 <Shimmer className="w-12 h-12 rounded-xl mb-4" />
                 <Shimmer className="w-full h-4 mb-2" />
                 <Shimmer className="w-3/4 h-3" />

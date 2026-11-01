@@ -17,15 +17,15 @@ const RULE_LABELS = {
 
 export function InnerTabs({ tabs, active, onChange }) {
   return (
-    <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+    <div className="flex gap-1 bg-[var(--rw-raised)] rounded-xl p-1">
       {tabs.map(t => (
         <button
           key={t.value}
           onClick={() => onChange(t.value)}
           className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${
             active === t.value
-              ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? 'bg-[var(--rw-raised)] text-violet-600 dark:text-violet-400 shadow-sm'
+              : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           {t.label}
@@ -95,9 +95,9 @@ export default function AllocationTab({ onGoToRenda,
 
   if (liquidezFinal <= 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm border border-gray-100 dark:border-gray-700 text-center space-y-6">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-12 shadow-sm border border-[var(--rw-border)] text-center space-y-6">
         <div className="max-w-xs mx-auto">
-          <p className="text-gray-500 dark:text-gray-400 mb-6">
+          <p className="text-[var(--rw-muted)] mb-6">
             Você ainda não definiu sua renda para este mês. Preencha os dados de renda para começar o planejamento.
           </p>
           <button
@@ -126,7 +126,7 @@ export default function AllocationTab({ onGoToRenda,
                   copyFromPreviousMonth();
                 }
               }}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--rw-surface)] text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
             >
               📥 Copiar do mês anterior
             </button>
@@ -136,7 +136,7 @@ export default function AllocationTab({ onGoToRenda,
                   resetMonthAllocation();
                 }
               }}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--rw-surface)] text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shadow-sm"
             >
               🔄 Resetar
             </button>
@@ -268,7 +268,7 @@ export default function AllocationTab({ onGoToRenda,
               const rule   = getCategoryRule(category);
               const pctUsed = limit > 0 ? (spent / limit) * 100 : 0;
 
-              const barColor  = pctUsed === 0 ? 'bg-gray-300 dark:bg-gray-600'
+              const barColor  = pctUsed === 0 ? 'bg-[var(--rw-track)]'
                 : pctUsed < 80  ? 'bg-emerald-500'
                 : pctUsed < 100 ? 'bg-amber-500'
                 : 'bg-red-500';
@@ -278,14 +278,14 @@ export default function AllocationTab({ onGoToRenda,
                 : 'text-red-500';
 
               return (
-                <div key={category} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 hover:border-violet-200 dark:hover:border-violet-900/50 transition-colors">
+                <div key={category} className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)] hover:border-violet-200 dark:hover:border-violet-900/50 transition-colors">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 flex-1 truncate">{category}</span>
+                    <span className="text-sm font-bold text-[var(--rw-ink)] flex-1 truncate">{category}</span>
                     <select
                       value={rule ?? ''}
                       onChange={e => setCategoryRule(category, e.target.value)}
                       className={`text-[10px] font-bold px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer ${
-                        rule ? RULE_LABELS[rule]?.color : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border-transparent'
+                        rule ? RULE_LABELS[rule]?.color : 'bg-[var(--rw-raised)] text-gray-400 border-transparent'
                       }`}
                     >
                       <option value="">— Regra —</option>
@@ -301,7 +301,7 @@ export default function AllocationTab({ onGoToRenda,
                         value={pct === 0 ? '' : pct}
                         onValueChange={vals => updateCategoryBudgetPct(category, vals.floatValue ?? 0)}
                         decimalSeparator="," suffix=" %" decimalScale={1} allowNegative={false} placeholder="0 %"
-                        className="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                        className="w-full px-2 py-1.5 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] text-xs font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                       />
                     </div>
                     {pct > 0 && (
@@ -314,10 +314,10 @@ export default function AllocationTab({ onGoToRenda,
                   {pct > 0 && (
                     <div className="mt-4 pt-3 border-t border-gray-50 dark:border-gray-700/50">
                       <div className="flex justify-between text-[10px] mb-1.5">
-                        <span className="text-gray-400">Gasto: <span className="font-bold text-gray-600 dark:text-gray-300">{formatBRL.format(spent)}</span></span>
+                        <span className="text-gray-400">Gasto: <span className="font-bold text-[var(--rw-muted)]">{formatBRL.format(spent)}</span></span>
                         <span className={`font-bold ${textColor}`}>{pctUsed.toFixed(0)}%</span>
                       </div>
-                      <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-[var(--rw-raised)] rounded-full overflow-hidden">
                         <div
                           className={`h-1.5 rounded-full transition-all ${barColor}`}
                           style={{ width: `${Math.min(pctUsed, 100)}%` }}

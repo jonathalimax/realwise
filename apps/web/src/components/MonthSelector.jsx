@@ -80,19 +80,19 @@ export default function MonthSelector({ selectedMonth, availableMonths, onMonthC
       <button
         onClick={goToPreviousMonth}
         disabled={!canGoPrevious}
-        className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
+        className="p-2 rounded-full bg-[var(--rw-surface)] shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
       >
-        <ChevronLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+        <ChevronLeftIcon className="w-5 h-5 text-[var(--rw-muted)]" />
       </button>
 
       <div className={`flex-1 relative ${isCurrentMonth ? 'ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-gray-900 rounded-xl' : ''}`}>
         <select
           value={selectedMonth}
           onChange={(e) => onMonthChange(e.target.value)}
-          className={`w-full pl-3 pr-8 py-2 rounded-xl font-bold text-sm border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize ${
+          className={`w-full pl-3 pr-8 py-2 rounded-xl font-bold text-sm border-0 shadow-sm focus:ring-2 focus:ring-[var(--rw-brand)] cursor-pointer text-center capitalize ${
             isCurrentMonth
-              ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
-              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+              ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
+              : 'bg-[var(--rw-surface)] text-[var(--rw-ink)]'
           }`}
         >
           {availableMonths.map(month => (
@@ -102,7 +102,7 @@ export default function MonthSelector({ selectedMonth, availableMonths, onMonthC
           ))}
         </select>
         {isCurrentMonth && (
-          <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-violet-500 text-white rounded-full">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-[var(--rw-brand)] text-white rounded-full">
             {locale === 'pt-BR' ? 'Atual' : 'Current'}
           </span>
         )}
@@ -111,9 +111,9 @@ export default function MonthSelector({ selectedMonth, availableMonths, onMonthC
       <button
         onClick={goToNextMonth}
         disabled={!canGoNext}
-        className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
+        className="p-2 rounded-full bg-[var(--rw-surface)] shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
       >
-        <ChevronRightIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+        <ChevronRightIcon className="w-5 h-5 text-[var(--rw-muted)]" />
       </button>
     </div>
   );

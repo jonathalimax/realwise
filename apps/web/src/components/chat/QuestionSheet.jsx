@@ -41,25 +41,25 @@ export default function QuestionSheet({ message, language, busy, onSubmit, onClo
         <button
           onClick={submit}
           disabled={!complete || busy}
-          className={`w-full rounded-xl py-3 text-sm font-bold text-white disabled:opacity-40 ${destructive ? 'bg-rose-600 hover:bg-rose-700' : 'bg-violet-600 hover:bg-violet-700'}`}
+          className={`w-full rounded-xl py-3 text-sm font-bold text-white disabled:opacity-40 ${destructive ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[var(--rw-brand)] hover:opacity-90'}`}
         >
           {busy ? (pt ? 'Enviando…' : 'Sending…') : onlyConfirm ? (pt ? 'Enviar resposta' : 'Send answer') : pt ? 'Confirmar' : 'Confirm'}
         </button>
       }
     >
       {pending.map((q) => (
-        <fieldset key={q.id} className="min-w-0 rounded-2xl border border-gray-200 dark:border-gray-700 p-3">
+        <fieldset key={q.id} className="min-w-0 rounded-2xl border border-[var(--rw-border)] p-3">
           <legend className="sr-only">{q.title}</legend>
-          <p className="break-words text-sm font-bold text-gray-900 dark:text-white">{q.title}</p>
+          <p className="break-words text-sm font-bold text-[var(--rw-ink)]">{q.title}</p>
           {q.fileName && (
-            <span className="mt-1 inline-flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">
+            <span className="mt-1 inline-flex items-center gap-1 rounded-lg bg-[var(--rw-raised)] px-2 py-0.5 text-xs text-[var(--rw-muted)]">
               <DocumentTextIcon className="w-3.5 h-3.5" />
               <span className="max-w-[14rem] truncate">{q.fileName}</span>
             </span>
           )}
-          {q.subtitle && <p className="mt-1 break-words text-xs text-gray-500 dark:text-gray-400">{q.subtitle}</p>}
+          {q.subtitle && <p className="mt-1 break-words text-xs text-[var(--rw-muted)]">{q.subtitle}</p>}
           {Array.isArray(q.preview) && q.preview.length > 0 && (
-            <ul className="mt-2 space-y-1 rounded-xl bg-gray-50 dark:bg-gray-800 p-2 text-xs text-gray-700 dark:text-gray-200">
+            <ul className="mt-2 space-y-1 rounded-xl bg-gray-50 dark:bg-gray-800 p-2 text-xs text-[var(--rw-ink)]">
               {q.preview.map((line, i) => (
                 <li key={i} className="flex gap-1.5 break-words leading-snug"><span aria-hidden>•</span><span className="min-w-0">{line}</span></li>
               ))}
@@ -79,8 +79,8 @@ export default function QuestionSheet({ message, language, busy, onSubmit, onClo
                     selected
                       ? q.danger && o.value === 'yes'
                         ? 'border-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-900 dark:text-rose-100'
-                        : 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-900 dark:text-violet-100'
-                      : 'border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        : 'border-violet-500 bg-[var(--rw-brand-soft)] text-violet-900 dark:text-violet-100'
+                      : 'border-[var(--rw-border)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
                   <span className="min-w-0">
@@ -100,8 +100,8 @@ export default function QuestionSheet({ message, language, busy, onSubmit, onClo
                   onClick={() => setPicks((prev) => ({ ...prev, [q.id]: { value: NEW, text: prev[q.id]?.text ?? '' } }))}
                   className={`flex items-center gap-2 rounded-xl border border-dashed px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                     picks[q.id]?.value === NEW
-                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-900 dark:text-violet-100'
-                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      ? 'border-violet-500 bg-[var(--rw-brand-soft)] text-violet-900 dark:text-violet-100'
+                      : 'border-[var(--rw-border)] text-[var(--rw-muted)] hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
                   <PlusIcon className="w-4 h-4" />
@@ -114,7 +114,7 @@ export default function QuestionSheet({ message, language, busy, onSubmit, onClo
                     maxLength={80}
                     onChange={(e) => setPicks((prev) => ({ ...prev, [q.id]: { value: NEW, text: e.target.value } }))}
                     placeholder={pt ? 'Ex.: Itaú Conta, Nubank Cartão' : 'e.g. Itaú Checking, Nubank Card'}
-                    className="rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="rounded-xl border border-[var(--rw-border)] bg-transparent px-3 py-2 text-base sm:text-sm text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--rw-brand)]"
                   />
                 )}
               </>

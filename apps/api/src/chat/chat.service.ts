@@ -12,6 +12,7 @@ import { CHAT_TOOLS, ChatToolsService, type SavedSummary } from './chat-tools.se
 import { ChatCategoriesService } from './chat-categories.service';
 import { ChatMemoryService } from './chat-memory.service';
 import { MAX_REVIEW_ITEMS, TOOL_STATUS, quickQuestion, type ChatQuestion, type ChatStreamEvent, type ReviewGroup, type ReviewPayload } from './chat.types';
+import { CATEGORY_CATALOG, defaultRuleMapping } from '../categories/catalog';
 import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, WELCOME_GOALS, welcomeMessage } from './onboarding';
 import { ChatSnippetsService } from './chat-snippets.service';
 import { EngagementRemindersService } from '../engagement-reminders/engagement-reminders.service';
@@ -342,6 +343,52 @@ export class ChatService {
     const kind = form.type === 'credit' ? 'cartão de crédito' : form.type === 'wallet' ? 'carteira' : form.type === 'savings' ? 'poupança' : 'conta corrente';
     const text = `Cadastrei a conta "${acc.name}" (${bank}, ${kind}, titular ${form.holderName.trim()}).`;
     const turn = await this.send(scope, text, [], onEvent);
+    return { ...turn, questionsMessage: { ...msg, questions: updated } };
+  }
+
+  /**
+   * Saves the interview's category choice: the categories the person turned on become their list (rows, settings and the
+   * default budget group of each), the rest are hidden. Then Elio continues the conversation.
+   */
+  async submitCategoriesForm(scope: ChatScope, messageId: string, names: string[], onEvent?: (event: ChatStreamEvent) => void) {
+    const msg = await this.ownMessage(scope, messageId);
+    const questions = (msg.questions ?? []) as ChatQuestion[];
+    const target = questions.find((q) => q.kind === 'categories_form' && !q.answer);
+    if (!target) throw new BadRequestException('There is no category choice waiting to be answered.');
+
+    const known = new Set(CATEGORY_CATALOG.map((c) => c.pt));
+    const picked = [...new Set(names.map((n) => String(n).trim()).filter((n) => known.has(n)))];
+    // The catch-all categories always stay on.
+    for (const must of ['Diversos', 'Outros']) if (!picked.includes(must)) picked.push(must);
+
+    const rows = await this.db
+      .select()
+      .from(categories)
+      .where(and(eq(categories.userId, scope.userId), eq(categories.clientId, scope.clientId)));
+    const wanted = CATEGORY_CATALOG.filter((c) => picked.includes(c.pt));
+    for (const c of wanted) {
+      const existing = rows.find((r) => r.name === c.pt && r.type === c.type);
+      if (!existing) await this.db.insert(categories).values({ ...scope, name: c.pt, type: c.type, color: c.color, icon: c.icon });
+      else if (existing.deletedAt) await this.db.update(categories).set({ deletedAt: null, updatedAt: new Date() }).where(eq(categories.id, existing.id));
+    }
+    // Catalog categories the person did not pick are hidden (soft delete), never destroyed.
+    for (const r of rows) {
+      if (r.deletedAt || !known.has(r.name)) continue;
+      const stays = wanted.some((c) => c.pt === r.name && c.type === r.type);
+      if (!stays) await this.db.update(categories).set({ deletedAt: new Date(), updatedAt: new Date() }).where(eq(categories.id, r.id));
+    }
+
+    const expense = [...wanted.filter((c) => c.type === 'expense').map((c) => c.pt), 'Sem categoria'];
+    const income = [...wanted.filter((c) => c.type === 'income').map((c) => c.pt), 'Sem categoria'];
+    const values = { expenseCategories: expense, incomeCategories: income, categoryRuleMapping: defaultRuleMapping(expense), updatedAt: new Date() };
+    const [existingSettings] = await this.db.select({ id: settings.id }).from(settings).where(and(eq(settings.userId, scope.userId), eq(settings.clientId, scope.clientId)));
+    if (existingSettings) await this.db.update(settings).set(values).where(eq(settings.id, existingSettings.id));
+    else await this.db.insert(settings).values({ ...scope, ...values });
+
+    const updated = questions.map((q) => (q === target ? { ...q, answer: { value: String(picked.length), label: `${wanted.filter((c) => c.type === 'expense').length} categorias de gasto` } } : q));
+    await this.db.update(chatMessages).set({ questions: updated }).where(eq(chatMessages.id, msg.id));
+
+    const turn = await this.send(scope, `Escolhi minhas categorias: ${wanted.filter((c) => c.type === 'expense').length} de gasto e ${wanted.filter((c) => c.type === 'income').length} de entrada.`, [], onEvent);
     return { ...turn, questionsMessage: { ...msg, questions: updated } };
   }
 

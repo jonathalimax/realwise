@@ -362,22 +362,22 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative w-full sm:max-w-lg transform overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[92vh] overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+              <Dialog.Panel className="relative w-full sm:max-w-lg transform overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--rw-surface)] p-6 shadow-xl transition-all max-h-[92vh] overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-xl font-bold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-xl font-bold text-[var(--rw-ink)]">
                     {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <XMarkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <XMarkIcon className="w-5 h-5 text-[var(--rw-muted)]" />
                   </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Type toggle: the labels become direction labels for a transfer */}
-                  <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                  <div className="flex p-1 bg-[var(--rw-raised)] rounded-xl">
                     {['expense', 'income'].map((kind) => (
                       <button
                         key={kind}
@@ -385,8 +385,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         onClick={() => changeType(kind)}
                         className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                           type === kind
-                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                            : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200'
                         }`}
                       >
                         {isTransfer
@@ -402,20 +402,20 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     onClick={() => toggleTransfer(!isTransfer)}
                     aria-pressed={isTransfer}
                     className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-all ${
-                      isTransfer ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30' : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      isTransfer ? 'border-violet-500 bg-[var(--rw-brand-soft)]' : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
                     <span className="min-w-0">
-                      <span className={`block text-sm font-medium ${isTransfer ? 'text-violet-700 dark:text-violet-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <span className={`block text-sm font-medium ${isTransfer ? 'text-[var(--rw-brand-ink)]' : 'text-[var(--rw-ink)]'}`}>
                         🔁 {language === 'pt' ? 'Transferência entre minhas contas' : 'Transfer between my accounts'}
                       </span>
-                      <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      <span className="block text-xs text-[var(--rw-muted)]">
                         {language === 'pt'
                           ? 'Fica fora das receitas e despesas e é ligada ao outro lado, se já estiver registrado.'
                           : 'Left out of income and expenses and linked to the other side, if already recorded.'}
                       </span>
                     </span>
-                    <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-1.5 transition-colors ${isTransfer ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                    <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-1.5 transition-colors ${isTransfer ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-track)]'}`}>
                       <span className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${isTransfer ? 'translate-x-5' : 'translate-x-0'}`} />
                     </span>
                   </button>
@@ -424,7 +424,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   <div className="grid grid-cols-2 gap-4">
                     {/* Amount */}
                     <div className="min-w-0">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('transactionForm.amount')}
                       </label>
                       <CurrencyInput value={amount} onChange={setAmount} />
@@ -432,7 +432,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
                     {/* Date */}
                     <div className="min-w-0">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('transactionForm.date')}
                       </label>
                       <input
@@ -440,8 +440,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                         value={transactionDate}
                         onChange={(e) => setTransactionDate(e.target.value)}
-                        className="w-full px-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                          text-gray-900 dark:text-white text-sm
+                        className="w-full px-3 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                          text-[var(--rw-ink)] text-sm
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                           transition-all duration-200"
                       />
@@ -452,7 +452,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Description */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('transactionForm.description')}
                       </label>
                       <input
@@ -460,8 +460,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         required
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                          text-gray-900 dark:text-white placeholder-gray-400
+                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                          text-[var(--rw-ink)] placeholder-gray-400
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                           transition-all duration-200"
                         placeholder={t('transactionForm.descriptionPlaceholder')}
@@ -471,14 +471,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     {/* Category (not for transfers) */}
                     {!isTransfer && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('transactionForm.category')}
                       </label>
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                          text-gray-900 dark:text-white
+                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                          text-[var(--rw-ink)]
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                           transition-all duration-200 appearance-none cursor-pointer pr-10"
                         style={{
@@ -508,13 +508,13 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   {!isTransfer && (category === 'Investments' || category === 'Investimentos') && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                           {t('investments.type')}
                         </label>
                         <select
                           value={investmentType}
                           onChange={(e) => setInvestmentType(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                          className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
                           style={{
                             backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                             backgroundPosition: 'right 12px center',
@@ -531,12 +531,12 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       </div>
 
                       {/* Dynamic fields by investment type */}
-                      <div className="space-y-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <div className="space-y-3 p-3 bg-[var(--rw-raised)] rounded-xl">
                         {/* fixed_income fields */}
                         {investmentType === 'fixed_income' && (
                           <>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
                               </label>
                               <PercentInput
@@ -545,15 +545,15 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
                               </label>
                               <input
                                 type="date"
                                 value={maturityDate}
                                 onChange={(e) => setMaturityDate(e.target.value)}
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)]
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
@@ -565,7 +565,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         {investmentType === 'stocks' && (
                           <>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 Ticker {language === 'pt' ? '(ex: PETR4, AAPL)' : '(e.g. PETR4, AAPL)'}
                               </label>
                               <input
@@ -573,14 +573,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={ticker}
                                 onChange={(e) => setTicker(e.target.value.toUpperCase())}
                                 placeholder="PETR4"
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Corretora (ex: XP, Clear, Rico)' : 'Broker (e.g. XP, Clear, Rico)'}
                               </label>
                               <input
@@ -588,8 +588,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={platform}
                                 onChange={(e) => setPlatform(e.target.value)}
                                 placeholder={language === 'pt' ? 'XP Investimentos' : 'XP Investments'}
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
@@ -601,7 +601,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         {investmentType === 'crypto' && (
                           <>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
                               </label>
                               <input
@@ -610,8 +610,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={coinName}
                                 onChange={(e) => setCoinName(e.target.value)}
                                 placeholder="Bitcoin (BTC)"
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
@@ -629,7 +629,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                               </datalist>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Exchange (ex: Binance, Coinbase)' : 'Exchange (e.g. Binance, Coinbase)'}
                               </label>
                               <input
@@ -637,8 +637,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={platform}
                                 onChange={(e) => setPlatform(e.target.value)}
                                 placeholder="Binance"
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
@@ -650,7 +650,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         {investmentType === 'funds' && (
                           <>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
                               </label>
                               <input
@@ -658,14 +658,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={fundName}
                                 onChange={(e) => setFundName(e.target.value)}
                                 placeholder={language === 'pt' ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund'}
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Plataforma' : 'Platform'}
                               </label>
                               <input
@@ -673,8 +673,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={platform}
                                 onChange={(e) => setPlatform(e.target.value)}
                                 placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
@@ -686,7 +686,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         {investmentType === 'fii' && (
                           <>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 Ticker {language === 'pt' ? '(ex: HGLG11, XPML11)' : '(e.g. HGLG11, XPML11)'}
                               </label>
                               <input
@@ -694,14 +694,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={ticker}
                                 onChange={(e) => setTicker(e.target.value.toUpperCase())}
                                 placeholder="HGLG11"
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Corretora' : 'Broker'}
                               </label>
                               <input
@@ -709,8 +709,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                                 value={platform}
                                 onChange={(e) => setPlatform(e.target.value)}
                                 placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white placeholder-gray-400
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)] placeholder-gray-400
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200"
                               />
@@ -726,7 +726,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Bank Selector */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {language === 'pt' ? 'Banco' : 'Bank'}
                       </label>
                       <select
@@ -742,8 +742,8 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                             setPaymentMethod('cash');
                           }
                         }}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                          text-gray-900 dark:text-white
+                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                          text-[var(--rw-ink)]
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                           transition-all duration-200 appearance-none cursor-pointer pr-10"
                         style={{
@@ -775,19 +775,19 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                         className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                           (isIgnored || isTransfer)
                             ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
-                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                            : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="text-lg">🚫</span>
                           <div className="text-left">
-                            <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                            <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--rw-ink)]'}`}>
                               {t('transactionForm.ignoreTransaction')}
                             </span>
                           </div>
                         </div>
                         <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                          isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
+                          isIgnored ? 'bg-amber-500' : 'bg-[var(--rw-track)]'
                         }`}>
                           <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
                             isIgnored ? 'translate-x-5' : 'translate-x-0'
@@ -799,7 +799,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
                   {/* Payment method: the options depend on the kind of entry */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {language === 'pt' ? 'Forma de pagamento' : 'Payment method'}
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -811,7 +811,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           className={`min-w-[5.5rem] flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${
                             paymentMethod === method
                               ? 'border-gray-900 dark:border-gray-300 bg-gray-900 dark:bg-gray-300 text-white dark:text-gray-900'
-                              : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
+                              : 'border-[var(--rw-border)] text-[var(--rw-muted)] hover:border-gray-400 dark:hover:border-gray-400'
                           }`}
                         >
                           {METHOD_LABEL[method][language === 'pt' ? 'pt' : 'en']}
@@ -823,14 +823,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   {/* Link to Goal */}
                   {!isTransfer && availableGoals.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('goals.linkToGoal')}
                       </label>
                       <select
                         value={selectedGoalId}
                         onChange={(e) => setSelectedGoalId(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                          text-gray-900 dark:text-white
+                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                          text-[var(--rw-ink)]
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                           transition-all duration-200 appearance-none cursor-pointer pr-10"
                         style={{
@@ -851,14 +851,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                   {/* Planner goal link (only shown when category is Investments and type is expense) */}
                   {(!isTransfer && type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {language === 'pt' ? 'Objetivo do planner' : 'Planner objective'}
                       </label>
                       {plannerGoals.length > 0 ? (
                         <select
                           value={selectedPlannerGoalId}
                           onChange={e => setSelectedPlannerGoalId(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
+                          className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
                         >
                           <option value="">{language === 'pt' ? 'Nenhum' : 'None'}</option>
                           {plannerGoals.map(g => (
@@ -986,7 +986,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium
+                      className="flex-1 py-3 bg-[var(--rw-raised)] text-[var(--rw-ink)] rounded-xl font-medium
                         hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
                       {t('common.cancel')}
@@ -1035,10 +1035,10 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       </svg>
                     </div>
                     <div className="text-center">
-                      <p className="font-bold text-gray-900 dark:text-white text-base mb-1">
+                      <p className="font-bold text-[var(--rw-ink)] text-base mb-1">
                         {language === 'pt' ? 'Editar parcelas' : 'Edit installments'}
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-[var(--rw-muted)]">
                         {language === 'pt'
                           ? `Esta é a parcela ${transaction?.installmentCurrent}/${transaction?.installmentTotal}. O que deseja atualizar?`
                           : `This is installment ${transaction?.installmentCurrent}/${transaction?.installmentTotal}. What would you like to update?`}
@@ -1055,14 +1055,14 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       <button
                         type="button"
                         onClick={() => { setUpdateAllInstallments(false); setShowInstallmentConfirm(false); handleSubmit({ preventDefault: () => {} }); }}
-                        className="w-full py-3 rounded-xl font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        className="w-full py-3 rounded-xl font-medium text-[var(--rw-ink)] bg-[var(--rw-raised)] hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       >
                         {language === 'pt' ? 'Atualizar apenas esta' : 'Update only this one'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowInstallmentConfirm(false)}
-                        className="w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                        className="w-full py-2 text-sm text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                       >
                         {language === 'pt' ? 'Cancelar' : 'Cancel'}
                       </button>

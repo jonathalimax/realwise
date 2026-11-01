@@ -1,3 +1,4 @@
+import { CATALOG_RULE_MAPPING } from '../lib/categoryCatalog';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAccess } from './AccessContext';
 import { analytics } from '../services/analyticsService';
@@ -9,27 +10,7 @@ import { resolveBudgetPreferences } from './budgetPreferences';
 const BudgetContext = createContext();
 
 // Default category to 50/30/20 rule mapping
-export const DEFAULT_RULE_MAPPING = {
-  // Needs (50%) - Essential expenses
-  'Housing': 'needs', 'Moradia': 'needs',
-  'Bills': 'needs', 'Contas': 'needs',
-  'Food': 'needs', 'Alimentação': 'needs',
-  'Groceries': 'needs', 'Mercado': 'needs',
-  'Healthcare': 'needs', 'Saúde': 'needs',
-  'Vehicle': 'needs', 'Veículo': 'needs',
-  'Taxes': 'needs', 'Impostos': 'needs',
-
-  // Wants (30%) - Non-essential
-  'Leisure': 'wants', 'Lazer': 'wants',
-  'Clothing': 'wants', 'Vestuário': 'wants',
-  'Subscriptions': 'wants', 'Assinaturas': 'wants',
-  'Travel': 'wants', 'Viagens': 'wants',
-  'Education': 'wants', 'Educação': 'wants',
-  'Other': 'wants', 'Diversos': 'wants',
-
-  // Savings (20%) - Investments
-  'Investments': 'savings', 'Investimentos': 'savings',
-};
+export const DEFAULT_RULE_MAPPING = CATALOG_RULE_MAPPING;
 
 export const RULE_COLORS = {
   needs: {
@@ -242,8 +223,8 @@ export function BudgetProvider({ children }) {
       default:
         return {
           bg: 'bg-gray-300',
-          light: 'bg-gray-100 dark:bg-gray-700',
-          text: 'text-gray-500 dark:text-gray-400',
+          light: 'bg-[var(--rw-raised)]',
+          text: 'text-[var(--rw-muted)]',
         };
     }
   };

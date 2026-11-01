@@ -46,10 +46,10 @@ export default function OverdueBillsCard() {
         <ExclamationCircleIcon className="h-6 w-6" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-base font-semibold text-slate-900 dark:text-white">{title}</span>
-        <span className="block truncate text-sm text-slate-500 dark:text-slate-400">{detail}</span>
+        <span className="block text-base font-semibold text-[var(--rw-ink)]">{title}</span>
+        <span className="block truncate text-sm text-[var(--rw-muted)]">{detail}</span>
       </span>
-      <span className="shrink-0 text-lg font-bold tabular-nums text-slate-900 dark:text-white">{compactMoney(formatCurrency, total, pt)}</span>
+      <span className="shrink-0 text-lg font-bold tabular-nums text-[var(--rw-ink)]">{compactMoney(formatCurrency, total, pt)}</span>
     </button>
   );
 }

@@ -91,7 +91,7 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
           <span className="text-base shrink-0">{layer.icon}</span>
           <div className="min-w-0">
             <p className={`text-xs font-bold uppercase tracking-wide ${colors.title}`}>{layer.label}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+            <p className="text-xs text-[var(--rw-muted)] truncate">
               {layer.description ?? ''} · {formatBRL.format(layerMonthlyAmount)}/mês
             </p>
           </div>
@@ -99,16 +99,16 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
         <div className="flex items-center gap-1.5 shrink-0">
           {geminiApiKey && (
             <button onClick={handleResearch} disabled={aiLoading}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors">
+              className="flex items-center gap-1 px-2 py-1 text-xs font-bold rounded-lg bg-[var(--rw-surface)] border border-[var(--rw-border)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors">
               {aiLoading ? '...' : '✨'}
             </button>
           )}
           {!readOnly && (
             <>
               <button onClick={() => setShowEditLayer(true)}
-                className="px-2 py-1 text-xs rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">✏️</button>
+                className="px-2 py-1 text-xs rounded-lg bg-[var(--rw-surface)] border border-[var(--rw-border)] text-[var(--rw-muted)] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">✏️</button>
               <button onClick={() => setConfirmDelete(true)}
-                className="px-2 py-1 text-xs rounded-lg bg-white dark:bg-gray-800 border border-rose-200 dark:border-rose-800 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">🗑</button>
+                className="px-2 py-1 text-xs rounded-lg bg-[var(--rw-surface)] border border-rose-200 dark:border-rose-800 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">🗑</button>
             </>
           )}
         </div>
@@ -122,7 +122,7 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
             <button onClick={() => { onDeleteLayer(); setConfirmDelete(false); }}
               className="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-bold">Confirmar</button>
             <button onClick={() => setConfirmDelete(false)}
-              className="px-3 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs">Cancelar</button>
+              className="px-3 py-1 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-xs">Cancelar</button>
           </div>
         </div>
       )}
@@ -137,17 +137,17 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
               {aiResult.goalRecommendations?.map(rec => (
                 <div key={rec.goalId} className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{rec.goalLabel}</p>
+                    <p className="text-xs font-bold text-[var(--rw-ink)]">{rec.goalLabel}</p>
                     <button onClick={() => handleApplyGoal(rec.goalId, rec.instruments)}
                       className="text-xs px-2 py-0.5 bg-violet-600 hover:bg-violet-700 text-white rounded-md font-bold transition-colors">Aplicar</button>
                   </div>
                   {rec.instruments?.map((inst, i) => {
-                    const tc = INSTRUMENT_TYPE_COLORS[inst.type] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+                    const tc = INSTRUMENT_TYPE_COLORS[inst.type] ?? 'bg-[var(--rw-raised)] text-[var(--rw-muted)]';
                     return (
                       <div key={i} className="flex items-start gap-2">
                         <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${tc}`}>{inst.type}</span>
                         <div className="min-w-0 flex-1">
-                          <span className="text-xs text-gray-700 dark:text-gray-300">{inst.name}</span>
+                          <span className="text-xs text-[var(--rw-ink)]">{inst.name}</span>
                           {inst.reason && <span className="text-xs text-gray-400 ml-1">— {inst.reason}</span>}
                         </div>
                         <span className="text-xs tabular-nums text-gray-400 shrink-0">{inst.alloc}%</span>
@@ -186,7 +186,7 @@ Schema: { "layerInsight": "análise em 1-2 frases", "goalRecommendations": [{ "g
         {!readOnly && (
           <button
             onClick={() => setEditingSublayer('new')}
-            className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-2xl p-4 flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500 transition-colors min-h-[80px]"
+            className="border-2 border-dashed border-[var(--rw-border)] rounded-2xl p-4 flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500 transition-colors min-h-[80px]"
           >
             <span className="text-base">+</span> Adicionar Produto
           </button>

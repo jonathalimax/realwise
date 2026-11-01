@@ -7,10 +7,12 @@ import { useCards, BANKS } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
-import { XMarkIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../components/PageHeader';
+import AddTransactionSheet from '../components/AddTransactionSheet';
 
 export default function TransactionsPage() {
-  const { t, language, categories } = useSettings();
+  const { t, language, categories, formatCurrency } = useSettings();
   const { ownerId } = useAccess();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
   const { selectedMonth, setSelectedMonth } = useMonth();
@@ -20,6 +22,8 @@ export default function TransactionsPage() {
 
   // Get highlight ID from URL params
   const highlightId = searchParams.get('highlight');
+  // Coming from an import summary: show only that import's rows (any month) so each one can be left out of the totals.
+  const importFilter = searchParams.get('import');
 
   // Handle month and category params from URL (for deep linking)
   useEffect(() => {
@@ -41,20 +45,10 @@ export default function TransactionsPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showUncategorized, setShowUncategorized] = useState(false);
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [showAdd, setShowAdd] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  const availableMonths = useMemo(() => {
-    const months = new Set();
-    transactions.forEach(t => {
-      const date = new Date(t.date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      months.add(key);
-    });
-    const now = new Date();
-    months.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-    return Array.from(months).sort().reverse();
-  }, [transactions]);
 
   const monthlyTransactions = useMemo(() => {
     if (!selectedMonth) return transactions;
@@ -101,14 +95,27 @@ export default function TransactionsPage() {
   }, [transactions, selectedMonth, viewMode, selectedBankFilter, selectedPaymentMethodFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
-    let result = monthlyTransactions;
+    if (importFilter) {
+      return transactions.filter(t => t.importId === importFilter && (typeFilter === 'all' || t.type === typeFilter));
+    }
+    let result = typeFilter === 'all' ? monthlyTransactions : monthlyTransactions.filter(t => t.type === typeFilter);
     if (showUncategorized) {
       result = result.filter(t => t.category === 'Sem categoria');
     } else if (selectedCategoryFilter !== 'all') {
       result = result.filter(t => t.category === selectedCategoryFilter);
     }
     return result;
-  }, [monthlyTransactions, selectedCategoryFilter, showUncategorized]);
+  }, [monthlyTransactions, transactions, importFilter, selectedCategoryFilter, showUncategorized, typeFilter]);
+
+  const totals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of monthlyTransactions) {
+      if (t.ignored) continue;
+      if (t.type === 'income') income += t.amount; else if (t.type === 'expense') expense += t.amount;
+    }
+    return { income, expense, net: income - expense };
+  }, [monthlyTransactions]);
 
   const availableCategories = useMemo(() => {
     const cats = new Set();
@@ -138,23 +145,6 @@ export default function TransactionsPage() {
     return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   };
 
-  const goToPreviousMonth = () => {
-    const currentIndex = availableMonths.indexOf(selectedMonth);
-    if (currentIndex < availableMonths.length - 1) {
-      setSelectedMonth(availableMonths[currentIndex + 1]);
-    }
-  };
-
-  const goToNextMonth = () => {
-    const currentIndex = availableMonths.indexOf(selectedMonth);
-    if (currentIndex > 0) {
-      setSelectedMonth(availableMonths[currentIndex - 1]);
-    }
-  };
-
-  const canGoPrevious = availableMonths.indexOf(selectedMonth) < availableMonths.length - 1;
-  const canGoNext = availableMonths.indexOf(selectedMonth) > 0;
-
   const uncategorizedCount = useMemo(() => {
     return monthlyTransactions.filter(t => t.category === 'Sem categoria').length;
   }, [monthlyTransactions]);
@@ -170,72 +160,67 @@ export default function TransactionsPage() {
   const triggerRefresh = () => {};
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {t('transactionList.title')}
-            </h1>
+    <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
+      <PageHeader title={language === 'pt' ? 'Movimentos' : 'Activity'} right={(
+        <button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          aria-label={language === 'pt' ? 'Adicionar movimento' : 'Add entry'}
+          className="w-9 h-9 rounded-full bg-[var(--rw-brand)] text-white flex items-center justify-center"
+        >
+          <PlusIcon className="w-5 h-5" />
+        </button>
+      )} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-24">
+        {importFilter && (
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-[16px] bg-[var(--rw-brand-soft)] px-4 py-3">
+            <p className="text-[13px] font-semibold text-[var(--rw-brand-ink)]">
+              {language === 'pt'
+                ? `Itens desta importação (${filteredTransactions.length}). Toque em "Ignorar" para deixar um de fora dos totais.`
+                : `Items from this import (${filteredTransactions.length}). Tap "Ignore" to leave one out of the totals.`}
+            </p>
+            <button type="button" onClick={() => setSearchParams({})} className="shrink-0 min-h-[44px] text-sm font-bold text-[var(--rw-brand-ink)]">
+              {language === 'pt' ? 'Ver tudo' : 'See all'}
+            </button>
           </div>
+        )}
+        <section className="rw-hero rw-hero-violet flex flex-col gap-1 p-5 mb-3" aria-label={language === 'pt' ? 'Total do mês' : 'Month total'}>
+          <span className="rw-eyebrow text-violet-300">{getMonthLabel(selectedMonth).toUpperCase()}</span>
+          <span className="rw-num text-[44px] font-extrabold leading-[48px]">{totals.net >= 0 ? '+ ' : '- '}{formatCurrency(Math.abs(totals.net)).replace(/,00(?=\D*$)/, '')}</span>
+          <span className="text-[15px] text-violet-100">
+            {totals.net >= 0
+              ? (language === 'pt' ? 'entrou mais do que saiu neste mês' : 'more came in than went out this month')
+              : (language === 'pt' ? 'saiu mais do que entrou neste mês' : 'more went out than came in this month')}
+          </span>
+        </section>
+
+        <div className="flex p-[3px] gap-0.5 rounded-[14px] bg-[var(--rw-raised)] mb-3" role="tablist" aria-label={language === 'pt' ? 'Filtrar por tipo' : 'Filter by type'}>
+          {[['all', language === 'pt' ? 'Tudo' : 'All'], ['income', language === 'pt' ? 'Entradas' : 'In'], ['expense', language === 'pt' ? 'Saídas' : 'Out']].map(([key, label]) => (
+            <button key={key} role="tab" aria-selected={typeFilter === key} onClick={() => setTypeFilter(key)}
+              className={`flex-1 h-[38px] rounded-[11px] text-sm font-semibold ${typeFilter === key ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>
+              {label}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        {/* Month Selector + Filters */}
-        <div className="flex flex-col gap-3 mb-4 sm:mb-6">
+        <div className="flex flex-col gap-3 mb-4">
           <div className="flex items-center justify-between gap-2">
-            {/* Month Selector */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <button
-                onClick={goToPreviousMonth}
-                disabled={!canGoPrevious}
-                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
-              >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-bold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize"
-              >
-                {availableMonths.map(month => (
-                  <option key={month} value={month} className="capitalize">
-                    {getMonthLabel(month)}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                onClick={goToNextMonth}
-                disabled={!canGoNext}
-                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
-              >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-
+            <span className="text-sm text-[var(--rw-subtle)]">{filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}</span>
             {/* Filters Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
                 showFilters || activeFiltersCount > 0
-                  ? 'bg-violet-500 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  ? 'bg-[var(--rw-brand)] text-white'
+                  : 'bg-[var(--rw-surface)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               <AdjustmentsHorizontalIcon className="w-5 h-5" />
               <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
               {activeFiltersCount > 0 && (
                 <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                  showFilters ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400'
+                  showFilters ? 'bg-white/20' : 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
                 }`}>
                   {activeFiltersCount}
                 </span>
@@ -246,19 +231,19 @@ export default function TransactionsPage() {
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm space-y-3 sm:space-y-4">
+          <div className="mb-4 p-3 sm:p-4 bg-[var(--rw-surface)] rounded-xl shadow-sm space-y-3 sm:space-y-4">
             {/* View Mode Toggle */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+              <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                 {language === 'pt' ? 'Visualizar por' : 'View by'}
               </label>
-              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+              <div className="flex p-1 bg-[var(--rw-raised)] rounded-lg">
                 <button
                   onClick={() => setViewMode('purchase')}
                   className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'purchase'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400'
+                      ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                      : 'text-[var(--rw-muted)]'
                   }`}
                 >
                   {t('cards.viewByPurchase')}
@@ -267,8 +252,8 @@ export default function TransactionsPage() {
                   onClick={() => setViewMode('payment')}
                   className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'payment'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400'
+                      ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                      : 'text-[var(--rw-muted)]'
                   }`}
                 >
                   {t('cards.viewByPayment')}
@@ -286,7 +271,7 @@ export default function TransactionsPage() {
               className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 showUncategorized
                   ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                  : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-400'
+                  : 'bg-[var(--rw-raised)] text-[var(--rw-ink)] border border-[var(--rw-border)] hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-400'
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
@@ -295,7 +280,7 @@ export default function TransactionsPage() {
                 <span className={`ml-auto px-1.5 py-0.5 text-xs font-bold rounded-full ${
                   showUncategorized
                     ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
-                    : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+                    : 'bg-[var(--rw-track)] text-[var(--rw-ink)]'
                 }`}>
                   {uncategorizedCount}
                 </span>
@@ -305,13 +290,13 @@ export default function TransactionsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
               {/* Bank Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Banco' : 'Bank'}
                 </label>
                 <select
                   value={selectedBankFilter}
                   onChange={(e) => setSelectedBankFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'}</option>
                   <option value="cash">{language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'}</option>
@@ -325,13 +310,13 @@ export default function TransactionsPage() {
 
               {/* Payment Method Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
                 </label>
                 <select
                   value={selectedPaymentMethodFilter}
                   onChange={(e) => setSelectedPaymentMethodFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
                   <option value="credit">{language === 'pt' ? '💳 Crédito' : '💳 Credit'}</option>
@@ -344,17 +329,17 @@ export default function TransactionsPage() {
 
               {/* Category Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {t('charts.category')}
                 </label>
                 <div className="flex gap-2">
                   <select
                     value={selectedCategoryFilter}
                     onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent ${
                       selectedCategoryFilter !== 'all'
-                        ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300'
-                        : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
+                        ? 'bg-[var(--rw-brand-soft)] border-violet-200 dark:border-violet-800 text-[var(--rw-brand-ink)]'
+                        : 'bg-[var(--rw-raised)] border-[var(--rw-border)] text-[var(--rw-ink)]'
                     }`}
                   >
                     <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
@@ -375,13 +360,13 @@ export default function TransactionsPage() {
 
               {/* Sort By */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Ordenar por' : 'Sort by'}
                 </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
                   <option value="description">{language === 'pt' ? 'Descrição' : 'Description'}</option>
@@ -392,13 +377,13 @@ export default function TransactionsPage() {
 
               {/* Sort Order */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Ordem' : 'Order'}
                 </label>
                 <select
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
                   <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
@@ -415,7 +400,7 @@ export default function TransactionsPage() {
                   setSelectedCategoryFilter('all');
                   setShowUncategorized(false);
                 }}
-                className="w-full py-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
+                className="w-full py-2 text-sm font-medium text-[var(--rw-brand-ink)] hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
               >
                 {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
               </button>
@@ -424,15 +409,7 @@ export default function TransactionsPage() {
         )}
 
         {/* Transactions List */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white capitalize">
-              {getMonthLabel(selectedMonth)}
-            </h3>
-            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
-            </span>
-          </div>
+        <div className="rw-card p-3 sm:p-5">
           <TransactionList
             transactions={filteredTransactions}
             selectedMonth={selectedMonth}
@@ -443,6 +420,7 @@ export default function TransactionsPage() {
           />
         </div>
       </main>
+      {showAdd && <AddTransactionSheet onClose={() => setShowAdd(false)} />}
       <PageHelp
         title="Transações"
         text="Registre e filtre suas movimentações. Categorize cada transação para acompanhar onde seu dinheiro vai. Use o + para adicionar manualmente ou importe um extrato."

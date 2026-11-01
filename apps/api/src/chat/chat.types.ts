@@ -1,7 +1,7 @@
 /** A multiple-choice question Elio shows the user as a sheet (account, payment method, free choice). */
 export interface ChatQuestion {
   id: string;
-  kind: 'account' | 'payment_method' | 'choice' | 'confirm' | 'account_form' | 'quick';
+  kind: 'account' | 'payment_method' | 'choice' | 'confirm' | 'account_form' | 'categories_form' | 'quick';
   title: string;
   subtitle?: string;
   /** Attachment this question is about, if any. */

@@ -128,15 +128,15 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
   if (pieData.length === 0 && legendData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-full bg-[var(--rw-raised)] flex items-center justify-center mb-4">
           <span className="text-2xl">📊</span>
         </div>
-        <p className="font-medium text-gray-500 dark:text-gray-400">
+        <p className="font-medium text-[var(--rw-muted)]">
           {type === 'income'
             ? (language === 'pt' ? 'Sem entradas para exibir.' : 'No income to display.')
             : t('charts.noExpenses')}
         </p>
-        <p className="text-sm mt-1 text-gray-400 dark:text-gray-500">
+        <p className="text-sm mt-1 text-[var(--rw-subtle)]">
           {type === 'income'
             ? (language === 'pt' ? 'Adicione uma entrada para ver o gráfico.' : 'Add income to see the chart.')
             : t('charts.addExpenseToSee')}
@@ -182,8 +182,8 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-12 text-center">
           {activeSlice ? (
             <>
-              <p className="max-w-full truncate text-xs font-semibold text-gray-500 dark:text-gray-400">{activeSlice.label}</p>
-              <p className="text-lg font-bold tabular-nums text-gray-900 dark:text-white sm:text-2xl">{formatCurrency(activeSlice.value)}</p>
+              <p className="max-w-full truncate text-xs font-semibold text-[var(--rw-muted)]">{activeSlice.label}</p>
+              <p className="text-lg font-bold tabular-nums text-[var(--rw-ink)] sm:text-2xl">{formatCurrency(activeSlice.value)}</p>
               <p className="text-xs font-semibold tabular-nums" style={{ color: activeSlice.color }}>
                 {total > 0 ? `${((activeSlice.value / total) * 100).toFixed(0)}%` : ''}
               </p>
@@ -191,7 +191,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
           ) : (
             <>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{language === 'pt' ? 'Total' : 'Total'}</p>
-              <p className="text-lg font-bold tabular-nums text-gray-900 dark:text-white sm:text-2xl">{formatCurrency(total)}</p>
+              <p className="text-lg font-bold tabular-nums text-[var(--rw-ink)] sm:text-2xl">{formatCurrency(total)}</p>
             </>
           )}
         </div>
@@ -223,15 +223,15 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                      <span className="font-medium text-[var(--rw-ink)] text-sm truncate">
                         {item.label}
                       </span>
-                      <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums ml-2 shrink-0">
+                      <span className="font-bold text-[var(--rw-ink)] text-sm tabular-nums ml-2 shrink-0">
                         {formatCurrency(item.value)}
                       </span>
                     </div>
                     {item.hasSpending && total > 0 && (
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                      <p className="text-[10px] text-[var(--rw-subtle)] mt-0.5">
                         {((item.value / total) * 100).toFixed(0)}% {language === 'pt' ? 'do total' : 'of total'}
                       </p>
                     )}
@@ -272,17 +272,17 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
                 {/* Category Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                    <span className="font-medium text-[var(--rw-ink)] text-sm truncate">
                       {item.label}
                     </span>
-                    <span className="font-bold text-gray-900 dark:text-white text-sm tabular-nums ml-2 shrink-0">
+                    <span className="font-bold text-[var(--rw-ink)] text-sm tabular-nums ml-2 shrink-0">
                       {formatCurrency(item.value)}
                     </span>
                   </div>
 
                   {(hasSpending || hasLimit) && (
                     <>
-                      <div className="h-1.5 bg-gray-200 dark:bg-gray-600/50 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-[var(--rw-track)]/50 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{
@@ -293,7 +293,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
                       </div>
                       <div className="flex justify-between items-center mt-1">
                         {hasLimit ? (
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+                          <span className="text-[10px] text-[var(--rw-subtle)] tabular-nums">
                             {pct.toFixed(0)}% de {formatCurrency(item.limit)}
                           </span>
                         ) : <span />}

@@ -327,16 +327,16 @@ export default function TransactionModal({ isOpen, onClose }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-[var(--rw-surface)] p-6 shadow-xl transition-all max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-lg font-bold text-gray-900 dark:text-white">
+                  <Dialog.Title className="text-lg font-bold text-[var(--rw-ink)]">
                     {t('transactionForm.addTransaction')}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <XMarkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <XMarkIcon className="w-5 h-5 text-[var(--rw-muted)]" />
                   </button>
                 </div>
 
@@ -348,14 +348,14 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Type Toggle */}
-                  <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                  <div className="flex p-1 bg-[var(--rw-raised)] rounded-xl">
                     <button
                       type="button"
                       onClick={() => setType('expense')}
                       className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                         type === 'expense'
-                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                          ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                          : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200'
                       }`}
                     >
                       {t('transactionForm.expense')}
@@ -365,8 +365,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                       onClick={() => setType('income')}
                       className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                         type === 'income'
-                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                          ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                          : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200'
                       }`}
                     >
                       {t('transactionForm.income')}
@@ -375,7 +375,7 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                   {/* Amount */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('transactionForm.amount')}
                     </label>
                     <CurrencyInput value={amount} onChange={setAmount} />
@@ -383,7 +383,7 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('transactionForm.description')}
                     </label>
                     <input
@@ -391,8 +391,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       required
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400
+                      className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)] placeholder-gray-400
                         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                         transition-all duration-200"
                       placeholder={t('transactionForm.descriptionPlaceholder')}
@@ -401,7 +401,7 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                   {/* Date */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('transactionForm.date')}
                     </label>
                     <input
@@ -409,8 +409,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                       lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                       value={transactionDate}
                       onChange={(e) => setTransactionDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
+                      className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)]
                         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                         transition-all duration-200"
                     />
@@ -418,14 +418,14 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                   {/* Category */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('transactionForm.category')}
                     </label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
+                      className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)]
                         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                         transition-all duration-200 appearance-none cursor-pointer pr-10"
                       style={{
@@ -444,13 +444,13 @@ export default function TransactionModal({ isOpen, onClose }) {
                   {/* Investment Type (only shown when category is Investments) */}
                   {(category === 'Investments' || category === 'Investimentos') && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('investments.type')}
                       </label>
                       <select
                         value={investmentType}
                         onChange={(e) => setInvestmentType(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
                         style={{
                           backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                           backgroundPosition: 'right 12px center',
@@ -469,13 +469,13 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                   {/* Dynamic Investment Fields (only when Investments category is selected) */}
                   {(category === 'Investments' || category === 'Investimentos') && (
-                    <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <div className="space-y-3 p-4 bg-[var(--rw-raised)] rounded-xl">
                       {/* fixed_income fields */}
                       {investmentType === 'fixed_income' && (
                         <>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
                               </label>
                               <div className="relative">
@@ -486,23 +486,23 @@ export default function TransactionModal({ isOpen, onClose }) {
                                   step="0.01"
                                   min="0"
                                   placeholder="0.00"
-                                  className="w-full px-4 py-3 pr-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                    text-gray-900 dark:text-white placeholder-gray-400
+                                  className="w-full px-4 py-3 pr-10 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                    text-[var(--rw-ink)] placeholder-gray-400
                                     focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                     transition-all duration-200"
                                 />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">%</span>
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--rw-muted)]">%</span>
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Tipo de Retorno' : 'Return Type'}
                               </label>
                               <select
                                 value={returnType}
                                 onChange={(e) => setReturnType(e.target.value)}
-                                className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                  text-gray-900 dark:text-white
+                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                  text-[var(--rw-ink)]
                                   focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                   transition-all duration-200 appearance-none cursor-pointer pr-10"
                                 style={{
@@ -520,15 +520,15 @@ export default function TransactionModal({ isOpen, onClose }) {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
                             </label>
                             <input
                               type="date"
                               value={maturityDate}
                               onChange={(e) => setMaturityDate(e.target.value)}
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)]
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
@@ -540,7 +540,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                       {investmentType === 'stocks' && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               Ticker {language === 'pt' ? '(ex: PETR4, AAPL)' : '(e.g. PETR4, AAPL)'}
                             </label>
                             <input
@@ -548,14 +548,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={ticker}
                               onChange={(e) => setTicker(e.target.value.toUpperCase())}
                               placeholder="PETR4"
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Corretora (ex: XP, Clear, Rico)' : 'Broker (e.g. XP, Clear, Rico)'}
                             </label>
                             <input
@@ -563,8 +563,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={platform}
                               onChange={(e) => setPlatform(e.target.value)}
                               placeholder={language === 'pt' ? 'XP Investimentos' : 'XP Investments'}
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
@@ -576,7 +576,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                       {investmentType === 'crypto' && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
                             </label>
                             <input
@@ -585,8 +585,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={coinName}
                               onChange={(e) => setCoinName(e.target.value)}
                               placeholder="Bitcoin (BTC)"
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
@@ -604,7 +604,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                             </datalist>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Exchange (ex: Binance, Coinbase)' : 'Exchange (e.g. Binance, Coinbase)'}
                             </label>
                             <input
@@ -612,8 +612,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={platform}
                               onChange={(e) => setPlatform(e.target.value)}
                               placeholder="Binance"
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
@@ -625,7 +625,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                       {investmentType === 'funds' && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
                             </label>
                             <input
@@ -633,14 +633,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={fundName}
                               onChange={(e) => setFundName(e.target.value)}
                               placeholder={language === 'pt' ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund'}
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Plataforma' : 'Platform'}
                             </label>
                             <input
@@ -648,8 +648,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={platform}
                               onChange={(e) => setPlatform(e.target.value)}
                               placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
@@ -661,7 +661,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                       {investmentType === 'fii' && (
                         <>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               Ticker {language === 'pt' ? '(ex: HGLG11, XPML11)' : '(e.g. HGLG11, XPML11)'}
                             </label>
                             <input
@@ -669,14 +669,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={ticker}
                               onChange={(e) => setTicker(e.target.value.toUpperCase())}
                               placeholder="HGLG11"
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Corretora' : 'Broker'}
                             </label>
                             <input
@@ -684,8 +684,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                               value={platform}
                               onChange={(e) => setPlatform(e.target.value)}
                               placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
-                              className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                                text-gray-900 dark:text-white placeholder-gray-400
+                              className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                                text-[var(--rw-ink)] placeholder-gray-400
                                 focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                                 transition-all duration-200"
                             />
@@ -696,7 +696,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                       {/* real_estate fields */}
                       {investmentType === 'real_estate' && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                             {language === 'pt' ? 'Descrição do Imóvel' : 'Property Description'}
                           </label>
                           <input
@@ -704,8 +704,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                             value={propertyDescription}
                             onChange={(e) => setPropertyDescription(e.target.value)}
                             placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
-                            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                              text-gray-900 dark:text-white placeholder-gray-400
+                            className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                              text-[var(--rw-ink)] placeholder-gray-400
                               focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                               transition-all duration-200"
                           />
@@ -716,7 +716,7 @@ export default function TransactionModal({ isOpen, onClose }) {
 
                   {/* Bank Selector */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {language === 'pt' ? 'Banco' : 'Bank'}
                     </label>
                     <select
@@ -731,8 +731,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                           setPaymentMethod('credit');
                         }
                       }}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                        text-gray-900 dark:text-white
+                      className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)]
                         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                         transition-all duration-200 appearance-none cursor-pointer pr-10"
                       style={{
@@ -758,7 +758,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                   {/* Payment Method Selector */}
                   {selectedBankId && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
                       </label>
                       <div className="flex gap-2">
@@ -775,7 +775,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                             className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${
                               paymentMethod === method.value
                                 ? 'border-gray-900 dark:border-gray-300 bg-gray-900 dark:bg-gray-300 text-white dark:text-gray-900'
-                                : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-400'
+                                : 'border-[var(--rw-border)] text-[var(--rw-muted)] hover:border-gray-400 dark:hover:border-gray-400'
                             }`}
                           >
                             {language === 'pt' ? method.labelPt : method.labelEn}
@@ -794,14 +794,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                         className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
                           isInstallment
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                            : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
                       >
-                        <span className={`text-sm font-medium ${isInstallment ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <span className={`text-sm font-medium ${isInstallment ? 'text-blue-700 dark:text-blue-300' : 'text-[var(--rw-ink)]'}`}>
                           {t('transactionForm.isInstallment')}
                         </span>
                         <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                          isInstallment ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-600'
+                          isInstallment ? 'bg-blue-500' : 'bg-[var(--rw-track)]'
                         }`}>
                           <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
                             isInstallment ? 'translate-x-5' : 'translate-x-0'
@@ -829,7 +829,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                                   const val = Math.max(1, Math.min(parseInt(currentInstallmentStr) || 1, total));
                                   setCurrentInstallmentStr(String(val));
                                 }}
-                                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
+                                className="w-full px-3 py-2 bg-[var(--rw-raised)] border border-blue-200 dark:border-blue-700 rounded-lg text-center text-[var(--rw-ink)]
                                   focus:border-blue-500 focus:ring-0 focus:outline-none"
                               />
                             </div>
@@ -852,7 +852,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                                   const curr = Math.max(1, Math.min(parseInt(currentInstallmentStr) || 1, val));
                                   setCurrentInstallmentStr(String(curr));
                                 }}
-                                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
+                                className="w-full px-3 py-2 bg-[var(--rw-raised)] border border-blue-200 dark:border-blue-700 rounded-lg text-center text-[var(--rw-ink)]
                                   focus:border-blue-500 focus:ring-0 focus:outline-none"
                               />
                             </div>
@@ -865,14 +865,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                   {/* Link to Goal */}
                   {availableGoals.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('goals.linkToGoal')}
                       </label>
                       <select
                         value={selectedGoalId}
                         onChange={(e) => setSelectedGoalId(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-                          text-gray-900 dark:text-white
+                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                          text-[var(--rw-ink)]
                           focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
                           transition-all duration-200 appearance-none cursor-pointer pr-10"
                         style={{
@@ -895,7 +895,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                     <PlannerGoalSelect
                       value={selectedPlannerGoalId}
                       onChange={setSelectedPlannerGoalId}
-                      selectClassName="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
+                      selectClassName="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
                     />
                   )}
 
@@ -907,14 +907,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                       className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
                         isRecurring
                           ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                          : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
-                      <span className={`text-sm font-medium ${isRecurring ? 'text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <span className={`text-sm font-medium ${isRecurring ? 'text-purple-700 dark:text-purple-300' : 'text-[var(--rw-ink)]'}`}>
                         {language === 'pt' ? 'Transação Recorrente' : 'Recurring Transaction'}
                       </span>
                       <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                        isRecurring ? 'bg-purple-500' : 'bg-gray-200 dark:bg-gray-600'
+                        isRecurring ? 'bg-purple-500' : 'bg-[var(--rw-track)]'
                       }`}>
                         <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
                           isRecurring ? 'translate-x-5' : 'translate-x-0'
@@ -932,8 +932,8 @@ export default function TransactionModal({ isOpen, onClose }) {
                           <select
                             value={recurrenceFrequency}
                             onChange={(e) => setRecurrenceFrequency(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-700 rounded-lg
-                              text-gray-900 dark:text-white
+                            className="w-full px-3 py-2 bg-[var(--rw-raised)] border border-purple-200 dark:border-purple-700 rounded-lg
+                              text-[var(--rw-ink)]
                               focus:border-purple-500 focus:ring-0 focus:outline-none appearance-none cursor-pointer pr-10"
                             style={{
                               backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
@@ -958,7 +958,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                             type="date"
                             value={recurrenceEndDate}
                             onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-700 rounded-lg text-gray-900 dark:text-white
+                            className="w-full px-3 py-2 bg-[var(--rw-raised)] border border-purple-200 dark:border-purple-700 rounded-lg text-[var(--rw-ink)]
                               focus:border-purple-500 focus:ring-0 focus:outline-none"
                           />
                         </div>
@@ -973,22 +973,22 @@ export default function TransactionModal({ isOpen, onClose }) {
                     className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
                       isIgnored
                         ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-lg">🚫</span>
                       <div className="text-left">
-                        <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--rw-ink)]'}`}>
                           {t('transactionForm.ignoreTransaction')}
                         </span>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-[var(--rw-muted)]">
                           {t('transactionForm.ignoreTransactionHint')}
                         </p>
                       </div>
                     </div>
                     <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                      isIgnored ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'
+                      isIgnored ? 'bg-amber-500' : 'bg-[var(--rw-track)]'
                     }`}>
                       <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
                         isIgnored ? 'translate-x-5' : 'translate-x-0'
@@ -997,14 +997,14 @@ export default function TransactionModal({ isOpen, onClose }) {
                   </button>
 
                   {/* Add Another Checkbox */}
-                  <label className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
+                  <label className="flex items-center gap-3 p-3 rounded-xl bg-[var(--rw-raised)] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={addAnother}
                       onChange={(e) => setAddAnother(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-600"
+                      className="w-5 h-5 rounded border-[var(--rw-border)] text-blue-600 focus:ring-blue-500 bg-[var(--rw-raised)]"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="text-sm text-[var(--rw-ink)]">
                       {language === 'pt' ? 'Adicionar outra transação depois' : 'Add another transaction after'}
                     </span>
                   </label>

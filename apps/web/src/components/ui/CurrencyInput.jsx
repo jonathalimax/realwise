@@ -81,8 +81,8 @@ export default function CurrencyInput({ value, onChange, className = '', ...prop
       onClick={handleClick}
       onFocus={handleClick}
       placeholder={fmt.placeholder}
-      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-lg
-        text-gray-900 dark:text-white placeholder-gray-400
+      className={`w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-lg
+        text-[var(--rw-ink)] placeholder-gray-400
         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
         transition-all duration-200 ${className}`}
       {...rest}

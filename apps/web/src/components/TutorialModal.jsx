@@ -85,23 +85,23 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
 
-      <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-md bg-[var(--rw-surface)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Close button */}
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition z-10"
           aria-label={lang === 'pt' ? 'Fechar' : 'Close'}
         >
-          <XMarkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <XMarkIcon className="w-5 h-5 text-[var(--rw-muted)]" />
         </button>
 
         {/* Content */}
         <div className="px-6 pt-10 pb-6 text-center">
           <div className="text-6xl mb-4">{current.icon}</div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+          <h2 className="text-xl font-bold text-[var(--rw-ink)] mb-3">
             {current.title[lang]}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+          <p className="text-[var(--rw-muted)] text-sm leading-relaxed">
             {current.description[lang]}
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
           <div className="px-6 pb-4">
             <button
               onClick={handleAction}
-              className="w-full py-2.5 bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-medium text-sm rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/50 transition"
+              className="w-full py-2.5 bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)] font-medium text-sm rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/50 transition"
             >
               {current.action.label[lang]} →
             </button>
@@ -119,7 +119,7 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--rw-border)]">
           {/* Back */}
           <button
             onClick={() => setStep(s => s - 1)}
@@ -137,8 +137,8 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
                 onClick={() => setStep(i)}
                 className={`rounded-full transition-all ${
                   i === step
-                    ? 'w-5 h-2 bg-violet-500'
-                    : 'w-2 h-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500'
+                    ? 'w-5 h-2 bg-[var(--rw-brand)]'
+                    : 'w-2 h-2 bg-[var(--rw-track)] hover:bg-gray-300 dark:hover:bg-gray-500'
                 }`}
               />
             ))}
@@ -148,7 +148,7 @@ export default function TutorialModal({ isOpen, onClose, isFirstTime = false }) 
           {isLast ? (
             <button
               onClick={handleClose}
-              className="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-xl transition"
+              className="px-4 py-2 bg-[var(--rw-brand)] hover:opacity-90 text-white text-sm font-medium rounded-xl transition"
             >
               {lang === 'pt' ? 'Começar' : 'Get started'}
             </button>

@@ -22,6 +22,15 @@ const TONES: Record<SummaryTone, { bg: string; fg: string; sub: string; bar: str
   trial: { bg: '#f5f3ff', fg: '#6d28d9', sub: '#5b21b6', bar: '#8b5cf6', cls: 'rw-t-violet' },
 };
 
+// Same dark gradients as the summary web page hero (SummaryPage.jsx), with a solid fallback colour for clients that drop gradients.
+const HERO: Record<SummaryTone, { grad: string; solid: string; eyebrow: string; text: string }> = {
+  proud: { grad: 'linear-gradient(160deg,#0f3d33 0%,#14213d 55%,#2a1b5c 100%)', solid: '#14213d', eyebrow: '#6ee7b7', text: '#a7f3d0' },
+  steady: { grad: 'linear-gradient(160deg,#10304a 0%,#14213d 60%,#22205c 100%)', solid: '#14213d', eyebrow: '#7dd3fc', text: '#bae6fd' },
+  improve: { grad: 'linear-gradient(160deg,#4a2a0c 0%,#2b1420 60%,#1d1237 100%)', solid: '#2b1420', eyebrow: '#fcd34d', text: '#fde68a' },
+  incomplete: { grad: 'linear-gradient(160deg,#1d1237 0%,#14213d 100%)', solid: '#1d1237', eyebrow: '#c4b5fd', text: '#ddd6fe' },
+  trial: { grad: 'linear-gradient(160deg,#1d1237 0%,#14213d 100%)', solid: '#1d1237', eyebrow: '#c4b5fd', text: '#ddd6fe' },
+};
+
 const e = escapeHtml;
 const short = (n: number) => (Math.abs(n) >= 10000 ? `R$ ${(Math.abs(n) / 1000).toFixed(1).replace('.', ',').replace(/,0$/, '')} mil` : reais(Math.abs(n)));
 
@@ -38,6 +47,9 @@ export function summarySubject(p: SummaryPayload): string {
 
 /** Bold the money amounts in an already-escaped sentence. */
 const emphasize = (html: string, neg: boolean) => html.replace(/R\$\s?[0-9][0-9.,]*( mil)?/g, (m) => `<strong class="${neg ? 'rw-neg' : 'rw-ink'}" style="color:${neg ? '#be123c' : '#0e1420'};">${m}</strong>`);
+
+/** Amounts inside the dark hero: white, always (the light-theme emphasis would vanish on the gradient). */
+const heroEmphasize = (html: string) => html.replace(/R\$\s?[0-9][0-9.,]*( mil)?/g, (m) => `<strong style="color:#ffffff;">${m}</strong>`);
 
 const spacer = (h: number) => `<tr><td height="${h}" style="font-size:0;line-height:0;">&nbsp;</td></tr>`;
 
@@ -196,9 +208,11 @@ export function buildSummaryEmail(p: SummaryPayload, pageUrl: string, unsubscrib
   const inner = `${emailHeader()}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     ${spacer(26)}
-    <tr><td><div class="rw-muted" style="font-size:12px;font-weight:700;letter-spacing:0.04em;color:#566072;">${e(eyebrow)}</div>
-      <div class="rw-ink" style="font-size:38px;line-height:1.1;font-weight:800;color:#0e1420;letter-spacing:-1px;margin:8px 0;">${e(p.headline)}</div>
-      <div class="rw-muted" style="font-size:18px;line-height:1.5;color:#566072;">${emphasize(e(p.subline), p.tone === 'improve')}</div></td></tr>
+    <tr><td bgcolor="${HERO[p.tone].solid}" style="background-color:${HERO[p.tone].solid};background-image:${HERO[p.tone].grad};border-radius:28px;padding:30px 26px 28px;">
+      <div style="font-family:${FONT};font-size:12px;font-weight:800;letter-spacing:0.16em;color:${HERO[p.tone].eyebrow};">${e(eyebrow)}</div>
+      <div style="font-family:${FONT};font-size:38px;line-height:1.08;font-weight:800;color:#ffffff;letter-spacing:-1px;margin:10px 0 12px;">${e(p.headline)}</div>
+      <div style="font-family:${FONT};font-size:18px;line-height:1.5;color:${HERO[p.tone].text};">${heroEmphasize(e(p.subline))}</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:22px;"><tr><td bgcolor="#ffffff" style="background-color:#ffffff;border-radius:14px;"><a href="${e(pageUrl)}" style="display:inline-block;padding:14px 22px;font-family:${FONT};font-size:15px;font-weight:800;color:#14213d;text-decoration:none;">Ver meu resumo completo</a></td></tr></table></td></tr>
     ${spacer(24)}
     ${sections}
   </table>`;

@@ -11,7 +11,7 @@ const SUMMARY_YEARS = [5, 10, 20, 30];
 function FieldInput({ label, value, onChange, type = 'number', suffix, decimalScale = 2, hint }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-1">{label}</label>
       {type === 'currency' ? (
         <CurrencyInput value={value} onChange={onChange} className="text-sm py-2 px-3" />
       ) : type === 'percent' ? (
@@ -25,7 +25,7 @@ function FieldInput({ label, value, onChange, type = 'number', suffix, decimalSc
           suffix={suffix}
           decimalScale={decimalScale}
           allowNegative={false}
-          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+          className="w-full px-3 py-2 rounded-xl border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
         />
       )}
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
@@ -45,8 +45,8 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
 
   if (!totalPatrimonio || totalPatrimonio.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Configure o planejamento para ver projeções de patrimônio.</p>
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-8 shadow-sm border border-[var(--rw-border)] text-center">
+        <p className="text-[var(--rw-muted)]">Configure o planejamento para ver projeções de patrimônio.</p>
       </div>
     );
   }
@@ -100,8 +100,8 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
   return (
     <div className="space-y-4">
       {/* Input card */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Parâmetros do Patrimônio
         </h3>
         <div className="grid grid-cols-2 gap-3">
@@ -139,8 +139,8 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
       </div>
 
       {/* Stacked bar chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Evolução do Patrimônio Projetado
         </h3>
 
@@ -149,7 +149,7 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
           {series.map(s => (
             <div key={s.label} className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm" style={{ background: s.color }} />
-              <span className="text-xs text-gray-600 dark:text-gray-400">{s.label}</span>
+              <span className="text-xs text-[var(--rw-muted)]">{s.label}</span>
             </div>
           ))}
         </div>
@@ -174,17 +174,17 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
       </div>
 
       {/* Breakdown table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Detalhamento por categoria</h3>
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm border border-[var(--rw-border)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--rw-border)]">
+          <h3 className="text-sm font-bold text-[var(--rw-ink)]">Detalhamento por categoria</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Categoria</th>
+              <tr className="bg-[var(--rw-raised)]">
+                <th className="px-4 py-3 text-left font-bold text-[var(--rw-muted)]">Categoria</th>
                 {SUMMARY_YEARS.map(y => (
-                  <th key={y} className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">{y}a</th>
+                  <th key={y} className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">{y}a</th>
                 ))}
               </tr>
             </thead>
@@ -196,20 +196,20 @@ export default function PatrimonioTab({ state, update, totalPatrimonio }) {
                 { label: 'Imóvel', color: 'text-amber-600 dark:text-amber-400', get: p => p.imovelFV },
                 { label: 'Carro', color: 'text-red-600 dark:text-red-400', get: p => p.carroFV },
               ].map((row, i) => (
-                <tr key={row.label} className={`border-t border-gray-100 dark:border-gray-700 ${i % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-700/20'}`}>
+                <tr key={row.label} className={`border-t border-[var(--rw-border)] ${i % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-700/20'}`}>
                   <td className={`px-4 py-2.5 font-medium ${row.color}`}>{row.label}</td>
                   {SUMMARY_YEARS.map(y => {
                     const p = totalPatrimonio.find(x => x.years === y);
                     return (
-                      <td key={y} className="px-4 py-2.5 text-right tabular-nums text-gray-700 dark:text-gray-300">
+                      <td key={y} className="px-4 py-2.5 text-right tabular-nums text-[var(--rw-ink)]">
                         {p ? formatBRL.format(row.get(p)) : '—'}
                       </td>
                     );
                   })}
                 </tr>
               ))}
-              <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 font-bold">
-                <td className="px-4 py-3 text-gray-900 dark:text-white">Total</td>
+              <tr className="border-t-2 border-[var(--rw-border)] bg-[var(--rw-raised)]/50 font-bold">
+                <td className="px-4 py-3 text-[var(--rw-ink)]">Total</td>
                 {SUMMARY_YEARS.map(y => {
                   const p = totalPatrimonio.find(x => x.years === y);
                   return (

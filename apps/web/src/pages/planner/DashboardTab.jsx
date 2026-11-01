@@ -9,7 +9,7 @@ const MONTH_NAMES_PT = [
 function SummaryRow({ label, value, highlight, negative }) {
   return (
     <div className={`flex justify-between items-center py-2 ${highlight ? 'border-t-2 border-violet-500 mt-2 pt-3' : ''}`}>
-      <span className={`text-sm ${highlight ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+      <span className={`text-sm ${highlight ? 'font-bold text-[var(--rw-ink)]' : 'text-[var(--rw-muted)]'}`}>
         {label}
       </span>
       <span className={`text-sm font-bold tabular-nums ${
@@ -17,7 +17,7 @@ function SummaryRow({ label, value, highlight, negative }) {
           ? 'text-violet-600 dark:text-violet-400 text-base'
           : negative
             ? 'text-red-500 dark:text-red-400'
-            : 'text-gray-900 dark:text-white'
+            : 'text-[var(--rw-ink)]'
       }`}>
         {negative ? '- ' : ''}{formatBRL.format(value)}
       </span>
@@ -40,8 +40,8 @@ export default function DashboardTab({
   return (
     <div className="space-y-4">
       {/* Section A — Parâmetros USD */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           A — Parâmetros USD
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -52,7 +52,7 @@ export default function DashboardTab({
             { label: 'Taxa plataforma (%)', key: 'platformFeePct', decimalScale: 2, suffix: ' %' },
           ].map(({ label, key, decimalScale, suffix }) => (
             <div key={key}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-1">{label}</label>
               <NumericFormat
                 value={state[key]}
                 onValueChange={vals => update(key, vals.floatValue ?? 0)}
@@ -61,7 +61,7 @@ export default function DashboardTab({
                 decimalScale={decimalScale}
                 suffix={suffix}
                 allowNegative={false}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 rounded-xl border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
               />
             </div>
           ))}
@@ -69,20 +69,20 @@ export default function DashboardTab({
       </div>
 
       {/* Section B — Renda Computada */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           B — Renda Bruta PJ (USD calculada)
         </h3>
 
         {/* Scenario toggle */}
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Cenário:</span>
+          <span className="text-xs text-[var(--rw-muted)] font-medium">Cenário:</span>
           <button
             onClick={() => update('useMinScenario', true)}
             className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
               state.useMinScenario
                 ? 'bg-amber-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'
             }`}
           >
             Mínimo
@@ -92,7 +92,7 @@ export default function DashboardTab({
             className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
               !state.useMinScenario
                 ? 'bg-violet-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'
             }`}
           >
             Real ({selectedMonthIncome.bDays}d)
@@ -141,12 +141,12 @@ export default function DashboardTab({
       </div>
 
       {/* Section B — Simples Nacional */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           C — Simples Nacional
         </h3>
         <div className="max-w-xs">
-          <label htmlFor="simplesNacionalPct" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="simplesNacionalPct" className="block text-sm font-medium text-[var(--rw-ink)] mb-1">
             Alíquota (%)
           </label>
           <NumericFormat
@@ -158,15 +158,15 @@ export default function DashboardTab({
             decimalScale={2}
             allowNegative={false}
             placeholder="6 %"
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 rounded-xl border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
           />
           <p className="text-xs text-gray-400 mt-1">Alíquota Simples Nacional</p>
         </div>
       </div>
 
       {/* Section C — Despesas PJ */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           D — Despesas PJ
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -176,7 +176,7 @@ export default function DashboardTab({
             { id: 'internet', label: 'Internet', key: 'internet' },
           ].map(({ id, label, key }) => (
             <div key={id}>
-              <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor={id} className="block text-sm font-medium text-[var(--rw-ink)] mb-1">
                 {label}
               </label>
               <CurrencyInput
@@ -191,11 +191,11 @@ export default function DashboardTab({
       </div>
 
       {/* Section E — Summary */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           F — Resumo Financeiro
         </h3>
-        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+        <div className="divide-y divide-[var(--rw-border)]">
           <SummaryRow label="Renda Bruta (computada)" value={computedRendaBruta} />
           <SummaryRow label={`Simples Nacional (${state.simplesNacionalPct}%)`} value={simplesValue} negative />
           <SummaryRow label="Despesas PJ (saúde + contab. + internet)" value={despesasPJ} negative />

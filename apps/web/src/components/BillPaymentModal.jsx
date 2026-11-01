@@ -42,7 +42,7 @@ export default function BillPaymentModal({ isOpen, bill, initialAmount = 0, onCl
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
             {language === 'pt' ? 'Confirmar pagamento' : 'Confirm payment'}
           </p>
-          <h3 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
+          <h3 className="mt-1 text-lg font-bold text-[var(--rw-ink)]">
             {bill.name}
           </h3>
         </div>

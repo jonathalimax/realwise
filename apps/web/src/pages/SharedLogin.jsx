@@ -135,7 +135,7 @@ export default function SharedLogin() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
       {/* Soft violet glows behind everything */}
-      <div aria-hidden className="pointer-events-none absolute -top-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-violet-600/30 blur-[110px]" />
+      <div aria-hidden className="pointer-events-none absolute -top-40 -left-32 h-[28rem] w-[28rem] rounded-full bg-[var(--rw-brand)]/30 blur-[110px]" />
       <div aria-hidden className="pointer-events-none absolute -bottom-48 -right-24 h-[30rem] w-[30rem] rounded-full bg-indigo-500/25 blur-[120px]" />
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-8 lg:px-8">
@@ -156,7 +156,7 @@ export default function SharedLogin() {
           <ul className="mt-7 space-y-3.5">
             {PERKS.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3 text-sm text-slate-300 sm:text-base">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/20">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--rw-brand)]/15 text-violet-300 ring-1 ring-violet-400/20">
                   <Icon className="h-[18px] w-[18px]" />
                 </span>
                 {text}

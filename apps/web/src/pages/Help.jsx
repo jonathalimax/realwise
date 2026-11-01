@@ -1,3 +1,4 @@
+import PageHeader from '../components/PageHeader';
 import { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import TutorialModal from '../components/TutorialModal';
@@ -86,17 +87,8 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {language === 'pt' ? 'Ajuda' : 'Help'}
-            </h1>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
+      <PageHeader title={language === 'pt' ? 'Ajuda' : 'Help'} showMonth={false} />
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -106,16 +98,16 @@ export default function HelpPage() {
             <button
               key={index}
               onClick={item.action}
-              className="w-full flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all group"
+              className="w-full flex items-center gap-4 p-4 bg-[var(--rw-surface)] rounded-xl shadow-sm hover:shadow-md transition-all group"
             >
               <div className={`p-3 rounded-xl ${colorClasses[item.color]}`}>
                 <item.icon className="w-6 h-6" />
               </div>
               <div className="flex-1 text-left">
-                <h3 className="font-bold text-gray-900 dark:text-white">
+                <h3 className="font-bold text-[var(--rw-ink)]">
                   {item.title}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-[var(--rw-muted)]">
                   {item.description}
                 </p>
               </div>
@@ -125,25 +117,25 @@ export default function HelpPage() {
         </div>
 
         {/* FAQ Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+        <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-[var(--rw-border)]">
             <div className="flex items-center gap-2">
               <BookOpenIcon className="w-5 h-5 text-gray-500" />
-              <h2 className="font-bold text-gray-900 dark:text-white">
+              <h2 className="font-bold text-[var(--rw-ink)]">
                 {language === 'pt' ? 'Perguntas Frequentes' : 'Frequently Asked Questions'}
               </h2>
             </div>
           </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          <div className="divide-y divide-[var(--rw-border)]">
             {faqItems.map((item, index) => (
               <details key={index} className="group">
                 <summary className="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <span className="font-medium text-gray-900 dark:text-white pr-4">
+                  <span className="font-medium text-[var(--rw-ink)] pr-4">
                     {item.question}
                   </span>
                   <ChevronRightIcon className="w-5 h-5 text-gray-400 transition-transform group-open:rotate-90 flex-shrink-0" />
                 </summary>
-                <div className="px-4 pb-4 text-sm text-gray-600 dark:text-gray-400">
+                <div className="px-4 pb-4 text-sm text-[var(--rw-muted)]">
                   {item.answer}
                 </div>
               </details>
@@ -152,7 +144,7 @@ export default function HelpPage() {
         </div>
 
         {/* App Version */}
-        <div className="mt-8 text-center text-sm text-gray-400 dark:text-gray-500">
+        <div className="mt-8 text-center text-sm text-[var(--rw-subtle)]">
           <p>Realwise v1.0.0</p>
           <p className="mt-1">
             {language === 'pt' ? 'Feito com ❤️ por ' : 'Made with ❤️ by '}
