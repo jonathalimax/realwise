@@ -3,8 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useMonth } from '../contexts/MonthContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
-import { useAccess } from '../contexts/AccessContext';
 
 const getNow = () => new Date();
 const getCurrentMonthKey = () => {
@@ -40,7 +38,7 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
         <button
           onClick={() => onMonthChange(currentMonthKey)}
           title={locale === 'pt-BR' ? 'Mês atual' : 'Current month'}
-          className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)] font-black uppercase hover:bg-violet-200 dark:hover:bg-violet-800/50 transition-colors"
+          className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)] font-black uppercase hover:bg-violet-200 dark:hover:bg-violet-800/50 transition-colors"
         >
           {locale === 'pt-BR' ? 'hoje' : 'today'}
         </button>
@@ -77,8 +75,6 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
 
   const isDashboard = location.pathname.includes('/dashboard');
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const { currentUser } = useAccess();
-  const initial = (currentUser?.displayName || currentUser?.email || '?').trim().charAt(0).toUpperCase();
   
   // Logic to determine if we should show a back button instead of hamburger
   // The chat hides the tab bar (it has its own composer), so it always gets a way back.
@@ -141,7 +137,6 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
               />
             )}
             {right}
-            <Link to="/settings" aria-label={language === 'pt' ? 'Ajustes' : 'Settings'} className="lg:hidden w-9 h-9 rounded-full bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)] flex items-center justify-center text-sm font-bold">{initial}</Link>
           </div>
         </div>
       </div>

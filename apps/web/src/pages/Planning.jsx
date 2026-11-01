@@ -7,6 +7,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import { useBudget } from '../contexts/BudgetContext';
+import { useBills } from '../contexts/BillsContext';
 import useTransactions from '../hooks/useTransactions';
 import usePlannerState from './planner/usePlannerState';
 import RendaTab from './planner/RendaTab';
@@ -153,6 +154,24 @@ export default function PlanningPage() {
     [transactions, selectedMonth, getPaymentMonthKey],
   );
   const spent = useMemo(() => calculate50_30_20(monthTx, 0), [calculate50_30_20, monthTx]);
+  const flow = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of monthTx) {
+      if (t.ignored) continue;
+      if (t.type === 'income') income += t.amount; else if (t.type === 'expense') expense += t.amount;
+    }
+    return { income, expense };
+  }, [monthTx]);
+  const { bills } = useBills();
+  const billsLeft = useMemo(() => {
+    const [by, bm] = selectedMonth.split('-').map(Number);
+    const open = bills.filter((b) => {
+      const d = new Date(b.dueDate);
+      return b.status !== 'paid' && d.getUTCFullYear() === by && d.getUTCMonth() + 1 === bm;
+    });
+    return { count: open.length, total: open.reduce((sum, b) => sum + Number(b.amount || 0), 0) };
+  }, [bills, selectedMonth]);
 
   const rows = BUCKETS.map((b) => {
     const planned = (liquidezFinal * (monthAllocation[b.field] ?? 0)) / 100;
@@ -211,6 +230,10 @@ export default function PlanningPage() {
                 <span className="text-[15px] text-violet-100">{spendable >= 0 ? 'e você está dentro do plano' : 'acima do que o plano permite'}</span>
               </div>
               {isCurrent && perDay > 0 && <p className="text-[15px] text-violet-50">Faltam {daysLeft} dias para o mês acabar. Dá para gastar cerca de {money(perDay)} por dia.</p>}
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-violet-50">+ {money(flow.income)} entraram</span>
+                <span className="rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-violet-50">{money(flow.expense)} saíram</span>
+              </div>
             </section>
 
             <section className="rw-card flex flex-col gap-3" aria-label="Sua renda">
@@ -243,6 +266,17 @@ export default function PlanningPage() {
               ))}
               <button type="button" onClick={() => setSheet('split')} className="self-start min-h-[44px] text-sm font-semibold text-[var(--rw-brand-ink)]">Personalizar divisão</button>
             </section>
+
+            <Link to="/bills" className="rw-card flex items-center gap-3" aria-label="Contas a pagar">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--rw-raised)] text-[var(--rw-brand-ink)]">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4M16 2v4M3 10h18M9 16l2 2 4-4" /></svg>
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[17px] font-bold">Contas a pagar</span>
+                <span className="block text-[13px] text-[var(--rw-subtle)]">{billsLeft.count === 0 ? 'Nenhuma conta pendente neste mês' : `${billsLeft.count} ${billsLeft.count === 1 ? 'conta pendente' : 'contas pendentes'} · ${money(billsLeft.total)}`}</span>
+              </span>
+              <span className="text-[var(--rw-muted)]" aria-hidden="true">›</span>
+            </Link>
 
             <section className="rw-card flex flex-col gap-3" aria-label="Categorias">
               <div className="flex items-baseline justify-between"><h3 className="text-[17px] font-bold">Categorias</h3><Link to="/planning/categories" className="min-h-[44px] -my-2 flex items-center text-sm font-semibold text-[var(--rw-brand-ink)]">Ver todas</Link></div>
