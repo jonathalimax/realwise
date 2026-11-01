@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowDownIcon, ArrowUpIcon, PaperClipIcon, XMarkIcon, DocumentTextIcon, ArrowUturnLeftIcon, MicrophoneIcon, SpeakerWaveIcon, StopIcon } from '@heroicons/react/24/outline';
 import PageHeader from '../components/PageHeader';
 import QuestionSheet from '../components/chat/QuestionSheet';
@@ -93,6 +93,11 @@ function SavedCard({ saved, onUndo, language }) {
       )}
       <div className="mt-2.5 flex items-center justify-between gap-3 text-[11px]">
         <p className="min-w-0 text-gray-500 dark:text-gray-400">{notes.join(' · ')}</p>
+        {state !== 'undone' && saved.importId && (
+          <Link to={`/transactions?import=${saved.importId}`} className="shrink-0 font-bold text-violet-700 dark:text-violet-300 hover:underline">
+            {pt ? 'Revisar e ignorar' : 'Review and ignore'}
+          </Link>
+        )}
         {state === 'undone' ? (
           <span className="shrink-0 font-bold text-gray-500">{pt ? 'Desfeito' : 'Undone'}</span>
         ) : (

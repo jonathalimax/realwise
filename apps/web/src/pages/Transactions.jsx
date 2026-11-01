@@ -22,6 +22,8 @@ export default function TransactionsPage() {
 
   // Get highlight ID from URL params
   const highlightId = searchParams.get('highlight');
+  // Coming from an import summary: show only that import's rows (any month) so each one can be left out of the totals.
+  const importFilter = searchParams.get('import');
 
   // Handle month and category params from URL (for deep linking)
   useEffect(() => {
@@ -93,6 +95,9 @@ export default function TransactionsPage() {
   }, [transactions, selectedMonth, viewMode, selectedBankFilter, selectedPaymentMethodFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
+    if (importFilter) {
+      return transactions.filter(t => t.importId === importFilter && (typeFilter === 'all' || t.type === typeFilter));
+    }
     let result = typeFilter === 'all' ? monthlyTransactions : monthlyTransactions.filter(t => t.type === typeFilter);
     if (showUncategorized) {
       result = result.filter(t => t.category === 'Sem categoria');
@@ -100,7 +105,7 @@ export default function TransactionsPage() {
       result = result.filter(t => t.category === selectedCategoryFilter);
     }
     return result;
-  }, [monthlyTransactions, selectedCategoryFilter, showUncategorized, typeFilter]);
+  }, [monthlyTransactions, transactions, importFilter, selectedCategoryFilter, showUncategorized, typeFilter]);
 
   const totals = useMemo(() => {
     let income = 0;
@@ -168,6 +173,18 @@ export default function TransactionsPage() {
       )} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-24">
+        {importFilter && (
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-[16px] bg-[var(--rw-brand-soft)] px-4 py-3">
+            <p className="text-[13px] font-semibold text-[var(--rw-brand-ink)]">
+              {language === 'pt'
+                ? `Itens desta importação (${filteredTransactions.length}). Toque em "Ignorar" para deixar um de fora dos totais.`
+                : `Items from this import (${filteredTransactions.length}). Tap "Ignore" to leave one out of the totals.`}
+            </p>
+            <button type="button" onClick={() => setSearchParams({})} className="shrink-0 min-h-[44px] text-sm font-bold text-[var(--rw-brand-ink)]">
+              {language === 'pt' ? 'Ver tudo' : 'See all'}
+            </button>
+          </div>
+        )}
         <section className="rw-hero rw-hero-violet flex flex-col gap-1 p-5 mb-3" aria-label={language === 'pt' ? 'Total do mês' : 'Month total'}>
           <span className="rw-eyebrow text-violet-300">{getMonthLabel(selectedMonth).toUpperCase()}</span>
           <span className="rw-num text-[44px] font-extrabold leading-[48px]">{totals.net >= 0 ? '+ ' : '- '}{formatCurrency(Math.abs(totals.net)).replace(/,00(?=\D*$)/, '')}</span>
