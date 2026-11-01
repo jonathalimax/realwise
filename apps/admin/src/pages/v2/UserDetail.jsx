@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, CalendarClock, Clock, Crown, Play, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, CalendarClock, Clock, Crown, Play, Save, Trash2, ShieldCheck } from 'lucide-react';
 import { usersResource } from '../../lib/api/resources/users';
 import { summaryResource } from '../../lib/api/resources/summary';
 import { friendlyError } from '../../lib/api/errors';
@@ -202,6 +202,8 @@ function Detail({ user: u, reload, notify }) {
     reload(true);
   }
 
+  const isAdmin = u.role === 'admin';
+
   return (
     <div className="space-y-4">
       <Card>
@@ -221,6 +223,7 @@ function Detail({ user: u, reload, notify }) {
             <Button size="sm" icon={Play} onClick={() => setDialog('start_trial')} disabled={isOwner}>Iniciar teste</Button>
             <Button size="sm" icon={CalendarClock} onClick={() => setDialog('grant_until')} disabled={isOwner || state === 'lifetime'}>Acesso até data</Button>
             <Button size="sm" icon={Crown} onClick={() => setDialog('grant_lifetime')} disabled={isOwner || state === 'lifetime'}>Vitalício</Button>
+            <Button size="sm" icon={ShieldCheck} onClick={() => setDialog('role')}>{isAdmin ? 'Remover admin' : 'Tornar admin'}</Button>
             <Button size="sm" variant="dangerOutline" icon={Ban} onClick={() => setDialog('revoke')} disabled={isOwner || state === 'blocked'}>Revogar acesso</Button>
           </div>
         </div>
@@ -361,6 +364,20 @@ function Detail({ user: u, reload, notify }) {
         description={`${u.email} perderá o acesso imediatamente. Se houver assinatura ativa no Stripe, ela precisa ser cancelada antes.`}
         onClose={() => setDialog(null)}
         onConfirm={() => runPlan({ action: 'revoke' }, 'Acesso revogado.')}
+      />
+      <ConfirmDialog
+        open={dialog === 'role'}
+        title={isAdmin ? 'Remover admin' : 'Tornar admin'}
+        confirmLabel={isAdmin ? 'Remover admin' : 'Tornar admin'}
+        description={isAdmin
+          ? `${u.email} perderá o acesso ao painel admin no próximo login.`
+          : `${u.email} passará a ter acesso total ao painel admin (usuários, planos, e-mails, configurações). Vale no próximo login.`}
+        onClose={() => setDialog(null)}
+        onConfirm={async () => {
+          await usersResource.setRole(u.id, isAdmin ? 'user' : 'admin');
+          notify(isAdmin ? 'Admin removido.' : 'Agora é admin.');
+          reload(true);
+        }}
       />
       <ConfirmDialog
         open={dialog === 'delete'}

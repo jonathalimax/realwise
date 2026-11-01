@@ -319,6 +319,19 @@ export class AdminUsersService {
     return this.detail(id);
   }
 
+  // ---------------------------------------------------------------- role
+
+  /** Makes a user an admin or takes it away. An admin cannot change their own role, so the last admin can never lock themself out. */
+  async setRole(id: string, role: 'user' | 'admin', actor: JwtPayload) {
+    const user = await this.requireUser(id);
+    if (user.id === actor.sub) throw new ForbiddenException('You cannot change your own admin role.');
+    if (user.role !== role) {
+      await this.db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, id));
+      await this.recordAudit(actor, role === 'admin' ? 'user.make_admin' : 'user.remove_admin', user, { changes: { role: { from: user.role, to: role } } });
+    }
+    return this.detail(id);
+  }
+
   // ---------------------------------------------------------------- plan
 
   async changePlan(id: string, dto: PlanActionDto, actor: JwtPayload) {
