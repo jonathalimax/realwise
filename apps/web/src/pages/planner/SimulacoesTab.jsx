@@ -28,15 +28,15 @@ export default function SimulacoesTab({
   return (
     <div className="space-y-3">
       {/* Inner tab bar */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+      <div className="flex gap-1 bg-[var(--rw-raised)] rounded-xl p-1">
         {SUB_TABS.map(tab => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
             className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeTab === tab.value
-                ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'bg-[var(--rw-raised)] text-violet-600 dark:text-violet-400 shadow-sm'
+                : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             {tab.label}

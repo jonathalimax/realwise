@@ -41,25 +41,25 @@ function PlanOption({ plan, copy, selected, disabled, onSelect }) {
         className="block rounded-2xl border-2 border-gray-200 bg-white p-4 transition-colors peer-checked:border-violet-500 peer-checked:bg-violet-50 peer-focus-visible:ring-2 peer-focus-visible:ring-violet-500 peer-focus-visible:ring-offset-2 peer-disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:peer-checked:border-violet-400 dark:peer-checked:bg-violet-900/20 dark:peer-focus-visible:ring-offset-gray-900"
       >
         <span className="flex items-start justify-between gap-2">
-          <span className="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</span>
+          <span className="text-sm font-bold uppercase tracking-wide text-[var(--rw-muted)]">{label}</span>
           {isAnnual && plan.savingsPercent ? (
             <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
               {copy.paywall.savings(plan.savingsPercent)}
             </span>
           ) : null}
         </span>
-        <span className="mt-2 block text-2xl font-black text-gray-900 dark:text-white">
+        <span className="mt-2 block text-2xl font-black text-[var(--rw-ink)]">
           {price}
-          <span className="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">
+          <span className="ml-1 text-sm font-medium text-[var(--rw-muted)]">
             {isAnnual ? copy.paywall.perYear : copy.paywall.perMonth}
           </span>
         </span>
         {isAnnual && (
-          <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+          <span className="mt-1 block text-xs text-[var(--rw-muted)]">
             {copy.paywall.perMonthEquivalent(formatMoney(Math.round(plan.amount / 12), plan.currency, copy.locale))}
           </span>
         )}
-        <span className="mt-0.5 block text-xs font-semibold text-violet-600 dark:text-violet-300">
+        <span className="mt-0.5 block text-xs font-semibold text-[var(--rw-brand-ink)]">
           {copy.paywall.perDayEquivalent(formatMoney(Math.round(plan.amount / (isAnnual ? 365 : 30)), plan.currency, copy.locale))}
         </span>
       </span>
@@ -157,7 +157,7 @@ export default function PaywallPage() {
         </div>
 
         <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--rw-brand-ink)]">
             {copy.paywall.eyebrow}
           </p>
           <h1 className="mt-2 text-2xl font-black sm:text-3xl">{title}</h1>
@@ -166,11 +166,11 @@ export default function PaywallPage() {
               {copy.paywall.reassurance}
             </p>
           )}
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{copy.paywall.intro}</p>
+          <p className="mt-3 text-sm text-[var(--rw-muted)]">{copy.paywall.intro}</p>
 
           <div className="mt-6">
             {plans === null && !plansError && (
-              <p role="status" className="text-sm text-gray-500 dark:text-gray-400">{copy.paywall.plansLoading}</p>
+              <p role="status" className="text-sm text-[var(--rw-muted)]">{copy.paywall.plansLoading}</p>
             )}
 
             {plansError && (
@@ -215,7 +215,7 @@ export default function PaywallPage() {
               onClick={subscribe}
               disabled={!selectedPlan || busy !== null}
               aria-busy={busy === 'checkout'}
-              className="min-h-12 rounded-2xl bg-violet-600 px-6 text-base font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-gray-800"
+              className="min-h-12 rounded-2xl bg-[var(--rw-brand)] px-6 text-base font-bold text-white transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-gray-800"
             >
               {busy === 'checkout' ? copy.paywall.redirecting : selectedPlan ? copy.paywall.subscribeWith(selectedLabel) : copy.paywall.subscribe}
             </button>
@@ -232,7 +232,7 @@ export default function PaywallPage() {
             )}
           </div>
 
-          <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">{copy.paywall.secureNote}</p>
+          <p className="mt-4 text-xs text-[var(--rw-muted)]">{copy.paywall.secureNote}</p>
         </div>
 
         <div className="mt-6 flex justify-center">

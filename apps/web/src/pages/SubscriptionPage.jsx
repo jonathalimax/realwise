@@ -14,8 +14,8 @@ const PLAN_NAME = { monthly: 'Mensal', annual: 'Anual' };
 function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-3">
-      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-      <span className="text-right text-sm font-medium text-gray-900 dark:text-white">{value}</span>
+      <span className="text-sm text-[var(--rw-muted)]">{label}</span>
+      <span className="text-right text-sm font-medium text-[var(--rw-ink)]">{value}</span>
     </div>
   );
 }
@@ -97,7 +97,7 @@ export default function SubscriptionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--rw-bg)]">
       <PageHeader title="Assinatura" />
       <main className="mx-auto max-w-xl space-y-4 px-4 py-6">
         <section className="rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-600 p-6 text-white shadow-xl shadow-violet-600/20">
@@ -157,7 +157,7 @@ export default function SubscriptionPage() {
         {canChoosePlan && (
           <Link
             to="/billing"
-            className="flex min-h-12 items-center justify-center rounded-xl bg-violet-600 text-base font-semibold text-white hover:bg-violet-700"
+            className="flex min-h-12 items-center justify-center rounded-xl bg-[var(--rw-brand)] text-base font-semibold text-white hover:bg-violet-700"
           >
             Escolher um plano
           </Link>
@@ -166,7 +166,7 @@ export default function SubscriptionPage() {
         {(access.state === 'owner' || access.state === 'lifetime') && (
           <section className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800">
             <Row label="Situação" value={headline} />
-            <p className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400">
+            <p className="px-5 py-3 text-sm text-[var(--rw-muted)]">
               {access.state === 'owner'
                 ? 'Esta é a conta proprietária: ela tem acesso completo e não possui uma assinatura para gerenciar. Para ver a tela de planos, trocar ou cancelar, entre com uma conta que assine o Realwise.'
                 : 'Você tem acesso completo ao Realwise, sem cobrança, então não há assinatura para gerenciar.'}
@@ -192,7 +192,7 @@ export default function SubscriptionPage() {
 
       {(confirm === 'monthly' || confirm === 'annual') && (
         <BottomSheet title={confirm === 'annual' ? 'Mudar para o plano anual?' : 'Mudar para o plano mensal?'} onClose={() => !busy && setConfirm(null)}>
-          <p className="text-sm text-gray-700 dark:text-gray-200">
+          <p className="text-sm text-[var(--rw-ink)]">
             {confirm === 'annual'
               ? 'No plano anual você economiza em relação a pagar mês a mês. O valor proporcional ao que você já pagou é ajustado automaticamente.'
               : 'Você passa a pagar mês a mês. O valor proporcional ao que você já pagou é ajustado automaticamente.'}
@@ -200,7 +200,7 @@ export default function SubscriptionPage() {
           <button
             disabled={busy}
             onClick={() => run(() => billingResource.changePlan(confirm), `Pronto! Você agora está no plano ${PLAN_NAME[confirm].toLowerCase()}.`)}
-            className="w-full rounded-xl bg-violet-600 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
+            className="w-full rounded-xl bg-[var(--rw-brand)] py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
           >
             {busy ? 'Alterando…' : 'Confirmar mudança'}
           </button>

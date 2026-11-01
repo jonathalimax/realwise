@@ -6,7 +6,7 @@ import PercentInput from '@/components/ui/PercentInput';
 function FieldInput({ label, value, onChange, type = 'number', suffix, decimalScale = 2, hint }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-1">{label}</label>
       {type === 'currency' ? (
         <CurrencyInput value={value} onChange={onChange} className="text-sm py-2 px-3" />
       ) : type === 'percent' ? (
@@ -20,7 +20,7 @@ function FieldInput({ label, value, onChange, type = 'number', suffix, decimalSc
           suffix={suffix}
           decimalScale={decimalScale}
           allowNegative={false}
-          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+          className="w-full px-3 py-2 rounded-xl border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
         />
       )}
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
@@ -30,7 +30,7 @@ function FieldInput({ label, value, onChange, type = 'number', suffix, decimalSc
 
 function ProgressBar({ pct }) {
   return (
-    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+    <div className="w-full bg-[var(--rw-track)] rounded-full h-2">
       <div
         className="h-2 rounded-full bg-gradient-to-r from-violet-500 to-emerald-500 transition-all duration-500"
         style={{ width: `${Math.min(pct, 100)}%` }}
@@ -70,8 +70,8 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
   return (
     <div className="space-y-4">
       {/* Inputs */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Parâmetros do Imóvel
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -121,9 +121,9 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
       })()}
 
       {/* Target summary */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Meta de entrada</span>
+          <span className="text-sm font-bold text-[var(--rw-ink)]">Meta de entrada</span>
           <span className="text-base font-bold text-violet-600 dark:text-violet-400 tabular-nums">
             {formatBRL.format(downPaymentTarget)}
           </span>
@@ -139,21 +139,21 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
       </div>
 
       {/* Milestone table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Evolução mensal</h3>
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm border border-[var(--rw-border)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--rw-border)]">
+          <h3 className="text-sm font-bold text-[var(--rw-ink)]">Evolução mensal</h3>
           <p className="text-xs text-gray-400 mt-0.5">Fase 1 = durante quitação do carro · Fase 2 = após quitação</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Mês</th>
-                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">Fase</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Aporte</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Rend. CDB</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Saldo</th>
-                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">% Meta</th>
+              <tr className="bg-[var(--rw-raised)]">
+                <th className="px-4 py-3 text-left font-bold text-[var(--rw-muted)]">Mês</th>
+                <th className="px-4 py-3 text-center font-bold text-[var(--rw-muted)]">Fase</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Aporte</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Rend. CDB</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Saldo</th>
+                <th className="px-4 py-3 text-center font-bold text-[var(--rw-muted)]">% Meta</th>
               </tr>
             </thead>
             <tbody>
@@ -162,7 +162,7 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
                 return (
                 <tr
                   key={`${row.month}-${i}`}
-                  className={`border-t border-gray-100 dark:border-gray-700 ${
+                  className={`border-t border-[var(--rw-border)] ${
                     isCurrent
                       ? 'ring-2 ring-inset ring-violet-400 dark:ring-violet-500 bg-violet-50/50 dark:bg-violet-900/10'
                       : row.isPhaseChange
@@ -170,7 +170,7 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
                         : i % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-700/20'
                   }`}
                 >
-                  <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-white">
+                  <td className="px-4 py-2.5 font-medium text-[var(--rw-ink)]">
                     {isCurrent && (
                       <span className="text-xs font-bold text-violet-500 block">→ Mês selecionado</span>
                     )}
@@ -188,13 +188,13 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
                       Fase {row.phase}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-600 dark:text-gray-400">
+                  <td className="px-4 py-2.5 text-right tabular-nums text-[var(--rw-muted)]">
                     {formatBRL.format(row.contribution)}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-emerald-600 dark:text-emerald-400">
                     +{formatBRL.format(row.cdbYield)}
                   </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums font-bold text-gray-900 dark:text-white">
+                  <td className="px-4 py-2.5 text-right tabular-nums font-bold text-[var(--rw-ink)]">
                     {formatBRL.format(row.balance)}
                   </td>
                   <td className="px-4 py-2.5 text-center">
@@ -204,11 +204,11 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : row.pct >= 50
                             ? 'text-violet-600 dark:text-violet-400'
-                            : 'text-gray-500 dark:text-gray-400'
+                            : 'text-[var(--rw-muted)]'
                       }`}>
                         {row.pct.toFixed(1)}%
                       </span>
-                      <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div className="w-16 bg-[var(--rw-track)] rounded-full h-1.5">
                         <div
                           className="h-1.5 rounded-full bg-violet-500"
                           style={{ width: `${Math.min(row.pct, 100)}%` }}
@@ -225,8 +225,8 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
       </div>
 
       {/* Mortgage simulation */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Simulação do Financiamento (após entrada)
         </h3>
 
@@ -245,9 +245,9 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             decimalScale={0}
             hint={`${state.mortgageTermYears * 12} parcelas`}
           />
-          <div className="rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 flex flex-col justify-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Valor financiado</p>
-            <p className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
+          <div className="rounded-xl border border-[var(--rw-border)] bg-[var(--rw-raised)] px-3 py-2 flex flex-col justify-center">
+            <p className="text-xs text-[var(--rw-muted)] mb-0.5">Valor financiado</p>
+            <p className="text-sm font-bold text-[var(--rw-ink)] tabular-nums">
               {formatBRL.format(financedAmount)}
             </p>
             <p className="text-xs text-gray-400">
@@ -265,19 +265,19 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             </p>
             <div className="space-y-1.5">
               <div className="flex justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Parcela mensal</span>
+                <span className="text-xs text-[var(--rw-muted)]">Parcela mensal</span>
                 <span className="text-sm font-bold text-blue-700 dark:text-blue-300 tabular-nums">
                   {formatBRL.format(mortgage.pricePMT)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Total pago</span>
-                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+                <span className="text-xs text-[var(--rw-muted)]">Total pago</span>
+                <span className="text-xs font-bold text-[var(--rw-ink)] tabular-nums">
                   {formatBRL.format(mortgage.priceTotal)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Total de juros</span>
+                <span className="text-xs text-[var(--rw-muted)]">Total de juros</span>
                 <span className="text-xs font-bold text-red-500 dark:text-red-400 tabular-nums">
                   +{formatBRL.format(mortgage.priceInterest)}
                 </span>
@@ -292,19 +292,19 @@ export default function HouseSimulatorTab({ state, update, houseSimulationRows, 
             </p>
             <div className="space-y-1.5">
               <div className="flex justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">1ª parcela</span>
+                <span className="text-xs text-[var(--rw-muted)]">1ª parcela</span>
                 <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">
                   {formatBRL.format(mortgage.sacFirst)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Última parcela</span>
-                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
+                <span className="text-xs text-[var(--rw-muted)]">Última parcela</span>
+                <span className="text-xs font-bold text-[var(--rw-ink)] tabular-nums">
                   {formatBRL.format(mortgage.sacLast)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Total de juros</span>
+                <span className="text-xs text-[var(--rw-muted)]">Total de juros</span>
                 <span className="text-xs font-bold text-red-500 dark:text-red-400 tabular-nums">
                   +{formatBRL.format(mortgage.sacInterest)}
                 </span>

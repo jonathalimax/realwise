@@ -280,7 +280,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
               <li key={r.key}>
                 <button
                   onClick={() => setSheetKey(r.key)}
-                  className={`grid w-full grid-cols-[3rem_1fr_1fr_1fr] items-center gap-2 px-3 py-2 text-left text-xs tabular-nums ${r.key === sheetKey ? 'bg-violet-50 dark:bg-violet-900/20' : ''}`}
+                  className={`grid w-full grid-cols-[3rem_1fr_1fr_1fr] items-center gap-2 px-3 py-2 text-left text-xs tabular-nums ${r.key === sheetKey ? 'bg-[var(--rw-brand-soft)]' : ''}`}
                 >
                   <span className="font-bold capitalize text-slate-700 dark:text-slate-200">{r.label}</span>
                   <span className="text-right text-emerald-600 dark:text-emerald-400">{formatCurrency(r.income)}</span>
@@ -301,7 +301,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
                 setActiveKey(sheetRow.key);
                 setOpen(false);
               }}
-              className="w-full rounded-xl bg-violet-600 py-3 text-sm font-bold text-white hover:bg-violet-700"
+              className="w-full rounded-xl bg-[var(--rw-brand)] py-3 text-sm font-bold text-white hover:bg-violet-700"
             >
               {pt ? `Ir para ${longMonth(sheetRow.key)}` : `Go to ${longMonth(sheetRow.key)}`}
             </button>

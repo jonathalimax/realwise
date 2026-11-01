@@ -86,7 +86,7 @@ export default function IncomePage() {
       className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all ${
         showFilters || activeFiltersCount > 0
           ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
-          : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+          : 'bg-[var(--rw-raised)] text-[var(--rw-ink)] hover:bg-slate-200 dark:hover:bg-slate-600'
       }`}
     >
       <AdjustmentsHorizontalIcon className="w-5 h-5" />
@@ -102,7 +102,7 @@ export default function IncomePage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
       <PageHeader title={language === 'pt' ? 'Entrada' : 'Income'} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
@@ -117,7 +117,7 @@ export default function IncomePage() {
         <div className="sm:bg-white sm:dark:bg-slate-800 sm:rounded-2xl sm:p-6 sm:shadow-sm sm:border sm:border-slate-100 sm:dark:border-slate-700">
           {/* Header row: month label + filter button + segmented toggle */}
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white capitalize">
+            <h3 className="text-lg font-bold text-[var(--rw-ink)] capitalize">
               {getMonthLabel(selectedMonth)}
             </h3>
 
@@ -126,14 +126,14 @@ export default function IncomePage() {
               {filterButton}
 
               {/* List / Charts segmented toggle */}
-              <div className="flex p-1 bg-slate-100 dark:bg-slate-700 rounded-xl">
+              <div className="flex p-1 bg-[var(--rw-raised)] rounded-xl">
                 <button
                   onClick={() => handleSetDisplayMode('list')}
                   aria-label={language === 'pt' ? 'Lista' : 'List'}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                     displayMode === 'list'
-                      ? 'bg-white dark:bg-slate-600 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400'
+                      ? 'bg-[var(--rw-raised)] text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-[var(--rw-muted)]'
                   }`}
                 >
                   <ListBulletIcon className="w-4 h-4" />
@@ -144,8 +144,8 @@ export default function IncomePage() {
                   aria-label={language === 'pt' ? 'Gráficos' : 'Charts'}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                     displayMode === 'charts'
-                      ? 'bg-white dark:bg-slate-600 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400'
+                      ? 'bg-[var(--rw-raised)] text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-[var(--rw-muted)]'
                   }`}
                 >
                   <ChartPieIcon className="w-4 h-4" />
@@ -157,15 +157,15 @@ export default function IncomePage() {
 
           {/* Filters Panel — visible for BOTH chart and list views */}
           {showFilters && (
-            <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-4 animate-fade-in">
+            <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-2xl border border-[var(--rw-border)] space-y-4 animate-fade-in">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* Category */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{t('charts.category')}</label>
+                  <label className="block text-[10px] font-bold text-[var(--rw-muted)] mb-1.5 uppercase tracking-widest">{t('charts.category')}</label>
                   <select
                     value={selectedCategoryFilter}
                     onChange={(e) => handleSetCategoryFilter(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-3 pr-10 py-2 bg-[var(--rw-surface)] text-[var(--rw-ink)] border border-[var(--rw-border)] rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
                     {availableCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -174,11 +174,11 @@ export default function IncomePage() {
 
                 {/* Sort */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordenar' : 'Sort'}</label>
+                  <label className="block text-[10px] font-bold text-[var(--rw-muted)] mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordenar' : 'Sort'}</label>
                   <select
                     value={sortBy}
                     onChange={(e) => handleSetSortBy(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-3 pr-10 py-2 bg-[var(--rw-surface)] text-[var(--rw-ink)] border border-[var(--rw-border)] rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
                     <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
@@ -187,11 +187,11 @@ export default function IncomePage() {
 
                 {/* Order */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordem' : 'Order'}</label>
+                  <label className="block text-[10px] font-bold text-[var(--rw-muted)] mb-1.5 uppercase tracking-widest">{language === 'pt' ? 'Ordem' : 'Order'}</label>
                   <select
                     value={sortOrder}
                     onChange={(e) => handleSetSortOrder(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-3 pr-10 py-2 bg-[var(--rw-surface)] text-[var(--rw-ink)] border border-[var(--rw-border)] rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
                     <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>

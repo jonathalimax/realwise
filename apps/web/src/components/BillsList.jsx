@@ -149,17 +149,17 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 sm:gap-2">
-              <p className="font-medium text-gray-900 dark:text-white truncate text-xs sm:text-sm">
+              <p className="font-medium text-[var(--rw-ink)] truncate text-xs sm:text-sm">
                 {bill.name}
               </p>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-[var(--rw-muted)]">
               <span className={`${status.color} font-medium`}>{status.label}</span>
               <span className="text-gray-300 dark:text-gray-600">•</span>
               <span className="truncate">{formatDueDate(bill.dueDate)}</span>
             </div>
             {getBillAmount(bill) > 0 && (
-              <p className="text-[10px] sm:text-xs font-bold text-gray-700 dark:text-gray-200 mt-0.5">
+              <p className="text-[10px] sm:text-xs font-bold text-[var(--rw-ink)] mt-0.5">
                 {formatCurrency(getBillAmount(bill))}
               </p>
             )}
@@ -182,7 +182,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
   if (loading) {
     return (
-      <div className={`${compact ? '' : 'bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm'}`}>
+      <div className={`${compact ? '' : 'bg-[var(--rw-surface)] rounded-2xl p-6 shadow-sm'}`}>
         <div className="flex items-center justify-center py-8">
           <svg className="animate-spin w-6 h-6 text-gray-400" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -218,17 +218,17 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
     if (displayBills.length === 0 && totalBillsCount === 0) {
       return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+        <div className="bg-[var(--rw-surface)] rounded-2xl p-4 sm:p-6 shadow-sm">
+          <h3 className="text-base sm:text-lg font-bold text-[var(--rw-ink)] mb-3 sm:mb-4">
             {language === 'pt' ? 'Contas a Pagar' : 'Bills to Pay'}
           </h3>
           <div className="text-center py-6 sm:py-8">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[var(--rw-raised)] rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
               <svg className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-xs sm:text-sm text-[var(--rw-muted)]">
               {language === 'pt' ? 'Nenhuma conta cadastrada' : 'No bills registered'}
             </p>
           </div>
@@ -238,13 +238,13 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
     return (
       <>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div className="bg-[var(--rw-surface)] rounded-2xl p-4 sm:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-bold text-[var(--rw-ink)]">
               {language === 'pt' ? 'Contas a Pagar' : 'Bills to Pay'}
             </h3>
             {displayBills.length > 0 && (
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-xs sm:text-sm text-[var(--rw-muted)]">
                 {displayBills.length} {language === 'pt' ? 'pendentes' : 'pending'}
               </span>
             )}
@@ -261,7 +261,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
             </>
           ) : (
             <div className="text-center py-4">
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-xs sm:text-sm text-[var(--rw-muted)]">
                 {language === 'pt' ? 'Nenhuma conta pendente' : 'No pending bills'}
               </p>
             </div>
@@ -308,16 +308,16 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
         {showAllBills && (
           <div className="fixed inset-0 z-50 overflow-hidden">
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowAllBills(false)} />
-            <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-              <div className="flex items-center justify-between p-4 sm:p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+            <div className="absolute inset-4 sm:inset-8 lg:inset-16 bg-[var(--rw-bg)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between p-4 sm:p-6 bg-[var(--rw-surface)] border-b border-[var(--rw-border)]">
+                <h2 className="text-lg sm:text-xl font-bold text-[var(--rw-ink)]">
                   {language === 'pt' ? 'Todas as Contas' : 'All Bills'}
                 </h2>
                 <button
                   onClick={() => setShowAllBills(false)}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
                 >
-                  <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-[var(--rw-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -358,7 +358,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
                       <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Vencidas' : 'Overdue'}
                       </h3>
-                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                      <div className="space-y-1 bg-[var(--rw-surface)] rounded-xl p-2">
                         {overdueBills.map((bill) => (
                           <BillItem key={bill.id} bill={bill} />
                         ))}
@@ -371,7 +371,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
                       <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Próximas (7 dias)' : 'Upcoming (7 days)'}
                       </h3>
-                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                      <div className="space-y-1 bg-[var(--rw-surface)] rounded-xl p-2">
                         {upcomingBills.map((bill) => (
                           <BillItem key={bill.id} bill={bill} />
                         ))}
@@ -384,7 +384,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
                       <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Outras Pendentes' : 'Other Pending'}
                       </h3>
-                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                      <div className="space-y-1 bg-[var(--rw-surface)] rounded-xl p-2">
                         {otherPendingBills.map((bill) => (
                           <BillItem key={bill.id} bill={bill} />
                         ))}
@@ -397,7 +397,7 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
                       <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
                         {language === 'pt' ? 'Pagas recentemente' : 'Recently Paid'}
                       </h3>
-                      <div className="space-y-1 bg-white dark:bg-gray-800 rounded-xl p-2">
+                      <div className="space-y-1 bg-[var(--rw-surface)] rounded-xl p-2">
                         {paidBills.slice(0, 10).map((bill) => (
                           <BillItem key={bill.id} bill={bill} />
                         ))}
@@ -415,9 +415,9 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
   // Full view
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+    <div className="bg-[var(--rw-surface)] rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-xl font-bold text-[var(--rw-ink)]">
           {language === 'pt' ? 'Gerenciar Contas' : 'Manage Bills'}
         </h2>
       </div>
@@ -510,12 +510,12 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
         {bills.length === 0 && (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-[var(--rw-raised)] rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-[var(--rw-muted)]">
               {language === 'pt' ? 'Nenhuma conta cadastrada' : 'No bills registered'}
             </p>
           </div>

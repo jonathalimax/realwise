@@ -223,8 +223,8 @@ export function BudgetProvider({ children }) {
       default:
         return {
           bg: 'bg-gray-300',
-          light: 'bg-gray-100 dark:bg-gray-700',
-          text: 'text-gray-500 dark:text-gray-400',
+          light: 'bg-[var(--rw-raised)]',
+          text: 'text-[var(--rw-muted)]',
         };
     }
   };

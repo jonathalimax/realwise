@@ -7,7 +7,7 @@ import PercentInput from '@/components/ui/PercentInput';
 function FieldInput({ label, value, onChange, type = 'number', suffix, decimalScale = 2, hint }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-1">{label}</label>
       {type === 'currency' ? (
         <CurrencyInput value={value} onChange={onChange} className="text-sm py-2 px-3" />
       ) : type === 'percent' ? (
@@ -21,7 +21,7 @@ function FieldInput({ label, value, onChange, type = 'number', suffix, decimalSc
           suffix={suffix}
           decimalScale={decimalScale}
           allowNegative={false}
-          className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
+          className="w-full px-3 py-2 rounded-xl border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-sm"
         />
       )}
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
@@ -37,8 +37,8 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
   return (
     <div className="space-y-4">
       {/* Inputs */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Parâmetros do Financiamento
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -97,28 +97,28 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
           <p className="text-xs text-violet-500 font-bold uppercase">Quitado em</p>
           <p className="text-xl font-bold text-violet-700 dark:text-violet-300">{totalMonths} meses</p>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        <div className="bg-[var(--rw-raised)] rounded-2xl p-3 border border-[var(--rw-border)] text-center">
           <p className="text-xs text-gray-500 font-bold uppercase">Total parcelas</p>
-          <p className="text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums">{formatBRL.format(totalParcelas)}</p>
+          <p className="text-base font-bold text-[var(--rw-ink)] tabular-nums">{formatBRL.format(totalParcelas)}</p>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 border border-gray-100 dark:border-gray-700 text-center">
+        <div className="bg-[var(--rw-raised)] rounded-2xl p-3 border border-[var(--rw-border)] text-center">
           <p className="text-xs text-gray-500 font-bold uppercase">Total boletos</p>
-          <p className="text-base font-bold text-gray-700 dark:text-gray-300 tabular-nums">{formatBRL.format(totalBoletos)}</p>
+          <p className="text-base font-bold text-[var(--rw-ink)] tabular-nums">{formatBRL.format(totalBoletos)}</p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm border border-[var(--rw-border)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700/50">
-                <th className="px-4 py-3 text-left font-bold text-gray-600 dark:text-gray-300">Mês</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Parcela</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Boleto antecip.</th>
-                <th className="px-4 py-3 text-right font-bold text-gray-600 dark:text-gray-300">Total</th>
-                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">Restantes</th>
-                <th className="px-4 py-3 text-center font-bold text-gray-600 dark:text-gray-300">Boleto</th>
+              <tr className="bg-[var(--rw-raised)]">
+                <th className="px-4 py-3 text-left font-bold text-[var(--rw-muted)]">Mês</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Parcela</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Boleto antecip.</th>
+                <th className="px-4 py-3 text-right font-bold text-[var(--rw-muted)]">Total</th>
+                <th className="px-4 py-3 text-center font-bold text-[var(--rw-muted)]">Restantes</th>
+                <th className="px-4 py-3 text-center font-bold text-[var(--rw-muted)]">Boleto</th>
               </tr>
             </thead>
             <tbody>
@@ -127,19 +127,19 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
                 return (
                 <tr
                   key={row.month}
-                  className={`border-t border-gray-100 dark:border-gray-700 ${
+                  className={`border-t border-[var(--rw-border)] ${
                     isCurrent
                       ? 'ring-2 ring-inset ring-violet-400 dark:ring-violet-500 bg-violet-50/50 dark:bg-violet-900/10'
                       : i % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-700/20'
                   }`}
                 >
-                  <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-white">
+                  <td className="px-4 py-2.5 font-medium text-[var(--rw-ink)]">
                     {isCurrent && (
                       <span className="text-xs font-bold text-violet-500 block">→ Mês selecionado</span>
                     )}
                     Mês {row.month}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-gray-600 dark:text-gray-400 tabular-nums">
+                  <td className="px-4 py-2.5 text-right text-[var(--rw-muted)] tabular-nums">
                     {formatBRL.format(row.parcela)}
                   </td>
                   <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${
@@ -149,10 +149,10 @@ export default function CarSimulatorTab({ state, update, carSimulationRows, sele
                   }`}>
                     {formatBRL.format(row.boleto)}
                   </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums font-bold text-gray-900 dark:text-white">
+                  <td className="px-4 py-2.5 text-right tabular-nums font-bold text-[var(--rw-ink)]">
                     {formatBRL.format(row.total)}
                   </td>
-                  <td className="px-4 py-2.5 text-center text-gray-500 dark:text-gray-400 tabular-nums">
+                  <td className="px-4 py-2.5 text-center text-[var(--rw-muted)] tabular-nums">
                     {row.remaining}
                   </td>
                   <td className="px-4 py-2.5 text-center">

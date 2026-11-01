@@ -38,7 +38,7 @@ export default function CategoriesFormSheet({ message, language, busy, error, on
         <div>
           {error && <p className="mb-2 text-xs font-semibold text-rose-600">{error}</p>}
           <div className="flex gap-2">
-            <button onClick={onClose} className="rounded-xl px-4 py-3 text-sm font-bold text-gray-600 dark:text-gray-300">{pt ? 'Depois' : 'Later'}</button>
+            <button onClick={onClose} className="rounded-xl px-4 py-3 text-sm font-bold text-[var(--rw-muted)]">{pt ? 'Depois' : 'Later'}</button>
             <button
               onClick={() => onSubmit({ names })}
               disabled={busy}
@@ -57,7 +57,7 @@ export default function CategoriesFormSheet({ message, language, busy, error, on
           <div key={g.key} className="mb-4">
             <div className="mb-2 flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: g.color }} />
-              <span className="text-sm font-bold text-gray-900 dark:text-white">{pt ? g.pt : g.en}</span>
+              <span className="text-sm font-bold text-[var(--rw-ink)]">{pt ? g.pt : g.en}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {list.map((i) => {

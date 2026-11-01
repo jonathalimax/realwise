@@ -41,12 +41,12 @@ function ItemRow({ item, account, type }) {
       >
         <span className="flex items-start gap-2 text-xs">
           <span className="shrink-0 tabular-nums text-gray-400">{shortDate(item.date)}</span>
-          <span className={`min-w-0 flex-1 break-words text-gray-800 dark:text-gray-100 ${open ? '' : 'line-clamp-2'}`}>{item.description}</span>
-          <span className={`shrink-0 font-semibold tabular-nums ${type === 'income' ? 'text-emerald-600' : 'text-gray-700 dark:text-gray-200'}`}>
+          <span className={`min-w-0 flex-1 break-words text-[var(--rw-ink)] ${open ? '' : 'line-clamp-2'}`}>{item.description}</span>
+          <span className={`shrink-0 font-semibold tabular-nums ${type === 'income' ? 'text-emerald-600' : 'text-[var(--rw-ink)]'}`}>
             {brl(item.amount)}
           </span>
         </span>
-        {open && <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{detailLine(item, account)}</span>}
+        {open && <span className="mt-1 block text-[11px] text-[var(--rw-muted)]">{detailLine(item, account)}</span>}
       </button>
     </li>
   );
@@ -104,13 +104,13 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
       onClose={onClose}
       footer={
         <div className="flex gap-2">
-          <button onClick={onClose} className="rounded-xl px-4 py-3 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <button onClick={onClose} className="rounded-xl px-4 py-3 text-sm font-bold text-[var(--rw-muted)] hover:bg-gray-100 dark:hover:bg-gray-800">
             {pt ? 'Depois' : 'Later'}
           </button>
           <button
             onClick={apply}
             disabled={busy}
-            className="flex-1 rounded-xl bg-violet-600 py-3 text-sm font-bold text-white disabled:opacity-40 hover:bg-violet-700"
+            className="flex-1 rounded-xl bg-[var(--rw-brand)] py-3 text-sm font-bold text-white disabled:opacity-40 hover:bg-violet-700"
           >
             {busy ? (pt ? 'Salvando…' : 'Saving…') : pt ? 'Confirmar categorias' : 'Confirm categories'}
           </button>
@@ -127,36 +127,36 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
         const single = g.count === 1 && items[0];
         const isOpen = expanded.has(g.key);
         return (
-          <div key={g.key} className="rounded-2xl border border-gray-200 dark:border-gray-700 p-3">
+          <div key={g.key} className="rounded-2xl border border-[var(--rw-border)] p-3">
             {single ? (
               // One transaction: show everything needed to recognise it right away.
               <div>
                 <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 break-words text-sm font-bold text-gray-900 dark:text-white">{items[0].description}</p>
-                  <p className={`shrink-0 text-sm font-semibold tabular-nums ${g.type === 'income' ? 'text-emerald-600' : 'text-gray-800 dark:text-gray-100'}`}>
+                  <p className="min-w-0 break-words text-sm font-bold text-[var(--rw-ink)]">{items[0].description}</p>
+                  <p className={`shrink-0 text-sm font-semibold tabular-nums ${g.type === 'income' ? 'text-emerald-600' : 'text-[var(--rw-ink)]'}`}>
                     {brl(items[0].amount)}
                   </p>
                 </div>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{detailLine(items[0], g.account)}</p>
+                <p className="mt-0.5 text-xs text-[var(--rw-muted)]">{detailLine(items[0], g.account)}</p>
               </div>
             ) : (
               <div>
                 <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 line-clamp-2 break-words text-sm font-bold text-gray-900 dark:text-white">
+                  <p className="min-w-0 line-clamp-2 break-words text-sm font-bold text-[var(--rw-ink)]">
                     {g.merchant}
                     <span className="ml-1 font-semibold text-gray-400">×{g.count}</span>
                   </p>
-                  <p className={`shrink-0 text-sm font-semibold tabular-nums ${g.type === 'income' ? 'text-emerald-600' : 'text-gray-800 dark:text-gray-100'}`}>
+                  <p className={`shrink-0 text-sm font-semibold tabular-nums ${g.type === 'income' ? 'text-emerald-600' : 'text-[var(--rw-ink)]'}`}>
                     {brl(g.total)}
                   </p>
                 </div>
-                {g.account && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{g.account}</p>}
+                {g.account && <p className="mt-0.5 text-xs text-[var(--rw-muted)]">{g.account}</p>}
                 {items.length > 0 && (
                   <>
                     <button
                       onClick={() => toggleGroup(g.key)}
                       aria-expanded={isOpen}
-                      className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-violet-600 dark:text-violet-400"
+                      className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[var(--rw-brand-ink)]"
                     >
                       {isOpen ? (pt ? 'Ocultar lançamentos' : 'Hide transactions') : pt ? `Ver ${g.count} lançamentos` : `View ${g.count} transactions`}
                       <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -180,7 +180,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
 
             {g.transferAsk && (
               <div className="mt-3" role="radiogroup" aria-label={pt ? 'É uma transferência entre as suas contas?' : 'Is this a transfer between your accounts?'}>
-                <p className="mb-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+                <p className="mb-1.5 text-xs font-semibold text-[var(--rw-muted)]">
                   {pt ? 'É uma transferência entre as suas contas?' : 'Is this a transfer between your own accounts?'}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -198,8 +198,8 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
                       }}
                       className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
                         transfer[g.key] === o.value
-                          ? 'border-violet-500 bg-violet-600 text-white'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                          ? 'border-violet-500 bg-[var(--rw-brand)] text-white'
+                          : 'border-[var(--rw-border)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >
                       {o.label}
@@ -207,7 +207,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
                   ))}
                 </div>
                 {transfer[g.key] && (
-                  <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="mt-1.5 text-[11px] text-[var(--rw-muted)]">
                     {pt
                       ? 'Fica fora das suas receitas e despesas e é ligada ao outro lado, se ele já estiver importado.'
                       : 'It is left out of income and expenses and linked to its other side if that is already imported.'}
@@ -217,16 +217,16 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
             )}
 
             {!transfer[g.key] && (
-              <label className="mt-3 flex items-start gap-2 text-xs text-gray-700 dark:text-gray-200">
+              <label className="mt-3 flex items-start gap-2 text-xs text-[var(--rw-ink)]">
                 <input
                   type="checkbox"
                   checked={ignore[g.key]}
                   onChange={(e) => setIgnore((prev) => ({ ...prev, [g.key]: e.target.checked }))}
-                  className="mt-0.5 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                  className="mt-0.5 rounded border-gray-300 text-violet-600 focus:ring-[var(--rw-brand)]"
                 />
                 <span>
                   <span className="font-semibold">{pt ? 'Não contar nos totais' : "Don't count in totals"}</span>
-                  <span className="block text-[11px] text-gray-500 dark:text-gray-400">
+                  <span className="block text-[11px] text-[var(--rw-muted)]">
                     {pt ? 'Ex.: pagamento da fatura do cartão. Fica sem categoria e fora das receitas e despesas.' : 'E.g. a card bill payment. No category, left out of income and expenses.'}
                   </span>
                 </span>
@@ -242,8 +242,8 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
                     aria-pressed={choice[g.key] === id}
                     className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                       choice[g.key] === id
-                        ? 'border-violet-500 bg-violet-600 text-white'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        ? 'border-violet-500 bg-[var(--rw-brand)] text-white'
+                        : 'border-[var(--rw-border)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                   >
                     {nameOf.get(id)}
@@ -257,7 +257,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
             <select
               value={choice[g.key]}
               onChange={(e) => setChoice((prev) => ({ ...prev, [g.key]: e.target.value }))}
-              className="mt-3 w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="mt-3 w-full rounded-xl border border-[var(--rw-border)] bg-transparent px-3 py-2 text-base sm:text-sm text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--rw-brand)]"
               aria-label={pt ? `Categoria de ${g.merchant}` : `Category for ${g.merchant}`}
             >
               <option value="">{pt ? 'Deixar sem categoria' : 'Leave uncategorized'}</option>
@@ -280,12 +280,12 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
             </select>
             )}
 
-            <label className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+            <label className="mt-2 flex items-center gap-2 text-xs text-[var(--rw-muted)]">
               <input
                 type="checkbox"
                 checked={remember[g.key]}
                 onChange={(e) => setRemember((prev) => ({ ...prev, [g.key]: e.target.checked }))}
-                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                className="rounded border-gray-300 text-violet-600 focus:ring-[var(--rw-brand)]"
               />
               {transfer[g.key]
                 ? pt ? 'Lembrar: sempre tratar como transferência' : 'Remember: always treat as a transfer'

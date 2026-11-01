@@ -17,19 +17,19 @@ export function ClientConfigError({ error, onRetry, onGoToLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <div className="p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-lg max-w-sm w-full mx-4">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--rw-bg)]">
+      <div className="p-8 rounded-2xl bg-[var(--rw-surface)] shadow-lg max-w-sm w-full mx-4">
+        <h1 className="text-lg font-semibold text-[var(--rw-ink)] mb-2">
           {heading}
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-sm text-[var(--rw-muted)] mb-6">
           {subtext}
         </p>
         <div className="flex flex-col gap-3">
           {isNotFound ? (
             <button
               onClick={onGoToLogin}
-              className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-5 py-2.5 text-sm font-medium"
+              className="bg-[var(--rw-brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 text-sm font-medium"
             >
               Ir para o login
             </button>
@@ -37,13 +37,13 @@ export function ClientConfigError({ error, onRetry, onGoToLogin }) {
             <>
               <button
                 onClick={onRetry}
-                className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-5 py-2.5 text-sm font-medium"
+                className="bg-[var(--rw-brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 text-sm font-medium"
               >
                 Tentar novamente
               </button>
               <button
                 onClick={onGoToLogin}
-                className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl px-5 py-2.5 text-sm font-medium"
+                className="bg-[var(--rw-raised)] text-[var(--rw-ink)] rounded-xl px-5 py-2.5 text-sm font-medium"
               >
                 Ir para o login
               </button>
@@ -51,7 +51,7 @@ export function ClientConfigError({ error, onRetry, onGoToLogin }) {
           ) : (
             <button
               onClick={onRetry}
-              className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-5 py-2.5 text-sm font-medium"
+              className="bg-[var(--rw-brand)] hover:opacity-90 text-white rounded-xl px-5 py-2.5 text-sm font-medium"
             >
               Tentar novamente
             </button>

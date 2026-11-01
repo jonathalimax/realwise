@@ -50,8 +50,8 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
     const active = isItemActive(item);
     return `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all uppercase tracking-wide
       ${active
-        ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400'
-        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`;
+        ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
+        : 'text-[var(--rw-muted)] hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'}`;
   };
 
   return (
@@ -66,7 +66,7 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
             referrerPolicy="no-referrer"
           />
         ) : userInitials ? (
-          <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/20">
+          <div className="w-10 h-10 bg-[var(--rw-brand)] rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/20">
             <span className="text-white text-sm font-black">{userInitials}</span>
           </div>
         ) : (
@@ -77,7 +77,7 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
           />
         )}
         <div className="min-w-0">
-          <span className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tighter">Realwise</span>
+          <span className="text-lg font-black text-[var(--rw-ink)] uppercase tracking-tighter">Realwise</span>
           {currentUser && (
             <p className="text-[10px] font-bold text-violet-500 truncate uppercase tracking-widest leading-none mt-0.5">
               {currentUser.displayName?.split(' ')[0]
@@ -100,7 +100,7 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
         {navigationGroups.map((group, groupIndex) => (
           <div key={groupIndex} className={groupIndex > 0 ? 'mt-4' : ''}>
             {group.label && (
-              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-3 pb-1">
+              <p className="text-[10px] font-bold text-[var(--rw-subtle)] uppercase tracking-widest px-3 pb-1">
                 {language === 'pt' ? group.labelPt : group.label}
               </p>
             )}
@@ -191,7 +191,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800">
+      <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 w-64 bg-[var(--rw-surface)] border-r border-gray-100 dark:border-gray-800">
         <SidebarContent {...sharedProps} mobileClose={null} />
       </aside>
     </>

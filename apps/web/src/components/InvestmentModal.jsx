@@ -211,10 +211,10 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-[var(--rw-bg)] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+        <div className="flex items-center justify-between p-4 bg-[var(--rw-surface)] border-b border-[var(--rw-border)]">
+          <h2 className="text-xl font-bold text-[var(--rw-ink)]">
             {view === 'form' && (editingInvestment ? t('investments.editInvestment') : t('investments.newInvestment'))}
             {view === 'updateValue' && t('investments.updateValue')}
             {view === 'withdraw' && t('investments.withdraw')}
@@ -223,7 +223,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
           >
-            <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-[var(--rw-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -236,7 +236,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
             <form onSubmit={handleSubmitInvestment} className="space-y-5">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.name')}
                 </label>
                 <input
@@ -244,8 +244,8 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)] placeholder-gray-400
                     focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
                   placeholder={t('investments.namePlaceholder')}
                 />
@@ -253,7 +253,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
 
               {/* Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.type')}
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -264,13 +264,13 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                       onClick={() => setFormData({ ...formData, type: key })}
                       className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
                         formData.type === key
-                          ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
-                          : 'border-gray-100 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
+                          ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                          : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                       title={t(`investments.types.${key}`)}
                     >
                       <span>{info.icon}</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 w-full text-center leading-tight px-0.5 line-clamp-2">
+                      <span className="text-[9px] sm:text-[10px] text-[var(--rw-muted)] w-full text-center leading-tight px-0.5 line-clamp-2">
                         {t(`investments.types.${key}`)}
                       </span>
                     </button>
@@ -280,15 +280,15 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
 
               {/* Bank / Platform */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.bank')}
                 </label>
                 <input
                   type="text"
                   value={formData.bank}
                   onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)] placeholder-gray-400
                     focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
                   placeholder={t('investments.bankPlaceholder')}
                 />
@@ -297,7 +297,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
               {/* Initial Amount (only for new investments) */}
               {!editingInvestment && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('investments.initialAmount')}
                   </label>
                   <CurrencyInput
@@ -309,15 +309,15 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
 
               {/* Purchase Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.purchaseDate')}
                 </label>
                 <input
                   type="date"
                   value={formData.purchaseDate}
                   onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)]
                     focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
                 />
               </div>
@@ -325,7 +325,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
               {/* Expected Return */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('investments.returnType')}
                   </label>
                   <div className="grid grid-cols-4 gap-2">
@@ -336,8 +336,8 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                         onClick={() => setFormData({ ...formData, returnType: type })}
                         className={`px-3 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
                           formData.returnType === type
-                            ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
+                            ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)] text-[var(--rw-ink)]'
+                            : 'border-[var(--rw-border)] text-[var(--rw-muted)] hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
                       >
                         {t(`investments.returnTypes.${type}`)}
@@ -346,7 +346,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {formData.returnType === 'cdi' ? t('investments.cdiPercentage') : t('investments.expectedReturn')}
                   </label>
                   <PercentInput
@@ -354,7 +354,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                     onChange={(val) => setFormData({ ...formData, expectedReturn: val })}
                   />
                   {formData.returnType === 'cdi' && (
-                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1.5 text-xs text-[var(--rw-muted)]">
                       {t('investments.cdiHint')} ({t('investments.currentCdi')}: {(CDI_ANNUAL_RATE * 100).toFixed(2)}% {t('investments.returnTypes.annual').toLowerCase()})
                     </p>
                   )}
@@ -363,15 +363,15 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
 
               {/* Maturity Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.maturityDate')}
                 </label>
                 <input
                   type="date"
                   value={formData.maturityDate}
                   onChange={(e) => setFormData({ ...formData, maturityDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)]
                     focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
                 />
               </div>
@@ -379,7 +379,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
               {/* Link to Goal */}
               {availableGoals.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('investments.linkToGoal')}
                   </label>
                   <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -389,16 +389,16 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                       onClick={() => setFormData({ ...formData, goalId: '' })}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                         !formData.goalId
-                          ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                          ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                          : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
-                      <div className="w-8 h-8 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-400">
+                      <div className="w-8 h-8 bg-[var(--rw-raised)] rounded-lg flex items-center justify-center text-gray-400">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-300">{t('investments.noGoalSelected')}</span>
+                      <span className="text-sm text-[var(--rw-muted)]">{t('investments.noGoalSelected')}</span>
                     </button>
 
                     {/* Goal options */}
@@ -412,14 +412,14 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                           onClick={() => setFormData({ ...formData, goalId: goal.id })}
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                             formData.goalId === goal.id
-                              ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                              ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                              : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                           }`}
                         >
                           <div className={`w-8 h-8 ${color.light} rounded-lg flex items-center justify-center text-base`}>
                             {icon}
                           </div>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.name}</span>
+                          <span className="text-sm font-medium text-[var(--rw-ink)]">{goal.name}</span>
                         </button>
                       );
                     })}
@@ -430,20 +430,20 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
               <PlannerGoalSelect
                 value={formData.plannerGoalId}
                 onChange={(plannerGoalId) => setFormData((prev) => ({ ...prev, plannerGoalId }))}
-                selectClassName="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
+                selectClassName="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
               />
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.notes')}
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={2}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)] placeholder-gray-400
                     focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition resize-none"
                   placeholder={t('investments.notesPlaceholder')}
                 />
@@ -481,7 +481,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                         <button
                           type="button"
                           onClick={() => setConfirmDelete(null)}
-                          className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                          className="flex-1 py-2 bg-[var(--rw-track)] text-[var(--rw-ink)] text-xs font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
                         >
                           {t('common.cancel')}
                         </button>
@@ -506,14 +506,14 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
           {view === 'updateValue' && selectedInvestmentForUpdate && (
             <div className="space-y-5">
               {/* Investment Preview */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-4 border border-[var(--rw-border)]">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 ${getInvestmentColor(getInvestmentType(selectedInvestmentForUpdate.type).color).light} rounded-xl flex items-center justify-center text-2xl`}>
                     {getInvestmentType(selectedInvestmentForUpdate.type).icon}
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedInvestmentForUpdate.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <h3 className="font-bold text-[var(--rw-ink)]">{selectedInvestmentForUpdate.name}</h3>
+                    <p className="text-sm text-[var(--rw-muted)]">
                       {t('investments.initialAmount')}: {formatCurrency(selectedInvestmentForUpdate.initialAmount)}
                     </p>
                   </div>
@@ -522,7 +522,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
 
               {/* Current Value Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.currentAmount')}
                 </label>
                 <CurrencyInput
@@ -567,14 +567,14 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
           {view === 'withdraw' && selectedInvestmentForWithdraw && (
             <div className="space-y-5">
               {/* Investment Preview */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-4 border border-[var(--rw-border)]">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 ${getInvestmentColor(getInvestmentType(selectedInvestmentForWithdraw.type).color).light} rounded-xl flex items-center justify-center text-2xl`}>
                     {getInvestmentType(selectedInvestmentForWithdraw.type).icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedInvestmentForWithdraw.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <h3 className="font-bold text-[var(--rw-ink)]">{selectedInvestmentForWithdraw.name}</h3>
+                    <p className="text-sm text-[var(--rw-muted)]">
                       {t('investments.currentAmount')}: {formatCurrency(getCurrentValue(selectedInvestmentForWithdraw))}
                     </p>
                   </div>
@@ -589,7 +589,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                   className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition ${
                     isFullWithdrawal
                       ? 'bg-emerald-500 border-emerald-500'
-                      : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+                      : 'border-[var(--rw-border)] bg-[var(--rw-raised)]'
                   }`}
                 >
                   {isFullWithdrawal && (
@@ -598,7 +598,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                     </svg>
                   )}
                 </button>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="text-sm font-medium text-[var(--rw-ink)]">
                   {t('investments.fullWithdrawal')}
                 </label>
               </div>
@@ -606,7 +606,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
               {/* Withdraw Amount Input */}
               {!isFullWithdrawal && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('investments.withdrawAmount')}
                   </label>
                   <CurrencyInput
@@ -623,7 +623,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
 
               {/* Withdrawal Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Data do Resgate' : 'Withdrawal Date'}
                 </label>
                 <input
@@ -631,8 +631,8 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                   value={withdrawDate}
                   onChange={(e) => setWithdrawDate(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)]
                     focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition"
                 />
               </div>
@@ -661,7 +661,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
               {/* Goal Selector */}
               {availableGoals.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('investments.contributeToGoal')}
                   </label>
                   <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -671,16 +671,16 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                       onClick={() => setWithdrawGoalId('')}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                         !withdrawGoalId
-                          ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                          ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                          : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
-                      <div className="w-8 h-8 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-400">
+                      <div className="w-8 h-8 bg-[var(--rw-raised)] rounded-lg flex items-center justify-center text-gray-400">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-300">{t('investments.noGoal')}</span>
+                      <span className="text-sm text-[var(--rw-muted)]">{t('investments.noGoal')}</span>
                     </button>
 
                     {/* Goal options */}
@@ -694,14 +694,14 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                           onClick={() => setWithdrawGoalId(goal.id)}
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                             withdrawGoalId === goal.id
-                              ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                              ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                              : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                           }`}
                         >
                           <div className={`w-8 h-8 ${color.light} rounded-lg flex items-center justify-center text-base`}>
                             {icon}
                           </div>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.name}</span>
+                          <span className="text-sm font-medium text-[var(--rw-ink)]">{goal.name}</span>
                         </button>
                       );
                     })}

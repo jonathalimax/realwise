@@ -165,7 +165,7 @@ export default function TransactionList({
         onClick={() => canWrite && setEditingTransaction(transaction)}
         className={`group rounded-2xl transition-all ${canWrite ? 'cursor-pointer active:scale-[0.99]' : ''}
           ${transaction.id === highlightId
-            ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
+            ? 'ring-2 ring-violet-500 bg-[var(--rw-brand-soft)]'
             : selectedIds.has(transaction.id)
               ? 'bg-violet-50 dark:bg-violet-900/10'
               : 'bg-[var(--rw-surface)] hover:bg-[var(--rw-raised)]'
@@ -179,7 +179,7 @@ export default function TransactionList({
               onClick={(e) => { e.stopPropagation(); toggleSelection(transaction.id); }}
               className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors
                 ${selectedIds.has(transaction.id)
-                  ? 'bg-violet-600 border-violet-600'
+                  ? 'bg-[var(--rw-brand)] border-violet-600'
                   : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
                 }`}
             >
@@ -218,7 +218,7 @@ export default function TransactionList({
                   </span>
                 )}
                 {transaction.isInstallment && (
-                  <span className="text-[10px] font-bold text-violet-500 dark:text-violet-400 tabular-nums">
+                  <span className="text-[10px] font-bold text-[var(--rw-brand-ink)] tabular-nums">
                     {transaction.installmentCurrent}/{transaction.installmentTotal}
                   </span>
                 )}
@@ -270,7 +270,7 @@ export default function TransactionList({
                   disabled={!canWrite || isSaving}
                   onChange={(e) => handleQuickCategoryChange(transaction, e.target.value)}
                   style={{ gridArea: '1/1' }}
-                  className={`appearance-none w-full pl-2 pr-5 py-0.5 bg-transparent font-bold tracking-tight uppercase text-[10px] transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-violet-500 focus:rounded-full rounded-full ${
+                  className={`appearance-none w-full pl-2 pr-5 py-0.5 bg-transparent font-bold tracking-tight uppercase text-[10px] transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-[var(--rw-brand)] focus:rounded-full rounded-full ${
                     transaction.category === 'Sem categoria' || !transaction.category
                       ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                       : transaction.type === 'income'
@@ -318,9 +318,9 @@ export default function TransactionList({
               placeholder={t('transactionList.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-100 dark:bg-slate-700/50 text-slate-900 dark:text-white border-0 rounded-2xl
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-[var(--rw-raised)]/50 text-[var(--rw-ink)] border-0 rounded-2xl
                 placeholder-slate-400 dark:placeholder-slate-500
-                focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-violet-500 transition-all"
+                focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-[var(--rw-brand)] transition-all"
             />
           </div>
 
@@ -332,11 +332,11 @@ export default function TransactionList({
                   onClick={toggleSelectAll}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                     isAllSelected
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      ? 'bg-[var(--rw-brand)] text-white'
+                      : 'bg-[var(--rw-raised)] text-[var(--rw-ink)] hover:bg-slate-200 dark:hover:bg-slate-600'
                   }`}
                 >
-                  <div className={`w-4 h-4 rounded border ${isAllSelected ? 'bg-white border-white' : 'border-slate-400 bg-white dark:bg-slate-800'}`}>
+                  <div className={`w-4 h-4 rounded border ${isAllSelected ? 'bg-white border-white' : 'border-slate-400 bg-[var(--rw-surface)]'}`}>
                     {isAllSelected && (
                       <svg className="w-3 h-3 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -349,7 +349,7 @@ export default function TransactionList({
                 {hasSelection && (
                   <button
                     onClick={() => setShowEditModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-violet-600/20 hover:bg-violet-700 active:scale-95 transition-all"
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--rw-brand)] text-white rounded-xl text-sm font-bold shadow-lg shadow-violet-600/20 hover:bg-violet-700 active:scale-95 transition-all"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -370,8 +370,8 @@ export default function TransactionList({
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">🏜️</span>
             </div>
-            <p className="font-medium text-slate-900 dark:text-white">{searchTerm ? t('transactionList.noResults') : t('transactionList.empty')}</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{searchTerm ? t('transactionList.tryDifferentSearch') : t('transactionList.emptySubtitle')}</p>
+            <p className="font-medium text-[var(--rw-ink)]">{searchTerm ? t('transactionList.noResults') : t('transactionList.empty')}</p>
+            <p className="text-sm text-[var(--rw-muted)] mt-1">{searchTerm ? t('transactionList.tryDifferentSearch') : t('transactionList.emptySubtitle')}</p>
           </div>
         ) : sortBy === 'date' ? (
           // Grouped by date with headers
@@ -382,7 +382,7 @@ export default function TransactionList({
                   <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
                     {dateLabel}
                   </span>
-                  <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700" />
+                  <div className="flex-1 h-px bg-[var(--rw-raised)]" />
                 </div>
               )}
               {items.map((transaction) => renderTransaction(transaction))}

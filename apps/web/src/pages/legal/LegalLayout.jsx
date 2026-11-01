@@ -15,13 +15,13 @@ export default function LegalLayout({ title, updatedAt, intro, sections }) {
 
   return (
     <div className="min-h-screen bg-white text-slate-800 dark:bg-slate-950 dark:text-slate-200">
-      <header className="border-b border-slate-200 dark:border-slate-800">
+      <header className="border-b border-[var(--rw-border)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <a href="/" className="flex items-center gap-2.5 font-semibold text-slate-900 dark:text-white">
+          <a href="/" className="flex items-center gap-2.5 font-semibold text-[var(--rw-ink)]">
             <img src="/logo.png" alt="" className="h-8 w-8 rounded-lg object-contain" />
             Realwise
           </a>
-          <nav className="flex gap-4 text-sm text-slate-500 dark:text-slate-400">
+          <nav className="flex gap-4 text-sm text-[var(--rw-muted)]">
             <a href="/privacidade" className="hover:text-slate-900 dark:hover:text-white">Privacidade</a>
             <a href="/termos" className="hover:text-slate-900 dark:hover:text-white">Termos</a>
           </nav>
@@ -29,8 +29,8 @@ export default function LegalLayout({ title, updatedAt, intro, sections }) {
       </header>
 
       <main className="mx-auto max-w-3xl px-5 py-10">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{title}</h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Última atualização: {updatedAt}</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--rw-ink)]">{title}</h1>
+        <p className="mt-2 text-sm text-[var(--rw-muted)]">Última atualização: {updatedAt}</p>
         {intro && <p className="mt-6 leading-relaxed">{intro}</p>}
 
         <nav aria-label="Índice" className="mt-8 rounded-2xl border border-slate-200 p-5 text-sm dark:border-slate-800">
@@ -47,7 +47,7 @@ export default function LegalLayout({ title, updatedAt, intro, sections }) {
 
         {sections.map((s, i) => (
           <section key={s.id} id={s.id} className="mt-10 scroll-mt-6">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-[var(--rw-ink)]">
               {i + 1}. {s.title}
             </h2>
             {s.body.map((block, j) =>

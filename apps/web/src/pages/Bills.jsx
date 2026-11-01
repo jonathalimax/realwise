@@ -92,14 +92,14 @@ export default function BillsPage() {
             <svg className={`w-4 h-4 ${billReminders ? 'text-violet-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-[var(--rw-muted)]">
               {language === 'pt' ? 'Lembretes' : 'Reminders'}
             </span>
             <button
               role="switch"
               aria-checked={billReminders}
               onClick={() => updateBillReminders(!billReminders)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${billReminders ? 'bg-violet-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${billReminders ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-track)]'}`}
             >
               <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>

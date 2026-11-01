@@ -8,7 +8,7 @@ import { useFeature } from '@/contexts/ClientConfigContext';
 function SummaryRow({ label, value, highlight, negative }) {
   return (
     <div className={`flex justify-between items-center py-2 ${highlight ? 'border-t-2 border-violet-500 mt-2 pt-3' : ''}`}>
-      <span className={`text-sm ${highlight ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+      <span className={`text-sm ${highlight ? 'font-bold text-[var(--rw-ink)]' : 'text-[var(--rw-muted)]'}`}>
         {label}
       </span>
       <span className={`text-sm font-bold tabular-nums ${
@@ -16,7 +16,7 @@ function SummaryRow({ label, value, highlight, negative }) {
           ? 'text-violet-600 dark:text-violet-400 text-base'
           : negative
             ? 'text-red-500 dark:text-red-400'
-            : 'text-gray-900 dark:text-white'
+            : 'text-[var(--rw-ink)]'
       }`}>
         {negative ? '- ' : ''}{formatBRL.format(value)}
       </span>
@@ -108,13 +108,13 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
         <div className="flex justify-end">
           <button
             onClick={copyFromPreviousMonth}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--rw-surface)] text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
           >
             📥 Copiar do mês anterior
           </button>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+          <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
             Salário Líquido
           </h3>
           <CurrencyInput
@@ -122,7 +122,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
             onChange={v => updateSalarioBruto(v)}
             className="px-3 py-3 text-lg font-bold"
           />
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+          <p className="text-xs text-[var(--rw-subtle)] mt-2">
             Este valor será usado como base de alocação no planejador.
           </p>
         </div>
@@ -140,15 +140,15 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
               copyFromPreviousMonth();
             }
           }}
-          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-gray-800 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
+          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--rw-surface)] text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-900/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors shadow-sm"
         >
           📥 Copiar do mês anterior
         </button>
       </div>
 
       {/* Salário Bruto */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Salário / Renda Bruta
         </h3>
         <CurrencyInput
@@ -159,9 +159,9 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
       </div>
 
       {/* Deductions */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)] overflow-hidden">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide">
             Deduções
           </h3>
           <button
@@ -186,8 +186,8 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
               ) : (
                 <div className="flex items-center justify-between py-1.5">
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm text-gray-800 dark:text-gray-200 truncate block">{d.label || '—'}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                    <span className="text-sm text-[var(--rw-ink)] truncate block">{d.label || '—'}</span>
+                    <span className="text-xs text-[var(--rw-subtle)]">
                       {d.type === 'pct' ? `${d.amount}%` : formatBRL.format(d.amount)}
                     </span>
                   </div>
@@ -231,7 +231,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
           )}
 
           {deductions.length === 0 && !editingId && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
+            <p className="text-sm text-[var(--rw-subtle)] text-center py-2">
               Nenhuma dedução cadastrada.
             </p>
           )}
@@ -239,9 +239,9 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
       </div>
 
       {/* Benefits */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)] overflow-hidden">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide">
             Benefícios
           </h3>
           <button
@@ -251,7 +251,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
             + Adicionar
           </button>
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+        <p className="text-xs text-[var(--rw-subtle)] mb-3">
           Valores adicionados após o salário líquido, sem incidência de descontos (ex.: vale-refeição, vale-transporte).
         </p>
 
@@ -269,8 +269,8 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
               ) : (
                 <div className="flex items-center justify-between py-1.5">
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm text-gray-800 dark:text-gray-200 truncate block">{b.label || '—'}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                    <span className="text-sm text-[var(--rw-ink)] truncate block">{b.label || '—'}</span>
+                    <span className="text-xs text-[var(--rw-subtle)]">
                       {b.type === 'pct' ? `${b.amount}%` : formatBRL.format(b.amount)}
                     </span>
                   </div>
@@ -313,7 +313,7 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
           )}
 
           {benefits.length === 0 && !benefitEditingId && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
+            <p className="text-sm text-[var(--rw-subtle)] text-center py-2">
               Nenhum benefício cadastrado.
             </p>
           )}
@@ -321,8 +321,8 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
       </div>
 
       {/* Summary */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-1">
           Resumo
         </h3>
         <SummaryRow label="Renda Bruta" value={salarioBruto} />
@@ -336,19 +336,19 @@ export default function RendaTab({ state, update, liquidezFinal, activeVersion, 
 
 function DeductionEditRow({ draft, setDraft, onSave, onCancel, salarioBruto }) {
   return (
-    <div className="bg-gray-50 dark:bg-gray-700/60 rounded-xl p-3 space-y-2">
+    <div className="bg-[var(--rw-raised)]/60 rounded-xl p-3 space-y-2">
       <input
         type="text"
         placeholder="Nome da dedução"
         value={draft.label}
         onChange={e => setDraft(prev => ({ ...prev, label: e.target.value }))}
-        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+        className="w-full px-3 py-2 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
       />
       <div className="flex gap-2 overflow-hidden">
         <select
           value={draft.type}
           onChange={e => setDraft(prev => ({ ...prev, type: e.target.value }))}
-          className="flex-shrink-0 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="flex-shrink-0 px-2 py-2 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
         >
           <option value="value">R$ fixo</option>
           <option value="pct">% do bruto</option>
@@ -362,18 +362,18 @@ function DeductionEditRow({ draft, setDraft, onSave, onCancel, salarioBruto }) {
           suffix={draft.type === 'pct' ? ' %' : ''}
           prefix={draft.type === 'value' ? 'R$ ' : ''}
           allowNegative={false}
-          className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-[var(--rw-border)] bg-[var(--rw-raised)] text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-violet-500"
         />
       </div>
       {draft.type === 'pct' && draft.amount > 0 && (
-        <p className="text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-xs text-[var(--rw-subtle)]">
           = {formatBRL.format(salarioBruto * draft.amount / 100)} / mês
         </p>
       )}
       <div className="flex justify-end gap-2 pt-1">
         <button
           onClick={onCancel}
-          className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          className="px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--rw-muted)] hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Cancelar
         </button>

@@ -212,15 +212,15 @@ export default function TransactionsPage() {
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
                 showFilters || activeFiltersCount > 0
-                  ? 'bg-violet-500 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  ? 'bg-[var(--rw-brand)] text-white'
+                  : 'bg-[var(--rw-surface)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               <AdjustmentsHorizontalIcon className="w-5 h-5" />
               <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
               {activeFiltersCount > 0 && (
                 <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                  showFilters ? 'bg-white/20' : 'bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-400'
+                  showFilters ? 'bg-white/20' : 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
                 }`}>
                   {activeFiltersCount}
                 </span>
@@ -231,19 +231,19 @@ export default function TransactionsPage() {
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm space-y-3 sm:space-y-4">
+          <div className="mb-4 p-3 sm:p-4 bg-[var(--rw-surface)] rounded-xl shadow-sm space-y-3 sm:space-y-4">
             {/* View Mode Toggle */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+              <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                 {language === 'pt' ? 'Visualizar por' : 'View by'}
               </label>
-              <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+              <div className="flex p-1 bg-[var(--rw-raised)] rounded-lg">
                 <button
                   onClick={() => setViewMode('purchase')}
                   className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'purchase'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400'
+                      ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                      : 'text-[var(--rw-muted)]'
                   }`}
                 >
                   {t('cards.viewByPurchase')}
@@ -252,8 +252,8 @@ export default function TransactionsPage() {
                   onClick={() => setViewMode('payment')}
                   className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                     viewMode === 'payment'
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400'
+                      ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                      : 'text-[var(--rw-muted)]'
                   }`}
                 >
                   {t('cards.viewByPayment')}
@@ -271,7 +271,7 @@ export default function TransactionsPage() {
               className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 showUncategorized
                   ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                  : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-400'
+                  : 'bg-[var(--rw-raised)] text-[var(--rw-ink)] border border-[var(--rw-border)] hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-400'
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
@@ -280,7 +280,7 @@ export default function TransactionsPage() {
                 <span className={`ml-auto px-1.5 py-0.5 text-xs font-bold rounded-full ${
                   showUncategorized
                     ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
-                    : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
+                    : 'bg-[var(--rw-track)] text-[var(--rw-ink)]'
                 }`}>
                   {uncategorizedCount}
                 </span>
@@ -290,13 +290,13 @@ export default function TransactionsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
               {/* Bank Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Banco' : 'Bank'}
                 </label>
                 <select
                   value={selectedBankFilter}
                   onChange={(e) => setSelectedBankFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'}</option>
                   <option value="cash">{language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'}</option>
@@ -310,13 +310,13 @@ export default function TransactionsPage() {
 
               {/* Payment Method Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
                 </label>
                 <select
                   value={selectedPaymentMethodFilter}
                   onChange={(e) => setSelectedPaymentMethodFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
                   <option value="credit">{language === 'pt' ? '💳 Crédito' : '💳 Credit'}</option>
@@ -329,17 +329,17 @@ export default function TransactionsPage() {
 
               {/* Category Filter */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {t('charts.category')}
                 </label>
                 <div className="flex gap-2">
                   <select
                     value={selectedCategoryFilter}
                     onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent ${
+                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent ${
                       selectedCategoryFilter !== 'all'
-                        ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300'
-                        : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white'
+                        ? 'bg-[var(--rw-brand-soft)] border-violet-200 dark:border-violet-800 text-[var(--rw-brand-ink)]'
+                        : 'bg-[var(--rw-raised)] border-[var(--rw-border)] text-[var(--rw-ink)]'
                     }`}
                   >
                     <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
@@ -360,13 +360,13 @@ export default function TransactionsPage() {
 
               {/* Sort By */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Ordenar por' : 'Sort by'}
                 </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
                   <option value="description">{language === 'pt' ? 'Descrição' : 'Description'}</option>
@@ -377,13 +377,13 @@ export default function TransactionsPage() {
 
               {/* Sort Order */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                   {language === 'pt' ? 'Ordem' : 'Order'}
                 </label>
                 <select
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
                   <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
                   <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
@@ -400,7 +400,7 @@ export default function TransactionsPage() {
                   setSelectedCategoryFilter('all');
                   setShowUncategorized(false);
                 }}
-                className="w-full py-2 text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
+                className="w-full py-2 text-sm font-medium text-[var(--rw-brand-ink)] hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
               >
                 {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
               </button>

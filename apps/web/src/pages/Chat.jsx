@@ -68,19 +68,19 @@ function SavedCard({ saved, onUndo, language }) {
   ].filter(Boolean);
 
   return (
-    <div className="mt-2 rounded-2xl bg-white dark:bg-gray-800 p-3.5 shadow-sm ring-1 ring-gray-200/70 dark:ring-gray-700">
+    <div className="mt-2 rounded-2xl bg-[var(--rw-surface)] p-3.5 shadow-sm ring-1 ring-gray-200/70 dark:ring-gray-700">
       <div className="flex items-baseline justify-between gap-3">
         <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-wide text-gray-400">
           {saved.saved} {pt ? 'lançamentos em' : 'entries in'} {saved.accountName}
         </span>
-        {saved.expense > 0 && <span className="shrink-0 text-base font-bold tabular-nums text-gray-900 dark:text-white">{brl(saved.expense)}</span>}
+        {saved.expense > 0 && <span className="shrink-0 text-base font-bold tabular-nums text-[var(--rw-ink)]">{brl(saved.expense)}</span>}
       </div>
       {rows.length > 0 && (
         <ul className="mt-2.5 space-y-1.5">
           {rows.map((row, i) => (
-            <li key={row.name} className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
+            <li key={row.name} className="flex items-center gap-2 text-[11px] text-[var(--rw-muted)]">
               <span className="w-20 shrink-0 truncate">{row.name}</span>
-              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--rw-raised)]">
                 <span
                   className={`block h-full rounded-full transition-[width] duration-700 ease-out ${BAR_COLORS[i % BAR_COLORS.length]}`}
                   style={{ width: grown ? `${(row.total / max) * 100}%` : '0%', transitionDelay: `${i * 110}ms` }}
@@ -92,9 +92,9 @@ function SavedCard({ saved, onUndo, language }) {
         </ul>
       )}
       <div className="mt-2.5 flex items-center justify-between gap-3 text-[11px]">
-        <p className="min-w-0 text-gray-500 dark:text-gray-400">{notes.join(' · ')}</p>
+        <p className="min-w-0 text-[var(--rw-muted)]">{notes.join(' · ')}</p>
         {state !== 'undone' && saved.importId && (
-          <Link to={`/transactions?import=${saved.importId}`} className="shrink-0 font-bold text-violet-700 dark:text-violet-300 hover:underline">
+          <Link to={`/transactions?import=${saved.importId}`} className="shrink-0 font-bold text-[var(--rw-brand-ink)] hover:underline">
             {pt ? 'Revisar e ignorar' : 'Review and ignore'}
           </Link>
         )}
@@ -104,7 +104,7 @@ function SavedCard({ saved, onUndo, language }) {
           <button
             onClick={undo}
             disabled={state === 'undoing'}
-            className="shrink-0 inline-flex items-center gap-1 font-bold text-violet-700 dark:text-violet-300 hover:underline disabled:opacity-50"
+            className="shrink-0 inline-flex items-center gap-1 font-bold text-[var(--rw-brand-ink)] hover:underline disabled:opacity-50"
           >
             <ArrowUturnLeftIcon className="w-3.5 h-3.5" />
             {state === 'error' ? (pt ? 'Tentar de novo' : 'Retry') : pt ? 'Desfazer' : 'Undo'}
@@ -131,13 +131,13 @@ function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, onSpeak, speaking
       <div
         className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           mine
-            ? 'bg-violet-600 text-white rounded-br-md'
-            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md shadow-sm'
+            ? 'bg-[var(--rw-brand)] text-white rounded-br-md'
+            : 'bg-[var(--rw-surface)] text-[var(--rw-ink)] rounded-bl-md shadow-sm'
         }`}
       >
         {!mine && (
           <div className="mb-0.5 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>
+            <p className="text-[11px] font-bold text-[var(--rw-brand-ink)]">Elio</p>
             {onSpeak && message.content && !message.local && (
               <button
                 type="button"
@@ -176,7 +176,7 @@ function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, onSpeak, speaking
         {pending && (
           <button
             onClick={() => onOpenSheet(message.id, pending)}
-            className="mt-2 w-full rounded-xl bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-700"
+            className="mt-2 w-full rounded-xl bg-[var(--rw-brand)] px-3 py-2 text-xs font-bold text-white hover:bg-violet-700"
           >
             {pending === 'account_form'
               ? pt ? 'Cadastrar conta ou cartão' : 'Add account or card'
@@ -254,15 +254,15 @@ function LiveBubble({ target, status, finished, onRevealed, language }) {
   return (
     <div className="flex justify-start">
       <div
-        className="max-w-[88%] sm:max-w-[75%] rounded-2xl rounded-bl-md bg-white dark:bg-gray-800 px-4 py-2.5 text-sm leading-relaxed text-gray-900 dark:text-gray-100 shadow-sm"
+        className="max-w-[88%] sm:max-w-[75%] rounded-2xl rounded-bl-md bg-[var(--rw-surface)] px-4 py-2.5 text-sm leading-relaxed text-[var(--rw-ink)] shadow-sm"
         aria-live="polite"
         aria-label={pt ? 'O assistente está escrevendo' : 'The assistant is typing'}
       >
-        <p className="mb-0.5 text-[11px] font-bold text-violet-600 dark:text-violet-400">Elio</p>
+        <p className="mb-0.5 text-[11px] font-bold text-[var(--rw-brand-ink)]">Elio</p>
         {visible ? (
           <div>
             <Markdown text={visible} streaming={!finished} />
-            {!finished && <span className="inline-block w-[2px] h-4 -mb-0.5 bg-violet-500 animate-pulse" />}
+            {!finished && <span className="inline-block w-[2px] h-4 -mb-0.5 bg-[var(--rw-brand)] animate-pulse" />}
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -271,7 +271,7 @@ function LiveBubble({ target, status, finished, onRevealed, language }) {
                 <span key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
               ))}
             </span>
-            {status && <span className="text-xs text-gray-500 dark:text-gray-400">{status}</span>}
+            {status && <span className="text-xs text-[var(--rw-muted)]">{status}</span>}
           </div>
         )}
         {visible && status && !finished && <p className="mt-1 text-xs text-gray-400">{status}</p>}
@@ -800,7 +800,7 @@ export default function ChatPage() {
 
   return (
     <div
-      className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col"
+      className="min-h-screen bg-[var(--rw-bg)] flex flex-col"
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -814,8 +814,8 @@ export default function ChatPage() {
 
       <div ref={listRef} className="flex-1 w-full max-w-3xl mx-auto px-4 pt-4 space-y-3" style={{ paddingBottom: 16 }}>
         {!loading && messages.length === 0 && (
-          <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm text-sm text-gray-700 dark:text-gray-300 space-y-3">
-            <p className="font-bold text-gray-900 dark:text-white">
+          <div className="rounded-2xl bg-[var(--rw-surface)] p-5 shadow-sm text-sm text-[var(--rw-ink)] space-y-3">
+            <p className="font-bold text-[var(--rw-ink)]">
               {pt ? 'Oi, eu sou o Elio, seu assistente financeiro. Vamos cuidar bem do seu dinheiro? 💜' : "Hi, I'm Elio, your financial assistant. Let's take good care of your money 💜"}
             </p>
             <p>
@@ -831,7 +831,7 @@ export default function ChatPage() {
                 <button
                   key={s}
                   onClick={() => submit(s)}
-                  className="rounded-full border border-violet-200 dark:border-violet-800 px-3 py-1.5 text-xs font-semibold text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30"
+                  className="rounded-full border border-violet-200 dark:border-violet-800 px-3 py-1.5 text-xs font-semibold text-[var(--rw-brand-ink)] hover:bg-violet-50 dark:hover:bg-violet-900/30"
                 >
                   {s}
                 </button>
@@ -874,7 +874,7 @@ export default function ChatPage() {
                 stick.current = true;
                 scrollToBottom('smooth');
               }}
-              className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-gray-800 text-violet-600 shadow-lg ring-1 ring-black/5"
+              className="absolute -top-12 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--rw-surface)] text-violet-600 shadow-lg ring-1 ring-black/5"
               aria-label={pt ? 'Ir para a última mensagem' : 'Jump to latest message'}
             >
               <ArrowDownIcon className="w-5 h-5" />
@@ -883,7 +883,7 @@ export default function ChatPage() {
           {files.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {files.map((file, i) => (
-                <span key={`${file.name}-${i}`} className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-gray-800 shadow-sm px-2 py-1 text-xs text-gray-700 dark:text-gray-200">
+                <span key={`${file.name}-${i}`} className="inline-flex items-center gap-1 rounded-lg bg-[var(--rw-surface)] shadow-sm px-2 py-1 text-xs text-[var(--rw-ink)]">
                   <button
                     type="button"
                     onClick={() => setPreviewFile(file)}
@@ -918,8 +918,8 @@ export default function ChatPage() {
                   onClick={() => submit(chip.label)}
                   className={`shrink-0 snap-start whitespace-nowrap rounded-full border font-semibold transition-colors ${
                     i === quickChips.length - 1
-                      ? 'border-gray-200 dark:border-gray-700 px-2.5 py-1 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                      : 'border-violet-300 dark:border-violet-700 px-3.5 py-2 text-sm text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30'
+                      ? 'border-[var(--rw-border)] px-2.5 py-1 text-xs text-[var(--rw-muted)] hover:bg-gray-100 dark:hover:bg-gray-800'
+                      : 'border-violet-300 dark:border-violet-700 px-3.5 py-2 text-sm text-[var(--rw-brand-ink)] hover:bg-violet-50 dark:hover:bg-violet-900/30'
                   }`}
                 >
                   {chip.label}
@@ -927,7 +927,7 @@ export default function ChatPage() {
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2 rounded-2xl bg-white dark:bg-gray-800 shadow-lg p-2">
+          <div className="flex items-end gap-2 rounded-2xl bg-[var(--rw-surface)] shadow-lg p-2">
             {/* A <label> around the input opens the picker in every browser (hidden-input .click() is unreliable on iOS and in-app browsers). No `accept` filter: some mobile pickers grey out unusual extensions; unsupported files are rejected below with a clear message. */}
             <label
               className="p-2 rounded-xl text-gray-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30 cursor-pointer"
@@ -957,7 +957,7 @@ export default function ChatPage() {
               rows={1}
               maxLength={4000}
               placeholder={pt ? 'Como posso te ajudar?' : 'How can I help you?'}
-              className="flex-1 resize-none bg-transparent px-1 py-2 text-base sm:text-sm leading-snug text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none overflow-y-auto"
+              className="flex-1 resize-none bg-transparent px-1 py-2 text-base sm:text-sm leading-snug text-[var(--rw-ink)] placeholder-gray-400 focus:outline-none overflow-y-auto"
             />
             {dictation.supported && (
               <button
@@ -976,7 +976,7 @@ export default function ChatPage() {
             <button
               onClick={() => submit()}
               disabled={sending || (!text.trim() && files.length === 0)}
-              className="p-2 rounded-xl bg-violet-600 text-white disabled:opacity-40 hover:bg-violet-700"
+              className="p-2 rounded-xl bg-[var(--rw-brand)] text-white disabled:opacity-40 hover:bg-violet-700"
               aria-label={pt ? 'Enviar' : 'Send'}
             >
               <ArrowUpIcon className="w-6 h-6" />
@@ -1002,8 +1002,8 @@ export default function ChatPage() {
       )}
 
       {dragging && (
-        <div className="fixed inset-0 z-50 bg-violet-600/20 border-4 border-dashed border-violet-500 flex items-center justify-center pointer-events-none">
-          <p className="rounded-xl bg-white dark:bg-gray-800 px-6 py-3 font-bold text-violet-700 dark:text-violet-300">
+        <div className="fixed inset-0 z-50 bg-[var(--rw-brand)]/20 border-4 border-dashed border-violet-500 flex items-center justify-center pointer-events-none">
+          <p className="rounded-xl bg-[var(--rw-surface)] px-6 py-3 font-bold text-[var(--rw-brand-ink)]">
             {pt ? 'Solte os arquivos aqui' : 'Drop files here'}
           </p>
         </div>

@@ -40,27 +40,27 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
         <button
           onClick={() => onMonthChange(currentMonthKey)}
           title={locale === 'pt-BR' ? 'Mês atual' : 'Current month'}
-          className="text-[10px] px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-black uppercase hover:bg-violet-200 dark:hover:bg-violet-800/50 transition-colors"
+          className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)] font-black uppercase hover:bg-violet-200 dark:hover:bg-violet-800/50 transition-colors"
         >
           {locale === 'pt-BR' ? 'hoje' : 'today'}
         </button>
       )}
       <button
         onClick={prev}
-        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg leading-none"
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--rw-muted)] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg leading-none"
       >
         ‹
       </button>
       <span
         className={`text-sm font-bold min-w-[52px] text-center capitalize tabular-nums ${
-          isCurrentMonth ? 'text-violet-600 dark:text-violet-400' : 'text-gray-700 dark:text-gray-300'
+          isCurrentMonth ? 'text-[var(--rw-brand-ink)]' : 'text-[var(--rw-ink)]'
         }`}
       >
         {label}
       </span>
       <button
         onClick={next}
-        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg leading-none"
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--rw-muted)] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg leading-none"
       >
         ›
       </button>
@@ -81,10 +81,13 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
   const initial = (currentUser?.displayName || currentUser?.email || '?').trim().charAt(0).toUpperCase();
   
   // Logic to determine if we should show a back button instead of hamburger
-  const isNestedRoute = pathParts.length > 1 && !['dashboard', 'income', 'expenses', 'bills', 'cards', 'planning', 'budget', 'goals', 'import', 'help', 'settings'].includes(pathParts[pathParts.length - 1]);
+  // The chat hides the tab bar (it has its own composer), so it always gets a way back.
+  const isChat = pathParts[pathParts.length - 1] === 'chat';
+  const isNestedRoute = isChat || pathParts.length > 1 && !['dashboard', 'income', 'expenses', 'bills', 'cards', 'planning', 'budget', 'goals', 'import', 'help', 'settings'].includes(pathParts[pathParts.length - 1]);
 
   const handleBack = () => {
     if (backTo) navigate(backTo);
+    else if (isChat) navigate('/dashboard');
     else navigate(-1);
   };
 
@@ -103,7 +106,7 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
               <button
                 type="button"
                 onClick={handleBack}
-                className="p-2 -ml-2 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                className="p-2 -ml-2 text-[var(--rw-ink)] hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"
                 aria-label={t('common.back')}
               >
                 <ArrowLeftIcon className="w-6 h-6" />

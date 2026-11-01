@@ -11,8 +11,8 @@ export default function PercentInput({ value, onChange, className = '', decimalS
       decimalScale={decimalScale}
       allowNegative={false}
       placeholder={placeholder}
-      className={`px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-        text-gray-900 dark:text-white placeholder-gray-400
+      className={`px-3 py-2 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+        text-[var(--rw-ink)] placeholder-gray-400
         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
         transition-all duration-200 ${className || 'w-full'}`}
       {...props}

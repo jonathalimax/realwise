@@ -44,7 +44,7 @@ function CategoryRow({ row, color, formatCurrency: formatFull, pt, onClick }) {
         </span>
         <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--rw-ink)]">{formatCurrency(row.amount)}</span>
       </div>
-      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60">
+      <div className="mt-2 h-3 overflow-hidden rounded-full bg-[var(--rw-raised)]/60">
         <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${fill}%`, backgroundColor: tone }} />
       </div>
       <p className={`mt-1.5 text-xs ${row.over ? 'font-semibold text-rose-500' : 'text-[var(--rw-muted)]'}`}>
@@ -148,7 +148,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
             {uncategorized > 0 && (
               <button
                 onClick={askElioToClassify}
-                className="mt-4 flex w-full items-start gap-3 rounded-2xl bg-violet-50 p-4 text-left text-base leading-snug text-slate-700 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-slate-200 dark:hover:bg-violet-500/15"
+                className="mt-4 flex w-full items-start gap-3 rounded-2xl bg-violet-50 p-4 text-left text-base leading-snug text-slate-700 hover:bg-violet-100 dark:bg-[var(--rw-brand)]/10 dark:text-slate-200 dark:hover:bg-[var(--rw-brand)]/15"
               >
                 <SparklesIcon className="mt-1 h-5 w-5 shrink-0 text-violet-500 dark:text-violet-300" />
                 <span>
@@ -174,7 +174,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
                 role="tab"
                 aria-selected={filter === f.key}
                 onClick={() => setFilter(f.key)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${filter === f.key ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${filter === f.key ? 'bg-[var(--rw-brand)] text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
               >
                 {f.label}
               </button>

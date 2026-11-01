@@ -54,7 +54,7 @@ export default function ContactSheet({ onClose }) {
               type="button"
               onClick={send}
               disabled={state === 'sending'}
-              className="w-full rounded-xl bg-violet-600 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
+              className="w-full rounded-xl bg-[var(--rw-brand)] py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
             >
               {state === 'sending' ? 'Enviando…' : 'Enviar mensagem'}
             </button>
@@ -83,7 +83,7 @@ export default function ContactSheet({ onClose }) {
       <p className="text-center text-xs text-gray-400">{config.email}</p>
 
       <div className="border-t border-gray-100 pt-4 dark:border-gray-800">
-        <p className="mb-2 text-sm font-bold text-gray-900 dark:text-white">Ou envie uma mensagem aqui</p>
+        <p className="mb-2 text-sm font-bold text-[var(--rw-ink)]">Ou envie uma mensagem aqui</p>
         {state === 'sent' ? (
           <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200">
             Mensagem enviada! Vamos responder por e-mail em breve.
@@ -104,7 +104,7 @@ export default function ContactSheet({ onClose }) {
               onChange={(e) => { setMessage(e.target.value); setProblem(''); }}
             />
             {state === 'error' && (
-              <p className="text-sm text-gray-600 dark:text-gray-300">Não consegui enviar agora. Tente de novo ou fale pelo WhatsApp.</p>
+              <p className="text-sm text-[var(--rw-muted)]">Não consegui enviar agora. Tente de novo ou fale pelo WhatsApp.</p>
             )}
           </div>
         )}

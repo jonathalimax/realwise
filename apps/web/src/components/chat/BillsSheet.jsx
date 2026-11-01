@@ -55,7 +55,7 @@ export default function BillsSheet({ message, busy, onSubmit, onClose }) {
           <button
             onClick={submit}
             disabled={busy || checked.size === 0}
-            className="w-full rounded-xl bg-violet-600 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-40"
+            className="w-full rounded-xl bg-[var(--rw-brand)] py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-40"
           >
             {busy
               ? 'Marcando…'
@@ -94,13 +94,13 @@ export default function BillsSheet({ message, busy, onSubmit, onClose }) {
                       onClick={() => toggle(item.billId)}
                       aria-pressed={on}
                       aria-label={`${on ? 'Desmarcar' : 'Marcar'} ${item.name}`}
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition ${on ? 'border-violet-600 bg-violet-600' : 'border-gray-300 dark:border-gray-600'}`}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition ${on ? 'border-violet-600 bg-[var(--rw-brand)]' : 'border-[var(--rw-border)]'}`}
                     >
                       {on && <CheckIcon className="h-4 w-4 text-white" />}
                     </button>
                     <button onClick={() => toggle(item.billId)} className="min-w-0 flex-1 text-left">
-                      <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{item.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="truncate text-sm font-semibold text-[var(--rw-ink)]">{item.name}</p>
+                      <p className="text-xs text-[var(--rw-muted)]">
                         {item.group === 'overdue' ? `venceu ${formatDay(item.dueDate)} · ${daysLate(item.dueDate)}d de atraso` : item.group === 'today' ? 'vence hoje' : `vence ${formatDay(item.dueDate)}`}
                       </p>
                     </button>
@@ -116,7 +116,7 @@ export default function BillsSheet({ message, busy, onSubmit, onClose }) {
                         />
                       </label>
                     ) : (
-                      <span className="shrink-0 text-sm font-bold tabular-nums text-gray-900 dark:text-white">{brl(item.amount)}</span>
+                      <span className="shrink-0 text-sm font-bold tabular-nums text-[var(--rw-ink)]">{brl(item.amount)}</span>
                     )}
                   </li>
                 );

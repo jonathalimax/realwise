@@ -22,7 +22,7 @@ import { requireOwnerId } from '../lib/auth/ownerSession';
 function ModalWrapper({ embedded, isMobile, children }) {
   if (embedded) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <div className="min-h-screen bg-[var(--rw-bg)] flex flex-col">
         {children}
       </div>
     );
@@ -30,14 +30,14 @@ function ModalWrapper({ embedded, isMobile, children }) {
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <div className="fixed inset-0 z-50 bg-[var(--rw-bg)] flex flex-col">
         {children}
       </div>
     );
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-[var(--rw-surface)] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {children}
       </div>
     </div>
@@ -57,7 +57,7 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
             ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
             : trans.isDuplicate
               ? 'border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-900/30'
-              : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-600'
+              : 'border-gray-300 dark:border-gray-500 bg-[var(--rw-raised)]'
         }`}
       >
         {trans.selected && (
@@ -75,7 +75,7 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
             ? 'bg-gray-100 dark:bg-gray-900/50 opacity-60'
             : isUncategorized
               ? 'bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700'
-              : 'bg-white dark:bg-gray-800'
+              : 'bg-[var(--rw-surface)]'
         }`}
       >
         {/* Title row: type dot + title + value */}
@@ -101,7 +101,7 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
 
           {/* Title */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug">
+            <p className="text-sm font-bold text-[var(--rw-ink)] line-clamp-2 leading-snug">
               {trans._isGroup ? trans._baseDescription : trans.description}
             </p>
           </div>
@@ -125,7 +125,7 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
             {trans.isDuplicate && (
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                 trans.isAiDuplicate
-                  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                  ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
                   : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
               }`}>
                 {trans.isAiDuplicate && '🤖 '}
@@ -138,7 +138,7 @@ function ImportTransactionCard({ trans, language, formatCurrency, onToggleSelect
               </span>
             )}
             {trans.aiCategorized && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)] rounded">
                 🤖 AI
               </span>
             )}
@@ -500,8 +500,8 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       {embedded ? (
         <PageHeader title={t('import.title')} showMonth={false} backTo="/dashboard" />
       ) : (
-        <div className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700 ${isMobile ? 'bg-white dark:bg-gray-800' : ''}`}>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{t('import.title')}</h2>
+        <div className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[var(--rw-border)] ${isMobile ? 'bg-[var(--rw-surface)]' : ''}`}>
+          <h2 className="text-lg sm:text-xl font-bold text-[var(--rw-ink)]">{t('import.title')}</h2>
           <button onClick={handleClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -509,26 +509,26 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
       )}
 
       {/* Content */}
-      <div ref={contentScrollRef} className={`flex-1 ${embedded ? 'max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6' : `p-4 sm:p-6 ${isMobile ? 'bg-gray-50 dark:bg-gray-900' : ''}`} ${step === 'preview' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+      <div ref={contentScrollRef} className={`flex-1 ${embedded ? 'max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6' : `p-4 sm:p-6 ${isMobile ? 'bg-[var(--rw-bg)]' : ''}`} ${step === 'preview' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {step === 'upload' && (
           <div className="flex flex-col gap-6">
             <div>
-              <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">{language === 'pt' ? 'Banco de Destino' : 'Target Bank'}</label>
-              <select value={selectedBankId || ''} onChange={handleBankSelect} className="w-full px-4 py-3 bg-white dark:bg-gray-800 text-slate-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:ring-2 focus:ring-violet-500 appearance-none shadow-sm">
+              <label className="block text-xs font-black text-[var(--rw-muted)] mb-2 uppercase tracking-widest">{language === 'pt' ? 'Banco de Destino' : 'Target Bank'}</label>
+              <select value={selectedBankId || ''} onChange={handleBankSelect} className="w-full px-4 py-3 bg-[var(--rw-surface)] text-[var(--rw-ink)] border border-[var(--rw-border)] rounded-2xl text-sm focus:ring-2 focus:ring-[var(--rw-brand)] appearance-none shadow-sm">
                 <option value="">💵 {language === 'pt' ? 'Dinheiro / Sem banco' : 'Cash / No bank'}</option>
                 {userBanks.map((ub) => <option key={ub.id} value={ub.id}>{getBankInfo(ub.bankId).icon} {getBankDisplayName(ub)}</option>)}
               </select>
               {selectedBankId && userBanks.find(b => b.id === selectedBankId)?.hasCredit && (
-                <div className="mt-3 flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl shadow-inner">
-                  <button onClick={() => setImportPaymentMethod('debit')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${importPaymentMethod !== 'credit' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}>🏦 CONTA</button>
-                  <button onClick={() => setImportPaymentMethod('credit')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${importPaymentMethod === 'credit' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}>💳 CARTÃO</button>
+                <div className="mt-3 flex p-1 bg-[var(--rw-raised)] rounded-xl shadow-inner">
+                  <button onClick={() => setImportPaymentMethod('debit')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${importPaymentMethod !== 'credit' ? 'bg-[var(--rw-raised)] shadow-sm' : 'text-gray-500'}`}>🏦 CONTA</button>
+                  <button onClick={() => setImportPaymentMethod('credit')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${importPaymentMethod === 'credit' ? 'bg-[var(--rw-raised)] shadow-sm' : 'text-gray-500'}`}>💳 CARTÃO</button>
                 </div>
               )}
             </div>
 
             {detectedBank && bankType === 'auto' && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">
-                Banco detectado: <span className="font-medium text-gray-700 dark:text-gray-200">{BANK_LABELS[detectedBank] || detectedBank}</span>
+              <p className="text-sm text-[var(--rw-muted)] -mt-2">
+                Banco detectado: <span className="font-medium text-[var(--rw-ink)]">{BANK_LABELS[detectedBank] || detectedBank}</span>
               </p>
             )}
             {bankMismatch && (
@@ -550,21 +550,21 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
             )}
 
             <div>
-              <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">{language === 'pt' ? 'Selecionar Arquivo' : 'Select File'}</label>
+              <label className="block text-xs font-black text-[var(--rw-muted)] mb-2 uppercase tracking-widest">{language === 'pt' ? 'Selecionar Arquivo' : 'Select File'}</label>
               <label className="block cursor-pointer">
-                <div className="w-full py-8 px-4 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl text-center hover:border-violet-400 transition-colors shadow-sm">
+                <div className="w-full py-8 px-4 bg-[var(--rw-surface)] border-2 border-dashed border-[var(--rw-border)] rounded-2xl text-center hover:border-violet-400 transition-colors shadow-sm">
                   {file ? (
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       </div>
-                      <p className="text-sm font-bold truncate max-w-full px-4 text-gray-800 dark:text-gray-100">{file.name}</p>
+                      <p className="text-sm font-bold truncate max-w-full px-4 text-[var(--rw-ink)]">{file.name}</p>
                       <button onClick={(e) => {e.preventDefault(); setFile(null); setPdfPassword(''); setRequiresPdfPassword(false);}} className="text-xs text-rose-500 font-bold uppercase underline">remover</button>
                     </div>
                   ) : (
                     <>
                       <svg className="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">CSV ou PDF</p>
+                      <p className="text-sm font-bold text-[var(--rw-ink)]">CSV ou PDF</p>
                     </>
                   )}
                 </div>
@@ -582,10 +582,10 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                   value={pdfPassword}
                   onChange={(e) => setPdfPassword(e.target.value)}
                   placeholder="Senha do PDF"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
+                  className="w-full rounded-lg border border-[var(--rw-border)] bg-[var(--rw-surface)] px-3 py-2 text-sm text-[var(--rw-ink)]"
                   autoFocus
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-[var(--rw-muted)] mt-1">
                   A senha não é armazenada — usada apenas para abrir o arquivo.
                 </p>
               </div>
@@ -622,11 +622,11 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setStep('upload')}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold uppercase tracking-tight"
+                  className="px-3 py-2 bg-[var(--rw-raised)] text-[var(--rw-ink)] rounded-xl text-xs font-bold uppercase tracking-tight"
                 >
                   ← {t('common.back')}
                 </button>
-                <span className="px-3 py-1.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-full text-xs font-bold uppercase">
+                <span className="px-3 py-1.5 bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)] rounded-full text-xs font-bold uppercase">
                   {sortedTransactions.main.length + sortedTransactions.duplicates.length}{' '}
                   {language === 'pt' ? 'transações' : 'transactions'}
                 </span>
@@ -641,7 +641,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
                 </button>
                 <button
                   onClick={deselectAllTransactions}
-                  className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-[11px] font-black uppercase tracking-tight text-gray-700 dark:text-gray-300"
+                  className="px-3 py-1.5 border border-[var(--rw-border)] rounded-lg text-[11px] font-black uppercase tracking-tight text-[var(--rw-ink)]"
                 >
                   {language === 'pt' ? 'Limpar' : 'Clear'}
                 </button>
@@ -660,7 +660,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               {groupByDate(sortedTransactions.main).map(({ date, transactions: group }) => (
                 <div key={date} className="mb-4">
                   {/* Date header */}
-                  <div className="text-xs font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 px-1 pb-2">
+                  <div className="text-xs font-black uppercase tracking-widest text-[var(--rw-subtle)] px-1 pb-2">
                     {new Date(date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
                   </div>
                   <div className="flex flex-col gap-2">
@@ -680,7 +680,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
 
               {/* Duplicates section */}
               {sortedTransactions.duplicates.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="mt-4 pt-4 border-t border-[var(--rw-border)]">
                   <button
                     onClick={() => setIsDuplicatesExpanded(!isDuplicatesExpanded)}
                     className="w-full flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl mb-2"
@@ -721,16 +721,16 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
             <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
             </div>
-            <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">{t('import.complete')}</h3>
-            <p className="mt-2 text-gray-500 dark:text-gray-400 font-medium">Tudo pronto! Seus dados foram importados.</p>
+            <h3 className="text-xl font-black text-[var(--rw-ink)] uppercase tracking-tight">{t('import.complete')}</h3>
+            <p className="mt-2 text-[var(--rw-muted)] font-medium">Tudo pronto! Seus dados foram importados.</p>
           </div>
         )}
       </div>
 
       {/* Footer */}
       <div className={embedded
-        ? 'sticky bottom-0 z-10 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md border-t border-gray-100 dark:border-gray-700 px-4 sm:px-6 py-4'
-        : `px-4 sm:px-6 py-4 border-t border-gray-100 dark:border-gray-700 ${isMobile ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'}`
+        ? 'sticky bottom-0 z-10 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md border-t border-[var(--rw-border)] px-4 sm:px-6 py-4'
+        : `px-4 sm:px-6 py-4 border-t border-[var(--rw-border)] ${isMobile ? 'bg-[var(--rw-surface)]' : 'bg-[var(--rw-bg)]'}`
       }>
         <div className={embedded ? 'max-w-7xl mx-auto' : ''}>
           {step === 'upload' && (

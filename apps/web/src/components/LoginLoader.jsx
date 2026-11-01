@@ -60,7 +60,7 @@ export default function LoginLoader({ isReady, onFinished, onTimeout }) {
   const message = timedOut ? 'Demorando mais que o normal...' : MESSAGES[messageIndex];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--rw-bg)] px-6">
       <div className="flex flex-col items-center -space-y-2">
         <div className="w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center">
           <Lottie
@@ -77,7 +77,7 @@ export default function LoginLoader({ isReady, onFinished, onTimeout }) {
         </div>
         <p
           key={message}
-          className="text-lg font-medium tracking-tight text-gray-800 dark:text-gray-100 text-center min-h-[1.75rem] animate-[fadeIn_400ms_ease-out]"
+          className="text-lg font-medium tracking-tight text-[var(--rw-ink)] text-center min-h-[1.75rem] animate-[fadeIn_400ms_ease-out]"
         >
           {message}
         </p>

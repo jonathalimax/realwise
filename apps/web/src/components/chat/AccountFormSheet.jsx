@@ -11,14 +11,14 @@ const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 // 16px on mobile: below that iOS zooms the whole page when a field is focused.
 const FIELD =
-  'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500';
+  'w-full rounded-xl border border-[var(--rw-border)] bg-transparent px-3 py-2.5 text-base sm:text-sm text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--rw-brand)]';
 
 function Field({ label, hint, children }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-300">{label}</span>
+      <span className="mb-1 block text-xs font-semibold text-[var(--rw-muted)]">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{hint}</span>}
+      {hint && <span className="mt-1 block text-[11px] text-[var(--rw-muted)]">{hint}</span>}
     </label>
   );
 }
@@ -60,13 +60,13 @@ export default function AccountFormSheet({ message, language, busy, error, onSub
         <div>
           {error && <p className="mb-2 text-xs font-semibold text-rose-600">{error}</p>}
           <div className="flex gap-2">
-          <button onClick={onClose} className="rounded-xl px-4 py-3 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <button onClick={onClose} className="rounded-xl px-4 py-3 text-sm font-bold text-[var(--rw-muted)] hover:bg-gray-100 dark:hover:bg-gray-800">
             {pt ? 'Depois' : 'Later'}
           </button>
           <button
             onClick={submit}
             disabled={!valid || busy}
-            className="flex-1 rounded-xl bg-violet-600 py-3 text-sm font-bold text-white disabled:opacity-40 hover:bg-violet-700"
+            className="flex-1 rounded-xl bg-[var(--rw-brand)] py-3 text-sm font-bold text-white disabled:opacity-40 hover:bg-violet-700"
           >
             {busy ? (pt ? 'Salvando…' : 'Saving…') : pt ? 'Salvar conta' : 'Save account'}
           </button>
@@ -91,7 +91,7 @@ export default function AccountFormSheet({ message, language, busy, error, onSub
       )}
 
       <div role="radiogroup" aria-label={pt ? 'Tipo' : 'Type'}>
-        <span className="mb-1 block text-xs font-semibold text-gray-600 dark:text-gray-300">{pt ? 'Tipo' : 'Type'}</span>
+        <span className="mb-1 block text-xs font-semibold text-[var(--rw-muted)]">{pt ? 'Tipo' : 'Type'}</span>
         <div className="grid grid-cols-2 gap-2">
           {TYPES.map((t) => (
             <button
@@ -101,8 +101,8 @@ export default function AccountFormSheet({ message, language, busy, error, onSub
               onClick={() => setType(t.value)}
               className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
                 type === t.value
-                  ? 'border-violet-500 bg-violet-600 text-white'
-                  : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'border-violet-500 bg-[var(--rw-brand)] text-white'
+                  : 'border-[var(--rw-border)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               {pt ? t.pt : t.en}

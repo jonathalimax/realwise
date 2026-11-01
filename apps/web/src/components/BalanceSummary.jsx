@@ -44,9 +44,9 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick, 
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
-      color: summary.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-rose-600',
-      bgColor: 'bg-gray-50 dark:bg-gray-700',
-      borderColor: 'border-gray-100 dark:border-gray-700'
+      color: summary.balance >= 0 ? 'text-[var(--rw-ink)]' : 'text-rose-600',
+      bgColor: 'bg-[var(--rw-raised)]',
+      borderColor: 'border-[var(--rw-border)]'
     },
     {
       title: t('balance.income'),
@@ -94,12 +94,12 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick, 
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 md:p-0 shadow-sm md:bg-transparent md:dark:bg-transparent md:border-none md:shadow-none">
+    <div className="bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-2xl p-4 md:p-0 shadow-sm md:bg-transparent md:dark:bg-transparent md:border-none md:shadow-none">
       {/* Mobile view: single card */}
       <div className="md:hidden">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('balance.totalBalance')}</p>
-          <p className={`text-2xl font-bold ${summary.balance >= 0 ? 'text-gray-900 dark:text-white' : 'text-rose-600'}`}>
+          <p className="text-sm font-medium text-[var(--rw-muted)]">{t('balance.totalBalance')}</p>
+          <p className={`text-2xl font-bold ${summary.balance >= 0 ? 'text-[var(--rw-ink)]' : 'text-rose-600'}`}>
             {formatCurrency(summary.balance)}
           </p>
         </div>
@@ -116,11 +116,11 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick, 
         {hasInvestments && (
             <button
               onClick={onInvestmentsClick}
-              className="mt-4 border-t border-gray-100 dark:border-gray-700 pt-4 w-full text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 -mx-4 px-4 pb-4 -mb-4 rounded-b-2xl transition-colors"
+              className="mt-4 border-t border-[var(--rw-border)] pt-4 w-full text-left hover:bg-blue-50 dark:hover:bg-blue-900/20 -mx-4 px-4 pb-4 -mb-4 rounded-b-2xl transition-colors"
             >
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('investments.portfolioValue')}</p>
+                        <p className="text-sm font-medium text-[var(--rw-muted)]">{t('investments.portfolioValue')}</p>
                         <p className="text-xl font-bold text-blue-600">{formatCurrency(portfolioValue)}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -146,14 +146,14 @@ export default function BalanceSummary({ transactions = [], onInvestmentsClick, 
               onClick={card.onClick}
               className={`
                 relative overflow-hidden rounded-2xl p-6 text-left
-                bg-white dark:bg-gray-800 border ${card.borderColor}
+                bg-[var(--rw-surface)] border ${card.borderColor}
                 hover:shadow-md transition-all duration-300
                 ${card.isClickable ? 'cursor-pointer hover:scale-[1.02]' : ''}
               `}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{card.title}</p>
+                  <p className="text-sm font-medium text-[var(--rw-muted)] mb-1">{card.title}</p>
                   <p className={`text-2xl sm:text-3xl font-bold ${card.color}`}>
                     {formatCurrency(card.value)}
                   </p>

@@ -24,12 +24,12 @@ export default class AppErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-6">
+        <div className="min-h-screen flex items-center justify-center bg-[var(--rw-bg)] px-6">
           <div className="max-w-md text-center space-y-4">
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className="text-xl font-semibold text-[var(--rw-ink)]">
               Algo deu errado.
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-[var(--rw-muted)]">
               Tente recarregar a página. Se o problema persistir, entre em contato com o suporte.
             </p>
             <button

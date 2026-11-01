@@ -70,15 +70,15 @@ export default function CarteiraDashboard({
       </div>
 
       {/* Disponível p/ investir */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Disponível p/ investir</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-white tabular-nums">{formatBRL.format(poupancaValue)}</p>
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 border border-[var(--rw-border)]">
+        <p className="text-xs text-[var(--rw-muted)] mb-1">Disponível p/ investir</p>
+        <p className="text-lg font-bold text-[var(--rw-ink)] tabular-nums">{formatBRL.format(poupancaValue)}</p>
         <p className="text-xs text-gray-400 mt-1">alocação poupança</p>
       </div>
 
       {/* Fundo emergência */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Fundo emergência</p>
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 border border-[var(--rw-border)]">
+        <p className="text-xs text-[var(--rw-muted)] mb-1">Fundo emergência</p>
         {invLoading ? (
           <Shimmer className="h-6 w-2/3 rounded" />
         ) : (
@@ -87,15 +87,15 @@ export default function CarteiraDashboard({
             <p className="text-xs text-gray-400 mb-0.5">/ 6 meses</p>
           </div>
         )}
-        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-2">
+        <div className="w-full bg-[var(--rw-raised)] rounded-full h-1.5 mt-2">
           <div className="h-1.5 rounded-full transition-all" style={{ width: `${emergPct}%`, backgroundColor: emergColor }} />
         </div>
       </div>
 
       {/* Foco atual */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 border border-[var(--rw-border)]">
         <div className="flex items-center justify-between mb-1">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Foco atual</p>
+          <p className="text-xs text-[var(--rw-muted)]">Foco atual</p>
           {focusSub && focusColors && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${focusColors.badge}`}>
               {focusSub.icon}
@@ -105,9 +105,9 @@ export default function CarteiraDashboard({
         {invLoading ? (
           <Shimmer className="h-6 w-2/3 rounded" />
         ) : focusSub ? (
-          <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">{focusSub.label}</p>
+          <p className="text-sm font-bold text-[var(--rw-ink)] leading-tight truncate">{focusSub.label}</p>
         ) : allSublayers.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Nenhuma meta configurada</p>
+          <p className="text-sm text-[var(--rw-subtle)]">Nenhuma meta configurada</p>
         ) : (
           <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">Todas as metas atingidas 🎉</p>
         )}
@@ -116,7 +116,7 @@ export default function CarteiraDashboard({
             <p className="text-xs text-gray-400 mt-0.5 tabular-nums truncate">
               {formatBRL.format(focusBalance)} / {formatBRL.format(focusSub.goalTarget)}
             </p>
-            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 mt-1.5">
+            <div className="w-full bg-[var(--rw-raised)] rounded-full h-1.5 mt-1.5">
               <div className={`h-1.5 rounded-full transition-all ${focusColors?.bar ?? 'bg-gray-400'}`} style={{ width: `${focusPct}%` }} />
             </div>
           </>

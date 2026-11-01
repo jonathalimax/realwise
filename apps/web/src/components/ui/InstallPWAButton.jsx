@@ -32,11 +32,11 @@ const InstallPWAButton = () => {
   // iOS instructions (no beforeinstallprompt support)
   if (isIOS) {
     return (
-      <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-xl text-center">
-        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1">
+      <div className="p-3 bg-[var(--rw-raised)] rounded-xl text-center">
+        <p className="text-sm text-[var(--rw-ink)] font-medium mb-1">
           {language === 'pt' ? 'Para instalar no iOS:' : 'To install on iOS:'}
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-[var(--rw-muted)]">
           {language === 'pt'
             ? 'Toque em Compartilhar e "Adicionar à Tela Inicial"'
             : 'Tap Share then "Add to Home Screen"'}
@@ -59,7 +59,7 @@ const InstallPWAButton = () => {
 
   // Not available (already installed, unsupported browser, or in dev mode)
   return (
-    <div className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm rounded-xl text-center">
+    <div className="px-4 py-2 bg-[var(--rw-raised)] text-[var(--rw-muted)] text-sm rounded-xl text-center">
       {language === 'pt'
         ? 'Instalação disponível no Chrome/Edge'
         : 'Install available on Chrome/Edge'}

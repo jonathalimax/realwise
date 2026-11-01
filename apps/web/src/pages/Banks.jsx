@@ -8,7 +8,7 @@ export default function BanksPage() {
   const { t } = useSettings();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
       <PageHeader title={t('banks.title') || 'Banks'} onBack={() => navigate(-1)} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         <BanksTabContent />
