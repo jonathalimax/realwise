@@ -25,6 +25,8 @@ const KINDS = [
   { key: 'winback_7', label: 'Volta: 7 dias depois de sair', desc: 'Quem cancelou ou deixou o teste vencer: seus dados continuam guardados e um convite para contar o motivo.' },
   { key: 'winback_30', label: 'Volta: 30 dias, com código', desc: 'Código pessoal de desconto (uso único, com validade), configurado em Cancelamentos.' },
   { key: 'winback_60', label: 'Volta: 60 dias, com código', desc: 'Último lembrete, com um novo código pessoal. Depois disso, silêncio.' },
+  { key: 'statement_ready', label: 'Extrato pronto', desc: 'Na hora em que o Elio termina de ler o extrato e a pessoa já saiu do chat: avisa e diz quantas transações faltam categorizar. Um por importação.' },
+  { key: 'categorize_pending', label: 'Falta categorizar', desc: 'Um dia depois da importação, se a pessoa não voltou ao chat: lembra de quantas transações esperam uma categoria. Um por importação.' },
   { key: 'bill_suggestion', label: 'Sugestão de lembrete', desc: 'O Elio percebe um pagamento mensal e pergunta se quer criar um lembrete (no máx. 1 a cada 14 dias).' },
 ];
 const SENT_KINDS = [...KINDS, { key: 'bill_reminder', label: 'Lembrete de contas' }, { key: 'trial_import', label: 'Teste: importe seu extrato (antigo)' }];

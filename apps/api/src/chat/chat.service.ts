@@ -500,6 +500,17 @@ export class ChatService {
     return { updated, message };
   }
 
+  /**
+   * Called when a streamed turn ends. If the person had already left (closed the app while a statement was being read),
+   * the reply is waiting for them: send the "your statement is ready" e-mail, with how many rows need a category.
+   */
+  notifyTurnFinishedAway(result: unknown): void {
+    const m = (result as { assistantMessage?: ChatMessageRow } | null)?.assistantMessage;
+    if (!m || (!m.saved && !m.review)) return;
+    const groups = (m.review as ReviewPayload | null)?.groups ?? [];
+    void this.engagement.sendStatementReady(m.userId, m.id, groups.reduce((acc, g) => acc + g.count, 0));
+  }
+
   /** Reverts everything a single AI import saved. */
   async undoImport(scope: ChatScope, importId: string): Promise<{ removed: number }> {
     const [imp] = await this.db
