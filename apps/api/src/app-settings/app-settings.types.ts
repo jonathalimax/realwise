@@ -10,6 +10,9 @@ export const ENGAGEMENT_KINDS = [
   'trial_expired',
   'monthly_import',
   'bill_suggestion',
+  // Statement import: finished while the person was away, and still waiting for their categories a day later.
+  'statement_ready',
+  'categorize_pending',
   // Billing recovery and win-back (see retention/ and billing/payment-failed.service.ts).
   'payment_failed',
   'payment_failed_followup',
@@ -67,6 +70,8 @@ export const DEFAULT_EMAIL_SETTINGS: EmailSettings = {
       trial_expired: { enabled: true },
       monthly_import: { enabled: true },
       bill_suggestion: { enabled: true },
+      statement_ready: { enabled: true },
+      categorize_pending: { enabled: true },
       payment_failed: { enabled: true },
       payment_failed_followup: { enabled: true },
       winback_7: { enabled: true },

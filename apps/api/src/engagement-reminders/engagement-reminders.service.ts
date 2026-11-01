@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq, gte, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
@@ -59,7 +59,10 @@ export class EngagementRemindersService {
           .where(and(eq(reminderEmailsSent.userId, user.id), eq(reminderEmailsSent.kind, 'install_app')))
           .limit(1);
 
+        const pending = await this.pendingCategorize(user.id);
+
         const baseKind = pickReminder({
+          pendingCategorize: pending,
           access,
           trialStartedAt: user.premiumAccessStartedAt ?? user.createdAt,
           trialEndsAt: user.premiumAccessEndsAt,
@@ -91,7 +94,7 @@ export class EngagementRemindersService {
           .limit(1);
         if (recent.length) { skipped++; continue; }
 
-        const periodKey = periodKeyFor(kind, now, user.premiumAccessEndsAt, suggestion?.id, access.currentPeriodEnd);
+        const periodKey = periodKeyFor(kind, now, user.premiumAccessEndsAt, suggestion?.id ?? pending?.messageId, access.currentPeriodEnd);
 
         // The 30- and 60-day win-back e-mails carry a personal code. It is created only when this e-mail is really
         // due (not already sent), so the hourly job never piles up unused codes in Stripe.
@@ -123,6 +126,7 @@ export class EngagementRemindersService {
           now,
           clientId: user.clientId,
           promo,
+          pendingCount: kind === 'categorize_pending' ? pending?.count : undefined,
           suggestion: suggestion
             ? {
                 id: suggestion.id,
@@ -174,6 +178,55 @@ export class EngagementRemindersService {
       });
     } catch (err) {
       this.logger.error(`welcome e-mail failed for user ${userId}: ${(err as Error).message}`);
+    }
+  }
+
+  /** Rows Elio saved from statements that still wait for a category: the sum of the open review sheets. */
+  private async pendingCategorize(userId: string): Promise<{ count: number; since: Date; messageId: string } | null> {
+    const open = await this.db
+      .select({ id: chatMessages.id, review: chatMessages.review, createdAt: chatMessages.createdAt })
+      .from(chatMessages)
+      .where(and(eq(chatMessages.userId, userId), sql`${chatMessages.review} is not null`, sql`${chatMessages.review}->>'resolved' is distinct from 'true'`))
+      .orderBy(desc(chatMessages.createdAt))
+      .limit(20);
+    if (!open.length) return null;
+    const count = open.reduce((acc, m) => {
+      const groups = (m.review as { groups?: { count?: number }[] } | null)?.groups ?? [];
+      return acc + groups.reduce((a, g) => a + (g.count ?? 0), 0);
+    }, 0);
+    // Counted from the newest import: the person gets a day after the last one before being nudged.
+    return count > 0 ? { count, since: open[0].createdAt, messageId: open[0].id } : null;
+  }
+
+  /**
+   * A statement finished processing while the person had already left the chat. Never throws; honors the admin switch
+   * and the unsubscribe flag. One e-mail per import (keyed by the reply message).
+   */
+  async sendStatementReady(userId: string, messageId: string, pendingCount: number, now = new Date()): Promise<void> {
+    try {
+      const { engagement } = await this.settings.getEmails();
+      if (!engagement.enabled || !engagement.kinds.statement_ready.enabled) return;
+      const [user] = await this.db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.reminderEmailsOptOut) return;
+      const access = computeAccess(user, now);
+      if (!access.allowed) return;
+      const claimed = await this.db
+        .insert(reminderEmailsSent)
+        .values({ userId, kind: 'statement_ready', periodKey: messageId })
+        .onConflictDoNothing()
+        .returning({ id: reminderEmailsSent.id });
+      if (!claimed.length) return;
+      await this.notifications.sendEngagementEmail(user.email, 'statement_ready', {
+        name: (user.name ?? '').split(' ')[0] || 'tudo bem',
+        trialDaysRemaining: access.state === 'trial' ? access.trialDaysRemaining : 0,
+        unsubscribeUserId: user.id,
+        unsubscribeToken: unsubscribeToken(user.id),
+        now,
+        clientId: user.clientId,
+        pendingCount,
+      });
+    } catch (err) {
+      this.logger.error(`statement-ready e-mail failed for user ${userId}: ${(err as Error).message}`);
     }
   }
 

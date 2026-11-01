@@ -37,10 +37,19 @@ export function matchesHolder(description: string, holderName: string | null | u
   return haystack.has(parts[0]) && haystack.has(parts[parts.length - 1]);
 }
 
-/** Card-invoice payments made from a bank account: they duplicate the invoice's own purchases if counted. */
+/**
+ * Card-invoice payments: they duplicate the invoice's own purchases if counted. Covers the bank side ("PAGAMENTO FATURA
+ * CARTAO", "PAGTO FATURA", "DEB AUT FATURA") and the card side, where the payment shows as a credit line
+ * ("Pagamento recebido", "Pagamento efetuado").
+ */
 export function looksLikeInvoicePayment(description: string): boolean {
   const d = strip(description);
-  return /\b(PAGAMENTO|PGTO|PAG)\b.*\b(FATURA|CARTAO)\b/.test(d) || /\bFATURA\b.*\b(CARTAO|PAGA)/.test(d);
+  return (
+    /\b(PAGAMENTO|PGTO|PAGTO|PAG)\b.*\b(FATURA|CARTAO)\b/.test(d) ||
+    /\bFATURA\b.*\b(CARTAO|PAGA|PAGO)/.test(d) ||
+    /\b(DEB|DEBITO)\b.*\bAUT\w*\b.*\bFATURA\b/.test(d) ||
+    /^(PAGAMENTO|PGTO|PAGTO) (RECEBIDO|EFETUADO|ON ?LINE)\b/.test(d)
+  );
 }
 
 export interface PairCandidate {

@@ -35,3 +35,10 @@ Every e-mail is built with `buildEmail` in `apps/api/src/notifications/email-lay
 - No inline SVG and no `data:` images (Gmail strips them): icons are emoji in tinted tiles; the only hosted files are the logo and the install GIFs in `apps/web/public/email`.
 - Copy: a headline of a few words, one or two short lines, then rows. Keep button labels to 23 characters or fewer. Paragraph colors come from the block they sit in, never inline.
 - Check by rendering to HTML and opening it with the browser pane in light and dark (`colorScheme` emulation), then send one from Admin → E-mails.
+
+## Statement import e-mails
+
+- `statement_ready`: sent right when Elio finishes reading a statement **and the client had already disconnected** (`ChatController.respond` -> `ChatService.notifyTurnFinishedAway`). Says how many saved rows still need a category. One per import (period key = reply message id).
+- `categorize_pending`: daily job. 24h after the newest import, if open review sheets still hold rows and the person has not chatted in 24h. One per import. Both link to `/chat?intent=categorize`, which opens the newest pending sheet.
+- While a statement is being read, the chat shows "Pode levar alguns minutos... avisamos por e-mail quando terminar".
+- Both kinds have admin toggles (Admin > E-mails) and honor the unsubscribe flag.

@@ -3,7 +3,7 @@ export interface PromptContext {
   setup: { accountCount: number; categoryCount: number; hasIncome: boolean };
   accounts: { id: string; name: string; type: string | null; cardName: string | null; holderName: string | null }[];
   categories: { id: string; name: string; type: string | null }[];
-  rules: { keyword: string; categoryName: string | null; usedCount: number; isTransfer: boolean }[];
+  rules: { keyword: string; categoryName: string | null; usedCount: number; isTransfer: boolean; isIgnore?: boolean }[];
   /** Lasting facts the user stated, one per line: `id | kind | text`. */
   memory: string;
 }
@@ -16,7 +16,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     ? ctx.categories.map((c) => `- ${c.id} | ${c.name} | ${c.type ?? 'any'}`).join('\n')
     : '(none yet)';
   const rules = ctx.rules.length
-    ? ctx.rules.map((r) => `- "${r.keyword}" => ${r.isTransfer ? 'TRANSFER between own accounts' : (r.categoryName ?? '?')} (used ${r.usedCount}x)`).join('\n')
+    ? ctx.rules.map((r) => `- "${r.keyword}" => ${r.isTransfer ? 'TRANSFER between own accounts' : r.isIgnore ? 'IGNORED (never counted)' : (r.categoryName ?? '?')} (used ${r.usedCount}x)`).join('\n')
     : '(none yet)';
 
   return `You are Elio, the personal financial specialist inside the RealWise app (Brazil, currency BRL). The chat is the ONLY way users add data and ask about their finances.

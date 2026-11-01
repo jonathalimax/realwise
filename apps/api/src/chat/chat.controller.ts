@@ -101,6 +101,11 @@ class ReviewDecisionDto {
   @IsOptional()
   @IsBoolean()
   transfer?: boolean;
+
+  /** true = leave these out of every total without calling them a transfer (e.g. a card invoice payment). */
+  @IsOptional()
+  @IsBoolean()
+  ignore?: boolean;
 }
 
 class ReviewDto {
@@ -252,7 +257,9 @@ export class ChatController {
       if (!res.writableEnded) clientGone = true;
     });
     try {
-      write({ type: 'done', result: await run(write) });
+      const result = await run(write);
+      write({ type: 'done', result });
+      if (clientGone) this.service.notifyTurnFinishedAway(result);
       console.log(`[chat] turn finished in ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone before the end: ${clientGone})`);
     } catch (e) {
       console.error(`[chat] turn failed after ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone: ${clientGone}):`, e);

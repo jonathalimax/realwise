@@ -442,7 +442,7 @@ export class ChatService {
   async applyReview(
     scope: ChatScope,
     messageId: string,
-    decisions: { key: string; categoryId?: string; remember: boolean; transfer?: boolean }[],
+    decisions: { key: string; categoryId?: string; remember: boolean; transfer?: boolean; ignore?: boolean }[],
   ): Promise<{ updated: number; message: ChatMessageRow }> {
     const msg = await this.ownMessage(scope, messageId);
     const review = msg.review as ReviewPayload | null;
@@ -466,7 +466,18 @@ export class ChatService {
           .where(and(inArray(transactions.id, group.transactionIds), eq(transactions.userId, scope.userId), eq(transactions.clientId, scope.clientId), isNull(transactions.deletedAt)))
           .returning({ id: transactions.id });
         updated += res.length;
-        if (d.remember) await this.tools.rememberTransferRule(group.merchant, scope);
+        if (d.remember) await this.tools.rememberLeftOutRule(group.merchant, 'transfer', scope);
+        continue;
+      }
+      if (d.ignore === true) {
+        // "Don't count this" (e.g. a card invoice payment): out of every total, but it is not a transfer, so nothing gets linked.
+        const res = await this.db
+          .update(transactions)
+          .set({ ignored: true, categoryId: null, category: null, updatedAt: new Date() })
+          .where(and(inArray(transactions.id, group.transactionIds), eq(transactions.userId, scope.userId), eq(transactions.clientId, scope.clientId), isNull(transactions.deletedAt)))
+          .returning({ id: transactions.id });
+        updated += res.length;
+        if (d.remember) await this.tools.rememberLeftOutRule(group.merchant, 'ignore', scope);
         continue;
       }
       const cat = d.categoryId ? catById.get(d.categoryId) : undefined;
@@ -487,6 +498,17 @@ export class ChatService {
     const resolved: ReviewPayload = { ...review, resolved: true };
     const [message] = await this.db.update(chatMessages).set({ review: resolved }).where(eq(chatMessages.id, msg.id)).returning();
     return { updated, message };
+  }
+
+  /**
+   * Called when a streamed turn ends. If the person had already left (closed the app while a statement was being read),
+   * the reply is waiting for them: send the "your statement is ready" e-mail, with how many rows need a category.
+   */
+  notifyTurnFinishedAway(result: unknown): void {
+    const m = (result as { assistantMessage?: ChatMessageRow } | null)?.assistantMessage;
+    if (!m || (!m.saved && !m.review)) return;
+    const groups = (m.review as ReviewPayload | null)?.groups ?? [];
+    void this.engagement.sendStatementReady(m.userId, m.id, groups.reduce((acc, g) => acc + g.count, 0));
   }
 
   /** Reverts everything a single AI import saved. */
@@ -524,7 +546,7 @@ export class ChatService {
       today: new Date().toISOString().slice(0, 10),
       accounts: accs.map((a) => ({ id: a.id, name: a.name, type: a.type, cardName: a.cardName, holderName: a.holderName })),
       categories: cats.map((c) => ({ id: c.id, name: c.name, type: c.type })),
-      rules: rules.map((r) => ({ keyword: r.keyword, categoryName: r.category, usedCount: r.usedCount, isTransfer: r.type === 'transfer' })),
+      rules: rules.map((r) => ({ keyword: r.keyword, categoryName: r.category, usedCount: r.usedCount, isTransfer: r.type === 'transfer', isIgnore: r.type === 'ignore' })),
     });
   }
 }
