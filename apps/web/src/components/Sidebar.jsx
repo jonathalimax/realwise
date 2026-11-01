@@ -11,6 +11,7 @@ import {
   ChartPieIcon,
   ArrowTrendingUpIcon,
   Cog6ToothIcon,
+  ShieldCheckIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
   BellIcon,
@@ -129,6 +130,13 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
             <Cog6ToothIcon className="w-5 h-5" />
             {language === 'pt' ? 'Configurações' : 'Settings'}
           </NavLink>
+          {/* Only admins see this; the API still checks the role on every admin request. */}
+          {currentUser?.role === 'admin' && (
+            <a href="/admin" className={navLinkClass({ href: '/admin' })}>
+              <ShieldCheckIcon className="w-5 h-5" />
+              Admin
+            </a>
+          )}
           <button
             onClick={onSignOut}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all uppercase tracking-wide"
