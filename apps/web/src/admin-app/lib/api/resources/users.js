@@ -15,6 +15,10 @@ export const usersResource = {
   plan(id, body) {
     return apiClient.post(`/admin/users/${id}/plan`, body);
   },
+  /** role: 'admin' | 'user'. Not allowed on your own account. */
+  setRole(id, role) {
+    return apiClient.post(`/admin/users/${id}/role`, { role });
+  },
   remove(id) {
     return apiClient.delete(`/admin/users/${id}`);
   },
