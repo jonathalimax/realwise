@@ -1,217 +1,170 @@
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAccess } from '../contexts/AccessContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useFeature } from '../contexts/ClientConfigContext';
+import { apiClient } from '../lib/api/client';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import PageHeader from '../components/PageHeader';
+import Avatar from '../components/Avatar';
+import { PlanBar } from '../components/billing/PlanBadge';
 import ContactCard from '../components/contact/ContactCard';
 import DeleteAccountCard from '../components/account/DeleteAccountCard';
 import SubscriptionSettingsCard from '../components/billing/SubscriptionSettingsCard';
 import { getSettingsProfile } from './settingsProfile';
 
+const Chevron = () => <span className="text-[var(--rw-muted)]" aria-hidden="true">›</span>;
+
+const Icon = ({ children }) => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+
+function Row({ to, icon, title, hint }) {
+  return (
+    <Link to={to} className="flex min-h-[56px] items-center gap-3 px-4 py-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--rw-raised)] text-[var(--rw-brand-ink)]">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold text-[var(--rw-ink)]">{title}</span>
+        {hint && <span className="block text-[13px] text-[var(--rw-subtle)]">{hint}</span>}
+      </span>
+      <Chevron />
+    </Link>
+  );
+}
+
+function Toggle({ on, onChange, title, hint }) {
+  return (
+    <div className="flex min-h-[56px] items-center justify-between gap-3 px-4 py-3">
+      <span className="min-w-0">
+        <span className="block text-[15px] font-semibold text-[var(--rw-ink)]">{title}</span>
+        {hint && <span className="block text-[13px] text-[var(--rw-subtle)]">{hint}</span>}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={title}
+        onClick={() => onChange(!on)}
+        className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-border)]'}`}
+      >
+        <span className={`absolute top-[3px] h-[22px] w-[22px] rounded-full bg-white transition-all ${on ? 'left-[23px]' : 'left-[3px]'}`} />
+      </button>
+    </div>
+  );
+}
+
+const Group = ({ label, children }) => (
+  <section className="flex flex-col gap-2">
+    <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-[var(--rw-muted)]">{label}</h2>
+    <div className="divide-y divide-[var(--rw-border)] overflow-hidden rounded-[20px] border border-[var(--rw-border)] bg-[var(--rw-surface)]">{children}</div>
+  </section>
+);
+
+/** Resizes the chosen photo to a 256px square JPEG in the browser, so the upload stays small. */
+async function resizePhoto(file) {
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  canvas.getContext('2d').drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, 256, 256);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
 export default function SettingsPage() {
-  const navigate = useNavigate();
   const { currentUser } = useAccess();
-  const {
-    language,
-    billReminders,
-    updateBillReminders,
-    monthlyRollover,
-    updateMonthlyRollover,
-    darkMode,
-    toggleDarkMode,
-    t
-  } = useSettings();
-
+  const { reloadUser } = useAuth();
+  const { language, billReminders, updateBillReminders, monthlyRollover, updateMonthlyRollover, darkMode, toggleDarkMode, t } = useSettings();
+  const hasInvestments = useFeature('investments');
+  const pt = language === 'pt';
   const profile = useMemo(() => getSettingsProfile(currentUser), [currentUser]);
+  const fileRef = useRef(null);
+  const [photoState, setPhotoState] = useState('idle'); // idle | saving | error
 
-  const handleSignOut = async () => {
-    await logoutAndRedirect();
+  const choosePhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPhotoState('saving');
+    try {
+      const image = await resizePhoto(file);
+      await apiClient.request('/auth/me/avatar', { method: 'PUT', body: { image } });
+      await reloadUser();
+      setPhotoState('idle');
+    } catch {
+      setPhotoState('error');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--rw-bg)]">
-      <PageHeader title={t('settings.title')} showMonth={false} />
+    <div className="min-h-screen bg-[var(--rw-bg)] text-[var(--rw-ink)]">
+      <PageHeader title={pt ? 'Perfil' : 'Profile'} showMonth={false} />
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        <div className="space-y-6">
-            {/* Profile */}
-            <div className="bg-[var(--rw-surface)] rounded-2xl border border-[var(--rw-border)] p-6 flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-[var(--rw-brand-soft)] flex items-center justify-center flex-shrink-0">
-                {profile.photoUrl ? (
-                  <img src={profile.photoUrl} alt="" className="w-16 h-16 object-cover" />
-                ) : (
-                  <span className="text-2xl font-bold text-[var(--rw-brand-ink)]">
-                    {profile.initial}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-[var(--rw-ink)] truncate">{profile.name}</p>
-                <p className="text-xs text-[var(--rw-muted)] truncate">{profile.email}</p>
-              </div>
-            </div>
+      <div className="mx-auto flex max-w-2xl flex-col gap-5 px-4 pb-24 pt-2 sm:px-6">
+        <section className="rw-hero rw-hero-violet flex items-center gap-4 p-5" aria-label={pt ? 'Seu perfil' : 'Your profile'}>
+          <Avatar size={72} ring />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xl font-extrabold tracking-tight">{profile.name}</p>
+            <p className="truncate text-sm text-violet-200">{profile.email}</p>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={photoState === 'saving'}
+              className="mt-2 min-h-[36px] rounded-full bg-white/10 px-3 text-xs font-bold text-violet-50 disabled:opacity-60"
+            >
+              {photoState === 'saving' ? (pt ? 'Enviando…' : 'Uploading…') : profile.photoUrl ? (pt ? 'Trocar foto' : 'Change photo') : (pt ? 'Adicionar foto' : 'Add photo')}
+            </button>
+            {photoState === 'error' && <p className="mt-1 text-xs text-rose-300" role="alert">{pt ? 'Não consegui enviar a foto. Tente outra.' : 'Could not upload the photo. Try another.'}</p>}
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={choosePhoto} aria-label={pt ? 'Escolher foto' : 'Choose photo'} />
+          </div>
+        </section>
 
-            {/* Appearance & Notifications */}
-            <div className="bg-[var(--rw-surface)] rounded-2xl border border-[var(--rw-border)] divide-y divide-[var(--rw-border)]">
-              {/* Dark mode */}
-              <div className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <svg className="w-5 h-5 shrink-0 text-[var(--rw-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {darkMode
-                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    }
-                  </svg>
-                  <span className="text-sm font-medium text-[var(--rw-ink)]">
-                    {language === 'pt' ? 'Modo escuro' : 'Dark mode'}
-                  </span>
-                </div>
-                <button
-                  role="switch"
-                  aria-checked={darkMode}
-                  onClick={toggleDarkMode}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${darkMode ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-track)]'}`}
-                >
-                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </button>
-              </div>
+        <div className="overflow-hidden rounded-[20px] border border-[var(--rw-border)]"><PlanBar /></div>
 
-              {/* Bill reminders */}
-              <div className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <svg className={`w-5 h-5 shrink-0 ${billReminders ? 'text-violet-500' : 'text-[var(--rw-muted)]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <div>
-                    <span className="text-sm font-medium text-[var(--rw-ink)]">
-                      {language === 'pt' ? 'Lembretes de contas' : 'Bill reminders'}
-                    </span>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {language === 'pt' ? 'Email diário às 9h (Brasília)' : 'Daily email at 9 AM (Brazil)'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  role="switch"
-                  aria-checked={billReminders}
-                  onClick={() => updateBillReminders(!billReminders)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${billReminders ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-track)]'}`}
-                >
-                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${billReminders ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </button>
-              </div>
+        <Group label={pt ? 'Seu dinheiro' : 'Your money'}>
+          <Row to="/bills" title={pt ? 'Contas a pagar' : 'Bills'} hint={pt ? 'Vencimentos e lembretes' : 'Due dates and reminders'}
+            icon={<Icon><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4M16 2v4M3 10h18M9 16l2 2 4-4" /></Icon>} />
+          <Row to="/settings/banks" title={pt ? 'Bancos e cartões' : 'Banks and cards'} hint={pt ? 'Contas, fechamento e vencimento' : 'Accounts, closing and due days'}
+            icon={<Icon><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18" /></Icon>} />
+          <Row to="/planning/categories" title={pt ? 'Categorias' : 'Categories'} hint={pt ? 'Grupos do orçamento e categorias próprias' : 'Budget groups and your own categories'}
+            icon={<Icon><path d="M4 6h16M4 12h16M4 18h10" /></Icon>} />
+          {hasInvestments && (
+            <Row to="/investments" title={pt ? 'Investimentos' : 'Investments'} hint={pt ? 'Sua carteira' : 'Your portfolio'}
+              icon={<Icon><path d="M3 17l6-6 4 4 8-8M15 7h6v6" /></Icon>} />
+          )}
+        </Group>
 
-              {/* Monthly rollover */}
-              <div className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <svg className={`w-5 h-5 shrink-0 ${monthlyRollover ? 'text-violet-500' : 'text-[var(--rw-muted)]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <div>
-                    <span className="text-sm font-medium text-[var(--rw-ink)]">
-                      {t('balance.monthlyRollover')}
-                    </span>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {t('balance.monthlyRolloverHelper')}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  role="switch"
-                  aria-checked={monthlyRollover}
-                  onClick={() => updateMonthlyRollover(!monthlyRollover)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${monthlyRollover ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-track)]'}`}
-                >
-                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${monthlyRollover ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </button>
-              </div>
-            </div>
+        <Group label="Elio">
+          <Row to="/settings/memory" title={pt ? 'O que o Elio sabe sobre você' : 'What Elio knows about you'} hint={pt ? 'Veja, edite ou apague o que ele lembra' : 'See, edit or delete what he remembers'}
+            icon={<Icon><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></Icon>} />
+          <Row to="/notifications" title={pt ? 'Notificações' : 'Notifications'}
+            icon={<Icon><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0" /></Icon>} />
+        </Group>
 
-            <SubscriptionSettingsCard />
+        <Group label={pt ? 'Preferências' : 'Preferences'}>
+          <Toggle on={darkMode} onChange={toggleDarkMode} title={pt ? 'Modo escuro' : 'Dark mode'} />
+          <Toggle on={billReminders} onChange={updateBillReminders} title={pt ? 'Lembretes de contas' : 'Bill reminders'} hint={pt ? 'E-mail diário às 9h (Brasília)' : 'Daily e-mail at 9 AM (Brazil)'} />
+          <Toggle on={monthlyRollover} onChange={updateMonthlyRollover} title={t('balance.monthlyRollover')} hint={t('balance.monthlyRolloverHelper')} />
+        </Group>
 
-            {/* Navigation Cards */}
-            <div className="space-y-3">
-              {/* Categories Card */}
-              <button
-                onClick={() => navigate('/settings/categories')}
-                className="w-full bg-[var(--rw-surface)] rounded-2xl border border-[var(--rw-border)] p-6 text-left hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-[var(--rw-ink)] mb-1">
-                      {t('settings.categories')}
-                    </h3>
-                    <p className="text-sm text-[var(--rw-muted)]">
-                      {language === 'pt' ? 'Gerenciar categorias de entrada e saída' : 'Manage income and expense categories'}
-                    </p>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </button>
+        <SubscriptionSettingsCard />
 
-              {/* Banks Card */}
-              <button
-                onClick={() => navigate('/settings/banks')}
-                className="w-full bg-[var(--rw-surface)] rounded-2xl border border-[var(--rw-border)] p-6 text-left hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-[var(--rw-ink)] mb-1">
-                      {language === 'pt' ? 'Bancos' : 'Banks'}
-                    </h3>
-                    <p className="text-sm text-[var(--rw-muted)]">
-                      {language === 'pt' ? 'Configurar contas bancárias' : 'Configure bank accounts'}
-                    </p>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </button>
+        <Group label={pt ? 'Ajuda' : 'Help'}>
+          <Row to="/help" title={pt ? 'Central de ajuda' : 'Help center'}
+            icon={<Icon><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01" /></Icon>} />
+        </Group>
+        <ContactCard />
 
-              {/* Memory Card */}
-              <button
-                onClick={() => navigate('/settings/memory')}
-                className="w-full bg-[var(--rw-surface)] rounded-2xl border border-[var(--rw-border)] p-6 text-left hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-bold text-[var(--rw-ink)] mb-1">
-                      {language === 'pt' ? 'O que o Elio sabe sobre você' : 'What Elio knows about you'}
-                    </h3>
-                    <p className="text-sm text-[var(--rw-muted)]">
-                      {language === 'pt' ? 'Veja, edite ou apague o que ele lembra' : 'See, edit or delete what he remembers'}
-                    </p>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </button>
-
-              <ContactCard />
-            </div>
-
-            {/* Logout */}
-            <div className="grid grid-cols-1 gap-4 sm:items-start">
-              <div className="bg-[var(--rw-surface)] rounded-2xl border border-[var(--rw-border)] overflow-hidden">
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-5 py-4 text-left text-sm font-medium text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <svg className="w-5 h-5 text-[var(--rw-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  {language === 'pt' ? 'Sair da conta' : 'Sign out'}
-                </button>
-              </div>
-              <DeleteAccountCard />
-            </div>
-        </div>
+        <Group label={pt ? 'Conta' : 'Account'}>
+          <button type="button" onClick={() => logoutAndRedirect()} className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-left text-[15px] font-semibold text-[var(--rw-ink)]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--rw-raised)] text-[var(--rw-muted)]">
+              <Icon><path d="M17 16l4-4m0 0-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1" /></Icon>
+            </span>
+            {pt ? 'Sair da conta' : 'Sign out'}
+          </button>
+        </Group>
+        <DeleteAccountCard />
       </div>
     </div>
   );

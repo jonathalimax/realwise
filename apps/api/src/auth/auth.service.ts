@@ -43,7 +43,8 @@ export class AuthService {
       if (opts.firebaseUid && !user.firebaseUid) updates.firebaseUid = opts.firebaseUid;
       if (opts.appleId && !user.appleId) updates.appleId = opts.appleId;
       if (opts.name && !user.name) updates.name = opts.name;
-      if (opts.profileImageUrl && opts.profileImageUrl !== user.profileImageUrl) updates.profileImageUrl = opts.profileImageUrl;
+      // A photo the person uploaded themself (a data: URL) is never replaced by the provider's picture.
+      if (opts.profileImageUrl && opts.profileImageUrl !== user.profileImageUrl && !user.profileImageUrl?.startsWith('data:')) updates.profileImageUrl = opts.profileImageUrl;
       if (!user.premiumAccessStartedAt || !user.premiumAccessEndsAt || !user.premiumStatus) {
         Object.assign(updates, buildInitialPremiumAccess());
       }
@@ -111,6 +112,11 @@ export class AuthService {
       .update(users)
       .set({ refreshTokenHash: null, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  /** Saves (or clears, with null) the profile photo the person uploaded. */
+  async setProfileImage(userId: string, image: string | null): Promise<void> {
+    await this.db.update(users).set({ profileImageUrl: image, updatedAt: new Date() }).where(eq(users.id, userId));
   }
 
   async findById(userId: string): Promise<User | null> {

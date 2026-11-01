@@ -23,7 +23,15 @@ export default function HomeSummaryCard({ transactions, previousTransactions, ca
   const locale = pt ? 'pt-BR' : 'en-US';
 
   const now = useMemo(() => totalsOf(transactions), [transactions]);
-  const before = useMemo(() => totalsOf(previousTransactions ?? []), [previousTransactions]);
+  const today = new Date();
+  const isCurrentMonth = selectedMonth === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  // While the month is still running, last month is only counted up to the same day, so day 1 is not compared with a full month.
+  const before = useMemo(
+    () => totalsOf(isCurrentMonth ? (previousTransactions ?? []).filter((t) => new Date(t.date).getDate() <= today.getDate()) : (previousTransactions ?? [])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [previousTransactions, isCurrentMonth],
+  );
+  const justStarted = isCurrentMonth && today.getDate() <= 10 && now.income === 0;
   const balance = now.income - now.expense + carryoverSaldo;
   const positive = balance >= 0;
 
@@ -40,9 +48,11 @@ export default function HomeSummaryCard({ transactions, previousTransactions, ca
       : `You spent ${Math.abs(pct)}% ${less ? 'less' : 'more'} than in ${prevName}.`;
   }
 
-  const headline = positive
-    ? (pt ? 'Você está no azul' : 'You are in the black')
-    : (pt ? 'Atenção ao seu mês' : 'Watch your month');
+  const headline = justStarted
+    ? (pt ? `${monthName.charAt(0).toUpperCase()}${monthName.slice(1)} está começando` : `${monthName} is just starting`)
+    : positive
+      ? (pt ? 'Você está no azul' : 'You are in the black')
+      : (pt ? 'Atenção ao seu mês' : 'Watch your month');
   const money = (v) => formatCurrency(Math.abs(v)).replace(/,00(?=\D*$)/, '');
 
   return (
@@ -54,7 +64,9 @@ export default function HomeSummaryCard({ transactions, previousTransactions, ca
       <div className="flex flex-col">
         <span className="rw-num text-5xl font-extrabold leading-[50px]">{positive ? '' : '-'}{money(balance)}</span>
         <span className="text-[15px] text-emerald-200">
-          {positive
+          {justStarted
+            ? (pt ? `ainda sem entradas em ${monthName}` : `no income yet in ${monthName}`)
+            : positive
             ? (pt ? `sobram até o fim de ${monthName}` : `left until the end of ${monthName}`)
             : (pt ? `a mais do que entrou em ${monthName}` : `more than came in during ${monthName}`)}
         </span>

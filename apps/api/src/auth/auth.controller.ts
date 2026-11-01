@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Body,
   Req,
   Res,
   Next,
@@ -387,6 +389,17 @@ export class AuthController {
       premiumProviderPaymentId: currentUser?.premiumProviderPaymentId ?? null,
       access: computeAccess(currentUser, new Date()),
     };
+  }
+
+  /** Profile photo: a small image the app resized in the browser, sent as a data URL. null removes it. */
+  @Put('me/avatar')
+  async setAvatar(@CurrentUser() user: JwtPayload, @Body() body: { image?: string | null }) {
+    const image = body?.image ?? null;
+    if (image !== null && (typeof image !== 'string' || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 300_000)) {
+      throw new BadRequestException('Envie uma imagem JPEG, PNG ou WebP pequena.');
+    }
+    await this.authService.setProfileImage(user.sub, image);
+    return { profileImageUrl: image };
   }
 
   // ─── Logout ──────────────────────────────────────────────────────────────────

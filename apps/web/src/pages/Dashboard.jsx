@@ -104,7 +104,13 @@ export default function DashboardPage() {
               onIncomeClick={handleIncomeClick}
               onExpensesClick={handleExpensesClick}
             /></div>
-            <div className="order-2"><OverdueBillsCard /></div>
+            <div className="order-2 flex flex-col gap-4">
+              <OverdueBillsCard />
+              <button type="button" onClick={() => navigate('/bills')} className="flex min-h-[56px] w-full items-center gap-3 rounded-[20px] border border-[var(--rw-border)] bg-[var(--rw-surface)] px-4 text-left">
+                <span className="flex-1 text-[15px] font-semibold text-[var(--rw-ink)]">{language === 'pt' ? 'Contas a pagar' : 'Bills to pay'}</span>
+                <span className="text-sm font-semibold text-[var(--rw-brand-ink)]">{language === 'pt' ? 'Ver contas' : 'See bills'}</span>
+              </button>
+            </div>
             <div className="order-6">
               <TrendChart
                 transactions={transactions}

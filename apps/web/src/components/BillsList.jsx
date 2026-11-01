@@ -134,47 +134,47 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
 
   const BillItem = ({ bill }) => {
     const status = getBillStatus(bill);
-    const StatusIcon = status.icon;
     const isPaying = payingBill?.id === bill.id && payingBill?.dueDate === bill.dueDate;
+    const paid = bill.status === 'paid';
+    const amount = getBillAmount(bill);
+    const tone = paid
+      ? 'bg-[#34d39922] text-[var(--rw-pos)]'
+      : status.label === (language === 'pt' ? 'Vencida' : 'Overdue')
+        ? 'bg-[#fb718522] text-[var(--rw-neg)]'
+        : status.color.includes('amber')
+          ? 'bg-[#fbbf2422] text-[var(--rw-warn)]'
+          : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]';
 
     return (
       <div className="relative">
         <div
           onClick={() => canWrite && !isPaying && setEditingBill(bill)}
-          className={`group flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg ${canWrite && !isPaying ? 'cursor-pointer' : ''} transition-colors`}
+          className={`group flex items-center gap-3 rounded-2xl px-1 py-3 transition-colors hover:bg-[var(--rw-raised)] ${canWrite && !isPaying ? 'cursor-pointer' : ''}`}
         >
-          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${status.bgColor} flex items-center justify-center flex-shrink-0`}>
-            <StatusIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${status.color}`} />
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--rw-raised)] text-[15px] font-bold text-[var(--rw-muted)]">
+            {(bill.name || '?').trim().charAt(0).toUpperCase()}
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-semibold text-[var(--rw-ink)]">{bill.name}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${tone}`}>{status.label}</span>
+              <span className="text-[13px] text-[var(--rw-subtle)]">{formatDueDate(bill.dueDate)}</span>
+            </div>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <p className="font-medium text-[var(--rw-ink)] truncate text-xs sm:text-sm">
-                {bill.name}
-              </p>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-[var(--rw-muted)]">
-              <span className={`${status.color} font-medium`}>{status.label}</span>
-              <span className="text-gray-300 dark:text-gray-600">•</span>
-              <span className="truncate">{formatDueDate(bill.dueDate)}</span>
-            </div>
-            {getBillAmount(bill) > 0 && (
-              <p className="text-[10px] sm:text-xs font-bold text-[var(--rw-ink)] mt-0.5">
-                {formatCurrency(getBillAmount(bill))}
-              </p>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            {amount > 0 && <span className="rw-num text-[17px] font-semibold text-[var(--rw-ink)]">{formatCurrency(amount)}</span>}
+            {canWrite && !paid && !isPaying && (
+              <button
+                type="button"
+                onClick={(e) => handleConfirmPayClick(bill, e)}
+                className="h-9 rounded-full bg-[var(--rw-brand-soft)] px-4 text-[13px] font-bold text-[var(--rw-brand-ink)] active:scale-95"
+              >
+                {language === 'pt' ? 'Pagar' : 'Pay'}
+              </button>
             )}
           </div>
-
-          {/* Mark as paid button - only for write access */}
-          {canWrite && bill.status !== 'paid' && !isPaying && (
-            <button
-              onClick={(e) => handleConfirmPayClick(bill, e)}
-              className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 sm:p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-all flex-shrink-0"
-              title={language === 'pt' ? 'Marcar como pago' : 'Mark as paid'}
-            >
-              <CheckCircleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          )}
         </div>
       </div>
     );
