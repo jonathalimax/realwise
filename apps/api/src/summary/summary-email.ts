@@ -46,7 +46,6 @@ export function summarySubject(p: SummaryPayload): string {
 }
 
 /** Bold the money amounts in an already-escaped sentence. */
-const emphasize = (html: string, neg: boolean) => html.replace(/R\$\s?[0-9][0-9.,]*( mil)?/g, (m) => `<strong class="${neg ? 'rw-neg' : 'rw-ink'}" style="color:${neg ? '#be123c' : '#0e1420'};">${m}</strong>`);
 
 /** Amounts inside the dark hero: white, always (the light-theme emphasis would vanish on the gradient). */
 const heroEmphasize = (html: string) => html.replace(/R\$\s?[0-9][0-9.,]*( mil)?/g, (m) => `<strong style="color:#ffffff;">${m}</strong>`);
