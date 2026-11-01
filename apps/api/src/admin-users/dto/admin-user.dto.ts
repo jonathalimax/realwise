@@ -50,3 +50,8 @@ export class PlanActionDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   until?: string;
 }
+
+export class SetRoleDto {
+  @IsIn(['user', 'admin'])
+  role: 'user' | 'admin';
+}

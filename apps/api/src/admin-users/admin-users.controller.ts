@@ -4,7 +4,7 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { RawQuery } from '../admin-common/admin-query.util';
 import { AdminUsersService } from './admin-users.service';
-import { PlanActionDto, UpdateAdminUserDto } from './dto/admin-user.dto';
+import { PlanActionDto, SetRoleDto, UpdateAdminUserDto } from './dto/admin-user.dto';
 
 @Controller('admin/users')
 @UseGuards(AdminGuard)
@@ -29,6 +29,11 @@ export class AdminUsersController {
   @Post(':id/plan')
   plan(@Param('id') id: string, @Body() dto: PlanActionDto, @CurrentUser() actor: JwtPayload) {
     return this.service.changePlan(id, dto, actor);
+  }
+
+  @Post(':id/role')
+  role(@Param('id') id: string, @Body() dto: SetRoleDto, @CurrentUser() actor: JwtPayload) {
+    return this.service.setRole(id, dto.role, actor);
   }
 
   @Delete(':id')
