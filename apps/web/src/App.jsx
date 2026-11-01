@@ -30,8 +30,6 @@ const MemorySettingsPage = lazy(() => import('./pages/MemorySettings'));
 const CardsPage = lazy(() => import('./pages/Cards'));
 const BudgetPage = lazy(() => import('./pages/Budget'));
 const TransactionsPage = lazy(() => import('./pages/Transactions'));
-const ExpensesPage = lazy(() => import('./pages/Expenses'));
-const IncomePage = lazy(() => import('./pages/Income'));
 const BillsPage = lazy(() => import('./pages/Bills'));
 const HelpPage = lazy(() => import('./pages/Help'));
 const NotificationsPage = lazy(() => import('./pages/Notifications'));
@@ -108,8 +106,8 @@ function AuthenticatedApp() {
                               <Route path="planner" element={<Navigate to="../planning" replace />} />
                               <Route path="planning" element={<PlanningPage />} />
                               <Route path="planning/categories" element={<PlanningCategoriesPage />} />
-                              <Route path="expenses" element={<ExpensesPage />} />
-                              <Route path="income" element={<IncomePage />} />
+                              <Route path="expenses" element={<Navigate to="/transactions?type=expense" replace />} />
+                              <Route path="income" element={<Navigate to="/transactions?type=income" replace />} />
                               <Route path="bills" element={<BillsPage />} />
                               <Route path="cards" element={<CardsPage />} />
                               <Route path="transactions" element={<TransactionsPage />} />

@@ -10,6 +10,8 @@ import TransactionList from '../components/TransactionList';
 import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
 import PageHeader from '../components/PageHeader';
 import AddTransactionSheet from '../components/AddTransactionSheet';
+import { lazy, Suspense } from 'react';
+const ExpensesChartsView = lazy(() => import('../components/expenses/ExpensesChartsView'));
 
 export default function TransactionsPage() {
   const { t, language, categories, formatCurrency } = useSettings();
@@ -45,8 +47,9 @@ export default function TransactionsPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showUncategorized, setShowUncategorized] = useState(false);
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState(() => (['income', 'expense'].includes(searchParams.get('type')) ? searchParams.get('type') : 'all'));
   const [showAdd, setShowAdd] = useState(false);
+  const [displayMode, setDisplayMode] = useState('list');
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
 
@@ -161,16 +164,7 @@ export default function TransactionsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
-      <PageHeader title={language === 'pt' ? 'Movimentos' : 'Activity'} right={(
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          aria-label={language === 'pt' ? 'Adicionar movimento' : 'Add entry'}
-          className="w-9 h-9 rounded-full bg-[var(--rw-brand)] text-white flex items-center justify-center"
-        >
-          <PlusIcon className="w-5 h-5" />
-        </button>
-      )} />
+      <PageHeader title={language === 'pt' ? 'Movimentos' : 'Activity'} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-24">
         {importFilter && (
@@ -206,7 +200,15 @@ export default function TransactionsPage() {
 
         <div className="flex flex-col gap-3 mb-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm text-[var(--rw-subtle)]">{filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-[var(--rw-subtle)]">{filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}</span>
+              <div className="flex gap-0.5 rounded-full bg-[var(--rw-raised)] p-0.5" role="group" aria-label={language === 'pt' ? 'Modo de exibição' : 'Display mode'}>
+                {[['list', language === 'pt' ? 'Lista' : 'List'], ['charts', language === 'pt' ? 'Gráfico' : 'Chart']].map(([k, label]) => (
+                  <button key={k} type="button" aria-pressed={displayMode === k} onClick={() => setDisplayMode(k)}
+                    className={`h-8 rounded-full px-3 text-xs font-bold ${displayMode === k ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>{label}</button>
+                ))}
+              </div>
+            </div>
             {/* Filters Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -410,7 +412,16 @@ export default function TransactionsPage() {
 
         {/* Transactions List */}
         <div className="rw-card p-3 sm:p-5">
-          <TransactionList
+{displayMode === 'charts' ? (
+            <Suspense fallback={<div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--rw-brand)] border-t-transparent" /></div>}>
+              <ExpensesChartsView
+                transactions={filteredTransactions}
+                language={language}
+                onCategoryClick={(cat) => { setSelectedCategoryFilter(cat); setShowFilters(true); setDisplayMode('list'); }}
+              />
+            </Suspense>
+          ) : (
+                    <TransactionList
             transactions={filteredTransactions}
             selectedMonth={selectedMonth}
             sortBy={sortBy}
@@ -418,8 +429,17 @@ export default function TransactionsPage() {
             onSuccess={triggerRefresh}
             highlightId={highlightId}
           />
+          )}
         </div>
       </main>
+      <button
+        type="button"
+        onClick={() => setShowAdd(true)}
+        aria-label={language === 'pt' ? 'Adicionar movimento' : 'Add entry'}
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--rw-brand)] text-white shadow-lg shadow-black/30 active:scale-95 bottom-[calc(88px+env(safe-area-inset-bottom))] lg:bottom-6"
+      >
+        <PlusIcon className="h-7 w-7" />
+      </button>
       {showAdd && <AddTransactionSheet onClose={() => setShowAdd(false)} />}
       <PageHelp
         title="Transações"

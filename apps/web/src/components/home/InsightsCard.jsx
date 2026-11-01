@@ -23,11 +23,23 @@ export default function InsightsCard() {
 
   useEffect(() => {
     let alive = true;
-    summaryResource.insights().then((d) => alive && setItems(d.items ?? [])).catch(() => alive && setItems([]));
+    summaryResource.insights().then((d) => alive && setItems(d.items ?? [])).catch((e) => { console.error('insights failed', e); if (alive) setItems([]); });
     return () => { alive = false; };
   }, []);
 
-  if (!items || items.length === 0) return null;
+  if (!items) return null;
+  if (items.length === 0) {
+    return (
+      <HomeCard title={pt ? 'Insights do Elio' : "Elio's insights"}>
+        <p className="text-[15px] leading-snug text-[var(--rw-muted)]">
+          {pt ? 'Assim que você registrar mais movimentos, o Elio mostra aqui o que dá para ajustar e o que está indo bem.' : 'Once you record more entries, Elio shows here what to adjust and what is going well.'}
+        </p>
+        <button type="button" onClick={() => navigate('/chat')} className="mt-3 h-11 w-full rounded-[14px] bg-[var(--rw-raised)] text-sm font-bold text-[var(--rw-ink)]">
+          {pt ? 'Enviar um extrato ao Elio' : 'Send a statement to Elio'}
+        </button>
+      </HomeCard>
+    );
+  }
 
   return (
     <HomeCard title={pt ? 'Insights do Elio' : "Elio's insights"}>
