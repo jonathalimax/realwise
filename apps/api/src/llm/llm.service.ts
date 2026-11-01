@@ -175,6 +175,7 @@ export class LlmService {
         model: result?.model ?? 'unknown',
         inputTokens: result?.inputTokens ?? 0,
         outputTokens: result?.outputTokens ?? 0,
+        cachedInputTokens: result?.cachedInputTokens ?? 0,
         latencyMs: result?.latencyMs ?? 0,
         costMicroCents: Math.round(usd * 100 * 1_000_000),
         error,

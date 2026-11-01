@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 import { escapeHtml, safeHttpUrl, textToParagraphs } from './email-text';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { buildEmail, chat, detailRows, para, rows, sectionLabel } from './email-layout';
 import type { EngagementKind } from '../app-settings/app-settings.types';
 
@@ -34,6 +35,10 @@ interface ImportIssueNotification {
 }
 
 type RecoveryStage = 1 | 2 | 3;
+
+export interface CapturedMail { to: string; subject: string; html: string }
+/** While a store is active in the current async context, mails are collected instead of sent (admin e-mail guide). */
+const previewStore = new AsyncLocalStorage<CapturedMail[]>();
 
 function welcomeTemplate(name: string) {
   return buildEmail({
@@ -121,6 +126,11 @@ export class NotificationsService {
     replyTo?: string;
     headers?: Record<string, string>;
   }): Promise<void> {
+    const captured = previewStore.getStore();
+    if (captured) {
+      captured.push({ to: params.to, subject: params.subject, html: params.html });
+      return;
+    }
     // Simulator users have undeliverable `.invalid` addresses: never spend a send (or log an error) on them.
     if (/\.invalid$/i.test(params.to)) return;
     if (!this.resend) return;
@@ -135,6 +145,13 @@ export class NotificationsService {
     if (error) {
       throw new Error(`Resend send failed: ${error.message}`);
     }
+  }
+
+  /** Runs `fn` with real sending off and returns the mails it would have sent (real templates, nothing leaves the server). */
+  async capture(fn: () => Promise<void>): Promise<CapturedMail[]> {
+    const out: CapturedMail[] = [];
+    await previewStore.run(out, fn);
+    return out;
   }
 
   /** Address support replies are sent from (and that users answer to). */
@@ -691,7 +708,7 @@ export class NotificationsService {
   }
 
   async sendImportIssueEmail(issue: ImportIssueNotification): Promise<void> {
-    const recipient = process.env.IMPORT_ISSUES_EMAIL_TO || process.env.MAIL_FROM;
+    const recipient = process.env.IMPORT_ISSUES_EMAIL_TO || process.env.MAIL_FROM || (previewStore.getStore() ? 'preview@realwise.com.br' : undefined);
     if (!recipient) return;
 
     const details = [

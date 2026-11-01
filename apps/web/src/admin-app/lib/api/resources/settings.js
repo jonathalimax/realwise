@@ -11,6 +11,9 @@ export const settingsResource = {
   getEmails() {
     return apiClient.get('/admin/settings/emails');
   },
+  getEmailPreviews() {
+    return apiClient.get('/admin/settings/emails/previews');
+  },
   saveEmails(value) {
     return apiClient.request('/admin/settings/emails', { method: 'PUT', body: value });
   },
