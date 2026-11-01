@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader';
 import QuestionSheet from '../components/chat/QuestionSheet';
 import ReviewSheet from '../components/chat/ReviewSheet';
 import AccountFormSheet from '../components/chat/AccountFormSheet';
+import CategoriesFormSheet from '../components/chat/CategoriesFormSheet';
 import BillsSheet from '../components/chat/BillsSheet';
 import Markdown from '../components/chat/Markdown';
 import FilePreview from '../components/chat/FilePreview';
@@ -24,6 +25,7 @@ const MAX_FILES = 6;
 /** Which sheet (if any) a message is still waiting on. */
 function pendingSheet(message) {
   if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer && q.kind === 'account_form')) return 'account_form';
+  if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer && q.kind === 'categories_form')) return 'categories_form';
   // `quick` questions are chips under the message, not a sheet.
   if (Array.isArray(message.questions) && message.questions.some((q) => !q.answer && q.kind !== 'quick')) return 'questions';
   if (message.review && !message.review.resolved && message.review.groups?.length) return 'review';
@@ -173,6 +175,8 @@ function Bubble({ message, onUndo, onOpenSheet, onPreviewFile, onSpeak, speaking
           >
             {pending === 'account_form'
               ? pt ? 'Cadastrar conta ou cartão' : 'Add account or card'
+              : pending === 'categories_form'
+              ? pt ? 'Escolher categorias' : 'Choose categories'
               : pending === 'questions'
               ? message.questions.every((q) => q.answer || q.kind === 'confirm')
                 ? pt ? 'Revisar e confirmar' : 'Review and confirm'
@@ -628,6 +632,26 @@ export default function ChatPage() {
     }
   };
 
+  const submitCategoriesForm = async (form) => {
+    setSheetBusy(true);
+    setSending(true);
+    const id = sheetMessage.id;
+    try {
+      await runTurn((onEvent) => chatResource.categoriesFormStream(id, form, onEvent), null);
+    } catch (e) {
+      if (delivered.current) {
+        await recoverAfterDrop();
+        return;
+      }
+      setLive(null);
+      setSending(false);
+      setDismissed((prev) => new Set(prev).add(id));
+      say(`${friendlyChatError(e)} Toque em "Escolher categorias" para tentar de novo.`);
+    } finally {
+      setSheetBusy(false);
+    }
+  };
+
   const submitAccountForm = async (form) => {
     setSheetBusy(true);
     setSending(true);
@@ -961,6 +985,9 @@ export default function ChatPage() {
       )}
       {sheetMessage && sheet.type === 'account_form' && (
         <AccountFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAccountForm} onClose={closeSheet} />
+      )}
+      {sheetMessage && sheet.type === 'categories_form' && (
+        <CategoriesFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitCategoriesForm} onClose={closeSheet} />
       )}
       {sheetMessage && sheet.type === 'bills' && (
         <BillsSheet key={sheetMessage.id} message={sheetMessage} busy={sheetBusy} onSubmit={submitBills} onClose={closeSheet} />

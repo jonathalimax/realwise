@@ -1,3 +1,4 @@
+import { CATEGORY_CATALOG } from '../categories/catalog';
 import { SummaryService } from '../summary/summary.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
@@ -105,7 +106,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form', 'quick'], description: 'account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day). quick shows short tappable chips above the message box (2 to 6 options, each under 40 characters, in the user\'s language; the app adds a "Pular" chip itself): use it for conversational questions with predictable answers. ALWAYS write your reply as normal text in the same message (react to what the user said, then ask the question): the chips carry only the options. Put the question itself in title.' },
+              kind: { type: 'string', enum: ['account', 'payment_method', 'choice', 'account_form', 'categories_form', 'quick'], description: 'categories_form opens the sheet where the person picks which ready-made categories to use (the app fills it in). account, payment_method and account_form options are filled in by the app; for choice you provide options. account_form opens the form to register a bank account or card (bank, name, type, holder, closing/due day). quick shows short tappable chips above the message box (2 to 6 options, each under 40 characters, in the user\'s language; the app adds a "Pular" chip itself): use it for conversational questions with predictable answers. ALWAYS write your reply as normal text in the same message (react to what the user said, then ask the question): the chips carry only the options. Put the question itself in title.' },
               title: { type: 'string', description: 'Short question, e.g. "Qual conta é essa fatura?"' },
               subtitle: { type: 'string', description: 'What you saw that makes you unsure, e.g. "Final 4821, vence dia 10".' },
               fileName: { type: 'string', description: 'Exact filename this question is about, if any.' },
@@ -700,13 +701,17 @@ export class ChatToolsService {
     const labels: Record<string, string> = { credit: 'Cartão de crédito', debit: 'Débito', pix: 'PIX', transfer: 'Transferência', boleto: 'Boleto', cash: 'Dinheiro', other: 'Outro' };
 
     const questions: ChatQuestion[] = raw.map((q, i) => {
-      const kind = ['account', 'payment_method', 'choice', 'account_form', 'quick'].includes(q.kind) ? (q.kind as ChatQuestion['kind']) : 'choice';
+      const kind = ['account', 'payment_method', 'choice', 'account_form', 'categories_form', 'quick'].includes(q.kind) ? (q.kind as ChatQuestion['kind']) : 'choice';
       const base = { id: `q${i + 1}`, kind, title: String(q.title ?? '').slice(0, 140), subtitle: q.subtitle ? String(q.subtitle).slice(0, 200) : undefined, fileName: q.fileName ? String(q.fileName) : undefined };
       if (kind === 'account') {
         return { ...base, allowNew: true, options: accs.map((a) => ({ value: a.id, label: a.name, hint: a.type ?? undefined })) };
       }
       if (kind === 'account_form') {
         return { ...base, options: BANKS.map((b) => ({ value: b.id, label: b.name })) };
+      }
+      if (kind === 'categories_form') {
+        // Every catalog category; `hint` carries the default budget group and the basics start selected on the client.
+        return { ...base, options: CATEGORY_CATALOG.map((c) => ({ value: c.pt, label: c.pt, hint: c.type === 'income' ? 'income' : `${c.bucket}${c.basic ? ':basic' : ''}` })) };
       }
       if (kind === 'quick') {
         return quickQuestion(Array.isArray(q.options) ? q.options : [], String(q.title ?? ''));

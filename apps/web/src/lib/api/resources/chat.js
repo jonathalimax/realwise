@@ -104,6 +104,10 @@ export function createChatResource({ client = apiClient } = {}) {
       notifyBillsChanged();
       return result;
     },
+    /** Saves the categories picked in the interview; Elio then continues the conversation (streamed). */
+    async categoriesFormStream(messageId, form, onEvent) {
+      return postStream(`/chat/messages/${messageId}/categories-form`, form, onEvent);
+    },
     /** Like send(), but streams Elio's reply: `onEvent` gets user / delta / reset / status events. */
     async sendStream({ message = '', files = [], onEvent }) {
       const form = new FormData();

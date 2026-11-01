@@ -1,5 +1,7 @@
 /** Content for chat-led onboarding: the categories a new user starts with, the bank list, and the scripted welcome. */
 
+import { BASIC_CATEGORIES } from '../categories/catalog';
+
 export interface DefaultCategory {
   name: string;
   type: 'income' | 'expense';
@@ -7,22 +9,8 @@ export interface DefaultCategory {
   icon: string;
 }
 
-export const DEFAULT_CATEGORIES: DefaultCategory[] = [
-  { name: 'Moradia', type: 'expense', color: '#6366f1', icon: '🏠' },
-  { name: 'Mercado', type: 'expense', color: '#16a34a', icon: '🛒' },
-  { name: 'Alimentação fora', type: 'expense', color: '#f97316', icon: '🍽️' },
-  { name: 'Transporte', type: 'expense', color: '#0ea5e9', icon: '🚗' },
-  { name: 'Saúde', type: 'expense', color: '#ef4444', icon: '🩺' },
-  { name: 'Educação', type: 'expense', color: '#8b5cf6', icon: '🎓' },
-  { name: 'Lazer', type: 'expense', color: '#ec4899', icon: '🎉' },
-  { name: 'Assinaturas', type: 'expense', color: '#14b8a6', icon: '📺' },
-  { name: 'Compras', type: 'expense', color: '#f59e0b', icon: '🛍️' },
-  { name: 'Impostos e taxas', type: 'expense', color: '#64748b', icon: '🧾' },
-  { name: 'Outros', type: 'expense', color: '#94a3b8', icon: '📦' },
-  { name: 'Salário', type: 'income', color: '#22c55e', icon: '💼' },
-  { name: 'Rendimentos', type: 'income', color: '#10b981', icon: '📈' },
-  { name: 'Outros', type: 'income', color: '#84cc16', icon: '💰' },
-];
+/** The basic categories of the catalog (categories/catalog.ts): what a new account starts with. */
+export const DEFAULT_CATEGORIES: DefaultCategory[] = BASIC_CATEGORIES.map((c) => ({ name: c.pt, type: c.type, color: c.color, icon: c.icon }));
 
 /** Same ids as the web app's bank list (apps/web/src/contexts/CardsContext.jsx), so icons and names resolve there. */
 export const BANKS: { id: string; name: string }[] = [
