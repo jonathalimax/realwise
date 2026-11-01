@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import guideData from './guideData';
+import EmailGuide from './EmailGuide';
 
 export default function GuidePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,7 +13,7 @@ export default function GuidePage() {
 
     if (!search) {
       // Sem busca: filtra por aba
-      if (activeTab === 'all') return guideData;
+      if (activeTab === 'all' || activeTab === 'emails') return guideData;
       return guideData.filter(section => section.id === activeTab);
     }
 
@@ -65,7 +66,7 @@ export default function GuidePage() {
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                if (e.target.value) setActiveTab('all');
+                if (e.target.value && activeTab !== 'emails') setActiveTab('all');
               }}
               className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
             />
@@ -97,10 +98,20 @@ export default function GuidePage() {
               {section.label}
             </button>
           ))}
+          <button
+            onClick={() => setActiveTab('emails')}
+            className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition-colors ${
+              activeTab === 'emails' ? 'bg-emerald-500 text-black' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            E-mails
+          </button>
         </div>
 
+        {activeTab === 'emails' && <EmailGuide query={searchQuery} />}
+
         {/* Conteúdo */}
-        <div className="space-y-6">
+        <div className={`space-y-6 ${activeTab === 'emails' ? 'hidden' : ''}`}>
           {filteredData.map(section => (
             <div key={section.id}>
               {/* Cabeçalho da seção */}

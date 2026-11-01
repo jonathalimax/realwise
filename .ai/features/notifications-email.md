@@ -42,3 +42,7 @@ Every e-mail is built with `buildEmail` in `apps/api/src/notifications/email-lay
 - `categorize_pending`: daily job. 24h after the newest import, if open review sheets still hold rows and the person has not chatted in 24h. One per import. Both link to `/chat?intent=categorize`, which opens the newest pending sheet.
 - While a statement is being read, the chat shows "Pode levar alguns minutos... avisamos por e-mail quando terminar".
 - Both kinds have admin toggles (Admin > E-mails) and honor the unsubscribe flag.
+
+## E-mail guide (admin)
+
+`GET /admin/settings/emails/previews` renders every e-mail with sample data through the real templates (`notifications/email-previews.ts`; `NotificationsService.capture` collects mails instead of sending). Shown in Admin > Guia > E-mails. When you add an e-mail, add an entry (with its "when") to `ENTRIES` there.
