@@ -399,14 +399,12 @@ export class ChatToolsService {
     )
       .map((a) => a.holder)
       .filter((h): h is string => Boolean(h));
-    const transferKeys = new Set(
-      (
-        await this.db
-          .select({ keyword: categorizationRules.keyword })
-          .from(categorizationRules)
-          .where(and(eq(categorizationRules.userId, ctx.userId), eq(categorizationRules.type, 'transfer'), isNull(categorizationRules.deletedAt)))
-      ).map((r) => r.keyword),
-    );
+    const leftOut = await this.db
+      .select({ keyword: categorizationRules.keyword, type: categorizationRules.type })
+      .from(categorizationRules)
+      .where(and(eq(categorizationRules.userId, ctx.userId), inArray(categorizationRules.type, ['transfer', 'ignore']), isNull(categorizationRules.deletedAt)));
+    const transferKeys = new Set(leftOut.filter((r) => r.type === 'transfer').map((r) => r.keyword));
+    const ignoreKeys = new Set(leftOut.filter((r) => r.type === 'ignore').map((r) => r.keyword));
 
     const seen = new Map<string, number>();
     const meta = new Map<string, { low: boolean; suggestions: string[]; transferAsk: boolean }>();
@@ -435,9 +433,11 @@ export class ChatToolsService {
       if (cat && !suggestions.includes(cat.id)) suggestions.unshift(cat.id);
       const key = merchantKey(description);
       const auto = holderNames.some((h) => matchesHolder(description, h)) || (key !== '' && transferKeys.has(key));
-      const ask = !auto && (r.possibleTransfer === true || looksLikeInvoicePayment(description));
+      // "Don't count this" remembered by the user: left out of totals like a transfer, but not called one.
+      const skip = !auto && key !== '' && ignoreKeys.has(key);
+      const ask = !auto && !skip && (r.possibleTransfer === true || looksLikeInvoicePayment(description));
       meta.set(dedupHash, {
-        low: !auto && (r.confidence === 'low' || !cat || ask),
+        low: !auto && !skip && (r.confidence === 'low' || !cat || ask),
         suggestions: suggestions.slice(0, 3),
         transferAsk: ask,
       });
@@ -450,10 +450,10 @@ export class ChatToolsService {
         description,
         accountId: account.id,
         // A recognised transfer is not income/expense: no category, and ignored=true so every existing total skips it.
-        categoryId: auto ? null : (cat?.id ?? null),
-        category: auto ? null : (cat?.name ?? null),
+        categoryId: auto || skip ? null : (cat?.id ?? null),
+        category: auto || skip ? null : (cat?.name ?? null),
         isTransfer: auto,
-        ignored: auto,
+        ignored: auto || skip,
         paymentMethod: this.paymentMethod(r.paymentMethod ?? args.paymentMethod),
         source: 'ai-chat',
         dedupHash,
@@ -669,8 +669,11 @@ export class ChatToolsService {
     return pairs.length;
   }
 
-  /** Remember a counterparty as "one of ours", so future imports mark it as a transfer without asking. */
-  async rememberTransferRule(description: string, ctx: ToolContext): Promise<void> {
+  /**
+   * Remember a counterparty so future imports leave it out of the totals without asking:
+   * 'transfer' = one of the user's own accounts, 'ignore' = "don't count this" (e.g. a card invoice payment).
+   */
+  async rememberLeftOutRule(description: string, kind: 'transfer' | 'ignore', ctx: ToolContext): Promise<void> {
     const keyword = merchantKey(description);
     if (keyword.length < 3) return;
     const [existing] = await this.db
@@ -680,14 +683,14 @@ export class ChatToolsService {
     if (existing) {
       await this.db
         .update(categorizationRules)
-        .set({ type: 'transfer', categoryId: null, category: null, isActive: true, deletedAt: null, updatedAt: new Date() })
+        .set({ type: kind, categoryId: null, category: null, isActive: true, deletedAt: null, updatedAt: new Date() })
         .where(eq(categorizationRules.id, existing.id));
     } else {
       await this.db.insert(categorizationRules).values({
         clientId: ctx.clientId,
         userId: ctx.userId,
         keyword,
-        type: 'transfer',
+        type: kind,
         originalDescription: description,
       });
     }

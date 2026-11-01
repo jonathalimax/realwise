@@ -68,16 +68,18 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
   const [remember, setRemember] = useState(() => Object.fromEntries(groups.map((g) => [g.key, true])));
   // Groups Elio thinks may be transfers between the user's own accounts: true = "yes, it is a transfer".
   const [transfer, setTransfer] = useState(() => Object.fromEntries(groups.map((g) => [g.key, false])));
+  // "Don't count this" (e.g. a card invoice payment): kept in the list but left out of every total, with no category.
+  const [ignore, setIgnore] = useState(() => Object.fromEntries(groups.map((g) => [g.key, false])));
   const [expanded, setExpanded] = useState(() => new Set());
 
   const apply = () => {
     const decisions = groups
-      .filter((g) => transfer[g.key] || choice[g.key])
-      .map((g) =>
-        transfer[g.key]
-          ? { key: g.key, transfer: true, remember: remember[g.key] }
-          : { key: g.key, categoryId: choice[g.key], remember: remember[g.key] },
-      );
+      .filter((g) => transfer[g.key] || ignore[g.key] || choice[g.key])
+      .map((g) => {
+        if (transfer[g.key]) return { key: g.key, transfer: true, remember: remember[g.key] };
+        if (ignore[g.key]) return { key: g.key, ignore: true, remember: remember[g.key] };
+        return { key: g.key, categoryId: choice[g.key], remember: remember[g.key] };
+      });
     onApply(decisions);
   };
 
@@ -190,7 +192,10 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
                       key={String(o.value)}
                       role="radio"
                       aria-checked={transfer[g.key] === o.value}
-                      onClick={() => setTransfer((prev) => ({ ...prev, [g.key]: o.value }))}
+                      onClick={() => {
+                        setTransfer((prev) => ({ ...prev, [g.key]: o.value }));
+                        if (o.value) setIgnore((prev) => ({ ...prev, [g.key]: false }));
+                      }}
                       className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
                         transfer[g.key] === o.value
                           ? 'border-violet-500 bg-violet-600 text-white'
@@ -211,7 +216,24 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
               </div>
             )}
 
-            {!transfer[g.key] && g.suggestionIds.length > 0 && (
+            {!transfer[g.key] && (
+              <label className="mt-3 flex items-start gap-2 text-xs text-gray-700 dark:text-gray-200">
+                <input
+                  type="checkbox"
+                  checked={ignore[g.key]}
+                  onChange={(e) => setIgnore((prev) => ({ ...prev, [g.key]: e.target.checked }))}
+                  className="mt-0.5 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                />
+                <span>
+                  <span className="font-semibold">{pt ? 'Não contar nos totais' : "Don't count in totals"}</span>
+                  <span className="block text-[11px] text-gray-500 dark:text-gray-400">
+                    {pt ? 'Ex.: pagamento da fatura do cartão. Fica sem categoria e fora das receitas e despesas.' : 'E.g. a card bill payment. No category, left out of income and expenses.'}
+                  </span>
+                </span>
+              </label>
+            )}
+
+            {!transfer[g.key] && !ignore[g.key] && g.suggestionIds.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {g.suggestionIds.map((id) => (
                   <button
@@ -231,7 +253,7 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
             )}
 
             {/* 16px on mobile: below that iOS zooms the whole page when a field is focused */}
-            {!transfer[g.key] && (
+            {!transfer[g.key] && !ignore[g.key] && (
             <select
               value={choice[g.key]}
               onChange={(e) => setChoice((prev) => ({ ...prev, [g.key]: e.target.value }))}
@@ -267,6 +289,8 @@ export default function ReviewSheet({ message, language, busy, onApply, onClose 
               />
               {transfer[g.key]
                 ? pt ? 'Lembrar: sempre tratar como transferência' : 'Remember: always treat as a transfer'
+                : ignore[g.key]
+                ? pt ? 'Lembrar: nunca contar isso' : "Remember: never count this"
                 : pt ? 'Lembrar disso nas próximas importações' : 'Remember this for future imports'}
             </label>
           </div>

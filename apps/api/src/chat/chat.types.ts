@@ -44,7 +44,7 @@ export interface ReviewGroup {
   items: ReviewItem[];
   /** Name of the account these were saved to. */
   account: string | null;
-  /** True when Elio thinks these may be transfers between the user's own accounts and wants a yes/no. */
+  /** True when Elio thinks these may be transfers between the user's own accounts or invoice payments and wants the user's call. */
   transferAsk?: boolean;
   /** The category the row was saved with, if any. */
   currentCategoryId: string | null;

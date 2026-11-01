@@ -101,6 +101,11 @@ class ReviewDecisionDto {
   @IsOptional()
   @IsBoolean()
   transfer?: boolean;
+
+  /** true = leave these out of every total without calling them a transfer (e.g. a card invoice payment). */
+  @IsOptional()
+  @IsBoolean()
+  ignore?: boolean;
 }
 
 class ReviewDto {
