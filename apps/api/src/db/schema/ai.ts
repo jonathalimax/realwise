@@ -13,6 +13,8 @@ export const llmCallLog = pgTable(
     model: varchar('model').notNull(),
     inputTokens: integer('input_tokens').default(0).notNull(),
     outputTokens: integer('output_tokens').default(0).notNull(),
+    /** Part of inputTokens served from the prompt cache (billed at a fraction). */
+    cachedInputTokens: integer('cached_input_tokens').default(0).notNull(),
     latencyMs: integer('latency_ms').default(0).notNull(),
     costMicroCents: bigint('cost_micro_cents', { mode: 'number' }).default(0).notNull(),
     error: text('error'),

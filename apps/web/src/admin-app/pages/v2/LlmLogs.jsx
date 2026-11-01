@@ -19,12 +19,14 @@ function Summary({ from, to }) {
     <AsyncView state={state} isEmpty={(d) => !d}>
       {(s) => (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Stat label="Custo total" value={usd(s.totalCostUsd)} tone="text-violet-300" />
             <Stat label="Chamadas" value={num(s.calls)} />
             <Stat label="Taxa de erro" value={pct(s.errorRate)} hint={`${num(s.errors)} erros`} tone={Number(s.errorRate) > 0.05 ? 'text-red-400' : 'text-white'} />
             <Stat label="Latência média" value={ms(s.avgLatencyMs)} />
             <Stat label="Latência p95" value={ms(s.p95LatencyMs)} />
+            <Stat label="Tokens por chamada" value={num(s.tokensPerCall)} hint={`${num(s.inputTokens)} entrada · ${num(s.outputTokens)} saída`} />
+            <Stat label="Cache de prompt" value={pct(s.cacheHitRate)} hint={`${num(s.cachedTokens)} tokens em cache`} tone={Number(s.cacheHitRate) < 0.3 ? 'text-amber-400' : 'text-emerald-400'} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card title="Custo por dia">
@@ -32,6 +34,9 @@ function Summary({ from, to }) {
             </Card>
             <Card title="Chamadas por dia">
               <TrendChart data={s.byDay} valueKey="calls" color={CHART_COLORS.sky} name="chamadas" valueFormatter={(v) => num(v)} height={180} />
+            </Card>
+            <Card title="Tokens por dia (entrada)">
+              <TrendChart data={s.byDay} valueKey="inputTokens" color={CHART_COLORS.violet} name="tokens" valueFormatter={(v) => num(v)} height={180} />
             </Card>
             <Card title="Custo por modelo">
               {(s.byModel ?? []).length ? (

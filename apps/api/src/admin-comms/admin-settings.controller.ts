@@ -17,6 +17,7 @@ import * as schema from '../db/schema';
 import { reminderEmailsSent, users } from '../db/schema';
 import { EngagementRemindersService } from '../engagement-reminders/engagement-reminders.service';
 import { modelFor } from '../llm/openrouter.provider';
+import { buildEmailPreviews } from '../notifications/email-previews';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AdminActorService } from './admin-actor.service';
 import { pageParams } from './pagination';
@@ -147,6 +148,12 @@ export class AdminSettingsController {
   }
 
   /** Sends a sample of one email kind ('bills' for the bill reminder) to `to`. */
+  /** Every e-mail we send, rendered with sample data through the real templates (nothing is delivered). */
+  @Get('settings/emails/previews')
+  previews() {
+    return buildEmailPreviews(this.notifications);
+  }
+
   @Post('settings/emails/test')
   @HttpCode(200)
   async testEmail(@CurrentUser() admin: JwtPayload, @Body() body: { kind?: string; to?: string }) {

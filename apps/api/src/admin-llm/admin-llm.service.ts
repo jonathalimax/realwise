@@ -186,6 +186,9 @@ export class AdminLlmService {
         select count(*)::int as calls,
                coalesce(sum(${llmCallLog.costMicroCents}), 0)::float8 as cost,
                (count(*) filter (where ${isError}))::int as errors,
+               coalesce(sum(${llmCallLog.inputTokens}), 0)::float8 as input_tokens,
+               coalesce(sum(${llmCallLog.outputTokens}), 0)::float8 as output_tokens,
+               coalesce(sum(${llmCallLog.cachedInputTokens}), 0)::float8 as cached_tokens,
                coalesce(avg(${llmCallLog.latencyMs}), 0)::float8 as avg_latency,
                coalesce(percentile_cont(0.95) within group (order by ${llmCallLog.latencyMs}), 0)::float8 as p95_latency
         from ${llmCallLog} where ${range}`),
@@ -211,11 +214,16 @@ export class AdminLlmService {
         ), agg as (
           select (${llmCallLog.createdAt} at time zone ${ADMIN_TZ})::date as d, count(*)::int as calls,
                  sum(${llmCallLog.costMicroCents})::float8 as cost,
-                 (count(*) filter (where ${isError}))::int as errors
+                 (count(*) filter (where ${isError}))::int as errors,
+                 sum(${llmCallLog.inputTokens})::float8 as input_tokens,
+                 sum(${llmCallLog.outputTokens})::float8 as output_tokens,
+                 sum(${llmCallLog.cachedInputTokens})::float8 as cached_tokens
           from ${llmCallLog} where ${range} group by 1
         )
         select to_char(days.d, 'YYYY-MM-DD') as date, coalesce(agg.calls, 0) as calls,
-               coalesce(agg.cost, 0) as cost, coalesce(agg.errors, 0) as errors
+               coalesce(agg.cost, 0) as cost, coalesce(agg.errors, 0) as errors,
+               coalesce(agg.input_tokens, 0) as input_tokens, coalesce(agg.output_tokens, 0) as output_tokens,
+               coalesce(agg.cached_tokens, 0) as cached_tokens
         from days left join agg on agg.d = days.d order by days.d limit 800`),
       this.db.execute(sql`
         select ${llmCallLog.userId} as user_id, ${users.email} as email, count(*)::int as calls,
@@ -232,6 +240,12 @@ export class AdminLlmService {
       calls,
       errors,
       errorRate: calls ? errors / calls : 0,
+      inputTokens: toNum(t.input_tokens),
+      outputTokens: toNum(t.output_tokens),
+      cachedTokens: toNum(t.cached_tokens),
+      // Share of input tokens served from the prompt cache; the lever for the cost plan (.ai/plans/token-savings.md).
+      cacheHitRate: toNum(t.input_tokens) ? toNum(t.cached_tokens) / toNum(t.input_tokens) : 0,
+      tokensPerCall: calls ? Math.round((toNum(t.input_tokens) + toNum(t.output_tokens)) / calls) : 0,
       avgLatencyMs: Math.round(toNum(t.avg_latency)),
       p95LatencyMs: Math.round(toNum(t.p95_latency)),
       byModel: [...byModel].map((r) => ({
@@ -253,6 +267,9 @@ export class AdminLlmService {
         calls: toNum(r.calls),
         costUsd: microCentsToUsd(toNum(r.cost)),
         errors: toNum(r.errors),
+        inputTokens: toNum(r.input_tokens),
+        outputTokens: toNum(r.output_tokens),
+        cachedTokens: toNum(r.cached_tokens),
       })),
       topUsers: [...topUsers].map((r) => ({
         userId: r.user_id as string,
