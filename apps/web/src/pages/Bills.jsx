@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import PageHelp from '@/components/ui/PageHelp';
@@ -10,7 +10,7 @@ import PageHeader from '../components/PageHeader';
 import { SparklesIcon } from '@heroicons/react/24/outline';
 
 export default function BillsPage() {
-  const { language, billReminders, updateBillReminders } = useSettings();
+  const { language, billReminders, updateBillReminders, formatCurrency } = useSettings();
   const { bills } = useBills();
   const { canWrite } = useAccess();
   const { selectedMonth } = useMonth();
@@ -21,15 +21,52 @@ export default function BillsPage() {
     return ['all', 'pending', 'paid', 'overdue'].includes(s) ? s : 'all';
   });
 
+  const pt = language === 'pt';
+  // "Falta pagar": what is still unpaid among the bills that fall due in the selected month, and how many are late.
+  const hero = useMemo(() => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const inMonth = bills.filter((b) => {
+      const d = new Date(b.dueDate);
+      return d.getUTCFullYear() === y && d.getUTCMonth() + 1 === m;
+    });
+    const unpaid = inMonth.filter((b) => b.status !== 'paid');
+    const now = new Date();
+    const late = unpaid.filter((b) => new Date(b.dueDate) < now);
+    return {
+      total: unpaid.reduce((s, b) => s + Number(b.amount || 0), 0),
+      unpaid: unpaid.length,
+      late: late.length,
+      paid: inMonth.length - unpaid.length,
+      all: inMonth.length,
+    };
+  }, [bills, selectedMonth]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
       <PageHeader title={language === 'pt' ? 'Contas' : 'Bills'} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-24">
+        <section className="rw-hero rw-hero-violet mb-3 flex flex-col gap-3 p-5" aria-label={pt ? 'Falta pagar' : 'Left to pay'}>
+          <span className="rw-eyebrow text-violet-300">{pt ? 'FALTA PAGAR NESTE MÊS' : 'LEFT TO PAY THIS MONTH'}</span>
+          <div className="flex flex-col">
+            <span className="rw-num text-5xl font-extrabold leading-[50px]">{formatCurrency(hero.total).replace(/,00(?=\D*$)/, '')}</span>
+            <span className="text-[15px] text-violet-100">
+              {hero.all === 0
+                ? (pt ? 'nenhuma conta neste mês' : 'no bills this month')
+                : `${pt ? 'em' : 'in'} ${hero.unpaid} ${pt ? (hero.unpaid === 1 ? 'conta' : 'contas') : (hero.unpaid === 1 ? 'bill' : 'bills')}${hero.late > 0 ? (pt ? `. ${hero.late} ${hero.late === 1 ? 'está atrasada' : 'estão atrasadas'}.` : `. ${hero.late} overdue.`) : '.'}`}
+            </span>
+          </div>
+          {hero.all > 0 && (
+            <>
+              <div className="h-2 overflow-hidden rounded-full bg-white/10"><i className="block h-full rounded-full bg-violet-300" style={{ width: `${(hero.paid / hero.all) * 100}%` }} /></div>
+              <span className="text-[13px] text-violet-200">{pt ? `Você já pagou ${hero.paid} de ${hero.all} contas este mês.` : `You paid ${hero.paid} of ${hero.all} bills this month.`}</span>
+            </>
+          )}
+        </section>
+
         {/* Filters + Email reminder toggle */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--rw-border)] bg-[var(--rw-surface)] p-3">
           <div className="flex flex-wrap gap-2">
             {[
               { value: 'all', label: language === 'pt' ? 'Todas' : 'All' },
@@ -40,10 +77,10 @@ export default function BillsPage() {
               <button
                 key={option.value}
                 onClick={() => setStatusFilter(option.value)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 h-9 rounded-full text-sm font-semibold transition-colors ${
                   statusFilter === option.value
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
+                    : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'
                 }`}
               >
                 {option.label}
@@ -70,7 +107,7 @@ export default function BillsPage() {
         </div>
 
         {/* Bills List */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="rounded-[20px] border border-[var(--rw-border)] bg-[var(--rw-surface)] overflow-hidden">
           <BillsList selectedMonth={selectedMonth} statusFilter={statusFilter} />
         </div>
       </main>
@@ -79,7 +116,7 @@ export default function BillsPage() {
       {canWrite && (
         <button
           onClick={() => navigate('/chat')}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+          className="hidden lg:flex fixed bottom-6 right-6 z-50 w-14 h-14 bg-[var(--rw-brand)] hover:opacity-90 text-white rounded-full shadow-lg items-center justify-center transition-colors"
           aria-label={language === 'pt' ? 'Adicionar pelo assistente' : 'Add with the assistant'}
         >
           <SparklesIcon className="w-7 h-7" />
@@ -88,7 +125,7 @@ export default function BillsPage() {
       <PageHelp
         title="Contas"
         text="Controle suas contas a pagar. Marque como paga quando quitar e receba lembretes por e-mail antes do vencimento. Contas recorrentes se repetem automaticamente."
-        hasFab={true}
+        hasFab={false}
       />
     </div>
   );
