@@ -41,11 +41,34 @@ input, textarea, select {
   font-size: 16px !important;
 }
 
+/* Realwise design tokens (see the Realwise design system). Dark first; the light values apply without .dark. */
+:root {
+  --rw-bg: #f5f6f9; --rw-surface: #ffffff; --rw-raised: #eef1f5; --rw-border: #e2e6ed;
+  --rw-ink: #0e1420; --rw-muted: #566072; --rw-subtle: #6a7385;
+  --rw-brand: #7c3aed; --rw-brand-ink: #6d28d9; --rw-brand-soft: #7c3aed1a;
+  --rw-pos: #047857; --rw-warn: #b45309; --rw-neg: #be123c;
+  --rw-needs: #2563eb; --rw-wants: #db2777; --rw-save: #0f766e; --rw-track: #e6e9ef;
+}
+html.dark {
+  --rw-bg: #0b0f17; --rw-surface: #131a25; --rw-raised: #1b2331; --rw-border: #243042;
+  --rw-ink: #f3f5f9; --rw-muted: #9aa4b6; --rw-subtle: #7e889b;
+  --rw-brand: #8b5cf6; --rw-brand-ink: #b9a2fb; --rw-brand-soft: #8b5cf626;
+  --rw-pos: #34d399; --rw-warn: #fbbf24; --rw-neg: #fb7185;
+  --rw-needs: #60a5fa; --rw-wants: #f472b6; --rw-save: #2dd4bf; --rw-track: #222c3b;
+}
+.rw-card { background: var(--rw-surface); border: 1px solid var(--rw-border); border-radius: 20px; padding: 16px; }
+.rw-hero { border-radius: 28px; color: #fff; background: linear-gradient(160deg, #0f3d33 0%, #14213d 55%, #2a1b5c 100%); border: 1px solid #1f3b4d; }
+.rw-hero-violet { background: linear-gradient(160deg, #1d1237 0%, #14213d 100%); border-color: #2a2f55; }
+.rw-eyebrow { font-size: 12px; line-height: 16px; font-weight: 800; letter-spacing: 0.12em; }
+.rw-num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.rw-bar { height: 8px; border-radius: 999px; background: var(--rw-track); overflow: hidden; }
+.rw-bar > i { display: block; height: 100%; border-radius: 999px; }
+
 body {
   margin: 0;
   overscroll-behavior: none;
   background-color: inherit;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;

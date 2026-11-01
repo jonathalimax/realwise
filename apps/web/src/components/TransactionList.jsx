@@ -141,6 +141,18 @@ export default function TransactionList({
     }
   };
 
+  // Leaves a row out of (or back into) every total. Rows stay in the list, dimmed.
+  const toggleIgnored = async (transaction) => {
+    setSavingId(transaction.id);
+    try {
+      await transactionsResource.update(transaction.id, { ignored: !transaction.ignored });
+    } catch (error) {
+      console.error('Failed to toggle ignored:', error);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   const renderTransaction = (transaction) => {
     const userBank = findUserBank(transaction.bankId);
     const bankInfo = userBank ? getBankInfo(userBank.bankId) : getBankInfo(transaction.bankId);
@@ -156,8 +168,9 @@ export default function TransactionList({
             ? 'ring-2 ring-violet-500 bg-violet-50 dark:bg-violet-900/20'
             : selectedIds.has(transaction.id)
               ? 'bg-violet-50 dark:bg-violet-900/10'
-              : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+              : 'bg-[var(--rw-surface)] hover:bg-[var(--rw-raised)]'
           }
+          ${transaction.ignored && !transaction.isTransfer ? 'opacity-60' : ''}
           ${compact ? 'p-2' : 'p-3'}`}
       >
         <div className="flex items-center gap-3">
@@ -186,11 +199,11 @@ export default function TransactionList({
           <div className="flex-1 min-w-0">
             {/* Top row: description + amount */}
             <div className="flex items-start justify-between gap-2">
-              <p className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 leading-snug">
+              <p className="font-semibold text-[var(--rw-ink)] text-[15px] line-clamp-2 leading-snug">
                 {transaction.description?.replace(/\s*\(\d+\/\d+\)\s*$/, '')}
               </p>
               <div className="text-right flex-shrink-0">
-                <p className={`font-bold text-sm ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                <p className={`font-bold text-sm ${transaction.type === 'income' ? 'text-[var(--rw-pos)]' : 'text-[var(--rw-ink)]'} tabular-nums ${transaction.ignored ? 'line-through' : ''}`}>
                   {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                 </p>
               </div>
@@ -208,6 +221,20 @@ export default function TransactionList({
                   <span className="text-[10px] font-bold text-violet-500 dark:text-violet-400 tabular-nums">
                     {transaction.installmentCurrent}/{transaction.installmentTotal}
                   </span>
+                )}
+                {transaction.ignored && !transaction.isTransfer && (
+                  <span className="rounded-full bg-[var(--rw-raised)] px-2 py-0.5 text-[10px] font-bold text-[var(--rw-muted)]">
+                    {language === 'pt' ? 'Não conta nos totais' : 'Not counted'}
+                  </span>
+                )}
+                {canWrite && !transaction.isTransfer && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleIgnored(transaction); }}
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold text-[var(--rw-brand-ink)] hover:bg-[var(--rw-brand-soft)]"
+                  >
+                    {transaction.ignored ? (language === 'pt' ? 'Voltar a contar' : 'Count again') : (language === 'pt' ? 'Ignorar' : 'Ignore')}
+                  </button>
                 )}
                 {transaction.isTransfer && (
                   <span

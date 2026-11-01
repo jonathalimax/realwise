@@ -38,16 +38,16 @@ function CategoryRow({ row, color, formatCurrency: formatFull, pt, onClick }) {
       className={`block w-full rounded-2xl p-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-700/40 dark:active:bg-slate-700/60 ${!row.hasSpending && !row.hasLimit ? 'opacity-50' : ''}`}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
+        <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[var(--rw-ink)]">
           <span className="text-lg leading-none" aria-hidden>{iconFor(row.category)}</span>
           <span className="truncate">{row.category}</span>
         </span>
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900 dark:text-white">{formatCurrency(row.amount)}</span>
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--rw-ink)]">{formatCurrency(row.amount)}</span>
       </div>
       <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700/60">
         <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${fill}%`, backgroundColor: tone }} />
       </div>
-      <p className={`mt-1.5 text-xs ${row.over ? 'font-semibold text-rose-500' : 'text-slate-500 dark:text-slate-400'}`}>
+      <p className={`mt-1.5 text-xs ${row.over ? 'font-semibold text-rose-500' : 'text-[var(--rw-muted)]'}`}>
         {row.hasLimit ? (
           <>
             <strong style={{ color: tone }}>{pct}%</strong> · {note}
@@ -122,7 +122,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
     <>
       <HomeCard title={pt ? 'Onde foi o dinheiro' : 'Where the money went'} actionLabel={pt ? 'Ver tudo' : 'See all'} onAction={() => setOpen(true)}>
         {total === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400">{pt ? 'Nenhum gasto neste mês.' : 'No spending this month.'}</p>
+          <p className="text-sm text-[var(--rw-muted)]">{pt ? 'Nenhum gasto neste mês.' : 'No spending this month.'}</p>
         ) : (
           <>
             <div className="flex h-3.5 w-full gap-0.5 overflow-hidden rounded-full" role="img" aria-label={pt ? 'Distribuição dos gastos' : 'Spending distribution'}>
@@ -135,11 +135,11 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
               {top.map((row) => (
                 <li key={row.category}>
                   <button onClick={() => goTo(row.category)} className="flex w-full items-baseline justify-between gap-3 text-left">
-                    <span className="flex min-w-0 items-center gap-3 text-base text-slate-800 dark:text-slate-100">
+                    <span className="flex min-w-0 items-center gap-3 text-base text-[var(--rw-ink)]">
                       <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: colorOf(row.category) }} />
                       <span className="truncate">{row.category}</span>
                     </span>
-                    <span className="shrink-0 text-base font-semibold tabular-nums text-slate-900 dark:text-white">{money(row.amount)}</span>
+                    <span className="shrink-0 text-base font-semibold tabular-nums text-[var(--rw-ink)]">{money(row.amount)}</span>
                   </button>
                 </li>
               ))}
@@ -153,7 +153,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
                 <SparklesIcon className="mt-1 h-5 w-5 shrink-0 text-violet-500 dark:text-violet-300" />
                 <span>
                   {money(uncategorized)} {pt ? 'estão sem categoria.' : 'have no category.'}{' '}
-                  <strong className="text-violet-600 dark:text-violet-300">{pt ? 'Elio classifica para você' : 'Let Elio sort them'}</strong>
+                  <strong className="text-[var(--rw-brand-ink)]">{pt ? 'Elio classifica para você' : 'Let Elio sort them'}</strong>
                 </span>
               </button>
             )}

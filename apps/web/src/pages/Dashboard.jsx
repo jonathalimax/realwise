@@ -8,10 +8,10 @@ import { useInvestments } from '../contexts/InvestmentContext';
 import { useMonth } from '../contexts/MonthContext';
 import useTransactions from '../hooks/useTransactions';
 import useCarryoverSaldo from '../hooks/useCarryoverSaldo';
-import AskChatBar from '../components/AskChatBar';
 import HomeSummaryCard from '../components/home/HomeSummaryCard';
 import PlanningCard from '../components/home/PlanningCard';
 import OverdueBillsCard from '../components/home/OverdueBillsCard';
+import InsightsCard from '../components/home/InsightsCard';
 import CategorySpendingCard from '../components/home/CategorySpendingCard';
 import TrendChart from '../components/charts/TrendChart';
 import PageHeader from '../components/PageHeader';
@@ -67,7 +67,7 @@ export default function DashboardPage() {
 
   if (isHydrating) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
         <PageHeader title={t('dashboard.title')} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
@@ -86,13 +86,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
       <PageHeader title={t('dashboard.title')} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        <AskChatBar />
-
         {/* One column on a phone, in reading order: balance, late-bill alert, budget, where the money went, panorama.
             On a phone the two column wrappers disappear (display: contents) and `order` gives that order; on a wide
             screen the left column carries balance, alert and panorama, the right one budget and spending. */}
@@ -107,7 +105,7 @@ export default function DashboardPage() {
               onExpensesClick={handleExpensesClick}
             /></div>
             <div className="order-2"><OverdueBillsCard /></div>
-            <div className="order-5">
+            <div className="order-6">
               <TrendChart
                 transactions={transactions}
                 selectedMonth={selectedMonth}
@@ -121,6 +119,7 @@ export default function DashboardPage() {
           <div className="contents lg:flex lg:flex-col lg:gap-6">
             <div className="order-3"><PlanningCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
             <div className="order-4"><CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
+            <div className="order-5"><InsightsCard /></div>
           </div>
         </div>
       </main>
@@ -128,7 +127,7 @@ export default function DashboardPage() {
       {/* The assistant is the only way to add data */}
       <button
         onClick={() => navigate('/chat')}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center bg-violet-500 hover:bg-violet-600 transition-all"
+        className="hidden lg:flex fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg items-center justify-center bg-[var(--rw-brand)] hover:opacity-90 transition-all"
         aria-label={language === 'pt' ? 'Abrir assistente' : 'Open assistant'}
       >
         <SparklesIcon className="w-7 h-7 text-white" />
@@ -136,7 +135,7 @@ export default function DashboardPage() {
       <PageHelp
         title="Dashboard"
         text="Visão geral das suas finanças. Acompanhe saldo, receitas e despesas do mês selecionado. Use as setas para navegar entre os meses."
-        hasFab={true}
+        hasFab={false}
       />
     </div>
   );

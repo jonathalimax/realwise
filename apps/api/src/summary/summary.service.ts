@@ -63,6 +63,11 @@ export class SummaryService {
     return `${(process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br').replace(/\/+$/, '')}/resumo/${token}`;
   }
 
+  /** The user row, for callers outside this class that need `compute`. */
+  userRow(userId: string): Promise<User> {
+    return this.loadUser(userId);
+  }
+
   private async loadUser(userId: string): Promise<User> {
     const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) throw new NotFoundException('User not found');

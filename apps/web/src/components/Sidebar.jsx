@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { PlanBadge } from './billing/PlanBadge';
 import { logoutAndRedirect } from '../lib/auth/logout';
@@ -151,7 +151,6 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
 }
 
 export default function Sidebar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const { language } = useSettings();
   const { currentUser } = useAccess();
   const hasInvestments = useFeature('investments');
@@ -162,9 +161,8 @@ export default function Sidebar() {
       labelPt: 'Acompanhar',
       items: [
         { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
-        { name: 'AI Assistant', namePt: 'Assistente IA', href: '/chat', icon: SparklesIcon },
-        { name: 'Income', namePt: 'Entrada', href: '/income', icon: BanknotesIcon },
-        { name: 'Expenses', namePt: 'Despesas', href: '/expenses', icon: ArrowTrendingUpIcon },
+        { name: 'Activity', namePt: 'Movimentos', href: '/transactions', icon: ArrowTrendingUpIcon },
+        { name: 'Elio', namePt: 'Elio', href: '/chat', icon: SparklesIcon },
         { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon }
       ],
     },
@@ -172,18 +170,12 @@ export default function Sidebar() {
       label: 'Plan',
       labelPt: 'Planejar',
       items: [
-        { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
+        { name: 'Budget', namePt: 'Orçamento', href: '/planning', icon: ChartPieIcon },
         ...(hasInvestments ? [{ name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: CalendarDaysIcon }] : []),
         { name: 'Banks', namePt: 'Bancos', href: '/banks', icon: BuildingLibraryIcon },
       ],
     },
   ], [hasInvestments]);
-
-  useEffect(() => {
-    const handleToggle = () => setMobileOpen(prev => !prev);
-    window.addEventListener('toggle-sidebar', handleToggle);
-    return () => window.removeEventListener('toggle-sidebar', handleToggle);
-  }, []);
 
   const handleSignOut = async () => {
     await logoutAndRedirect();
@@ -198,22 +190,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Drawer */}
-      <div
-        className={`fixed inset-0 z-[60] transition-opacity duration-300 lg:hidden ${
-          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-        <div
-          className={`absolute inset-y-0 left-0 w-72 bg-white dark:bg-gray-900 shadow-2xl transition-transform duration-300 ${
-            mobileOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          <SidebarContent {...sharedProps} mobileClose={() => setMobileOpen(false)} />
-        </div>
-      </div>
-
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800">
         <SidebarContent {...sharedProps} mobileClose={null} />

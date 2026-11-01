@@ -208,7 +208,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
     <div className="w-full overflow-hidden rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white via-slate-50 to-emerald-50/40 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{pt ? 'Panorama' : 'Overview'}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--rw-muted)]">{pt ? 'Panorama' : 'Overview'}</p>
           <p className="text-sm text-slate-600 first-letter:uppercase dark:text-slate-300">{longMonth(selectedKey)}</p>
         </div>
         <button
@@ -253,7 +253,7 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
             >
               <ChevronLeftIcon className="h-5 w-5" />
             </button>
-            <span className="min-w-[4rem] text-center text-lg font-bold tabular-nums text-slate-900 dark:text-white">{year}</span>
+            <span className="min-w-[4rem] text-center text-lg font-bold tabular-nums text-[var(--rw-ink)]">{year}</span>
             <button
               onClick={() => yearIndex < years.length - 1 && setSheetYear(years[yearIndex + 1])}
               disabled={yearIndex >= years.length - 1}

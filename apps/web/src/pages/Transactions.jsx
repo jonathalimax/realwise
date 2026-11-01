@@ -7,10 +7,12 @@ import { useCards, BANKS } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
-import { XMarkIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../components/PageHeader';
+import AddTransactionSheet from '../components/AddTransactionSheet';
 
 export default function TransactionsPage() {
-  const { t, language, categories } = useSettings();
+  const { t, language, categories, formatCurrency } = useSettings();
   const { ownerId } = useAccess();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
   const { selectedMonth, setSelectedMonth } = useMonth();
@@ -41,20 +43,10 @@ export default function TransactionsPage() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [showUncategorized, setShowUncategorized] = useState(false);
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [showAdd, setShowAdd] = useState(false);
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-
-  const availableMonths = useMemo(() => {
-    const months = new Set();
-    transactions.forEach(t => {
-      const date = new Date(t.date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      months.add(key);
-    });
-    const now = new Date();
-    months.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-    return Array.from(months).sort().reverse();
-  }, [transactions]);
 
   const monthlyTransactions = useMemo(() => {
     if (!selectedMonth) return transactions;
@@ -101,14 +93,24 @@ export default function TransactionsPage() {
   }, [transactions, selectedMonth, viewMode, selectedBankFilter, selectedPaymentMethodFilter, findUserBank, getPaymentMonthKey]);
 
   const filteredTransactions = useMemo(() => {
-    let result = monthlyTransactions;
+    let result = typeFilter === 'all' ? monthlyTransactions : monthlyTransactions.filter(t => t.type === typeFilter);
     if (showUncategorized) {
       result = result.filter(t => t.category === 'Sem categoria');
     } else if (selectedCategoryFilter !== 'all') {
       result = result.filter(t => t.category === selectedCategoryFilter);
     }
     return result;
-  }, [monthlyTransactions, selectedCategoryFilter, showUncategorized]);
+  }, [monthlyTransactions, selectedCategoryFilter, showUncategorized, typeFilter]);
+
+  const totals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of monthlyTransactions) {
+      if (t.ignored) continue;
+      if (t.type === 'income') income += t.amount; else if (t.type === 'expense') expense += t.amount;
+    }
+    return { income, expense, net: income - expense };
+  }, [monthlyTransactions]);
 
   const availableCategories = useMemo(() => {
     const cats = new Set();
@@ -138,23 +140,6 @@ export default function TransactionsPage() {
     return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   };
 
-  const goToPreviousMonth = () => {
-    const currentIndex = availableMonths.indexOf(selectedMonth);
-    if (currentIndex < availableMonths.length - 1) {
-      setSelectedMonth(availableMonths[currentIndex + 1]);
-    }
-  };
-
-  const goToNextMonth = () => {
-    const currentIndex = availableMonths.indexOf(selectedMonth);
-    if (currentIndex > 0) {
-      setSelectedMonth(availableMonths[currentIndex - 1]);
-    }
-  };
-
-  const canGoPrevious = availableMonths.indexOf(selectedMonth) < availableMonths.length - 1;
-  const canGoNext = availableMonths.indexOf(selectedMonth) > 0;
-
   const uncategorizedCount = useMemo(() => {
     return monthlyTransactions.filter(t => t.category === 'Sem categoria').length;
   }, [monthlyTransactions]);
@@ -170,58 +155,41 @@ export default function TransactionsPage() {
   const triggerRefresh = () => {};
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-14 sm:h-16">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pl-12 md:pl-0">
-              {t('transactionList.title')}
-            </h1>
-          </div>
+    <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
+      <PageHeader title={language === 'pt' ? 'Movimentos' : 'Activity'} right={(
+        <button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          aria-label={language === 'pt' ? 'Adicionar movimento' : 'Add entry'}
+          className="w-9 h-9 rounded-full bg-[var(--rw-brand)] text-white flex items-center justify-center"
+        >
+          <PlusIcon className="w-5 h-5" />
+        </button>
+      )} />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-24">
+        <section className="rw-hero rw-hero-violet flex flex-col gap-1 p-5 mb-3" aria-label={language === 'pt' ? 'Total do mês' : 'Month total'}>
+          <span className="rw-eyebrow text-violet-300">{getMonthLabel(selectedMonth).toUpperCase()}</span>
+          <span className="rw-num text-[44px] font-extrabold leading-[48px]">{totals.net >= 0 ? '+ ' : '- '}{formatCurrency(Math.abs(totals.net)).replace(/,00(?=\D*$)/, '')}</span>
+          <span className="text-[15px] text-violet-100">
+            {totals.net >= 0
+              ? (language === 'pt' ? 'entrou mais do que saiu neste mês' : 'more came in than went out this month')
+              : (language === 'pt' ? 'saiu mais do que entrou neste mês' : 'more went out than came in this month')}
+          </span>
+        </section>
+
+        <div className="flex p-[3px] gap-0.5 rounded-[14px] bg-[var(--rw-raised)] mb-3" role="tablist" aria-label={language === 'pt' ? 'Filtrar por tipo' : 'Filter by type'}>
+          {[['all', language === 'pt' ? 'Tudo' : 'All'], ['income', language === 'pt' ? 'Entradas' : 'In'], ['expense', language === 'pt' ? 'Saídas' : 'Out']].map(([key, label]) => (
+            <button key={key} role="tab" aria-selected={typeFilter === key} onClick={() => setTypeFilter(key)}
+              className={`flex-1 h-[38px] rounded-[11px] text-sm font-semibold ${typeFilter === key ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>
+              {label}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        {/* Month Selector + Filters */}
-        <div className="flex flex-col gap-3 mb-4 sm:mb-6">
+        <div className="flex flex-col gap-3 mb-4">
           <div className="flex items-center justify-between gap-2">
-            {/* Month Selector */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <button
-                onClick={goToPreviousMonth}
-                disabled={!canGoPrevious}
-                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
-              >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="flex-1 pl-3 pr-8 py-2 bg-white dark:bg-gray-800 rounded-xl font-bold text-sm text-gray-900 dark:text-white border-0 shadow-sm focus:ring-2 focus:ring-violet-500 cursor-pointer text-center capitalize"
-              >
-                {availableMonths.map(month => (
-                  <option key={month} value={month} className="capitalize">
-                    {getMonthLabel(month)}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                onClick={goToNextMonth}
-                disabled={!canGoNext}
-                className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-shrink-0"
-              >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-
+            <span className="text-sm text-[var(--rw-subtle)]">{filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}</span>
             {/* Filters Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -424,15 +392,7 @@ export default function TransactionsPage() {
         )}
 
         {/* Transactions List */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 shadow-sm border border-slate-100 dark:border-slate-700">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white capitalize">
-              {getMonthLabel(selectedMonth)}
-            </h3>
-            <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              {filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}
-            </span>
-          </div>
+        <div className="rw-card p-3 sm:p-5">
           <TransactionList
             transactions={filteredTransactions}
             selectedMonth={selectedMonth}
@@ -443,6 +403,7 @@ export default function TransactionsPage() {
           />
         </div>
       </main>
+      {showAdd && <AddTransactionSheet onClose={() => setShowAdd(false)} />}
       <PageHelp
         title="Transações"
         text="Registre e filtre suas movimentações. Categorize cada transação para acompanhar onde seu dinheiro vai. Use o + para adicionar manualmente ou importe um extrato."
