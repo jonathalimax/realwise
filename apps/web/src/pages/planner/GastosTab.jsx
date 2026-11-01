@@ -17,7 +17,7 @@ const RULE_LABELS = {
 
 function BudgetProgressBar({ pct, colorClass }) {
   return (
-    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+    <div className="w-full bg-[var(--rw-track)] rounded-full h-1.5">
       <div
         className={`h-1.5 rounded-full transition-all duration-300 ${colorClass}`}
         style={{ width: `${Math.min(pct, 100)}%` }}
@@ -93,7 +93,7 @@ export default function GastosTab({
   return (
     <div className="space-y-3">
       {/* Inner tab bar */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+      <div className="flex gap-1 bg-[var(--rw-raised)] rounded-xl p-1">
         {[
           { value: 'tracking', label: 'Rastreamento' },
           { value: 'limits',   label: 'Limites & Alocação' },
@@ -103,8 +103,8 @@ export default function GastosTab({
             onClick={() => setActiveTab(tab.value)}
             className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${
               activeTab === tab.value
-                ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                ? 'bg-[var(--rw-raised)] text-violet-600 dark:text-violet-400 shadow-sm'
+                : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             {tab.label}
@@ -115,11 +115,11 @@ export default function GastosTab({
       {/* ── Tab: Rastreamento ─────────────────────────────────────────────── */}
       {activeTab === 'tracking' && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
             <SpendingChart transactions={monthTx} />
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+            <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
               Tendência — últimos 6 meses por categoria
             </h3>
             <CategoryTrendChart allTx={allTx} last6Months={last6Months} getMonthKey={getPaymentMonthKey} />
@@ -132,8 +132,8 @@ export default function GastosTab({
         <div className="space-y-4">
           {/* Allocation reference with limits breakdown */}
           {liquidezFinal > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+              <h3 className="text-sm font-bold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
                 Referência de alocação — {selectedMonth}
               </h3>
               <div className="grid grid-cols-3 gap-3">
@@ -182,20 +182,20 @@ export default function GastosTab({
           )}
 
           {/* Per-category limits + rule assignment */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">Limites & Classificação</h3>
+          <div className="bg-[var(--rw-surface)] rounded-2xl shadow-sm border border-[var(--rw-border)] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[var(--rw-border)]">
+              <h3 className="text-sm font-bold text-[var(--rw-ink)]">Limites & Classificação</h3>
               <p className="text-xs text-gray-400 mt-0.5">
                 Limites recorrentes para todos os meses. Classifique cada categoria para o relatório de alocação.
               </p>
             </div>
 
             {allCategories.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+              <div className="px-4 py-6 text-center text-sm text-[var(--rw-subtle)]">
                 Nenhuma categoria registrada. Adicione categorias nas Configurações.
               </div>
             ) : (
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              <div className="divide-y divide-[var(--rw-border)]">
                 {allCategories.map(category => {
                   const spent = categorySpending[category] ?? 0;
                   const limit = templateBudget?.categoryBudgets?.[category] ?? 0;
@@ -208,7 +208,7 @@ export default function GastosTab({
                     <div key={category} className="px-4 py-3">
                       {/* Category name + rule badge + limit input */}
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-0 truncate flex-1">
+                        <span className="text-sm font-medium text-[var(--rw-ink)] min-w-0 truncate flex-1">
                           {category}
                         </span>
                         {/* Rule selector */}
@@ -220,7 +220,7 @@ export default function GastosTab({
                               className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${
                                 rule === key
                                   ? color
-                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                                  : 'bg-[var(--rw-raised)] text-[var(--rw-subtle)]'
                               }`}
                             >
                               {label}
@@ -230,7 +230,7 @@ export default function GastosTab({
                       </div>
                       {/* Spending / limit row */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400 w-24 shrink-0">
+                        <span className="text-xs tabular-nums text-[var(--rw-muted)] w-24 shrink-0">
                           {formatBRL.format(spent)} gasto
                         </span>
                         <span className="text-gray-300 dark:text-gray-600 text-xs">/</span>

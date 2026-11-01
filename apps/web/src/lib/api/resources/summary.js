@@ -1,8 +1,8 @@
 import { apiClient } from '../client';
 
 export const summaryResource = {
-  /** The private summary page's data; the token in the link is the only credential. */
-  byToken(token) {
-    return apiClient.get(`/public/summary/${encodeURIComponent(token)}`);
+  /** Home "Insights do Elio": { tone, items: [{ title, detail, frees?, urgent?, href?, kind }] }. */
+  insights() {
+    return apiClient.get('/summary/insights');
   },
 };

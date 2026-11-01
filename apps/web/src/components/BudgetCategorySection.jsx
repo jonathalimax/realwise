@@ -121,9 +121,9 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
   const totalBudget = categoryData.reduce((sum, cat) => sum + cat.limit, 0);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+    <div className="bg-[var(--rw-surface)] rounded-2xl p-4 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+        <h3 className="text-base sm:text-lg font-bold text-[var(--rw-ink)]">
           {language === 'pt' ? 'Gastos por Categoria' : 'Expenses by Category'}
         </h3>
         {canWrite && (
@@ -138,19 +138,19 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
 
       {/* Summary bar */}
       {totalBudget > 0 && (
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+        <div className="mb-4 p-3 bg-[var(--rw-raised)] rounded-xl">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-[var(--rw-muted)]">
               {language === 'pt' ? 'Total do mês' : 'Monthly total'}
             </span>
             <span className="text-sm font-bold">
-              <span className={totalSpent > totalBudget ? 'text-rose-600' : 'text-gray-900 dark:text-white'}>
+              <span className={totalSpent > totalBudget ? 'text-rose-600' : 'text-[var(--rw-ink)]'}>
                 {formatCurrency(totalSpent)}
               </span>
-              <span className="text-gray-400 dark:text-gray-500"> / {formatCurrency(totalBudget)}</span>
+              <span className="text-[var(--rw-subtle)]"> / {formatCurrency(totalBudget)}</span>
             </span>
           </div>
-          <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+          <div className="h-2 bg-[var(--rw-track)] rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 totalSpent > totalBudget ? 'bg-rose-500' : 'bg-emerald-500'
@@ -177,7 +177,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                 onClick={() => onCategoryClick?.(category.name)}
                 className="w-full group"
               >
-                <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
+                <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-[var(--rw-raised)] hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
                   {/* Icon */}
                   <div
                     className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-xl flex-shrink-0"
@@ -193,18 +193,18 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1 min-w-0 flex-1">
-                        <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base truncate">
+                        <span className="font-bold text-[var(--rw-ink)] text-xs sm:text-base truncate">
                           {category.name}
                         </span>
                         {/* Show percentage badge */}
                         {totalSpent > 0 && category.spent > 0 && (
-                          <span className="text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                          <span className="text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded bg-[var(--rw-raised)] text-[var(--rw-muted)] flex-shrink-0">
                             {((category.spent / totalSpent) * 100).toFixed(0)}%
                           </span>
                         )}
                       </div>
                       <div className="flex flex-col items-end ml-1.5 sm:ml-2 flex-shrink-0">
-                        <span className="font-bold text-gray-900 dark:text-white text-xs sm:text-base whitespace-nowrap">
+                        <span className="font-bold text-[var(--rw-ink)] text-xs sm:text-base whitespace-nowrap">
                           {formatCurrency(category.spent)}
                         </span>
                         {category.hasLimit && (
@@ -217,7 +217,7 @@ export default function BudgetCategorySection({ transactions, selectedMonth, onC
 
                     {/* Progress bar */}
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <div className="flex-1 h-1.5 sm:h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 sm:h-2 bg-[var(--rw-track)] rounded-full overflow-hidden">
                         {category.hasLimit ? (
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${statusColors.bg}`}

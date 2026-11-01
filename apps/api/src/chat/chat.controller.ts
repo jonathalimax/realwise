@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Headers, Patch, Param, Query, Res, Parse
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { ACCOUNT_TYPES, BANK_IDS } from './onboarding';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -49,6 +49,14 @@ class AnswersDto {
   @ValidateNested({ each: true })
   @Type(() => AnswerDto)
   answers: AnswerDto[];
+}
+
+class CategoriesFormDto {
+  @IsArray()
+  @ArrayMaxSize(80)
+  @IsString({ each: true })
+  @MaxLength(60, { each: true })
+  names: string[];
 }
 
 class AccountFormDto {
@@ -291,6 +299,18 @@ export class ChatController {
   ) {
     const scope = { clientId: user.clientId, userId: user.sub };
     return this.respond(res, accept, (emit) => this.service.submitAccountForm(scope, id, dto, emit));
+  }
+
+  @Post('messages/:id/categories-form')
+  categoriesForm(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CategoriesFormDto,
+    @CurrentUser() user: JwtPayload,
+    @Headers('accept') accept: string | undefined,
+    @Res() res: Response,
+  ) {
+    const scope = { clientId: user.clientId, userId: user.sub };
+    return this.respond(res, accept, (emit) => this.service.submitCategoriesForm(scope, id, dto.names, emit));
   }
 
   @Post('messages/:id/review')

@@ -1,3 +1,4 @@
+import { catalogAll, catalogBasics, CATALOG_TRANSLATIONS } from '../lib/categoryCatalog';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { LANGUAGES, DEFAULT_LANGUAGE, getTranslation } from '../locales';
 import { useAccess } from './AccessContext';
@@ -27,35 +28,16 @@ export const CURRENCIES = {
 // pin this entry at the top of every category select without hardcoding the string.
 export const UNCATEGORIZED_CATEGORY = { pt: 'Sem categoria', en: 'Uncategorized' };
 
-// All available predefined categories by language
-export const ALL_CATEGORIES_BY_LANG = {
-  en: {
-    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Groceries', 'Healthcare', 'Education', 'Leisure', 'Sports', 'Clothing', 'Beauty', 'Shopping', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Bonus', 'Rental', 'Uncategorized', 'Other']
-  },
-  pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Mercado', 'Saúde', 'Educação', 'Lazer', 'Esporte', 'Vestuário', 'Beleza', 'Compras', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Bônus', 'Aluguel', 'Sem categoria', 'Outros']
-  }
-};
-
-// Default enabled categories (subset of all)
-const DEFAULT_CATEGORIES_BY_LANG = {
-  en: {
-    expense: ['Housing', 'Bills', 'Vehicle', 'Food', 'Healthcare', 'Education', 'Leisure', 'Clothing', 'Taxes', 'Subscriptions', 'Travel', 'Church', 'Investments', 'Uncategorized', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Refund', 'Gift', 'Uncategorized', 'Other']
-  },
-  pt: {
-    expense: ['Moradia', 'Contas', 'Veículo', 'Alimentação', 'Mercado', 'Saúde', 'Educação', 'Lazer', 'Esporte', 'Vestuário', 'Beleza', 'Compras', 'Impostos', 'Assinaturas', 'Viagens', 'Igreja', 'Investimentos', 'Sem categoria', 'Diversos'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Presente', 'Sem categoria', 'Outros']
-  }
-};
+// All available predefined categories by language, and the subset that is on by default (see lib/categoryCatalog.js).
+export const ALL_CATEGORIES_BY_LANG = { en: catalogAll('en'), pt: catalogAll('pt') };
+const DEFAULT_CATEGORIES_BY_LANG = { en: catalogBasics('en'), pt: catalogBasics('pt') };
 
 export const getAllCategories = (lang) => ALL_CATEGORIES_BY_LANG[lang] || ALL_CATEGORIES_BY_LANG.pt;
 const getDefaultCategories = (lang) => DEFAULT_CATEGORIES_BY_LANG[lang] || DEFAULT_CATEGORIES_BY_LANG.pt;
 
 // Category translation mapping (PT -> EN and EN -> PT)
 const CATEGORY_TRANSLATION_MAP = {
+  ...CATALOG_TRANSLATIONS,
   // Expense categories
   'Housing': 'Moradia',
   'Moradia': 'Housing',

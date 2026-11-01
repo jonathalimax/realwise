@@ -26,7 +26,7 @@ export default function TransactionFields({
   const label = (pt, en) => (language === 'pt' ? pt : en);
 
   const fieldLabel = (text) => (
-    <label className="block text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
+    <label className="block text-[10px] font-black text-[var(--rw-muted)] uppercase tracking-widest mb-1">
       {text}
     </label>
   );
@@ -49,7 +49,7 @@ export default function TransactionFields({
           type="text"
           value={trans.description}
           onChange={(e) => patch('description', e.target.value)}
-          className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm text-[var(--rw-ink)] font-medium focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
         />
       </div>
 
@@ -67,12 +67,12 @@ export default function TransactionFields({
         {!isCreditCard && (
           <div className="flex-1">
             {fieldLabel(label('Tipo', 'Type'))}
-            <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5 overflow-hidden" style={{ height: '42px' }}>
+            <div className="flex p-0.5 bg-[var(--rw-raised)] rounded-xl gap-0.5 overflow-hidden" style={{ height: '42px' }}>
               <button
                 onClick={() => patch('type', 'expense')}
                 className={`flex-1 h-full text-[11px] font-black rounded-[10px] transition-all ${
                   trans.type === 'expense'
-                    ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                    ? 'bg-[var(--rw-raised)] shadow-sm text-[var(--rw-ink)]'
                     : 'text-gray-400'
                 }`}
               >
@@ -82,7 +82,7 @@ export default function TransactionFields({
                 onClick={() => patch('type', 'income')}
                 className={`flex-1 h-full text-[11px] font-black rounded-[10px] transition-all ${
                   trans.type === 'income'
-                    ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                    ? 'bg-[var(--rw-raised)] shadow-sm text-[var(--rw-ink)]'
                     : 'text-gray-400'
                 }`}
               >
@@ -97,7 +97,7 @@ export default function TransactionFields({
       {!isCreditCard && (
         <div>
           {fieldLabel(label('Método de pagamento', 'Payment method'))}
-          <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5 overflow-hidden" style={{ height: '42px' }}>
+          <div className="flex p-0.5 bg-[var(--rw-raised)] rounded-xl gap-0.5 overflow-hidden" style={{ height: '42px' }}>
             {[
               { value: 'debit', label: label('Débito', 'Debit') },
               { value: 'pix', label: 'PIX' },
@@ -108,7 +108,7 @@ export default function TransactionFields({
                 onClick={() => patch('paymentMethod', value)}
                 className={`flex-1 h-full text-[10px] font-black rounded-[10px] transition-all ${
                   (trans.paymentMethod || 'debit') === value
-                    ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                    ? 'bg-[var(--rw-raised)] shadow-sm text-[var(--rw-ink)]'
                     : 'text-gray-400'
                 }`}
               >
@@ -126,7 +126,7 @@ export default function TransactionFields({
           type="date"
           value={trans.date ? trans.date.split('T')[0] : ''}
           onChange={(e) => patch('date', e.target.value)}
-          className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
         />
       </div>
 
@@ -137,7 +137,7 @@ export default function TransactionFields({
           <select
             value={trans.category || ''}
             onChange={(e) => patch('category', e.target.value)}
-            className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
+            className="w-full appearance-none px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-bold text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent pr-9"
           >
             {(() => {
               const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
@@ -171,7 +171,7 @@ export default function TransactionFields({
               <select
                 value={trans.investmentType || 'fixed_income'}
                 onChange={(e) => patch('investmentType', e.target.value)}
-                className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
+                className="w-full appearance-none px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-bold text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent pr-9"
               >
                 {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
                   <option key={key} value={key}>
@@ -197,7 +197,7 @@ export default function TransactionFields({
                   step="0.01"
                   value={trans.expectedReturn || 0}
                   onChange={(e) => patch('expectedReturn', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-bold text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 />
               </div>
               <div className="flex-1">
@@ -206,7 +206,7 @@ export default function TransactionFields({
                   type="date"
                   value={trans.maturityDate || ''}
                   onChange={(e) => patch('maturityDate', e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -222,7 +222,7 @@ export default function TransactionFields({
                   value={trans.ticker || ''}
                   onChange={(e) => patch('ticker', e.target.value.toUpperCase())}
                   placeholder="PETR4"
-                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent uppercase"
+                  className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-bold text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent uppercase"
                 />
               </div>
               <div className="flex-1">
@@ -232,7 +232,7 @@ export default function TransactionFields({
                   value={trans.platform || ''}
                   onChange={(e) => patch('platform', e.target.value)}
                   placeholder="XP, Clear..."
-                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function TransactionFields({
                 value={trans.coinName || ''}
                 onChange={(e) => patch('coinName', e.target.value)}
                 placeholder="Bitcoin, Ethereum..."
-                className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
               />
             </div>
           )}
@@ -260,7 +260,7 @@ export default function TransactionFields({
                 type="text"
                 value={trans.fundName || ''}
                 onChange={(e) => patch('fundName', e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
               />
             </div>
           )}
@@ -275,7 +275,7 @@ export default function TransactionFields({
             <select
               value={trans.goalId || ''}
               onChange={(e) => patch('goalId', e.target.value || null)}
-              className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
+              className="w-full appearance-none px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent pr-9"
             >
               <option value="">{label('Nenhuma', 'None')}</option>
               {availableGoals.map((g) => (
@@ -297,7 +297,7 @@ export default function TransactionFields({
             <select
               value={trans.plannerGoalId || ''}
               onChange={(e) => patch('plannerGoalId', e.target.value || null)}
-              className="w-full appearance-none px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent pr-9"
+              className="w-full appearance-none px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent pr-9"
             >
               <option value="">{label('Nenhuma', 'None')}</option>
               {plannerGoals.map((g) => (

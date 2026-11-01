@@ -60,7 +60,7 @@ export default function ImportSwipeSheet({
 
       {/* Sheet — fixed 85svh so height never changes between cards */}
       <div
-        className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl"
+        className="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-[var(--rw-surface)] rounded-t-3xl shadow-2xl"
         style={{ height: '90svh' }}
       >
         {/* Drag handle — touch here to drag down and dismiss */}
@@ -75,7 +75,7 @@ export default function ImportSwipeSheet({
         {/* Progress header */}
         <div className="flex items-center gap-2.5 px-4 pt-1 pb-1">
           <div className="flex-1 flex flex-col items-center gap-1">
-            <div className="w-full h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-[var(--rw-raised)] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   isLast ? 'bg-emerald-500' : 'bg-gray-900 dark:bg-white'
@@ -87,7 +87,7 @@ export default function ImportSwipeSheet({
               className={`text-[11px] font-bold transition-colors ${
                 isLast
                   ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-gray-500 dark:text-gray-400'
+                  : 'text-[var(--rw-muted)]'
               }`}
             >
               {isLast
@@ -99,7 +99,7 @@ export default function ImportSwipeSheet({
           {/* Close button — always visible as fallback */}
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center active:scale-95 transition-all text-gray-500 dark:text-gray-400"
+            className="w-9 h-9 rounded-xl bg-[var(--rw-raised)] flex items-center justify-center active:scale-95 transition-all text-[var(--rw-muted)]"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -137,13 +137,13 @@ export default function ImportSwipeSheet({
             </div>
             <div className="flex-1 min-w-0">
               {/* Fixed 2-line height — overflow hidden prevents any layout shift */}
-              <p className="text-base font-black text-gray-900 dark:text-white line-clamp-2 leading-snug" style={{ height: '2.75rem', overflow: 'hidden' }}>
+              <p className="text-base font-black text-[var(--rw-ink)] line-clamp-2 leading-snug" style={{ height: '2.75rem', overflow: 'hidden' }}>
                 {trans._isGroup ? trans._baseDescription : trans.description}
               </p>
               {/* Always reserve badge row height to prevent shift when badge appears/disappears */}
               <div style={{ height: '1.375rem' }}>
                 {(trans._isGroup || trans.isInstallment) && (
-                  <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 uppercase tracking-tight">
+                  <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-[var(--rw-brand-ink)] uppercase tracking-tight">
                     {trans._isGroup
                       ? `${trans.installmentTotal}x · ${label('edições aplicam a todas', 'edits apply to all')}`
                       : `${label('Parcela', 'Installment')} ${trans.installmentCurrent}/${trans.installmentTotal}`}
@@ -195,14 +195,14 @@ export default function ImportSwipeSheet({
                 ];
                 return (
                   <>
-                    <div className="flex p-0.5 bg-gray-100 dark:bg-gray-700 rounded-xl gap-0.5 overflow-hidden">
+                    <div className="flex p-0.5 bg-[var(--rw-raised)] rounded-xl gap-0.5 overflow-hidden">
                       {options.map(({ value, label: lbl }) => (
                         <button
                           key={value}
                           onClick={() => setStatus(value)}
                           className={`flex-1 px-1 py-2.5 text-[11px] font-black rounded-[10px] transition-all leading-tight ${
                             status === value
-                              ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                              ? 'bg-[var(--rw-raised)] shadow-sm text-[var(--rw-ink)]'
                               : 'text-gray-400'
                           }`}
                         >
@@ -227,11 +227,11 @@ export default function ImportSwipeSheet({
         </div>
 
         {/* Bottom navigation — always visible, large tap targets */}
-        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-4 border-t border-[var(--rw-border)]">
           <button
             onClick={() => goTo(currentIndex - 1)}
             disabled={currentIndex === 0}
-            className="flex-shrink-0 w-14 h-14 rounded-2xl border border-gray-200 dark:border-gray-600 flex items-center justify-center text-3xl font-black disabled:opacity-30 active:scale-95 transition-all text-gray-900 dark:text-white"
+            className="flex-shrink-0 w-14 h-14 rounded-2xl border border-[var(--rw-border)] flex items-center justify-center text-3xl font-black disabled:opacity-30 active:scale-95 transition-all text-[var(--rw-ink)]"
             aria-label={label('Voltar', 'Back')}
           >
             ‹

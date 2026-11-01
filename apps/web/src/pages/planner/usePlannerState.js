@@ -425,6 +425,11 @@ export default function usePlannerState() {
     }));
   };
 
+  /** Replaces the whole needs / savings / wants split at once (presets), so three field writes cannot race. */
+  const setMonthAllocation = (allocation) => {
+    updatePlannerVersion(() => ({ allocation: { ...allocation } }));
+  };
+
   const updateSalarioBruto = (value) => {
     updatePlannerVersion(() => ({ salarioBruto: value }));
   };
@@ -695,6 +700,7 @@ export default function usePlannerState() {
     isPhase2ForSelectedMonth,
     monthAllocation,
     updateMonthAllocation,
+    setMonthAllocation,
     resetMonthAllocation,
     copyFromPreviousMonth,
   };

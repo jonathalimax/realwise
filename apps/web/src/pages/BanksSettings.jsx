@@ -6,7 +6,7 @@ export default function BanksSettingsPage() {
   const { language } = useSettings();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--rw-bg)]">
       <PageHeader
         title={language === 'pt' ? 'Bancos' : 'Banks'}
         showMonth={false}

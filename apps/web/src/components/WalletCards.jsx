@@ -9,30 +9,30 @@ export default function WalletCards({ onManageCards }) {
 
   if (userBanks.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+          <h3 className="text-base sm:text-lg font-bold text-[var(--rw-ink)]">
             {language === 'pt' ? 'Minhas Carteiras' : 'My Wallets'}
           </h3>
         </div>
         {canWrite ? (
           <button
             onClick={onManageCards}
-            className="w-full py-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-all"
+            className="w-full py-8 border-2 border-dashed border-[var(--rw-border)] rounded-xl flex flex-col items-center justify-center gap-2 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-all"
           >
-            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-[var(--rw-raised)] flex items-center justify-center">
               <span className="text-2xl">🏦</span>
             </div>
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-[var(--rw-muted)]">
               {language === 'pt' ? 'Adicionar banco' : 'Add bank'}
             </span>
           </button>
         ) : (
           <div className="text-center py-8">
-            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-[var(--rw-raised)] flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl">🏦</span>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-[var(--rw-muted)]">
               {language === 'pt' ? 'Nenhum banco cadastrado' : 'No banks registered'}
             </p>
           </div>
@@ -42,9 +42,9 @@ export default function WalletCards({ onManageCards }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm">
+    <div className="bg-[var(--rw-surface)] rounded-2xl p-4 sm:p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+        <h3 className="text-base sm:text-lg font-bold text-[var(--rw-ink)]">
           {language === 'pt' ? 'Minhas Carteiras' : 'My Wallets'}
         </h3>
         {canWrite && (
@@ -101,7 +101,7 @@ export default function WalletCards({ onManageCards }) {
         {/* Add bank button */}
         <button
           onClick={onManageCards}
-          className="h-24 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-1 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-all"
+          className="h-24 rounded-xl border-2 border-dashed border-[var(--rw-border)] flex flex-col items-center justify-center gap-1 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-all"
         >
           <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

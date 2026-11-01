@@ -19,7 +19,7 @@ const SELECT_CHEVRON_STYLE = {
 };
 
 const investmentTypeSelectClassName =
-  'w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10';
+  'w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10';
 
 export default function InvestmentForm() {
   const navigate = useNavigate();
@@ -251,7 +251,7 @@ export default function InvestmentForm() {
         : t('investments.withdraw');
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+    <div className="min-h-screen bg-[var(--rw-bg)] pb-24">
       <PageHeader title={headerTitle} showMonth={false} backTo="/investments" />
 
       {/* Content */}
@@ -260,21 +260,21 @@ export default function InvestmentForm() {
           /* WITHDRAW VIEW */
           <div className="space-y-6">
             {/* Investment Preview Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700">
+            <div className="bg-[var(--rw-surface)] rounded-xl p-5 border border-[var(--rw-border)]">
               <div className="flex items-center gap-4">
                 <div className={`w-14 h-14 ${getInvestmentColor(getInvestmentType(investment.type).color).light} rounded-xl flex items-center justify-center text-2xl`}>
                   {getInvestmentType(investment.type).icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 dark:text-white text-lg">{investment.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <h3 className="font-bold text-[var(--rw-ink)] text-lg">{investment.name}</h3>
+                  <p className="text-sm text-[var(--rw-muted)]">
                     {t('investments.currentAmount')}: {formatCurrency(getCurrentValue(investment))}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 space-y-6">
+            <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)] space-y-6">
               {/* Full Withdrawal Toggle */}
               <div className="flex items-center gap-3">
                 <button
@@ -283,7 +283,7 @@ export default function InvestmentForm() {
                   className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition ${
                     isFullWithdrawal
                       ? 'bg-emerald-500 border-emerald-500'
-                      : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
+                      : 'border-[var(--rw-border)] bg-[var(--rw-raised)]'
                   }`}
                 >
                   {isFullWithdrawal && (
@@ -292,7 +292,7 @@ export default function InvestmentForm() {
                     </svg>
                   )}
                 </button>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="text-sm font-medium text-[var(--rw-ink)]">
                   {t('investments.fullWithdrawal')}
                 </label>
               </div>
@@ -300,7 +300,7 @@ export default function InvestmentForm() {
               {/* Withdraw Amount Input */}
               {!isFullWithdrawal && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('investments.withdrawAmount')}
                   </label>
                   <CurrencyInput
@@ -317,7 +317,7 @@ export default function InvestmentForm() {
 
               {/* Withdrawal Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Data do Resgate' : 'Withdrawal Date'}
                 </label>
                 <input
@@ -325,8 +325,8 @@ export default function InvestmentForm() {
                   value={withdrawDate}
                   onChange={(e) => setWithdrawDate(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)]
                     focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                 />
               </div>
@@ -355,7 +355,7 @@ export default function InvestmentForm() {
               {/* Goal Selector */}
               {availableGoals.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-3">
                     {t('investments.contributeToGoal')}
                   </label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -366,15 +366,15 @@ export default function InvestmentForm() {
                       className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                         !withdrawGoalId
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                          : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
-                      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-400">
+                      <div className="w-10 h-10 bg-[var(--rw-raised)] rounded-lg flex items-center justify-center text-gray-400">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </div>
-                      <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">{t('investments.noGoal')}</span>
+                      <span className="text-sm text-[var(--rw-muted)] font-medium">{t('investments.noGoal')}</span>
                     </button>
 
                     {/* Goal options */}
@@ -389,13 +389,13 @@ export default function InvestmentForm() {
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                             withdrawGoalId === goal.id
                               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                              : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                           }`}
                         >
                           <div className={`w-10 h-10 ${color.light} rounded-lg flex items-center justify-center text-lg`}>
                             {icon}
                           </div>
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.name}</span>
+                          <span className="text-sm font-medium text-[var(--rw-ink)]">{goal.name}</span>
                         </button>
                       );
                     })}
@@ -419,10 +419,10 @@ export default function InvestmentForm() {
         ) : (
           /* ADD/EDIT FORM VIEW */
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 space-y-6">
+            <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)] space-y-6">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.name')}
                 </label>
                 <input
@@ -430,8 +430,8 @@ export default function InvestmentForm() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)] placeholder-gray-400
                     focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                   placeholder={t('investments.namePlaceholder')}
                 />
@@ -439,7 +439,7 @@ export default function InvestmentForm() {
 
               {/* Type — same dropdown pattern as transaction add/edit (Investments category) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.type')}
                 </label>
                 <select
@@ -458,15 +458,15 @@ export default function InvestmentForm() {
 
               {/* Bank / Platform */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.bank')}
                 </label>
                 <input
                   type="text"
                   value={formData.bank}
                   onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)] placeholder-gray-400
                     focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                   placeholder={t('investments.bankPlaceholder')}
                 />
@@ -475,7 +475,7 @@ export default function InvestmentForm() {
               {formData.type === 'fixed_income' && (
                 <div className="space-y-4 rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('investments.returnType')}
                     </label>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -487,7 +487,7 @@ export default function InvestmentForm() {
                           className={`px-3 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
                             formData.returnType === type
                               ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-200'
-                              : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-500'
+                              : 'border-gray-200 text-gray-600 hover:border-[var(--rw-border)] dark:text-gray-400 dark:hover:border-gray-500'
                           }`}
                         >
                           {t(`investments.returnTypes.${type}`)}
@@ -496,7 +496,7 @@ export default function InvestmentForm() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {formData.returnType === 'cdi' ? t('investments.cdiPercentage') : t('investments.expectedReturn')}
                     </label>
                     <PercentInput
@@ -504,21 +504,21 @@ export default function InvestmentForm() {
                       onChange={(value) => setFormData((prev) => ({ ...prev, expectedReturn: value }))}
                     />
                     {formData.returnType === 'cdi' && (
-                      <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      <p className="mt-1.5 text-xs text-[var(--rw-muted)]">
                         {t('investments.cdiHint')} ({t('investments.currentCdi')}: {(CDI_ANNUAL_RATE * 100).toFixed(2)}% {t('investments.returnTypes.annual').toLowerCase()})
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('investments.maturityDate')}
                     </label>
                     <input
                       type="date"
                       value={formData.maturityDate}
                       onChange={(e) => setFormData((prev) => ({ ...prev, maturityDate: e.target.value }))}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white
+                      className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)]
                         focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                     />
                   </div>
@@ -526,11 +526,11 @@ export default function InvestmentForm() {
               )}
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 space-y-6">
+            <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)] space-y-6">
               {/* Initial Amount (only for new investments) */}
               {!id && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {t('investments.initialAmount')}
                   </label>
                   <CurrencyInput
@@ -542,15 +542,15 @@ export default function InvestmentForm() {
 
               {/* Purchase Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.purchaseDate')}
                 </label>
                 <input
                   type="date"
                   value={formData.purchaseDate}
                   onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)]
                     focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                 />
               </div>
@@ -558,8 +558,8 @@ export default function InvestmentForm() {
 
             {/* Link to Goal */}
             {availableGoals.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)]">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-3">
                   {t('investments.linkToGoal')}
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -570,15 +570,15 @@ export default function InvestmentForm() {
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                       !formData.goalId
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
-                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-400">
+                    <div className="w-10 h-10 bg-[var(--rw-raised)] rounded-lg flex items-center justify-center text-gray-400">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">{t('investments.noGoalSelected')}</span>
+                    <span className="text-sm text-[var(--rw-muted)] font-medium">{t('investments.noGoalSelected')}</span>
                   </button>
 
                   {/* Goal options */}
@@ -593,13 +593,13 @@ export default function InvestmentForm() {
                         className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                           formData.goalId === goal.id
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                            : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                         }`}
                       >
                         <div className={`w-10 h-10 ${color.light} rounded-lg flex items-center justify-center text-lg`}>
                           {icon}
                         </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.name}</span>
+                        <span className="text-sm font-medium text-[var(--rw-ink)]">{goal.name}</span>
                       </button>
                     );
                   })}
@@ -608,15 +608,15 @@ export default function InvestmentForm() {
             )}
 
             {/* Planner goal link */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)]">
+              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                 Objetivo do planner
               </label>
               {plannerGoals.length > 0 ? (
                 <select
                   value={formData.plannerGoalId}
                   onChange={e => setFormData(prev => ({ ...prev, plannerGoalId: e.target.value }))}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                 >
                   <option value="">Nenhum</option>
                   {plannerGoals.map(g => (
@@ -633,10 +633,10 @@ export default function InvestmentForm() {
             </div>
 
             {['stocks', 'fii', 'etf'].includes(formData.type) && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)]">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       Ticker
                     </label>
                     <input
@@ -644,13 +644,13 @@ export default function InvestmentForm() {
                       value={formData.ticker}
                       onChange={(e) => setFormData(prev => ({ ...prev, ticker: e.target.value.toUpperCase() }))}
                       placeholder={formData.type === 'fii' ? 'HGLG11' : 'PETR4'}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)] placeholder-gray-400 dark:placeholder-gray-500
                         focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition uppercase"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {language === 'pt' ? 'Corretora' : 'Broker'}
                     </label>
                     <input
@@ -658,8 +658,8 @@ export default function InvestmentForm() {
                       value={formData.platform}
                       onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
                       placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)] placeholder-gray-400 dark:placeholder-gray-500
                         focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                     />
                   </div>
@@ -668,10 +668,10 @@ export default function InvestmentForm() {
             )}
 
             {formData.type === 'crypto' && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)]">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
                     </label>
                     <input
@@ -679,13 +679,13 @@ export default function InvestmentForm() {
                       value={formData.coinName}
                       onChange={(e) => setFormData(prev => ({ ...prev, coinName: e.target.value }))}
                       placeholder="Bitcoin (BTC)"
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)] placeholder-gray-400 dark:placeholder-gray-500
                         focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {language === 'pt' ? 'Exchange' : 'Exchange'}
                     </label>
                     <input
@@ -693,8 +693,8 @@ export default function InvestmentForm() {
                       value={formData.platform}
                       onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
                       placeholder="Binance"
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)] placeholder-gray-400 dark:placeholder-gray-500
                         focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                     />
                   </div>
@@ -703,10 +703,10 @@ export default function InvestmentForm() {
             )}
 
             {formData.type === 'funds' && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)]">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
                     </label>
                     <input
@@ -714,13 +714,13 @@ export default function InvestmentForm() {
                       value={formData.fundName}
                       onChange={(e) => setFormData(prev => ({ ...prev, fundName: e.target.value }))}
                       placeholder={language === 'pt' ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund'}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)] placeholder-gray-400 dark:placeholder-gray-500
                         focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {language === 'pt' ? 'Plataforma' : 'Platform'}
                     </label>
                     <input
@@ -728,8 +728,8 @@ export default function InvestmentForm() {
                       value={formData.platform}
                       onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
                       placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
-                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                        text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                        text-[var(--rw-ink)] placeholder-gray-400 dark:placeholder-gray-500
                         focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                     />
                   </div>
@@ -738,8 +738,8 @@ export default function InvestmentForm() {
             )}
 
             {formData.type === 'real_estate' && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)]">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Descricao do Imovel' : 'Property Description'}
                 </label>
                 <input
@@ -747,24 +747,24 @@ export default function InvestmentForm() {
                   value={formData.propertyDescription}
                   onChange={(e) => setFormData(prev => ({ ...prev, propertyDescription: e.target.value }))}
                   placeholder={language === 'pt' ? 'Ex: Apartamento Centro, SP' : 'e.g. Downtown Apartment, SP'}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                    text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                  className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                    text-[var(--rw-ink)] placeholder-gray-400 dark:placeholder-gray-500
                     focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition"
                 />
               </div>
             )}
 
             {/* Notes */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div className="bg-[var(--rw-surface)] rounded-xl p-6 border border-[var(--rw-border)]">
+              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                 {t('investments.notes')}
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl
-                  text-gray-900 dark:text-white placeholder-gray-400
+                className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
+                  text-[var(--rw-ink)] placeholder-gray-400
                   focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition resize-none"
                 placeholder={t('investments.notesPlaceholder')}
               />
@@ -842,7 +842,7 @@ export default function InvestmentForm() {
                       <button
                         type="button"
                         onClick={() => setConfirmDelete(false)}
-                        className="flex-1 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                        className="flex-1 py-2.5 bg-[var(--rw-track)] text-[var(--rw-ink)] text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
                       >
                         {t('common.cancel')}
                       </button>

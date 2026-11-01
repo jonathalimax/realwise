@@ -68,7 +68,7 @@ export default function MemorySettingsPage() {
   };
 
   const editor = editing && (
-    <div className="rounded-2xl border border-violet-300 dark:border-violet-700 bg-white dark:bg-gray-800 p-4 space-y-3">
+    <div className="rounded-2xl border border-violet-300 dark:border-violet-700 bg-[var(--rw-surface)] p-4 space-y-3">
       <textarea
         autoFocus
         value={editing.content}
@@ -76,7 +76,7 @@ export default function MemorySettingsPage() {
         rows={3}
         onChange={(e) => setEditing({ ...editing, content: e.target.value })}
         placeholder={pt ? 'Ex.: Quero juntar R$ 20 mil para uma viagem até dezembro' : 'e.g. I want to save R$ 20k for a trip by December'}
-        className="w-full resize-none rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent px-3 py-2 text-base sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+        className="w-full resize-none rounded-xl border border-[var(--rw-border)] bg-transparent px-3 py-2 text-base sm:text-sm text-[var(--rw-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--rw-brand)]"
       />
       <div className="flex flex-wrap items-center gap-2">
         {Object.entries(KINDS).map(([k, v]) => (
@@ -84,7 +84,7 @@ export default function MemorySettingsPage() {
             key={k}
             type="button"
             onClick={() => setEditing({ ...editing, kind: k })}
-            className={`rounded-full px-3 py-1 text-xs font-semibold border ${editing.kind === k ? `${v.tone} border-transparent` : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'}`}
+            className={`rounded-full px-3 py-1 text-xs font-semibold border ${editing.kind === k ? `${v.tone} border-transparent` : 'border-[var(--rw-border)] text-[var(--rw-muted)]'}`}
           >
             {pt ? v.pt : v.en}
           </button>
@@ -92,14 +92,14 @@ export default function MemorySettingsPage() {
         <span className="ml-auto text-xs text-gray-400">{editing.content.length}/{MAX}</span>
       </div>
       <div className="flex justify-end gap-2">
-        <button onClick={() => setEditing(null)} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+        <button onClick={() => setEditing(null)} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm text-[var(--rw-muted)] hover:bg-gray-100 dark:hover:bg-gray-700">
           <XMarkIcon className="w-4 h-4" />
           {pt ? 'Cancelar' : 'Cancel'}
         </button>
         <button
           onClick={save}
           disabled={busy || editing.content.trim().length < 3}
-          className="inline-flex items-center gap-1 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded-xl bg-[var(--rw-brand)] px-4 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-40"
         >
           <CheckIcon className="w-4 h-4" />
           {pt ? 'Salvar' : 'Save'}
@@ -109,10 +109,10 @@ export default function MemorySettingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--rw-bg)]">
       <PageHeader title={pt ? 'O que o Elio sabe sobre você' : 'What Elio knows about you'} showMonth={false} backTo="/settings" />
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6 pb-24 space-y-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-[var(--rw-muted)]">
           {pt
             ? 'Aqui ficam só as coisas que você contou ao Elio (objetivos, preferências e contexto) para ele te ajudar melhor. Nada é deduzido por conta própria. Você pode editar ou apagar quando quiser.'
             : 'Only things you told Elio (goals, preferences, context) are kept here so he can help you better. Nothing is guessed. Edit or delete anytime.'}
@@ -128,12 +128,12 @@ export default function MemorySettingsPage() {
               editing?.id === m.id ? (
                 <li key={m.id}>{editor}</li>
               ) : (
-                <li key={m.id} className="flex items-start gap-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                <li key={m.id} className="flex items-start gap-3 rounded-2xl border border-[var(--rw-border)] bg-[var(--rw-surface)] p-4">
                   <div className="min-w-0 flex-1">
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${(KINDS[m.kind] ?? KINDS.context).tone}`}>
                       {pt ? (KINDS[m.kind] ?? KINDS.context).pt : (KINDS[m.kind] ?? KINDS.context).en}
                     </span>
-                    <p className="mt-1 break-words text-sm text-gray-900 dark:text-white">{m.content}</p>
+                    <p className="mt-1 break-words text-sm text-[var(--rw-ink)]">{m.content}</p>
                   </div>
                   <button aria-label={pt ? 'Editar' : 'Edit'} onClick={() => setEditing({ id: m.id, content: m.content, kind: m.kind })} className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                     <PencilSquareIcon className="w-5 h-5" />
@@ -145,7 +145,7 @@ export default function MemorySettingsPage() {
               ),
             )}
             {items.length === 0 && !editing && (
-              <li className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              <li className="rounded-2xl border border-dashed border-[var(--rw-border)] p-6 text-center text-sm text-[var(--rw-muted)]">
                 {pt ? 'O Elio ainda não guardou nada. Conte a ele seus objetivos no chat, ou adicione aqui.' : 'Elio has not saved anything yet. Tell him your goals in the chat, or add one here.'}
               </li>
             )}
@@ -157,7 +157,7 @@ export default function MemorySettingsPage() {
         ) : (
           <button
             onClick={() => setEditing({ id: 'new', content: '', kind: 'context' })}
-            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-[var(--rw-border)] px-4 py-2.5 text-sm font-semibold text-[var(--rw-muted)] hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             <PlusIcon className="w-4 h-4" />
             {pt ? 'Adicionar' : 'Add'}

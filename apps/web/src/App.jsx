@@ -25,7 +25,6 @@ const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicy'));
 const TermsPage = lazy(() => import('./pages/legal/Terms'));
 const DashboardPage = lazy(() => import('./pages/Dashboard'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
-const CategorySettingsPage = lazy(() => import('./pages/CategorySettings'));
 const BanksSettingsPage = lazy(() => import('./pages/BanksSettings'));
 const MemorySettingsPage = lazy(() => import('./pages/MemorySettings'));
 const CardsPage = lazy(() => import('./pages/Cards'));
@@ -39,6 +38,7 @@ const NotificationsPage = lazy(() => import('./pages/Notifications'));
 const ChatPage = lazy(() => import('./pages/Chat'));
 const TransactionEditPage = lazy(() => import('./pages/TransactionEdit'));
 const PlanningPage = lazy(() => import('./pages/Planning'));
+const PlanningCategoriesPage = lazy(() => import('./pages/PlanningCategories'));
 const BanksPage = lazy(() => import('./pages/Banks'));
 const InvestmentsPage = lazy(() => import('./pages/Investments'));
 const InvestmentForm = lazy(() => import('./pages/InvestmentForm'));
@@ -48,7 +48,7 @@ const SharedLogin = lazy(() => import('./pages/SharedLogin'));
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
 
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+  <div className="min-h-screen flex items-center justify-center bg-[var(--rw-bg)]">
     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-rose-500" />
   </div>
 );
@@ -107,6 +107,7 @@ function AuthenticatedApp() {
                               <Route path="dashboard" element={<DashboardPage />} />
                               <Route path="planner" element={<Navigate to="../planning" replace />} />
                               <Route path="planning" element={<PlanningPage />} />
+                              <Route path="planning/categories" element={<PlanningCategoriesPage />} />
                               <Route path="expenses" element={<ExpensesPage />} />
                               <Route path="income" element={<IncomePage />} />
                               <Route path="bills" element={<BillsPage />} />
@@ -115,7 +116,7 @@ function AuthenticatedApp() {
                               <Route path="transactions/:id/edit" element={<TransactionEditPage />} />
                               <Route path="settings" element={<SettingsPage />} />
                               <Route path="subscription" element={<SubscriptionPage />} />
-                              <Route path="settings/categories" element={<CategorySettingsPage />} />
+                              <Route path="settings/categories" element={<Navigate to="/planning/categories" replace />} />
                               <Route path="settings/banks" element={<BanksSettingsPage />} />
                               <Route path="settings/memory" element={<MemorySettingsPage />} />
                               <Route path="budget" element={<BudgetPage />} />

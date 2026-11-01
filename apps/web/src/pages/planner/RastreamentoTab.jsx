@@ -35,8 +35,8 @@ export default function RastreamentoTab({ selectedMonth }) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+      <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
+        <h3 className="text-sm font-semibold text-[var(--rw-muted)] uppercase tracking-wide mb-3">
           Gastos — {selectedMonth}
         </h3>
         <SpendingChart transactions={monthTx} onCategoryClick={handleCategoryClick} selectedMonth={selectedMonth} />

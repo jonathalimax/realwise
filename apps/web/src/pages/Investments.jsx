@@ -15,7 +15,7 @@ import { getActiveVersion } from './planner/carteira/walletVersion';
 
 function SubTabs({ active, onChange }) {
   return (
-    <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+    <div className="flex gap-1 bg-[var(--rw-raised)] rounded-xl p-1">
       {[
         { value: 'plano', label: 'Metas' },
         { value: 'lista', label: 'Ativos' },
@@ -25,8 +25,8 @@ function SubTabs({ active, onChange }) {
           onClick={() => onChange(t.value)}
           className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-colors ${
             active === t.value
-              ? 'bg-white dark:bg-gray-700 text-violet-600 dark:text-violet-400 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? 'bg-[var(--rw-raised)] text-[var(--rw-brand-ink)] shadow-sm'
+              : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           {t.label}
@@ -39,7 +39,7 @@ function SubTabs({ active, onChange }) {
 const BADGE_COLORS = {
   fixed_income: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
   stocks: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
-  crypto: 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300',
+  crypto: 'bg-violet-100 dark:bg-violet-900/40 text-[var(--rw-brand-ink)]',
   funds: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
   fii: 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300',
   real_estate: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
@@ -76,7 +76,7 @@ function InvestmentItem({
   return (
     <button
       onClick={() => onNavigate(investment)}
-      className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all text-left"
+      className="w-full bg-[var(--rw-surface)] rounded-xl p-4 border border-[var(--rw-border)] hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all text-left"
     >
       <div className="flex items-center gap-3">
         <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0
@@ -92,8 +92,8 @@ function InvestmentItem({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="font-bold text-gray-900 dark:text-white text-sm truncate">{investment.name}</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${BADGE_COLORS[investment.type] || 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+            <span className="font-bold text-[var(--rw-ink)] text-sm truncate">{investment.name}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${BADGE_COLORS[investment.type] || 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}>
               {t(`investments.types.${investment.type}`)}
             </span>
           </div>
@@ -103,21 +103,21 @@ function InvestmentItem({
               {investment.bank && (
                 <div className="flex items-center gap-1 min-w-0 max-w-[100px]">
                   <span className="text-xs flex-shrink-0">{bankIcon}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{bankDisplayName}</span>
+                  <span className="text-xs text-[var(--rw-muted)] truncate">{bankDisplayName}</span>
                 </div>
               )}
               {purchaseDate && (
-                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{purchaseDate}</span>
+                <span className="text-xs text-[var(--rw-subtle)] flex-shrink-0">{purchaseDate}</span>
               )}
               {goalLabel && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-medium flex-shrink-0 self-end">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-[var(--rw-brand-ink)] font-medium flex-shrink-0 self-end">
                   {goalLabel}
                 </span>
               )}
             </div>
             <div className="flex items-end gap-2 flex-shrink-0">
               <div className="text-right">
-                <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">
+                <span className="text-sm font-bold text-[var(--rw-ink)] tabular-nums">
                   {formatCurrency(initialAmount)}
                 </span>
                 {hasGrowth && (
@@ -214,7 +214,7 @@ export default function InvestmentsPage() {
   const activeFiltersCount = [filterType !== 'all', searchQuery !== ''].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[var(--rw-bg)]">
       <PageHeader title={language === 'pt' ? 'Carteira' : 'Investments'} />
 
       <div className="max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8 pt-4 space-y-4">
@@ -253,10 +253,10 @@ export default function InvestmentsPage() {
                 {Object.entries(INVESTMENT_TYPES)
                   .filter(([key]) => totalsByType[key]?.count > 0)
                   .map(([key, info]) => (
-                    <div key={key} className="flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl px-3 py-2 border border-gray-100 dark:border-gray-700 text-center min-w-[80px]">
+                    <div key={key} className="flex-shrink-0 bg-[var(--rw-surface)] rounded-xl px-3 py-2 border border-[var(--rw-border)] text-center min-w-[80px]">
                       <p className="text-lg mb-0.5">{info.icon}</p>
-                      <p className="text-xs font-bold text-gray-900 dark:text-white tabular-nums">{formatCurrency(totalsByType[key].value)}</p>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500">{t(`investments.types.${key}`)}</p>
+                      <p className="text-xs font-bold text-[var(--rw-ink)] tabular-nums">{formatCurrency(totalsByType[key].value)}</p>
+                      <p className="text-[10px] text-[var(--rw-subtle)]">{t(`investments.types.${key}`)}</p>
                     </div>
                   ))}
               </div>
@@ -271,7 +271,7 @@ export default function InvestmentsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={language === 'pt' ? 'Buscar...' : 'Search...'}
-                  className="w-full pl-10 pr-8 py-2.5 bg-white dark:bg-gray-800 rounded-xl text-sm text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                  className="w-full pl-10 pr-8 py-2.5 bg-[var(--rw-surface)] rounded-xl text-sm text-[var(--rw-ink)] border border-[var(--rw-border)] focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 />
                 {searchQuery && (
                   <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -284,7 +284,7 @@ export default function InvestmentsPage() {
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-xl shadow-sm transition-all flex-shrink-0 border ${
                   showFilters || activeFiltersCount > 0
                     ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+                    : 'bg-[var(--rw-surface)] text-[var(--rw-ink)] border-[var(--rw-border)]'
                 }`}
               >
                 <AdjustmentsHorizontalIcon className="w-5 h-5" />
@@ -296,15 +296,15 @@ export default function InvestmentsPage() {
 
             {/* Filters panel */}
             {showFilters && (
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-4">
+              <div className="p-4 bg-[var(--rw-surface)] rounded-xl border border-[var(--rw-border)] space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                  <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                     {language === 'pt' ? 'Tipo' : 'Type'}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setFilterType('all')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filterType === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filterType === 'all' ? 'bg-blue-500 text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-ink)]'}`}
                     >
                       {language === 'pt' ? 'Todos' : 'All'} ({investments.length})
                     </button>
@@ -312,7 +312,7 @@ export default function InvestmentsPage() {
                       <button
                         key={key}
                         onClick={() => setFilterType(key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${filterType === key ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${filterType === key ? 'bg-blue-500 text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-ink)]'}`}
                       >
                         <span>{info.icon}</span>
                         <span>{t(`investments.types.${key}`)}</span>
@@ -321,9 +321,9 @@ export default function InvestmentsPage() {
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[var(--rw-border)]">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                    <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                       {language === 'pt' ? 'Ordenar' : 'Sort'}
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -333,19 +333,19 @@ export default function InvestmentsPage() {
                         { value: 'name', label: language === 'pt' ? 'Nome' : 'Name' },
                       ].map(o => (
                         <button key={o.value} onClick={() => setSortBy(o.value)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${sortBy === o.value ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${sortBy === o.value ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-[var(--rw-raised)] text-[var(--rw-ink)]'}`}
                         >{o.label}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+                    <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
                       {language === 'pt' ? 'Ordem' : 'Order'}
                     </label>
                     <div className="flex gap-2">
                       {[{ value: 'desc', label: language === 'pt' ? 'Maior' : 'Highest' }, { value: 'asc', label: language === 'pt' ? 'Menor' : 'Lowest' }].map(o => (
                         <button key={o.value} onClick={() => setSortOrder(o.value)}
-                          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${sortOrder === o.value ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${sortOrder === o.value ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-[var(--rw-raised)] text-[var(--rw-ink)]'}`}
                         >{o.label}</button>
                       ))}
                     </div>
@@ -372,7 +372,7 @@ export default function InvestmentsPage() {
             ) : sortedInvestments.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-4xl mb-3">💼</p>
-                <p className="font-medium text-gray-900 dark:text-white mb-1">
+                <p className="font-medium text-[var(--rw-ink)] mb-1">
                   {filterType !== 'all' || searchQuery
                     ? (language === 'pt' ? 'Nenhum resultado' : 'No results')
                     : (language === 'pt' ? 'Nenhum investimento' : 'No investments yet')}
@@ -380,7 +380,7 @@ export default function InvestmentsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-xs text-gray-500 dark:text-gray-400 px-1">
+                <p className="text-xs text-[var(--rw-muted)] px-1">
                   {sortedInvestments.length} {sortedInvestments.length === 1
                     ? (language === 'pt' ? 'investimento' : 'investment')
                     : (language === 'pt' ? 'investimentos' : 'investments')}

@@ -205,19 +205,19 @@ export default function TransactionForm() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6">{t('transactionForm.addTransaction')}</h2>
+    <div className="bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-2xl p-6 shadow-sm">
+      <h2 className="text-lg font-bold text-[var(--rw-ink)] mb-6">{t('transactionForm.addTransaction')}</h2>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Type Toggle */}
-        <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+        <div className="flex p-1 bg-[var(--rw-raised)] rounded-xl">
           <button
             type="button"
             onClick={() => setType('expense')}
             className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
               type === 'expense'
-                ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             {t('transactionForm.expense')}
@@ -227,8 +227,8 @@ export default function TransactionForm() {
             onClick={() => setType('income')}
             className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
               type === 'income'
-                ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
+                : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             {t('transactionForm.income')}
@@ -237,7 +237,7 @@ export default function TransactionForm() {
 
         {/* Amount */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
             {t('transactionForm.amount')}
           </label>
           <CurrencyInput
@@ -248,7 +248,7 @@ export default function TransactionForm() {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
             {t('transactionForm.description')}
           </label>
           <input
@@ -256,8 +256,8 @@ export default function TransactionForm() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-              text-gray-900 dark:text-white placeholder-gray-400
+            className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+              text-[var(--rw-ink)] placeholder-gray-400
               focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
               transition-all duration-200"
             placeholder={t('transactionForm.descriptionPlaceholder')}
@@ -266,7 +266,7 @@ export default function TransactionForm() {
 
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
             {t('transactionForm.date')}
           </label>
           <input
@@ -274,8 +274,8 @@ export default function TransactionForm() {
             lang={language === 'pt' ? 'pt-BR' : 'en-US'}
             value={transactionDate}
             onChange={(e) => setTransactionDate(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-              text-gray-900 dark:text-white
+            className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+              text-[var(--rw-ink)]
               focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
               transition-all duration-200"
           />
@@ -283,14 +283,14 @@ export default function TransactionForm() {
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
             {t('transactionForm.category')}
           </label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full pl-4 pr-10 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl
-              text-gray-900 dark:text-white
+            className="w-full pl-4 pr-10 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+              text-[var(--rw-ink)]
               focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
               transition-all duration-200 appearance-none cursor-pointer"
             style={{
@@ -317,7 +317,7 @@ export default function TransactionForm() {
         {/* Investment Type (only shown when category is Investments) */}
         {(category === 'Investments' || category === 'Investimentos') && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
               {t('investments.type')}
             </label>
             <div className="grid grid-cols-5 gap-2">
@@ -328,13 +328,13 @@ export default function TransactionForm() {
                   onClick={() => setInvestmentType(key)}
                   className={`p-3 text-xl rounded-xl border-2 transition flex flex-col items-center gap-1 ${
                     investmentType === key
-                      ? 'border-gray-900 dark:border-gray-400 bg-gray-100 dark:bg-gray-700'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                      : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                   }`}
                   title={t(`investments.types.${key}`)}
                 >
                   <span>{info.icon}</span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full text-center">
+                  <span className="text-[10px] text-[var(--rw-muted)] truncate w-full text-center">
                     {t(`investments.types.${key}`)}
                   </span>
                 </button>
@@ -345,7 +345,7 @@ export default function TransactionForm() {
 
         {/* Card Selector */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
             {t('cards.filterByCard')}
           </label>
           <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -355,14 +355,14 @@ export default function TransactionForm() {
               onClick={() => setSelectedCardId(null)}
               className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                 selectedCardId === null
-                  ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                  ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                  : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
-              <div className="w-8 h-8 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-base">
+              <div className="w-8 h-8 bg-[var(--rw-raised)] rounded-lg flex items-center justify-center text-base">
                 {CARD_ICONS.other}
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-300">{t('cards.cashNoCard')}</span>
+              <span className="text-sm text-[var(--rw-muted)]">{t('cards.cashNoCard')}</span>
             </button>
 
             {/* Card options */}
@@ -376,15 +376,15 @@ export default function TransactionForm() {
                   onClick={() => setSelectedCardId(card.id)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                     selectedCardId === card.id
-                      ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                      ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                      : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                   }`}
                 >
                   <div className={`w-8 h-8 ${color.light} rounded-lg flex items-center justify-center text-base`}>
                     {icon}
                   </div>
                   <div className="flex-1 text-left">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{card.name}</span>
+                    <span className="text-sm font-medium text-[var(--rw-ink)]">{card.name}</span>
                     {card.lastDigits && (
                       <span className="text-xs text-gray-400 ml-1">****{card.lastDigits}</span>
                     )}
@@ -411,23 +411,23 @@ export default function TransactionForm() {
               className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
                 isInstallment
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                  : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  isInstallment ? 'bg-blue-100 dark:bg-blue-800 text-blue-600' : 'bg-gray-100 dark:bg-gray-600 text-gray-400'
+                  isInstallment ? 'bg-blue-100 dark:bg-blue-800 text-blue-600' : 'bg-[var(--rw-raised)] text-gray-400'
                 }`}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <span className={`text-sm font-medium ${isInstallment ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                <span className={`text-sm font-medium ${isInstallment ? 'text-blue-700 dark:text-blue-300' : 'text-[var(--rw-ink)]'}`}>
                   {t('transactionForm.isInstallment')}
                 </span>
               </div>
               <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                isInstallment ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-600'
+                isInstallment ? 'bg-blue-500' : 'bg-[var(--rw-track)]'
               }`}>
                 <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
                   isInstallment ? 'translate-x-5' : 'translate-x-0'
@@ -449,7 +449,7 @@ export default function TransactionForm() {
                       max={totalInstallments}
                       value={currentInstallment}
                       onChange={(e) => setCurrentInstallment(Math.max(1, Math.min(parseInt(e.target.value) || 1, totalInstallments)))}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
+                      className="w-full px-3 py-2 bg-[var(--rw-raised)] border border-blue-200 dark:border-blue-700 rounded-lg text-center text-[var(--rw-ink)]
                         focus:border-blue-500 focus:ring-0 focus:outline-none"
                     />
                   </div>
@@ -468,7 +468,7 @@ export default function TransactionForm() {
                         setTotalInstallments(newTotal);
                         if (currentInstallment > newTotal) setCurrentInstallment(newTotal);
                       }}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 rounded-lg text-center text-gray-900 dark:text-white
+                      className="w-full px-3 py-2 bg-[var(--rw-raised)] border border-blue-200 dark:border-blue-700 rounded-lg text-center text-[var(--rw-ink)]
                         focus:border-blue-500 focus:ring-0 focus:outline-none"
                     />
                   </div>
@@ -484,7 +484,7 @@ export default function TransactionForm() {
         {/* Link to Goal */}
         {availableGoals.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
               {t('goals.linkToGoal')}
             </label>
             <div className="space-y-2">
@@ -494,16 +494,16 @@ export default function TransactionForm() {
                 onClick={() => setSelectedGoalId('')}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                   !selectedGoalId
-                    ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                    : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                 }`}
               >
-                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-400">
+                <div className="w-8 h-8 bg-[var(--rw-raised)] rounded-lg flex items-center justify-center text-gray-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </div>
-                <span className="text-sm text-gray-600 dark:text-gray-300">{t('goals.noGoalSelected')}</span>
+                <span className="text-sm text-[var(--rw-muted)]">{t('goals.noGoalSelected')}</span>
               </button>
 
               {/* Goal options */}
@@ -517,14 +517,14 @@ export default function TransactionForm() {
                     onClick={() => setSelectedGoalId(goal.id)}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
                       selectedGoalId === goal.id
-                        ? 'border-gray-900 dark:border-gray-400 bg-gray-50 dark:bg-gray-700'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        ? 'border-gray-900 dark:border-gray-400 bg-[var(--rw-raised)]'
+                        : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
                     <div className={`w-8 h-8 ${color.light} rounded-lg flex items-center justify-center text-base`}>
                       {icon}
                     </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{goal.name}</span>
+                    <span className="text-sm font-medium text-[var(--rw-ink)]">{goal.name}</span>
                   </button>
                 );
               })}
@@ -535,13 +535,13 @@ export default function TransactionForm() {
         {/* Planner goal link */}
         {plannerGoals.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
               Objetivo do planner
             </label>
             <select
               value={selectedPlannerGoalId}
               onChange={e => setSelectedPlannerGoalId(e.target.value)}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition text-sm"
+              className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition text-sm"
             >
               <option value="">Nenhum</option>
               {plannerGoals.map(g => (

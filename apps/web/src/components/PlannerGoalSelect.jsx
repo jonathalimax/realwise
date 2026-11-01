@@ -18,7 +18,7 @@ export default function PlannerGoalSelect({
 
   return (
     <div className={containerClassName}>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
         {resolvedLabel}
       </label>
       {plannerGoals.length > 0 ? (

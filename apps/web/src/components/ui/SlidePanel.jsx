@@ -67,10 +67,10 @@ export default function SlidePanel({
             isOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          <div className="h-full flex flex-col bg-white dark:bg-gray-900 shadow-2xl">
+          <div className="h-full flex flex-col bg-[var(--rw-surface)] shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 sm:px-6 border-b border-gray-100 dark:border-gray-800">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-bold text-[var(--rw-ink)]">
                 {title}
               </h2>
               <button

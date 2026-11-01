@@ -143,14 +143,14 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90dvh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+      <div className="bg-[var(--rw-surface)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90dvh] overflow-hidden">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-[var(--rw-border)]">
+          <h2 className="text-xl font-bold text-[var(--rw-ink)]">
             {bill ? (language === 'pt' ? 'Editar Conta' : 'Edit Bill') : (language === 'pt' ? 'Nova Conta' : 'New Bill')}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
+            className="text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200 transition"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -162,7 +162,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                 {language === 'pt' ? 'Nome da Conta' : 'Bill Name'} *
               </label>
               <input
@@ -170,15 +170,15 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder={language === 'pt' ? 'Ex: Conta de Luz' : 'Ex: Electricity Bill'}
-                className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                  ${errors.name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-600'}`}
+                className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]
+                  ${errors.name ? 'border-rose-500' : 'border-[var(--rw-border)]'}`}
               />
               {errors.name && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{errors.name}</p>}
             </div>
 
             {/* Amount */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                 {language === 'pt' ? 'Valor' : 'Amount'}
                 <span className="text-gray-400 text-xs ml-1">({language === 'pt' ? 'opcional' : 'optional'})</span>
               </label>
@@ -190,7 +190,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                 {language === 'pt' ? 'Descrição' : 'Description'}
               </label>
               <textarea
@@ -198,20 +198,20 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder={language === 'pt' ? 'Informações adicionais (opcional)' : 'Additional information (optional)'}
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-[var(--rw-border)] rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]"
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                 {t('charts.category')} *
               </label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                  ${errors.category ? 'border-rose-500' : 'border-gray-200 dark:border-gray-600'}`}
+                className={`w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]
+                  ${errors.category ? 'border-rose-500' : 'border-[var(--rw-border)]'}`}
               >
                 <option value="">{language === 'pt' ? 'Selecione...' : 'Select...'}</option>
                 {expenseCategories.map((cat) => (
@@ -226,28 +226,28 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Due Date */}
               <div className="min-w-0">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Data de Vencimento' : 'Due Date'} *
                 </label>
                 <input
                   type="date"
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                    ${errors.dueDate ? 'border-rose-500' : 'border-gray-200 dark:border-gray-600'}`}
+                  className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]
+                    ${errors.dueDate ? 'border-rose-500' : 'border-[var(--rw-border)]'}`}
                 />
                 {errors.dueDate && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{errors.dueDate}</p>}
               </div>
 
               {/* Recurrence */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Recorrência' : 'Recurrence'}
                 </label>
                 <select
                   value={formData.recurrence}
                   onChange={(e) => setFormData({ ...formData, recurrence: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-[var(--rw-border)] rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]"
                 >
                   <option value="none">{language === 'pt' ? 'Sem recorrência' : 'No recurrence'}</option>
                   <option value="monthly">{language === 'pt' ? 'Mensal' : 'Monthly'}</option>
@@ -260,17 +260,17 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
             {/* Recurrence End Date (only show if recurrence is set) */}
             {formData.recurrence !== 'none' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Repetir até (opcional)' : 'Repeat until (optional)'}
                 </label>
                 <input
                   type="date"
                   value={formData.recurrenceEndDate}
                   onChange={(e) => setFormData({ ...formData, recurrenceEndDate: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white
-                    ${errors.recurrenceEndDate ? 'border-rose-500' : 'border-gray-200 dark:border-gray-600'}`}
+                  className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]
+                    ${errors.recurrenceEndDate ? 'border-rose-500' : 'border-[var(--rw-border)]'}`}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-[var(--rw-muted)] mt-1">
                   {language === 'pt' ? 'Deixe em branco para repetir indefinidamente' : 'Leave blank to repeat forever'}
                 </p>
                 {errors.recurrenceEndDate && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{errors.recurrenceEndDate}</p>}
@@ -278,7 +278,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
             )}
 
             {formData.recurrence !== 'none' && (
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-[var(--rw-subtle)]">
                 {language === 'pt'
                   ? 'A conta será gerada automaticamente a cada período até a data de encerramento.'
                   : 'A bill will be created automatically each period until the end date.'}
@@ -286,16 +286,16 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
             )}
 
             {/* Notification Settings */}
-            <div className="border border-gray-200 dark:border-gray-600 rounded-xl p-4">
+            <div className="border border-[var(--rw-border)] rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="text-sm font-medium text-[var(--rw-ink)]">
                   {language === 'pt' ? 'Notificações' : 'Notifications'}
                 </label>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, notificationEnabled: !formData.notificationEnabled })}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formData.notificationEnabled ? 'bg-rose-500' : 'bg-gray-200 dark:bg-gray-600'
+                    formData.notificationEnabled ? 'bg-rose-500' : 'bg-[var(--rw-track)]'
                   }`}
                 >
                   <span
@@ -308,13 +308,13 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
 
               {formData.notificationEnabled && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                     {language === 'pt' ? 'Lembrar quantos dias antes?' : 'Remind how many days before?'}
                   </label>
                   <select
                     value={formData.notificationDaysBefore}
                     onChange={(e) => setFormData({ ...formData, notificationDaysBefore: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-[var(--rw-border)] rounded-xl text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]"
                   >
                     <option value="1">{language === 'pt' ? '1 dia antes' : '1 day before'}</option>
                     <option value="2">{language === 'pt' ? '2 dias antes' : '2 days before'}</option>
@@ -334,17 +334,17 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
           </div>
         </form>
 
-        <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-700">
+        <div className="p-4 sm:p-6 border-t border-[var(--rw-border)]">
           {confirmDelete ? (
             <div className="space-y-3">
-              <p className="text-sm text-center text-gray-700 dark:text-gray-300 font-medium">
+              <p className="text-sm text-center text-[var(--rw-ink)] font-medium">
                 {language === 'pt' ? 'Tem certeza que deseja excluir esta conta?' : 'Are you sure you want to delete this bill?'}
               </p>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
-                  className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                  className="flex-1 py-2.5 border border-[var(--rw-border)] text-[var(--rw-ink)] rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   {t('common.cancel')}
                 </button>
@@ -381,7 +381,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                className="flex-1 py-2.5 border border-[var(--rw-border)] text-[var(--rw-ink)] rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               >
                 {t('common.cancel')}
               </button>

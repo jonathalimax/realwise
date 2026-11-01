@@ -62,10 +62,10 @@ export default function ImportIssueReport({
       <h3 className="font-semibold mb-2 text-gray-900 dark:text-amber-100">
         Não conseguimos ler esse arquivo
       </h3>
-      <p className="text-gray-700 dark:text-gray-300 mb-3">
+      <p className="text-[var(--rw-ink)] mb-3">
         Quer enviar pra gente dar uma olhada? Vamos receber:
       </p>
-      <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc pl-5 mb-3 space-y-1">
+      <ul className="text-xs text-[var(--rw-muted)] list-disc pl-5 mb-3 space-y-1">
         <li>
           O arquivo <code className="font-mono">{file.name}</code>{' '}
           ({Math.round(file.size / 1024)} KB)
@@ -77,10 +77,10 @@ export default function ImportIssueReport({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Opcional: nos diga qual banco é, ou o que parece errado"
-        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-2 text-sm mb-3 text-gray-900 dark:text-gray-100"
+        className="w-full rounded-lg border border-[var(--rw-border)] bg-[var(--rw-surface)] p-2 text-sm mb-3 text-[var(--rw-ink)]"
         rows={3}
       />
-      <label className="flex items-start gap-2 mb-3 text-xs text-gray-700 dark:text-gray-300">
+      <label className="flex items-start gap-2 mb-3 text-xs text-[var(--rw-ink)]">
         <input
           type="checkbox"
           checked={consent}
@@ -103,7 +103,7 @@ export default function ImportIssueReport({
         <button
           onClick={() => onDone?.({ ok: false, dismissed: true })}
           disabled={busy}
-          className="rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+          className="rounded-lg border border-[var(--rw-border)] px-4 py-2 text-sm text-[var(--rw-ink)] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
           Agora não
         </button>

@@ -75,8 +75,8 @@ function BillCurrencyInput({ value, onChange }) {
       onClick={handleClick}
       onFocus={handleClick}
       placeholder="R$ 0,00"
-      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-lg
-        text-gray-900 dark:text-white placeholder-gray-400
+      className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-lg
+        text-[var(--rw-ink)] placeholder-gray-400
         focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
         transition-all duration-200"
     />
@@ -153,8 +153,8 @@ export default function BillPaymentPage() {
     if (success) {
       return (
         <>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pagamento confirmado</h1>
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+          <h1 className="text-2xl font-bold text-[var(--rw-ink)]">Pagamento confirmado</h1>
+          <p className="mt-3 text-sm text-[var(--rw-muted)]">
             A conta {bill?.name} foi marcada como paga.
           </p>
           <a href="/login" className="mt-6 inline-flex items-center justify-center rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-medium text-white">
@@ -168,18 +168,18 @@ export default function BillPaymentPage() {
       <>
         <div className="space-y-2">
           <p className="text-sm font-medium uppercase tracking-wide text-rose-600">Conta a pagar</p>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{bill?.name}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="text-2xl font-bold text-[var(--rw-ink)]">{bill?.name}</h1>
+          <p className="text-sm text-[var(--rw-muted)]">
             Vencimento {bill?.dueDate ? new Date(`${bill.dueDate}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
           </p>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 p-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="mt-6 rounded-2xl border border-[var(--rw-border)] bg-white/70 dark:bg-gray-800/70 p-4">
+          <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
             Valor pago
           </label>
           <BillCurrencyInput value={paidAmount || 0} onChange={(value) => setPaidAmount(value)} />
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-2 text-xs text-[var(--rw-muted)]">
             Valor planejado: {formatCurrency(bill?.amount)}
           </p>
         </div>

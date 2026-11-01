@@ -6,8 +6,8 @@ import { formatDate, getBillingCopy } from './billingCopy';
 function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-3">
-      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
-      <span className="text-sm font-medium text-gray-900 dark:text-white text-right">{value}</span>
+      <span className="text-sm text-[var(--rw-muted)]">{label}</span>
+      <span className="text-sm font-medium text-[var(--rw-ink)] text-right">{value}</span>
     </div>
   );
 }
@@ -36,9 +36,9 @@ export default function SubscriptionSettingsCard() {
   return (
     <section
       aria-labelledby="subscription-heading"
-      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700"
+      className="bg-[var(--rw-surface)] rounded-2xl border border-[var(--rw-border)] divide-y divide-[var(--rw-border)]"
     >
-      <h2 id="subscription-heading" className="px-5 py-4 font-bold text-gray-900 dark:text-white">
+      <h2 id="subscription-heading" className="px-5 py-4 font-bold text-[var(--rw-ink)]">
         {copy.title}
       </h2>
       <Row label={copy.statusLabel} value={stateLabel} />
@@ -63,7 +63,7 @@ export default function SubscriptionSettingsCard() {
           {canSubscribe && (
             <Link
               to="/billing"
-              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-violet-600 px-5 text-base font-semibold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--rw-brand)] px-5 text-base font-semibold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
             >
               {copy.subscribe}
             </Link>

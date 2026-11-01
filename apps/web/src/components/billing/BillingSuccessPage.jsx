@@ -79,7 +79,7 @@ export default function BillingSuccessPage() {
         <h1 className="text-2xl font-black" role="status">
           {timedOut ? copy.success.timeoutTitle : copy.success.confirmingTitle}
         </h1>
-        <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+        <p className="mt-3 text-sm text-[var(--rw-muted)]">
           {timedOut ? copy.success.timeoutBody : copy.success.confirmingBody}
         </p>
         {timedOut && (
@@ -87,7 +87,7 @@ export default function BillingSuccessPage() {
             <button
               type="button"
               onClick={retry}
-              className="min-h-12 rounded-2xl bg-violet-600 px-6 text-base font-bold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
+              className="min-h-12 rounded-2xl bg-[var(--rw-brand)] px-6 text-base font-bold text-white hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800"
             >
               {copy.success.refresh}
             </button>
