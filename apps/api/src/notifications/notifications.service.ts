@@ -208,6 +208,8 @@ export class NotificationsService {
       promo?: { code: string; percent: number; months: number; validDays: number };
       /** For `bill_suggestion`: the recurring payment Elio noticed. */
       suggestion?: { id: string; name: string; amount: string; dayOfMonth: number; dismissUrl: string };
+      /** For `statement_ready` / `categorize_pending`: how many saved transactions still wait for a category. */
+      pendingCount?: number;
     },
   ): Promise<void> {
     const web = process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br';
@@ -219,6 +221,7 @@ export class NotificationsService {
     const days = ctx.trialDaysRemaining;
     const daysText = `${days} ${days === 1 ? 'dia' : 'dias'}`;
     const trialChip = days > 0 ? { text: `Teste grátis: ${daysText}`, tone: 'brand' as const } : undefined;
+    const txCount = (n: number) => `${n} ${n === 1 ? 'transação' : 'transações'}`;
     const money = (v: string) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
     // One platform of the "add to your home screen" e-mail: a looping cartoon, then the same three steps as text
     // (mail apps that do not play GIFs, such as desktop Outlook, still show the first frame and the steps).
@@ -353,6 +356,30 @@ export class NotificationsService {
         lead: 'Seus dados continuam guardados. Escolha um plano para voltar ao Elio e cancele quando quiser.',
         cta: 'Ver planos',
         url: `${web}/`,
+      },
+      statement_ready: {
+        subject: ctx.pendingCount ? `${ctx.name}, seu extrato está pronto: falta categorizar ${txCount(ctx.pendingCount)}` : `${ctx.name}, seu extrato está pronto`,
+        icon: 'check',
+        title: 'Seu extrato já foi processado',
+        lead: ctx.pendingCount
+          ? `O Elio salvou tudo. Só não teve certeza da categoria de ${txCount(ctx.pendingCount)}.`
+          : 'O Elio salvou tudo e já organizou seus lançamentos.',
+        body: ctx.pendingCount
+          ? rows([
+              ['✅', 'Tudo salvo', 'Nada se perdeu.'],
+              ['🏷️', `${txCount(ctx.pendingCount)} para categorizar`, 'Leva menos de 1 minuto.'],
+            ])
+          : undefined,
+        cta: ctx.pendingCount ? 'Categorizar agora' : 'Ver no chat',
+        url: app(ctx.pendingCount ? '/chat?intent=categorize' : '/chat'),
+      },
+      categorize_pending: {
+        subject: `${ctx.name}, falta categorizar ${txCount(ctx.pendingCount ?? 0)}`,
+        icon: 'sparkle',
+        title: `Falta pouco, ${escapeHtml(ctx.name)}`,
+        lead: `${txCount(ctx.pendingCount ?? 0)} do seu extrato ainda ${(ctx.pendingCount ?? 0) === 1 ? 'espera' : 'esperam'} uma categoria. Sem isso, seus gráficos ficam incompletos.`,
+        cta: 'Categorizar agora',
+        url: app('/chat?intent=categorize'),
       },
       monthly_import: {
         subject: `Hora de importar o extrato de ${prevMonth}`,

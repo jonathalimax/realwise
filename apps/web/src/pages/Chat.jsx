@@ -540,7 +540,13 @@ export default function ChatPage() {
       stick.current = true; // the user just acted: follow the reply
       delivered.current = false;
       deliveredId.current = null;
-      setLive({ text: '', status: '', final: null });
+      // Reading a statement can take minutes: say so up front, and that an e-mail will arrive if they leave.
+      const note = sentFiles?.length
+        ? pt
+          ? ' Pode levar alguns minutos. Se quiser sair do chat, avisamos por e-mail quando terminar.'
+          : ' This can take a few minutes. Feel free to leave the chat: we will e-mail you when it is done.'
+        : '';
+      setLive({ text: '', status: note ? `${pt ? 'Lendo o seu extrato…' : 'Reading your statement…'}${note}` : '', final: null });
       const final = await start((event) => {
         if (event.type === 'user') {
           delivered.current = true;
@@ -552,13 +558,13 @@ export default function ChatPage() {
         } else if (event.type === 'reset') {
           setLive((prev) => (prev ? { ...prev, text: '' } : prev));
         } else if (event.type === 'status') {
-          setLive((prev) => (prev ? { ...prev, status: event.label } : prev));
+          setLive((prev) => (prev ? { ...prev, status: `${event.label}${note}` } : prev));
         }
       });
       // Show the persisted text (it may differ from what streamed, e.g. a default reply) and let it finish typing.
       setLive((prev) => ({ ...(prev ?? { status: '' }), text: final.assistantMessage.content, status: '', final }));
     },
-    [],
+    [pt],
   );
 
   /**
@@ -721,6 +727,12 @@ export default function ChatPage() {
     if (loading || deepLinkDone.current || (!intent && !suggestion)) return;
     deepLinkDone.current = true;
     setSearchParams({}, { replace: true });
+    if (intent === 'categorize') {
+      // From the "categorize your transactions" e-mail: open the newest sheet that is still waiting.
+      const open = [...messages].reverse().find((m) => pendingSheet(m) === 'review');
+      if (open) queueMicrotask(() => setManualSheet({ id: open.id, type: 'review' }));
+      return;
+    }
     const run = suggestion ? chatResource.suggestionIntent(suggestion) : chatResource.billsIntent();
     run
       .then(({ message }) => {
@@ -729,7 +741,7 @@ export default function ChatPage() {
         if (suggestion) notifyBillsChanged();
       })
       .catch((e) => say(friendlyChatError(e, 'Não consegui abrir isso agora. Tente de novo em instantes ou me conte por aqui.')));
-  }, [searchParams, loading, setSearchParams, say]);
+  }, [searchParams, loading, setSearchParams, say, messages]);
 
   // Question typed in the home "ask" bar arrives as ?q=...
   useEffect(() => {

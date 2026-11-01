@@ -16,6 +16,8 @@ export interface ReminderFacts {
   lostAt?: Date | null;
   /** The "add to your home screen" e-mail already went out (it is sent once per person). */
   installAppSent?: boolean;
+  /** Transactions Elio saved from a statement that still wait for the person's category (unresolved review sheets). */
+  pendingCategorize?: { count: number; since: Date } | null;
   now: Date;
 }
 
@@ -25,6 +27,12 @@ const HOUR_MS = 3_600_000;
 function isMidweekInBrasilia(now: Date): boolean {
   const day = new Date(now.getTime() - 3 * HOUR_MS).getUTCDay();
   return day >= 2 && day <= 4;
+}
+
+/** Categories still pending a day after the last import, and the person has not been in the chat since: one nudge per import. */
+function categorizeDue(f: ReminderFacts): boolean {
+  const p = f.pendingCategorize;
+  return Boolean(p && p.count > 0 && !f.chattedRecently && f.now.getTime() - p.since.getTime() >= 24 * HOUR_MS);
 }
 
 /** Someone who already added something is worth an "install the app" nudge; sent once, never on a Monday or a weekend. */
@@ -47,6 +55,7 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
     if (left <= 24 * HOUR_MS) return 'trial_ending';
     // Activation series for people who signed up but never added anything: day 1, day 3 and day 5 of the trial.
     // Each kind is sent once (the window only decides which one is due), then trial_ending closes the series.
+    if (categorizeDue(f)) return 'categorize_pending';
     if (f.transactionCount === 0 && !f.chattedRecently && f.trialStartedAt) {
       const sinceStart = nowMs - f.trialStartedAt.getTime();
       if (sinceStart >= 120 * HOUR_MS) return 'activation_day5';
@@ -79,6 +88,7 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
   }
 
   // Paying (or lifetime) users: a nudge on the 5th when statements are out and nothing was imported this month.
+  if ((access.state === 'subscribed' || access.state === 'lifetime') && categorizeDue(f)) return 'categorize_pending';
   if ((access.state === 'subscribed' || access.state === 'lifetime') && now.getDate() >= 5) {
     if (f.transactionsThisMonth === 0) return 'monthly_import';
   }
@@ -86,8 +96,10 @@ export function pickReminder(f: ReminderFacts): ReminderKind | null {
   return null;
 }
 
-export function periodKeyFor(kind: ReminderKind, now: Date, trialEndsAt: Date | null, suggestionId?: string, periodEnd?: string | null): string {
-  if (kind === 'bill_suggestion') return suggestionId ?? 'none';
+export function periodKeyFor(kind: ReminderKind, now: Date, trialEndsAt: Date | null, refId?: string, periodEnd?: string | null): string {
+  if (kind === 'bill_suggestion') return refId ?? 'none';
+  // One per import: keyed by the chat message that holds the sheet, so a later import can nudge again.
+  if (kind === 'categorize_pending' || kind === 'statement_ready') return refId ?? 'once';
   if (kind === 'payment_failed_followup') return (periodEnd ?? '').slice(0, 10) || 'once';
   if (kind.startsWith('winback_')) return 'once';
   if (kind === 'monthly_import') return now.toISOString().slice(0, 7);

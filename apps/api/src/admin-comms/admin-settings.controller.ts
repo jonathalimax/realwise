@@ -167,6 +167,7 @@ export class AdminSettingsController {
         unsubscribeUserId: '00000000-0000-0000-0000-000000000000',
         unsubscribeToken: 'sample',
         now: new Date(),
+        pendingCount: kind === 'statement_ready' || kind === 'categorize_pending' ? 3 : undefined,
         suggestion: kind === 'bill_suggestion' ? { id: 'sample', name: 'Netflix', amount: '55.90', dayOfMonth: 12, dismissUrl: 'https://realwise.com.br' } : undefined,
       });
     }
