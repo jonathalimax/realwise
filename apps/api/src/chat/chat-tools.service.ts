@@ -9,7 +9,7 @@ import * as schema from '../db/schema';
 import { accounts, bills, categories, categorizationRules, chatFiles, imports, planner, transactions } from '../db/schema';
 import type { LlmToolDefinition } from '../llm/llm.types';
 import { extractPattern, merchantKey } from './pattern';
-import { addMonths, installmentGroupId, installmentHash, installmentLabel, installmentOf } from './installments';
+import { addMonths, installmentChargeDate, installmentGroupId, installmentHash, installmentLabel, installmentOf, statementMonthOf } from './installments';
 import { looksLikeInvoicePayment, matchesHolder, pairTransfers } from './transfer';
 import { BANKS } from './onboarding';
 import { MAX_REVIEW_ITEMS, PAYMENT_METHODS, quickQuestion, type ChatQuestion, type ReviewGroup } from './chat.types';
@@ -69,6 +69,7 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
       properties: {
         accountId: { type: 'string', description: 'UUID of an existing account from the context.' },
         sourceFile: { type: 'string', description: 'Exact filename of the attachment these rows came from, if any.' },
+        statementMonth: { type: 'string', description: 'For a card invoice: the month (YYYY-MM) its charges belong to, i.e. the month of its closing date, NOT the due month. Always send it for invoices, so installment lines are placed in that month.' },
         paymentMethod: { type: ['string', 'null'], enum: [...PAYMENT_METHODS, null], description: 'How these were paid, for every row unless a row overrides it. null if unknown.' },
         transactions: {
           type: 'array',
@@ -417,6 +418,11 @@ export class ChatToolsService {
     const legacyHashOf = new Map<string, string>();
     const rejected: string[] = [];
 
+    const statementMonth = statementMonthOf(
+      args.statementMonth,
+      rows.filter((r) => DATE_RE.test(String(r.date)) && !installmentOf(r, String(r.description ?? ''))).map((r) => String(r.date)),
+    );
+
     rows.forEach((r, i) => {
       const amount = Number(r.amount);
       const description = String(r.description ?? '').trim();
@@ -432,7 +438,8 @@ export class ChatToolsService {
       seen.set(base, n);
       const cat = r.categoryId ? catById.get(String(r.categoryId)) : undefined;
       const inst = installmentOf(r, description);
-      const group = inst ? installmentGroupId(ctx.userId, account.id, description, amount, r.date, inst) : null;
+      const date = inst ? installmentChargeDate(r.date, inst, statementMonth) : r.date;
+      const group = inst ? installmentGroupId(ctx.userId, account.id, description, amount, date, inst) : null;
       const dedupHash = inst && group ? installmentHash(group, inst.current) : `${base}#${n}`;
       if (inst) legacyHashOf.set(dedupHash, `${base}#${n}`);
       const suggestions = (Array.isArray(r.suggestedCategoryIds) ? r.suggestedCategoryIds : [])
@@ -455,7 +462,7 @@ export class ChatToolsService {
         userId: ctx.userId,
         amount: amount.toFixed(2),
         type: r.type,
-        date: r.date,
+        date,
         description: inst ? installmentLabel(description, inst.current, inst.total) : description,
         accountId: account.id,
         isInstallment: Boolean(inst),
