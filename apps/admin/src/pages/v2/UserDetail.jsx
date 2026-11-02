@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, CalendarClock, Clock, Crown, Play, Save, Trash2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Ban, CalendarClock, Clock, Crown, LifeBuoy, Play, Save, Trash2, ShieldCheck } from 'lucide-react';
 import { usersResource } from '../../lib/api/resources/users';
 import { summaryResource } from '../../lib/api/resources/summary';
 import { friendlyError } from '../../lib/api/errors';
@@ -223,6 +223,7 @@ function Detail({ user: u, reload, notify }) {
             <Button size="sm" icon={Play} onClick={() => setDialog('start_trial')} disabled={isOwner}>Iniciar teste</Button>
             <Button size="sm" icon={CalendarClock} onClick={() => setDialog('grant_until')} disabled={isOwner || state === 'lifetime'}>Acesso até data</Button>
             <Button size="sm" icon={Crown} onClick={() => setDialog('grant_lifetime')} disabled={isOwner || state === 'lifetime'}>Vitalício</Button>
+            <Button size="sm" icon={LifeBuoy} onClick={() => navigate(`/support?new=1&userId=${u.id}&email=${encodeURIComponent(u.email ?? '')}&name=${encodeURIComponent(u.name ?? '')}`)}>Novo chamado</Button>
             <Button size="sm" icon={ShieldCheck} onClick={() => setDialog('role')}>{isAdmin ? 'Remover admin' : 'Tornar admin'}</Button>
             <Button size="sm" variant="dangerOutline" icon={Ban} onClick={() => setDialog('revoke')} disabled={isOwner || state === 'blocked'}>Revogar acesso</Button>
           </div>
