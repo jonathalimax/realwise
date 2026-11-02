@@ -136,6 +136,16 @@ function Dashboard({ data, days }) {
 
   return (
     <div className="space-y-5">
+      {h.llmDown && (
+        <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-4">
+          <p className="text-sm font-semibold text-red-300">A IA está falhando agora</p>
+          <p className="mt-1 text-sm text-red-200/90">
+            {num(h.llmErrorsLast30m)} de {num(h.llmCallsLast30m)} chamadas dos últimos 30 minutos deram erro e nenhuma funcionou depois do último erro. Os usuários estão vendo "O Elio está fora do ar".
+          </p>
+          {h.llmLastError && <p className="mt-2 break-words font-mono text-xs text-red-200/80">{h.llmLastError.message}</p>}
+          <Link to="/ai-logs" className="mt-2 inline-block text-xs font-medium text-red-300 underline">Ver as chamadas com erro</Link>
+        </div>
+      )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Usuários" value={num(u.total)} hint={`+${num(u.new)} nos últimos ${days} dias`} icon={Users} />
         <Stat label="Ativos no mês (MAU)" value={num(u.mau)} hint={`${num(u.dau)} por dia · ${num(u.wau)} por semana`} icon={Activity} />
