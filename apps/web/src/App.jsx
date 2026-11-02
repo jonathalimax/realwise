@@ -20,6 +20,7 @@ import SubscriptionGate from './components/billing/SubscriptionGate';
 import SubscriptionPage from './pages/SubscriptionPage';
 import { consumeDeepLink, peekDeepLink, rememberDeepLink } from './lib/auth/deepLink';
 import { buildLoginRedirectUrl } from './lib/auth/loginClient';
+import { authApi } from './lib/api/auth';
 
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicy'));
 const TermsPage = lazy(() => import('./pages/legal/Terms'));
@@ -149,6 +150,28 @@ function AuthenticatedApp() {
   );
 }
 
+/**
+ * The installed app opens at /loading, before any workspace is in the URL. Go straight to the person's workspace:
+ * from the remembered one, or (first launch, cleared storage) by asking the server who is signed in. The login
+ * screen is only for people who really are signed out, so a signed-in user never sees it.
+ */
+function LaunchRouter() {
+  useEffect(() => {
+    let active = true;
+    const go = (path) => { if (active) window.location.replace(path); };
+    const lastClient = localStorage.getItem('rw_last_client');
+    if (lastClient) {
+      go(`/${lastClient}/loading`);
+      return undefined;
+    }
+    authApi.getSession()
+      .then((session) => go(session?.clientId ? `/${session.clientId}/loading` : '/login'))
+      .catch(() => go('/login'));
+    return () => { active = false; };
+  }, []);
+  return <PageLoader />;
+}
+
 function AppRouter() {
   const { status, user } = useAuth();
   const onLoadingRoute = window.location.pathname.endsWith('/loading');
@@ -200,9 +223,7 @@ function App() {
       </Suspense>
     );
   } else if (window.location.pathname === '/loading') {
-    const lastClient = localStorage.getItem('rw_last_client');
-    window.location.replace(lastClient ? `/${lastClient}/loading` : '/login');
-    inner = <PageLoader />;
+    inner = <LaunchRouter />;
   } else {
     const clientId = extractClientId(window.location.hostname)
       || window.location.pathname.split('/').filter(Boolean)[0]

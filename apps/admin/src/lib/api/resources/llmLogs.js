@@ -5,8 +5,8 @@ export const llmLogsResource = {
   list(params) {
     return apiClient.get(`/admin/llm-logs${qs(params)}`);
   },
-  summary({ from, to } = {}) {
-    return apiClient.get(`/admin/llm-logs/summary${qs({ from, to })}`);
+  summary({ from, to, granularity } = {}) {
+    return apiClient.get(`/admin/llm-logs/summary${qs({ from, to, granularity })}`);
   },
   /** Link used by a plain <a download>; the session cookie authenticates it. */
   exportUrl(params) {
