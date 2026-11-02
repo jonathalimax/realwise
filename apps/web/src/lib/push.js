@@ -54,3 +54,14 @@ export async function disablePush() {
   }
   return 'off';
 }
+
+/** Permission already granted: make sure this device is registered with the server (no prompt, no tap needed). */
+export async function syncPushSubscription() {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const { publicKey } = await pushResource.config();
+    const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) }));
+    await pushResource.subscribe({ endpoint: sub.endpoint, p256dh: b64(sub.getKey('p256dh')), auth: b64(sub.getKey('auth')) });
+  } catch { /* best effort: the Notifications screen shows the real state */ }
+}

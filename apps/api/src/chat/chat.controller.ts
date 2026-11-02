@@ -162,6 +162,9 @@ function describeChatError(e: unknown): { status: number; code?: string; message
   return { status: status >= 500 ? status : 500, message: 'Tive um tropeço aqui e não consegui terminar. Pode tentar de novo em instantes?' };
 }
 
+/** Turns longer than this notify the person on finish even if the connection looked alive. */
+const AWAY_AFTER_MS = 45_000;
+
 @Controller('chat')
 export class ChatController {
   constructor(
@@ -267,7 +270,9 @@ export class ChatController {
     try {
       const result = await run(write);
       write({ type: 'done', result });
-      if (clientGone) this.service.notifyTurnFinishedAway(result);
+      // A phone that was locked or switched away often leaves the socket half-open, so the server never sees it close.
+      // A turn this long (reading a statement) is treated as "they left" either way; a duplicate notice costs less than none.
+      if (clientGone || Date.now() - startedAt > AWAY_AFTER_MS) this.service.notifyTurnFinishedAway(result);
       console.log(`[chat] turn finished in ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone before the end: ${clientGone})`);
     } catch (e) {
       console.error(`[chat] turn failed after ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone: ${clientGone}):`, e);

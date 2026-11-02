@@ -209,12 +209,16 @@ export class EngagementRemindersService {
    */
   async sendStatementReady(userId: string, messageId: string, pendingCount: number, now = new Date()): Promise<void> {
     try {
-      const { engagement } = await this.settings.getEmails();
-      if (!engagement.enabled || !engagement.kinds.statement_ready.enabled) return;
       const [user] = await this.db.select().from(users).where(eq(users.id, userId));
-      if (!user || user.reminderEmailsOptOut) return;
+      if (!user) return;
       const access = computeAccess(user, now);
       if (!access.allowed) return;
+
+      // The push belongs to the device the person turned notifications on for: it does not depend on the e-mail switches.
+      await this.push?.sendToUser(userId, statementReadyPush(pendingCount)).catch((e: Error) => this.logger.warn(`statement-ready push failed: ${e.message}`));
+
+      const { engagement } = await this.settings.getEmails();
+      if (!engagement.enabled || !engagement.kinds.statement_ready.enabled || user.reminderEmailsOptOut) return;
       const claimed = await this.db
         .insert(reminderEmailsSent)
         .values({ userId, kind: 'statement_ready', periodKey: messageId })
@@ -230,9 +234,8 @@ export class EngagementRemindersService {
         clientId: user.clientId,
         pendingCount,
       });
-      await this.push?.sendToUser(userId, statementReadyPush(pendingCount)).catch(() => 0);
     } catch (err) {
-      this.logger.error(`statement-ready e-mail failed for user ${userId}: ${(err as Error).message}`);
+      this.logger.error(`statement-ready notice failed for user ${userId}: ${(err as Error).message}`);
     }
   }
 

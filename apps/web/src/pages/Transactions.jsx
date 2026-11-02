@@ -8,6 +8,7 @@ import { useMonth } from '../contexts/MonthContext';
 import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
 import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { Shimmer } from '../components/ui/shimmer';
 import PageHeader from '../components/PageHeader';
 import AddTransactionSheet from '../components/AddTransactionSheet';
 import { lazy, Suspense } from 'react';
@@ -20,7 +21,7 @@ export default function TransactionsPage() {
   const { selectedMonth, setSelectedMonth } = useMonth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { transactions } = useTransactions({}, { enabled: Boolean(ownerId) });
+  const { transactions, loading } = useTransactions({}, { enabled: Boolean(ownerId) });
 
   // Get highlight ID from URL params
   const highlightId = searchParams.get('highlight');
@@ -161,6 +162,22 @@ export default function TransactionsPage() {
   ].filter(Boolean).length;
 
   const triggerRefresh = () => {};
+
+  // First load with nothing cached yet: a skeleton, never "R$ 0" or an empty list that looks like missing data.
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">
+        <PageHeader title={language === 'pt' ? 'Movimentos' : 'Activity'} />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 pb-24" aria-busy="true" aria-label={language === 'pt' ? 'Carregando' : 'Loading'}>
+          <Shimmer className="mb-3 h-[150px] w-full rounded-[28px]" />
+          <Shimmer className="mb-3 h-[44px] w-full rounded-[14px]" />
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 7 }, (_, i) => <Shimmer key={i} className="h-[64px] w-full rounded-2xl" />)}
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--rw-bg)] transition-colors">

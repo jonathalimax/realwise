@@ -80,7 +80,8 @@ function RedirectToGlobalLogin() {
     const storedClientId = localStorage.getItem('rw_last_client') || '';
     window.location.replace(buildLoginRedirectUrl(window.location.pathname, storedClientId));
   }, []);
-  return null;
+  // Never an empty screen while the redirect happens.
+  return <PageLoader />;
 }
 
 function AuthenticatedApp() {

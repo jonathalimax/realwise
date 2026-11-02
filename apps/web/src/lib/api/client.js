@@ -39,6 +39,20 @@ async function readResponseBody(response) {
 }
 
 export const SUBSCRIPTION_REQUIRED_EVENT = 'rw:subscription-required';
+/** The refresh token was rejected too: the person really is signed out. */
+export const SESSION_EXPIRED_EVENT = 'rw:session-expired';
+
+// The access cookie is short-lived. A phone that slept for a while comes back with an expired one, so the first 401
+// refreshes the session once (shared by every request that fails at the same time) and replays the request.
+const NO_REFRESH_PATHS = ['/auth/refresh', '/auth/logout'];
+let refreshInFlight = null;
+function refreshSessionOnce(baseUrl) {
+  refreshInFlight ??= fetch(joinUrl(baseUrl, '/auth/refresh'), { method: 'POST', credentials: 'include' })
+    .then((r) => (r.ok ? 'ok' : r.status === 401 || r.status === 403 ? 'denied' : 'error'))
+    .catch(() => 'error')
+    .finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
 
 export class ApiError extends Error {
   constructor(message, { status, data } = {}) {
@@ -52,7 +66,7 @@ export class ApiError extends Error {
 export function createApiClient({ baseUrl, defaultHeaders = {} } = {}) {
   const resolvedBaseUrl = baseUrl ?? resolveApiBaseUrl();
 
-  async function request(path, { method = 'GET', headers = {}, body } = {}) {
+  async function request(path, { method = 'GET', headers = {}, body } = {}, retried = false) {
     const finalHeaders = { ...defaultHeaders, ...headers };
     const init = {
       method,
@@ -83,6 +97,12 @@ export function createApiClient({ baseUrl, defaultHeaders = {} } = {}) {
       throw error;
     }
     const data = await readResponseBody(response);
+
+    if (response.status === 401 && !retried && !NO_REFRESH_PATHS.some((p) => path.startsWith(p))) {
+      const outcome = await refreshSessionOnce(resolvedBaseUrl);
+      if (outcome === 'ok') return request(path, { method, headers, body }, true);
+      if (outcome === 'denied' && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+    }
 
     if (!response.ok) {
       // The server blocks every non-billing route once the trial/subscription is over.

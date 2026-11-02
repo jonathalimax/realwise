@@ -582,7 +582,7 @@ export default function ChatPage() {
    */
   const recoverAfterDrop = useCallback(async () => {
     setLive({ text: '', status: pt ? 'Ainda estou trabalhando nisso…' : 'Still working on it…', final: null });
-    const deadline = Date.now() + 4 * 60 * 1000;
+    const deadline = Date.now() + 12 * 60 * 1000;
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 4000));
       try {

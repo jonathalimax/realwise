@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../../contexts/SettingsContext';
 import { summaryResource } from '../../lib/api/resources/summary';
 import HomeCard from './HomeCard';
+import { isFresh, readCache, writeCache } from '../../lib/queryCache';
+
+const INSIGHTS_KEY = 'insights';
+const INSIGHTS_FRESH_MS = 5 * 60 * 1000;
 
 const TONES = {
   urgent: 'bg-[#fb718522] text-[var(--rw-neg)]',
@@ -18,12 +22,13 @@ export default function InsightsCard() {
   const { language, formatCurrency } = useSettings();
   const navigate = useNavigate();
   const pt = language === 'pt';
-  const [items, setItems] = useState(null);
+  const [items, setItems] = useState(() => readCache(INSIGHTS_KEY)?.data ?? null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    summaryResource.insights().then((d) => alive && setItems(d.items ?? [])).catch((e) => { console.error('insights failed', e); if (alive) setItems([]); });
+    if (isFresh(readCache(INSIGHTS_KEY), INSIGHTS_FRESH_MS)) return undefined;
+    summaryResource.insights().then((d) => { const list = d.items ?? []; writeCache(INSIGHTS_KEY, list); if (alive) setItems(list); }).catch((e) => { console.error('insights failed', e); if (alive) setItems([]); });
     return () => { alive = false; };
   }, []);
 

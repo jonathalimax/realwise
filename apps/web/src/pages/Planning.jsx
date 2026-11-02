@@ -138,11 +138,12 @@ export default function PlanningPage() {
   const { ownerId } = useAccess();
   const { getPaymentMonthKey } = useCards();
   const { calculate50_30_20 } = useBudget();
-  const { transactions } = useTransactions({}, { enabled: Boolean(ownerId) });
+  const { transactions, loading: txLoading } = useTransactions({}, { enabled: Boolean(ownerId) });
   const planner = usePlannerState();
   const [sheet, setSheet] = useState(null);
 
-  const { isLoading, liquidezFinal, monthAllocation, setMonthAllocation, copyFromPreviousMonth, state } = planner;
+  const { isLoading: plannerLoading, liquidezFinal, monthAllocation, setMonthAllocation, copyFromPreviousMonth, state } = planner;
+  const isLoading = plannerLoading || txLoading;
   const money = (v) => formatCurrency(Math.abs(v)).replace(/,00(?=\D*$)/, '');
 
   const monthTx = useMemo(
