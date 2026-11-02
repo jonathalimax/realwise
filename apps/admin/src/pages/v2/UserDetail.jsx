@@ -255,7 +255,7 @@ function Detail({ user: u, reload, notify }) {
                         <tr key={c.id ?? i}>
                           <td className={`${tdClass} whitespace-nowrap`}>{dateTime(c.createdAt)}</td>
                           <td className={tdClass}>{c.purpose ?? '—'}</td>
-                          <td className={`${tdClass} whitespace-nowrap`}>{c.model ?? '—'}{c.error && <Badge tone="red" className="ml-2">erro</Badge>}</td>
+                          <td className={`${tdClass} whitespace-nowrap`}>{c.model ?? '—'}{c.error && <Badge tone="red" className="ml-2">erro</Badge>}{c.error && <span className="mt-0.5 block max-w-[320px] whitespace-normal break-words text-[11px] text-red-300/80" title={c.error}>{c.error}</span>}</td>
                           <td className={`${tdClass} text-right`}>{usd(c.costUsd)}</td>
                           <td className={`${tdClass} text-right`}>{ms(c.latencyMs)}</td>
                         </tr>
