@@ -178,12 +178,27 @@ export class ChatService {
     let staticReply = '';
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const result = await this.llm.generate(
-        // Reading statements needs the strong model; everything else (questions, edits, answers) runs on the cheap one.
-        { purpose: 'chat', tier: pendingFiles.length ? 'strong' : 'light', messages, tools: CHAT_TOOLS, maxTokens: 16000, statement: pendingFiles.length > 0 },
-        scope,
-        onEvent ? (text) => onEvent({ type: 'delta', text }) : undefined,
-      );
+      const callModel = () =>
+        this.llm.generate(
+          // Reading statements needs the strong model; everything else (questions, edits, answers) runs on the cheap one.
+          { purpose: 'chat', tier: pendingFiles.length ? 'strong' : 'light', messages, tools: CHAT_TOOLS, maxTokens: 16000, statement: pendingFiles.length > 0 },
+          scope,
+          onEvent ? (text) => onEvent({ type: 'delta', text }) : undefined,
+        );
+      let result: Awaited<ReturnType<typeof callModel>>;
+      try {
+        result = await callModel();
+      } catch (e) {
+        const body = (e as { getResponse?: () => unknown }).getResponse?.() as { code?: string } | undefined;
+        if (body?.code !== 'AI_REJECTED' || !pendingFiles.length) throw e;
+        // The documents are what the provider refuses. Drop them, or every later message would carry them and fail too.
+        await this.db.delete(chatFiles).where(and(eq(chatFiles.userId, scope.userId), inArray(chatFiles.id, pendingFiles.map((f) => f.id))));
+        if (prepared.length) throw e; // this message's own upload: tell the person
+        // Leftovers from an earlier turn broke a plain message: answer it without them.
+        pendingFiles.length = 0;
+        messages[messages.length - 1] = { role: 'user', content: parts.slice(0, 1) };
+        result = await callModel();
+      }
 
       if (result.toolCalls.length === 0) {
         reply = result.text;

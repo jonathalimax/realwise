@@ -163,7 +163,7 @@ function describeChatError(e: unknown): { status: number; code?: string; message
 }
 
 /** Limits and server failures happen after the message is saved; request mistakes (4xx) are rejected before it. */
-const isRecordable = (status: number) => status === 402 || status === 429 || status >= 500;
+const isRecordable = (status: number) => status === 402 || status === 422 || status === 429 || status >= 500;
 
 /** Turns longer than this notify the person on finish even if the connection looked alive. */
 const AWAY_AFTER_MS = 45_000;

@@ -71,6 +71,14 @@ export class LlmService {
       // 402 from the provider means the account behind Elio is out of credit: that is ours to fix, never the user's limit.
       const outOfCredit = /\b402\b|insufficient|credit/i.test(reason);
       if (outOfCredit) console.error('[llm] PROVIDER OUT OF CREDIT: top up the OpenRouter account');
+      // The provider refused the request itself (400/413/422): something we sent is the problem, typically an unreadable
+      // or password-protected PDF. Retrying changes nothing, so say so instead of "the AI is down".
+      if (/request failed: (400|413|422)\b/.test(reason)) {
+        throw new HttpException(
+          { message: 'O Elio não conseguiu ler esse pedido. Se você enviou um arquivo, ele pode estar protegido por senha ou corrompido. Tente enviar de novo ou use outro arquivo.', code: 'AI_REJECTED' },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
       throw new ServiceUnavailableException({
         message: 'O Elio está fora do ar por um problema do nosso lado, não é o seu limite. Tente de novo em alguns minutos.',
         code: 'AI_UNAVAILABLE',
