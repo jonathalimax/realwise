@@ -3,6 +3,7 @@ import { hidesTabBar } from '../lib/tabBar';
 import Sidebar from './Sidebar';
 import BottomTabBar from './BottomTabBar';
 import AnnouncementBanner from './AnnouncementBanner';
+import ScrollManager from './ScrollManager';
 
 export default function Layout() {
   const { pathname } = useLocation();
@@ -10,6 +11,7 @@ export default function Layout() {
   const room = hidesTabBar(pathname) ? '' : 'pb-[calc(88px+env(safe-area-inset-bottom))] lg:pb-0';
   return (
     <div className="min-h-screen bg-[var(--rw-bg)]">
+      <ScrollManager />
       <Sidebar />
 
       {/* Main content area */}

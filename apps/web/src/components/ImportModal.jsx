@@ -37,7 +37,7 @@ function ModalWrapper({ embedded, isMobile, children }) {
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-[var(--rw-surface)] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-[var(--rw-surface)] rounded-2xl w-full max-w-4xl max-h-[90dvh] flex flex-col overflow-hidden">
         {children}
       </div>
     </div>

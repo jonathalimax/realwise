@@ -30,7 +30,7 @@ function Sheet({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center" role="dialog" aria-modal="true" aria-label={title}>
       <button type="button" aria-label="Fechar" onClick={onClose} className="absolute inset-0 bg-black/60" />
-      <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[28px] border border-b-0 border-[var(--rw-border)] bg-[var(--rw-surface)] px-4 pb-6 pt-3 text-[var(--rw-ink)]">
+      <div className="relative flex max-h-[88dvh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-t-[28px] border border-b-0 border-[var(--rw-border)] bg-[var(--rw-surface)] px-4 pb-6 pt-3 text-[var(--rw-ink)]">
         <span className="mx-auto h-1 w-10 rounded-full bg-[var(--rw-border)]" />
         <div className="flex items-center justify-between">
           <h2 className="text-[17px] font-bold">{title}</h2>

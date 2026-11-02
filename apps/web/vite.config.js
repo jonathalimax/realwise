@@ -41,8 +41,12 @@ export default defineConfig(() => {
       copyStaticPages(),
       VitePWA({
         registerType: 'autoUpdate',
+        // Own worker (src/sw.js) so it can handle push; precache and update behaviour match the old generated one.
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.js',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
-        workbox: {
+        injectManifest: {
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         },
         manifest: {
