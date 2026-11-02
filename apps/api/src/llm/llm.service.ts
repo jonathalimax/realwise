@@ -68,7 +68,13 @@ export class LlmService {
       // The real cause goes to the server log and llm_call_log; users only get a generic message.
       console.error(`[llm] ${request.purpose} call failed for model ${request.model ?? 'default'}: ${reason}`);
       await this.log(scope, req, null, 0, reason);
-      throw new ServiceUnavailableException('O Elio está indisponível no momento. Tente de novo em instantes.');
+      // 402 from the provider means the account behind Elio is out of credit: that is ours to fix, never the user's limit.
+      const outOfCredit = /\b402\b|insufficient|credit/i.test(reason);
+      if (outOfCredit) console.error('[llm] PROVIDER OUT OF CREDIT: top up the OpenRouter account');
+      throw new ServiceUnavailableException({
+        message: 'O Elio está fora do ar por um problema do nosso lado, não é o seu limite. Tente de novo em alguns minutos.',
+        code: 'AI_UNAVAILABLE',
+      });
     }
   }
 
