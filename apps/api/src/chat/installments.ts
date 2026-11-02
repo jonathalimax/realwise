@@ -63,3 +63,26 @@ export function installmentGroupId(userId: string, accountId: string, descriptio
 }
 
 export const installmentHash = (groupId: string, current: number) => `inst:${groupId}:${current}`;
+
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+export const isMonth = (v: unknown): v is string => typeof v === 'string' && MONTH_RE.test(v);
+
+/**
+ * Card invoices print the ORIGINAL purchase date on an installment line ("12 dez 2025 - MULTI (Parcela 11 de 18)"), but
+ * installment 11 is charged in the month the invoice covers. For installments after the first, an older date is moved
+ * into the statement's month (same day, clamped), so the plan continues from there and never lands in past months.
+ */
+export function installmentChargeDate(date: string, info: InstallmentInfo, statementMonth: string | null): string {
+  if (!statementMonth || info.current <= 1 || date.slice(0, 7) >= statementMonth) return date;
+  const [y, m] = statementMonth.split('-').map(Number);
+  const [dy, dm] = date.split('-').map(Number);
+  return addMonths(date, (y - dy) * 12 + (m - dm));
+}
+
+/** The month a statement covers: the one the model reported, else the most common month among its ordinary lines. */
+export function statementMonthOf(reported: unknown, ordinaryDates: string[]): string | null {
+  if (isMonth(reported)) return reported;
+  const counts = new Map<string, number>();
+  for (const d of ordinaryDates) counts.set(d.slice(0, 7), (counts.get(d.slice(0, 7)) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}

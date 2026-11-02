@@ -99,10 +99,12 @@ export class OpenRouterProvider implements LlmProvider {
     return Boolean(process.env.OPENROUTER_API_KEY);
   }
 
-  private buildBody(req: LlmRequest, model: string, stream: boolean, ai: AiSettings) {
-    const hasPdf = req.messages.some(
-      (m) => m.role === 'user' && Array.isArray(m.content) && m.content.some((p) => p.type === 'file'),
-    );
+  private hasPdf(req: LlmRequest): boolean {
+    return req.messages.some((m) => m.role === 'user' && Array.isArray(m.content) && m.content.some((p) => p.type === 'file'));
+  }
+
+  private buildBody(req: LlmRequest, model: string, stream: boolean, ai: AiSettings, pdfEngine: 'native' | 'pdf-text' = 'native') {
+    const hasPdf = this.hasPdf(req);
     return JSON.stringify({
       model,
       messages: withCacheBreakpoints(req.messages, model, ai.promptCache),
@@ -116,7 +118,7 @@ export class OpenRouterProvider implements LlmProvider {
       // Financial documents: no upstream retention or training, same policy as the RealWise chat gateway.
       provider: { zdr: true, data_collection: 'deny' },
       // Sonnet reads PDFs natively; "native" avoids a lossy text-extraction step for scanned statements.
-      plugins: hasPdf ? [{ id: 'file-parser', pdf: { engine: 'native' } }] : undefined,
+      plugins: hasPdf ? [{ id: 'file-parser', pdf: { engine: pdfEngine } }] : undefined,
       ...(stream ? { stream: true, stream_options: { include_usage: true } } : {}),
     });
   }
@@ -137,11 +139,24 @@ export class OpenRouterProvider implements LlmProvider {
     return res;
   }
 
+  /**
+   * Some model/endpoint pairs reject native PDF input with a 400 even for a perfectly good file. Retry once with
+   * OpenRouter's own text extraction, which every model accepts, before giving up on the document.
+   */
+  private async postWithPdfFallback(req: LlmRequest, model: string, stream: boolean, ai: AiSettings, timeoutMs: number): Promise<Response> {
+    try {
+      return await this.post(this.buildBody(req, model, stream, ai), timeoutMs);
+    } catch (e) {
+      if (!this.hasPdf(req) || !(e instanceof Error) || !e.message.startsWith('OpenRouter request failed: 400')) throw e;
+      return this.post(this.buildBody(req, model, stream, ai, 'pdf-text'), timeoutMs);
+    }
+  }
+
   async generate(req: LlmRequest): Promise<LlmResult> {
     const ai = await this.settings.getAi();
     const model = req.model ?? modelFor(req, ai);
     const start = Date.now();
-    const res = await this.post(this.buildBody(req, model, false, ai), 120_000);
+    const res = await this.postWithPdfFallback(req, model, false, ai, 120_000);
 
     const data = (await res.json()) as {
       choices?: { message?: { content?: string | null; tool_calls?: LlmToolCall[] } }[];
@@ -170,7 +185,7 @@ export class OpenRouterProvider implements LlmProvider {
     const ai = await this.settings.getAi();
     const model = req.model ?? modelFor(req, ai);
     const start = Date.now();
-    const res = await this.post(this.buildBody(req, model, true, ai), 180_000);
+    const res = await this.postWithPdfFallback(req, model, true, ai, 180_000);
     if (!res.body) throw new Error('OpenRouter returned no stream body');
 
     let text = '';
