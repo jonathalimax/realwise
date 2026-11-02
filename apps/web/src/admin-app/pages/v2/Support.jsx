@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCheck, LifeBuoy, RotateCcw, Search, Send } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, CheckCheck, LifeBuoy, Plus, RotateCcw, Search, Send } from 'lucide-react';
+import { usersResource } from '../../lib/api/resources/users';
 import { supportResource } from '../../lib/api/resources/support';
 import { friendlyError } from '../../lib/api/errors';
 import { toPage } from '../../lib/api/query';
 import { useAsync, useDebounced } from '../../lib/useAsync';
 import { dateTime, relativeTime } from '../../lib/format';
 import {
-  AsyncView, Badge, Button, Card, ConfirmDialog, EmptyState, InlineMessage, PageHeader, Pagination, Toast, inputClass,
+  AsyncView, Badge, Button, Card, ConfirmDialog, EmptyState, Field, InlineMessage, Modal, PageHeader, Pagination, Toast, inputClass,
 } from '../../components/ui';
 
 const STATUSES = [
@@ -18,6 +19,119 @@ const STATUSES = [
 ];
 const TONE = { open: 'amber', answered: 'green', closed: 'gray' };
 const LABEL = { open: 'Aberta', answered: 'Respondida', closed: 'Fechada' };
+const CHANNELS = [
+  { value: 'email', label: 'E-mail' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'phone', label: 'Telefone' },
+  { value: 'other', label: 'Outro' },
+];
+const SOURCE_LABEL = {
+  app: 'Dentro do app', login: 'Visitante (login)', email: 'Chegou por e-mail', whatsapp: 'Chegou por WhatsApp', phone: 'Chegou por telefone', other: 'Registrado por um admin',
+};
+
+/** Logs a conversation that happened outside the app (e-mail, WhatsApp, phone), attached to the person's account. */
+function NewTicketModal({ open, onClose, prefill, onCreated }) {
+  // Mounted only while open, so every opening starts from a clean form (no reset effect needed).
+  return open ? <NewTicketForm onClose={onClose} prefill={prefill} onCreated={onCreated} /> : null;
+}
+
+function NewTicketForm({ onClose, prefill, onCreated }) {
+  const [channel, setChannel] = useState('whatsapp');
+  const [who, setWho] = useState(prefill?.email || '');
+  const [picked, setPicked] = useState(prefill?.email ? { id: prefill.userId || null, email: prefill.email, name: prefill.name || '' } : null); // { id, email, name }
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [found, setFound] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const term = useDebounced(who);
+  const searching = !picked && term.trim().length >= 2;
+
+  useEffect(() => {
+    if (!searching) return undefined;
+    let alive = true;
+    usersResource.list({ search: term.trim(), pageSize: 6 }).then((d) => { if (alive) setFound(toPage(d).items); }).catch(() => {});
+    return () => { alive = false; };
+  }, [term, searching]);
+  const suggestions = searching ? found : [];
+
+  const typedEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(who.trim());
+  const canSave = message.trim().length >= 2 && (picked || typedEmail);
+
+  async function save() {
+    setSaving(true);
+    setError('');
+    try {
+      const row = await supportResource.create({
+        ...(picked?.id ? { userId: picked.id } : { email: picked?.email || who.trim() }),
+        subject: subject.trim() || undefined,
+        message: message.trim(),
+        channel,
+      });
+      onCreated(row);
+    } catch (e) {
+      setError(friendlyError(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Novo chamado"
+      wide
+      footer={(
+        <>
+          <Button onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" onClick={save} loading={saving} disabled={!canSave}>Criar chamado</Button>
+        </>
+      )}
+    >
+      <p className="text-xs text-gray-400">Registre uma conversa que aconteceu fora do app. Ela entra na fila e fica ligada ao usuário.</p>
+      <Field label="Canal">
+        <div className="flex flex-wrap gap-1.5">
+          {CHANNELS.map((c) => (
+            <button key={c.value} type="button" onClick={() => setChannel(c.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${channel === c.value ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Pessoa" hint="Busque por nome ou e-mail. Se ela ainda não tem conta, digite o e-mail completo.">
+        {picked ? (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2">
+            <span className="min-w-0 break-all text-sm text-white">{picked.name ? `${picked.name} · ` : ''}{picked.email}{picked.id ? '' : ' (sem conta)'}</span>
+            <button type="button" className="text-xs text-emerald-400 hover:underline" onClick={() => { setPicked(null); setWho(''); }}>Trocar</button>
+          </div>
+        ) : (
+          <>
+            <input className={inputClass} value={who} onChange={(e) => setWho(e.target.value)} placeholder="nome@email.com" autoComplete="off" />
+            {suggestions.length > 0 && (
+              <ul className="mt-1 divide-y divide-gray-800 overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
+                {suggestions.map((u) => (
+                  <li key={u.id}>
+                    <button type="button" className="w-full px-3 py-2 text-left hover:bg-gray-800" onClick={() => setPicked({ id: u.id, email: u.email, name: u.name || '' })}>
+                      <span className="block text-sm text-white">{u.name || u.email}</span>
+                      {u.name && <span className="block text-xs text-gray-500">{u.email}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </Field>
+      <Field label="Assunto (opcional)"><input className={inputClass} value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} /></Field>
+      <Field label="O que a pessoa disse">
+        <textarea className={`${inputClass} min-h-28`} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Cole ou resuma a mensagem recebida…" />
+      </Field>
+      {error && <InlineMessage>{error}</InlineMessage>}
+    </Modal>
+  );
+}
 
 function Thread({ id, onChanged }) {
   const state = useAsync(() => supportResource.get(id), id);
@@ -66,7 +180,7 @@ function Thread({ id, onChanged }) {
                 </p>
                 <div className="flex flex-wrap items-center gap-2 mt-1.5">
                   <Badge tone={TONE[m.status] ?? 'gray'}>{LABEL[m.status] ?? m.status}</Badge>
-                  <Badge>{m.source === 'login' ? 'Visitante (login)' : 'Dentro do app'}</Badge>
+                  <Badge>{SOURCE_LABEL[m.source] ?? 'Dentro do app'}</Badge>
                   {m.userId && <Link className="text-xs text-emerald-400 hover:underline" to={`/users/${m.userId}`}>Ver usuário</Link>}
                 </div>
               </div>
@@ -142,9 +256,30 @@ export default function Support() {
   const params = { status, q: q.trim(), page, pageSize: 20 };
   const list = useAsync(() => supportResource.list(params), JSON.stringify(params));
 
+  // "Novo chamado" opens from here or from a user page (?new=1&userId=…&email=…&name=…).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [creating, setCreating] = useState(searchParams.get('new') === '1');
+  const prefill = useMemo(() => ({
+    userId: searchParams.get('userId') || '', email: searchParams.get('email') || '', name: searchParams.get('name') || '',
+  }), [searchParams]);
+  const closeCreate = () => {
+    setCreating(false);
+    if (searchParams.has('new')) setSearchParams({}, { replace: true });
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      <PageHeader title="Suporte" subtitle="Mensagens enviadas pelo formulário de contato do app e da tela de login." />
+      <PageHeader
+        title="Suporte"
+        subtitle="Mensagens do formulário de contato e conversas registradas por você (e-mail, WhatsApp, telefone)."
+        actions={<Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>Novo chamado</Button>}
+      />
+      <NewTicketModal
+        open={creating}
+        onClose={closeCreate}
+        prefill={prefill}
+        onCreated={(row) => { closeCreate(); list.reload(true); navigate(`/support/${row.id}`); }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)] gap-4 items-start">
         <div className={id ? 'hidden lg:block' : ''}>

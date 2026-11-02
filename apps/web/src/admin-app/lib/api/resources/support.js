@@ -5,6 +5,10 @@ export const supportResource = {
   list(params) {
     return apiClient.get(`/admin/support${qs(params)}`);
   },
+  /** body: { userId? | email?, name?, subject?, message, channel: 'email'|'whatsapp'|'phone'|'other' } */
+  create(body) {
+    return apiClient.post('/admin/support', body);
+  },
   stats() {
     return apiClient.get('/admin/support/stats');
   },
