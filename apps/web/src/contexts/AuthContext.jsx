@@ -38,6 +38,14 @@ export function AuthProvider({ children, authClient = authApi }) {
     };
   }, [authClient]);
 
+  // Remember which workspace the person belongs to as soon as they are signed in, however they got here (the OAuth
+  // redirect lands straight on the dashboard). The installed app's start page needs it to skip the login screen.
+  useEffect(() => {
+    if (status === 'authenticated' && user?.clientId) {
+      try { localStorage.setItem('rw_last_client', user.clientId); } catch { /* storage blocked: the server lookup covers it */ }
+    }
+  }, [status, user]);
+
   // Re-reads /auth/me (no token refresh) so `user.access` stays in sync with the server.
   // Concurrent callers share one request: a blocked user can trigger many 402s at once.
   const reloadInFlight = useRef(null);

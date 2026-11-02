@@ -13,30 +13,89 @@ import { CHART_COLORS, HBarChart, TrendChart } from '../../components/charts';
 const PAGE_SIZE = 25;
 const EMPTY = { userEmail: '', model: '', purpose: '', status: '', from: '', to: '', minCostUsd: '', q: '' };
 
-function Summary({ from, to }) {
-  const state = useAsync(() => llmLogsResource.summary({ from, to }), `${from}|${to}`);
+// Quick ranges like Google/Firebase Analytics. Hours are rolling windows; day ranges count calendar days up to today.
+const PRESETS = [
+  { key: '1h', label: '1 hora', hours: 1 },
+  { key: '2h', label: '2 horas', hours: 2 },
+  { key: '6h', label: '6 horas', hours: 6 },
+  { key: '12h', label: '12 horas', hours: 12 },
+  { key: '24h', label: '24 horas', hours: 24 },
+  { key: 'today', label: 'Hoje' },
+  { key: 'yesterday', label: 'Ontem' },
+  { key: '7d', label: '7 dias', days: 7 },
+  { key: '15d', label: '15 dias', days: 15 },
+  { key: '30d', label: '30 dias', days: 30 },
+  { key: '90d', label: '90 dias', days: 90 },
+  { key: '365d', label: '1 ano', days: 365 },
+  { key: 'custom', label: 'Personalizado' },
+];
+const GRANULARITIES = [
+  { key: 'auto', label: 'Automática' },
+  { key: '5m', label: '5 minutos' },
+  { key: '15m', label: '15 minutos' },
+  { key: 'hour', label: '1 hora' },
+  { key: 'day', label: '1 dia' },
+];
+const GRANULARITY_NAME = { '5m': 'por 5 minutos', '15m': 'por 15 minutos', hour: 'por hora', day: 'por dia' };
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** ISO bounds for a preset (`to` is empty when the range runs up to now). */
+function presetRange(key, now = new Date()) {
+  const preset = PRESETS.find((p) => p.key === key);
+  if (!preset || key === 'custom') return { from: '', to: '' };
+  if (key === 'today') return { from: startOfToday().toISOString(), to: '' };
+  if (key === 'yesterday') {
+    const today = startOfToday();
+    return { from: new Date(today.getTime() - 86400000).toISOString(), to: today.toISOString() };
+  }
+  if (preset.hours) return { from: new Date(now.getTime() - preset.hours * 3600000).toISOString(), to: '' };
+  return { from: new Date(startOfToday().getTime() - (preset.days - 1) * 86400000).toISOString(), to: '' };
+}
+
+/** A sensible chart step for how long the range is. */
+function autoGranularity(from, to) {
+  const start = from ? new Date(from).getTime() : Date.now() - 30 * 86400000;
+  const hours = ((to ? new Date(to).getTime() : Date.now()) - start) / 3600000;
+  if (hours <= 3) return '5m';
+  if (hours <= 12) return '15m';
+  if (hours <= 72) return 'hour';
+  return 'day';
+}
+
+function Summary({ from, to, granularity }) {
+  const state = useAsync(() => llmLogsResource.summary({ from, to, granularity }), `${from}|${to}|${granularity}`);
   return (
     <AsyncView state={state} isEmpty={(d) => !d}>
-      {(s) => (
+      {(raw) => {
+        const s = { ...raw, byDay: (raw.byDay ?? []).map((d) => ({ ...d, totalTokens: d.inputTokens + d.outputTokens })) };
+        const step = GRANULARITY_NAME[s.granularity] ?? 'por dia';
+        return (
         <div className="space-y-4">
+          {/* Each point is stamped with its own bucket; add the token total so one chart can show it. */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Stat label="Custo total" value={usd(s.totalCostUsd)} tone="text-violet-300" />
             <Stat label="Chamadas" value={num(s.calls)} />
             <Stat label="Taxa de erro" value={pct(s.errorRate)} hint={`${num(s.errors)} erros`} tone={Number(s.errorRate) > 0.05 ? 'text-red-400' : 'text-white'} />
             <Stat label="Latência média" value={ms(s.avgLatencyMs)} />
             <Stat label="Latência p95" value={ms(s.p95LatencyMs)} />
-            <Stat label="Tokens por chamada" value={num(s.tokensPerCall)} hint={`${num(s.inputTokens)} entrada · ${num(s.outputTokens)} saída`} />
+            <Stat label="Tokens usados" value={num(Number(s.inputTokens) + Number(s.outputTokens))} hint={`${num(s.inputTokens)} entrada · ${num(s.outputTokens)} saída`} tone="text-sky-300" />
+            <Stat label="Tokens por chamada" value={num(s.tokensPerCall)} hint="média entre entrada e saída" />
             <Stat label="Cache de prompt" value={pct(s.cacheHitRate)} hint={`${num(s.cachedTokens)} tokens em cache`} tone={Number(s.cacheHitRate) < 0.3 ? 'text-amber-400' : 'text-emerald-400'} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card title="Custo por dia">
+            <Card title={`Custo ${step}`}>
               <TrendChart data={s.byDay} valueKey="costUsd" color={CHART_COLORS.violet} valueFormatter={(v) => usd(v)} height={180} />
             </Card>
-            <Card title="Chamadas por dia">
+            <Card title={`Chamadas ${step}`}>
               <TrendChart data={s.byDay} valueKey="calls" color={CHART_COLORS.sky} name="chamadas" valueFormatter={(v) => num(v)} height={180} />
             </Card>
-            <Card title="Tokens por dia (entrada)">
-              <TrendChart data={s.byDay} valueKey="inputTokens" color={CHART_COLORS.violet} name="tokens" valueFormatter={(v) => num(v)} height={180} />
+            <Card title={`Tokens ${step}`}>
+              <TrendChart data={s.byDay} valueKey="totalTokens" color={CHART_COLORS.violet} name="tokens" valueFormatter={(v) => num(v)} height={180} />
             </Card>
             <Card title="Custo por modelo">
               {(s.byModel ?? []).length ? (
@@ -78,7 +137,8 @@ function Summary({ from, to }) {
             )}
           </Card>
         </div>
-      )}
+        );
+      }}
     </AsyncView>
   );
 }
@@ -86,25 +146,36 @@ function Summary({ from, to }) {
 export default function LlmLogs() {
   const [filters, setFilters] = useState(EMPTY);
   const [page, setPage] = useState(1);
+  const [preset, setPreset] = useState('30d');
+  const [granularity, setGranularity] = useState('auto');
+  // Rolling windows move with the clock; keep the bounds fixed until a range is picked again so the data does not refetch on every render.
+  const [bounds, setBounds] = useState(() => presetRange('30d'));
   const debounced = useDebounced(filters);
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }));
+  const pick = (key) => {
+    setPreset(key);
+    setBounds(presetRange(key));
+    setPage(1);
+  };
 
   useEffect(() => { setPage(1); }, [debounced]);
 
-  // `to` is a day: send the end of that day so the day itself is included.
+  // Custom range: `to` is a day, so send the end of that day to include it.
+  const custom = preset === 'custom';
   const apiFilters = {
     userEmail: debounced.userEmail.trim(),
     model: debounced.model.trim(),
     purpose: debounced.purpose.trim(),
     status: debounced.status,
-    from: debounced.from ? new Date(`${debounced.from}T00:00:00`).toISOString() : '',
-    to: debounced.to ? new Date(`${debounced.to}T23:59:59.999`).toISOString() : '',
+    from: custom ? (debounced.from ? new Date(`${debounced.from}T00:00:00`).toISOString() : '') : bounds.from,
+    to: custom ? (debounced.to ? new Date(`${debounced.to}T23:59:59.999`).toISOString() : '') : bounds.to,
     minCostUsd: debounced.minCostUsd.trim().replace(',', '.'),
     q: debounced.q.trim(),
   };
+  const chartStep = granularity === 'auto' ? autoGranularity(apiFilters.from, apiFilters.to) : granularity;
   const params = { ...apiFilters, page, pageSize: PAGE_SIZE };
   const list = useAsync(() => llmLogsResource.list(params), JSON.stringify(params));
-  const hasFilters = JSON.stringify(filters) !== JSON.stringify(EMPTY);
+  const hasFilters = JSON.stringify({ ...filters, from: '', to: '' }) !== JSON.stringify(EMPTY);
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
@@ -122,7 +193,35 @@ export default function LlmLogs() {
         )}
       />
 
-      <Summary from={apiFilters.from} to={apiFilters.to} />
+      <Card>
+        <div className="flex flex-wrap items-center gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => pick(p.key)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${preset === p.key ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <Field label="Granularidade do gráfico">
+            <select className={inputClass} value={granularity} onChange={(e) => setGranularity(e.target.value)}>
+              {GRANULARITIES.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
+            </select>
+          </Field>
+          {custom && (
+            <>
+              <Field label="De"><input className={inputClass} type="date" value={filters.from} onChange={(e) => set({ from: e.target.value })} /></Field>
+              <Field label="Até"><input className={inputClass} type="date" value={filters.to} onChange={(e) => set({ to: e.target.value })} /></Field>
+            </>
+          )}
+        </div>
+      </Card>
+
+      <Summary from={apiFilters.from} to={apiFilters.to} granularity={chartStep} />
 
       <Card title="Chamadas" padded={false}>
         <div className="p-3 sm:p-4 border-b border-gray-800 space-y-3">
@@ -137,13 +236,11 @@ export default function LlmLogs() {
                 <option value="error">Erro</option>
               </select>
             </Field>
-            <Field label="De"><input className={inputClass} type="date" value={filters.from} onChange={(e) => set({ from: e.target.value })} /></Field>
-            <Field label="Até"><input className={inputClass} type="date" value={filters.to} onChange={(e) => set({ to: e.target.value })} /></Field>
             <Field label="Custo mínimo (US$)"><input className={inputClass} inputMode="decimal" value={filters.minCostUsd} onChange={(e) => set({ minCostUsd: e.target.value })} placeholder="0.01" /></Field>
             <Field label="Buscar em erro/modelo"><input className={inputClass} value={filters.q} onChange={(e) => set({ q: e.target.value })} placeholder="texto" /></Field>
           </div>
           {hasFilters && (
-            <Button size="sm" variant="ghost" icon={X} onClick={() => setFilters(EMPTY)}>Limpar filtros</Button>
+            <Button size="sm" variant="ghost" icon={X} onClick={() => setFilters((f) => ({ ...EMPTY, from: f.from, to: f.to }))}>Limpar filtros</Button>
           )}
         </div>
 

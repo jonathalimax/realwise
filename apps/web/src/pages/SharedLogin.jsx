@@ -132,6 +132,16 @@ export default function SharedLogin() {
 
   const wide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 1024px)').matches;
 
+  // The page first checks whether the person is already signed in (and then jumps to the app). Showing the login
+  // while that runs made a signed-in user see it flash on every launch, so a splash stands in until it is known.
+  if (!initDone) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <img src="/logo.png" alt="Realwise" className="h-14 w-14 animate-pulse rounded-2xl object-contain" />
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
       {/* Soft violet glows behind everything */}
