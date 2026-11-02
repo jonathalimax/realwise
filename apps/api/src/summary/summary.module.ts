@@ -1,3 +1,4 @@
+import { PushModule } from '../push/push.module';
 import { Module } from '@nestjs/common';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { DrizzleModule } from '../db/drizzle.module';
@@ -7,7 +8,7 @@ import { SummaryScheduler } from './summary.scheduler';
 import { SummaryService } from './summary.service';
 
 @Module({
-  imports: [DrizzleModule, NotificationsModule],
+  imports: [DrizzleModule, NotificationsModule, PushModule],
   controllers: [PublicSummaryController, SummaryController, AdminSummaryController],
   providers: [SummaryService, SummaryScheduler, AdminGuard],
   exports: [SummaryService],

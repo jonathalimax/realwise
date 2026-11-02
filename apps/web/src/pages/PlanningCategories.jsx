@@ -12,21 +12,43 @@ const GROUPS = [
 ];
 
 function GroupPicker({ value, onPick, label }) {
+  const current = GROUPS.find((g) => g.key === value) ?? GROUPS[1];
   return (
-    <div className="flex flex-wrap gap-1.5" role="group" aria-label={label}>
-      {GROUPS.map((g) => (
-        <button
-          key={g.key}
-          type="button"
-          onClick={() => onPick(g.key)}
-          aria-pressed={value === g.key}
-          className="h-8 rounded-full px-3 text-xs font-bold"
-          style={value === g.key ? { background: `color-mix(in srgb, ${g.color} 18%, transparent)`, color: g.color } : { background: 'var(--rw-track)', color: 'var(--rw-muted)' }}
-        >
-          {g.pt}
-        </button>
-      ))}
-    </div>
+    <label className="relative flex h-11 items-center gap-2.5 rounded-[12px] border border-[var(--rw-border)] bg-[var(--rw-raised)] pl-3.5 pr-9">
+      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: current.color }} />
+      <select
+        value={current.key}
+        onChange={(e) => onPick(e.target.value)}
+        aria-label={label}
+        className="h-full w-full cursor-pointer appearance-none bg-transparent text-[15px] font-semibold text-[var(--rw-ink)] outline-none"
+      >
+        {GROUPS.map((g) => <option key={g.key} value={g.key}>{g.pt}</option>)}
+      </select>
+      <span className="pointer-events-none absolute right-3.5 text-xs text-[var(--rw-muted)]">▾</span>
+    </label>
+  );
+}
+
+const brl = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+
+/** Money field: "R$" prefix, thousands separators while idle, raw digits while typing. Commits on blur. */
+function LimitField({ value, onCommit, label }) {
+  const [draft, setDraft] = useState(null);
+  const shown = draft ?? (value > 0 ? brl.format(Math.round(value)) : '');
+  return (
+    <label className="flex h-11 items-center gap-1.5 rounded-[12px] border border-[var(--rw-border)] bg-[var(--rw-raised)] px-3">
+      <span className="text-sm font-semibold text-[var(--rw-muted)]">R$</span>
+      <input
+        inputMode="numeric"
+        value={shown}
+        placeholder="0"
+        aria-label={label}
+        onFocus={() => setDraft(value > 0 ? String(Math.round(value)) : '')}
+        onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
+        onBlur={() => { if (draft !== null) onCommit(draft || '0'); setDraft(null); }}
+        className="w-20 bg-transparent text-right text-[15px] font-semibold tabular-nums text-[var(--rw-ink)] outline-none placeholder:text-[var(--rw-subtle)]"
+      />
+    </label>
   );
 }
 
@@ -66,28 +88,19 @@ export default function PlanningCategoriesPage() {
   const row = (name) => {
     const entry = catalogEntry(name);
     return (
-      <div key={name} className="flex flex-col gap-2 py-3">
-        <div className="flex items-center gap-3">
+      <div key={name} className="flex flex-col gap-2.5 py-3">
+        <div className="min-w-0">
+          <div className="text-[15px] font-semibold">{name}</div>
+          {entry?.hint && <div className="text-[13px] text-[var(--rw-subtle)]">{entry.hint}</div>}
+        </div>
+        <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-semibold">{name}</div>
-            {entry?.hint && <div className="text-[13px] text-[var(--rw-subtle)]">{entry.hint}</div>}
+            <GroupPicker value={groupOf(name)} onPick={(g) => setCategoryRule(name, g)} label={`${pt ? 'Grupo de' : 'Group of'} ${name}`} />
           </div>
           {liquidezFinal > 0 && (
-            <label className="flex items-center gap-1 text-[13px] text-[var(--rw-subtle)]">
-              {pt ? 'limite' : 'limit'}
-              <input
-                key={`${name}-${limitOf(name)}`}
-                inputMode="decimal"
-                defaultValue={limitOf(name) > 0 ? String(Math.round(limitOf(name))) : ''}
-                placeholder="R$"
-                onBlur={(e) => setLimit(name, e.target.value)}
-                aria-label={`${pt ? 'Limite de' : 'Limit for'} ${name}`}
-                className="h-9 w-20 rounded-[10px] border border-[var(--rw-border)] bg-[var(--rw-raised)] px-2 text-right text-sm tabular-nums text-[var(--rw-ink)] outline-none"
-              />
-            </label>
+            <LimitField value={limitOf(name)} onCommit={(v) => setLimit(name, v)} label={`${pt ? 'Limite de' : 'Limit for'} ${name}`} />
           )}
         </div>
-        <GroupPicker value={groupOf(name)} onPick={(g) => setCategoryRule(name, g)} label={`${pt ? 'Grupo de' : 'Group of'} ${name}`} />
       </div>
     );
   };

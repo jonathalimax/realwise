@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
-import { transactionsResource } from '../lib/api/resources/transactions';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
-import { saveUserCategorizationRule } from '../services/categorizationService';
 
 export default function TransactionList({
   transactions = [],
@@ -21,7 +19,6 @@ export default function TransactionList({
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
-  const [savingId, setSavingId] = useState(null);
   const highlightRef = useRef(null);
 
   // Scroll to highlighted transaction when it changes
@@ -33,8 +30,8 @@ export default function TransactionList({
     }
   }, [highlightId, transactions]);
 
-  const { formatCurrency, t, language, categories } = useSettings();
-  const { canWrite, ownerId } = useAccess();
+  const { formatCurrency, t, language } = useSettings();
+  const { canWrite } = useAccess();
   const { getBankInfo, findUserBank, getBankDisplayName } = useCards();
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -120,43 +117,9 @@ export default function TransactionList({
   const isAllSelected = filteredTransactions.length > 0 && selectedIds.size === filteredTransactions.length;
   const hasSelection = selectedIds.size > 0;
 
-  const handleQuickCategoryChange = async (transaction, newCategory) => {
-    if (!canWrite || savingId || transaction.category === newCategory) return;
-
-    setSavingId(transaction.id);
-    try {
-      await transactionsResource.update(transaction.id, { category: newCategory });
-      if (ownerId) {
-        saveUserCategorizationRule(ownerId, {
-          description: transaction.description,
-          category: newCategory,
-          type: transaction.type
-        }).catch(err => console.error('Error saving categorization rule:', err));
-      }
-      onSuccess?.();
-    } catch (error) {
-      console.error('Error updating category:', error);
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  // Leaves a row out of (or back into) every total. Rows stay in the list, dimmed.
-  const toggleIgnored = async (transaction) => {
-    setSavingId(transaction.id);
-    try {
-      await transactionsResource.update(transaction.id, { ignored: !transaction.ignored });
-    } catch (error) {
-      console.error('Failed to toggle ignored:', error);
-    } finally {
-      setSavingId(null);
-    }
-  };
-
   const renderTransaction = (transaction) => {
     const userBank = findUserBank(transaction.bankId);
     const bankInfo = userBank ? getBankInfo(userBank.bankId) : getBankInfo(transaction.bankId);
-    const isSaving = savingId === transaction.id;
 
     return (
       <div
@@ -227,15 +190,6 @@ export default function TransactionList({
                     {language === 'pt' ? 'Não conta nos totais' : 'Not counted'}
                   </span>
                 )}
-                {canWrite && !transaction.isTransfer && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); toggleIgnored(transaction); }}
-                    className="rounded-full px-2 py-0.5 text-[10px] font-bold text-[var(--rw-brand-ink)] hover:bg-[var(--rw-brand-soft)]"
-                  >
-                    {transaction.ignored ? (language === 'pt' ? 'Voltar a contar' : 'Count again') : (language === 'pt' ? 'Ignorar' : 'Ignore')}
-                  </button>
-                )}
                 {transaction.isTransfer && (
                   <span
                     className="rounded-full bg-sky-100 dark:bg-sky-900/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight text-sky-700 dark:text-sky-300"
@@ -246,55 +200,18 @@ export default function TransactionList({
                 )}
               </div>
 
-              {/* Category badge */}
+              {/* Category: read-only, edited by tapping the row */}
               {!transaction.isTransfer && (
-              <div
-                className="relative inline-grid text-[10px] font-bold rounded-full max-w-[8rem]"
-                onClick={e => e.stopPropagation()}
-              >
                 <span
-                  className={`invisible pl-2 pr-5 py-0.5 whitespace-nowrap pointer-events-none uppercase tracking-tight rounded-full truncate ${
-                    transaction.category === 'Sem categoria' || !transaction.category
-                      ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-                      : transaction.type === 'income'
-                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                        : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
-                  }`}
-                  style={{ gridArea: '1/1' }}
-                  aria-hidden="true"
+                  className="max-w-[9rem] truncate rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                  style={
+                    !transaction.category || transaction.category === 'Sem categoria'
+                      ? { background: 'color-mix(in srgb, var(--rw-warn) 16%, transparent)', color: 'var(--rw-warn)' }
+                      : { background: 'var(--rw-raised)', color: 'var(--rw-muted)' }
+                  }
                 >
-                  {transaction.category || (language === 'pt' ? 'Categorizar' : 'Categorize')}
+                  {transaction.category || (language === 'pt' ? 'Sem categoria' : 'Uncategorized')}
                 </span>
-                <select
-                  value={transaction.category || ''}
-                  disabled={!canWrite || isSaving}
-                  onChange={(e) => handleQuickCategoryChange(transaction, e.target.value)}
-                  style={{ gridArea: '1/1' }}
-                  className={`appearance-none w-full pl-2 pr-5 py-0.5 bg-transparent font-bold tracking-tight uppercase text-[10px] transition-colors cursor-pointer border-0 ring-0 focus:ring-2 focus:ring-[var(--rw-brand)] focus:rounded-full rounded-full ${
-                    transaction.category === 'Sem categoria' || !transaction.category
-                      ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
-                      : transaction.type === 'income'
-                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'
-                        : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400'
-                  } ${isSaving ? 'opacity-50' : ''}`}
-                >
-                  {(() => {
-                    const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
-                    const all = categories[transaction.type] || [];
-                    const uncatEntry = all.find(c => c === uncatName);
-                    const rest = all.filter(c => c !== uncatName).sort((a, b) => a.localeCompare(b));
-                    return (<>
-                      <option value="" disabled>{language === 'pt' ? 'Categorizar' : 'Categorize'}</option>
-                      {uncatEntry && <option value={uncatEntry}>{uncatEntry}</option>}
-                      {uncatEntry && <optgroup label="──────────────" />}
-                      {rest.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </>);
-                  })()}
-                </select>
-                <svg className="absolute right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 pointer-events-none text-current opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
               )}
             </div>
           </div>

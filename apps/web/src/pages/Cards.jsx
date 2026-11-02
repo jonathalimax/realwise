@@ -174,7 +174,7 @@ export function BanksTabContent() {
 
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-[var(--rw-surface)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        <div className="bg-[var(--rw-surface)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90dvh] overflow-hidden">
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-[var(--rw-border)]">
             <h2 className="text-xl font-bold text-[var(--rw-ink)]">
               {language === 'pt' ? 'Editar Banco' : 'Edit Bank'}

@@ -1,10 +1,12 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { and, eq, gte, lte, inArray, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { bills, users, billReminders } from '../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PushService } from '../push/push.service';
+import { billsDailyPush } from '../push/push-catalog';
 
 interface BillRow {
   id: string;
@@ -31,6 +33,7 @@ export class BillRemindersService {
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
+    @Optional() private readonly push?: PushService,
   ) {}
 
   groupBillsForUser(pendingBills: BillRow[]): {
@@ -114,6 +117,7 @@ export class BillRemindersService {
           })),
         );
         this.logger.log(`[BillReminders] Sent to ${user.email}: ${totalActionable} bill(s)`);
+        await this.push?.sendToUser(user.id, billsDailyPush(groups)).catch((e: Error) => this.logger.warn(`[BillReminders] push failed: ${e.message}`));
       } catch (err) {
         this.logger.error(`[BillReminders] Failed for ${user.email}: ${(err as Error).message}`);
       }

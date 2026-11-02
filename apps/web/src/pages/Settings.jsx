@@ -138,7 +138,7 @@ export default function SettingsPage() {
         <Group label="Elio">
           <Row to="/settings/memory" title={pt ? 'O que o Elio sabe sobre você' : 'What Elio knows about you'} hint={pt ? 'Veja, edite ou apague o que ele lembra' : 'See, edit or delete what he remembers'}
             icon={<Icon><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></Icon>} />
-          <Row to="/notifications" title={pt ? 'Notificações' : 'Notifications'}
+          <Row to="/notifications" title={pt ? 'Notificações' : 'Notifications'} hint={pt ? 'Avisos de contas no celular' : 'Bill alerts on your phone'}
             icon={<Icon><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0" /></Icon>} />
         </Group>
 

@@ -12,6 +12,7 @@ import HomeSummaryCard from '../components/home/HomeSummaryCard';
 import PlanningCard from '../components/home/PlanningCard';
 import OverdueBillsCard from '../components/home/OverdueBillsCard';
 import InsightsCard from '../components/home/InsightsCard';
+import PushPrompt from '../components/PushPrompt';
 import CategorySpendingCard from '../components/home/CategorySpendingCard';
 import TrendChart from '../components/charts/TrendChart';
 import PageHeader from '../components/PageHeader';
@@ -126,6 +127,7 @@ export default function DashboardPage() {
             <div className="order-3"><PlanningCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
             <div className="order-4"><CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
             <div className="order-5"><InsightsCard /></div>
+            <div className="order-6 empty:hidden"><PushPrompt pt={language === 'pt'} /></div>
           </div>
         </div>
       </main>
