@@ -29,6 +29,18 @@ interface Filters {
 
 const toNum = (v: unknown) => Number(v ?? 0);
 
+const DAY_SECS = 86400;
+const BUCKET_STEPS = [300, 900, 3600, DAY_SECS];
+const BUCKET_BY_NAME: Record<string, number> = { '5m': 300, '15m': 900, hour: 3600, day: DAY_SECS };
+const MAX_BUCKETS = 700;
+
+/** The requested chart step (default: per day), made coarser when the range would need more than MAX_BUCKETS points. */
+function pickBucketSeconds(raw: unknown, from: Date, upper: Date): number {
+  const wanted = BUCKET_BY_NAME[str(raw, 10) ?? 'day'] ?? DAY_SECS;
+  const span = Math.max(1, (upper.getTime() - from.getTime()) / 1000);
+  return BUCKET_STEPS.find((step) => step >= wanted && span / step <= MAX_BUCKETS) ?? DAY_SECS;
+}
+
 @Injectable()
 export class AdminLlmService {
   constructor(@Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>) {}
@@ -181,6 +193,8 @@ export class AdminLlmService {
     // `to` is an exclusive bound: the last bucket is the day of the instant just before it.
     const upper = to ? new Date(to.getTime() - 1) : new Date();
 
+    const bucketSecs = pickBucketSeconds(q.granularity, from, upper);
+
     const [totals, byModel, byPurpose, byDay, topUsers] = await Promise.all([
       this.db.execute(sql`
         select count(*)::int as calls,
@@ -204,8 +218,9 @@ export class AdminLlmService {
                coalesce(sum(${llmCallLog.inputTokens}), 0)::float8 as input_tokens,
                coalesce(sum(${llmCallLog.outputTokens}), 0)::float8 as output_tokens
         from ${llmCallLog} where ${range} group by 1 order by 3 desc limit 50`),
-      // Zero-filled daily series in Brazil time so the chart has no gaps.
-      this.db.execute(sql`
+      // Zero-filled series so the chart has no gaps: per day in Brazil time, or per 5 min / 15 min / hour.
+      bucketSecs === DAY_SECS
+        ? this.db.execute(sql`
         with days as (
           select generate_series(
             (${ts(from)} at time zone ${ADMIN_TZ})::date,
@@ -224,7 +239,28 @@ export class AdminLlmService {
                coalesce(agg.cost, 0) as cost, coalesce(agg.errors, 0) as errors,
                coalesce(agg.input_tokens, 0) as input_tokens, coalesce(agg.output_tokens, 0) as output_tokens,
                coalesce(agg.cached_tokens, 0) as cached_tokens
-        from days left join agg on agg.d = days.d order by days.d limit 800`),
+        from days left join agg on agg.d = days.d order by days.d limit 800`)
+        : this.db.execute(sql`
+        with b as (
+          select generate_series(
+            (floor(extract(epoch from ${ts(from)}) / ${sql.raw(String(bucketSecs))}) * ${sql.raw(String(bucketSecs))})::bigint,
+            (floor(extract(epoch from ${ts(upper)}) / ${sql.raw(String(bucketSecs))}) * ${sql.raw(String(bucketSecs))})::bigint,
+            ${sql.raw(String(bucketSecs))}::bigint) as e
+        ), agg as (
+          select (floor(extract(epoch from ${llmCallLog.createdAt}) / ${sql.raw(String(bucketSecs))}) * ${sql.raw(String(bucketSecs))})::bigint as e,
+                 count(*)::int as calls,
+                 sum(${llmCallLog.costMicroCents})::float8 as cost,
+                 (count(*) filter (where ${isError}))::int as errors,
+                 sum(${llmCallLog.inputTokens})::float8 as input_tokens,
+                 sum(${llmCallLog.outputTokens})::float8 as output_tokens,
+                 sum(${llmCallLog.cachedInputTokens})::float8 as cached_tokens
+          from ${llmCallLog} where ${range} group by 1
+        )
+        select to_char(to_timestamp(b.e) at time zone ${ADMIN_TZ}, 'YYYY-MM-DD"T"HH24:MI') as date, coalesce(agg.calls, 0) as calls,
+               coalesce(agg.cost, 0) as cost, coalesce(agg.errors, 0) as errors,
+               coalesce(agg.input_tokens, 0) as input_tokens, coalesce(agg.output_tokens, 0) as output_tokens,
+               coalesce(agg.cached_tokens, 0) as cached_tokens
+        from b left join agg on agg.e = b.e order by b.e limit 800`),
       this.db.execute(sql`
         select ${llmCallLog.userId} as user_id, ${users.email} as email, count(*)::int as calls,
                coalesce(sum(${llmCallLog.costMicroCents}), 0)::float8 as cost
@@ -271,6 +307,7 @@ export class AdminLlmService {
         outputTokens: toNum(r.output_tokens),
         cachedTokens: toNum(r.cached_tokens),
       })),
+      granularity: bucketSecs === DAY_SECS ? 'day' : bucketSecs === 3600 ? 'hour' : bucketSecs === 900 ? '15m' : '5m',
       topUsers: [...topUsers].map((r) => ({
         userId: r.user_id as string,
         email: r.email as string,

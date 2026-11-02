@@ -55,8 +55,12 @@ export function date(value) {
 }
 
 export function dayLabel(value) {
-  const d = toDate(`${String(value).slice(0, 10)}T12:00:00`);
-  return d ? dfShort.format(d) : String(value);
+  const text = String(value);
+  // Sub-day buckets arrive as "YYYY-MM-DDTHH:mm" (already Brazil time): show the hour too.
+  const clock = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})$/.exec(text);
+  if (clock) return `${clock[3]}/${clock[2]} ${clock[4]}`;
+  const d = toDate(`${text.slice(0, 10)}T12:00:00`);
+  return d ? dfShort.format(d) : text;
 }
 
 export function relativeTime(value) {
