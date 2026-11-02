@@ -580,9 +580,26 @@ export default function ChatPage() {
    * The connection broke after the server saved the user's message (long runs on mobile networks, or the app was
    * backgrounded). The server finishes the work and saves the reply regardless, so wait for it instead of failing.
    */
-  const recoverAfterDrop = useCallback(async () => {
+  const recoverAfterDrop = useCallback(async (error) => {
+    // The server answered with an error (limit reached, model down): it saved an explanation in the conversation.
+    // Show it right away instead of waiting as if the connection had dropped.
+    if (error?.data?.fromServer) {
+      let saved = false;
+      try {
+        const rows = await chatResource.messages();
+        const at = rows.findIndex((m) => m.id === deliveredId.current);
+        saved = at >= 0 && rows.slice(at + 1).some((m) => m.role === 'assistant');
+        if (saved) setMessages(rows);
+      } catch {
+        /* falls back to the local notice below */
+      }
+      setLive(null);
+      setSending(false);
+      if (!saved) say(friendlyChatError(error));
+      return;
+    }
     setLive({ text: '', status: pt ? 'Ainda estou trabalhando nisso…' : 'Still working on it…', final: null });
-    const deadline = Date.now() + 4 * 60 * 1000;
+    const deadline = Date.now() + 12 * 60 * 1000;
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 4000));
       try {
@@ -624,7 +641,7 @@ export default function ChatPage() {
       await runTurn((onEvent) => chatResource.answerStream(id, answers, onEvent), null);
     } catch (e) {
       if (delivered.current) {
-        await recoverAfterDrop();
+        await recoverAfterDrop(e);
         return;
       }
       replaceMessage({ ...sheetMessage, questions: before });
@@ -645,7 +662,7 @@ export default function ChatPage() {
       await runTurn((onEvent) => chatResource.categoriesFormStream(id, form, onEvent), null);
     } catch (e) {
       if (delivered.current) {
-        await recoverAfterDrop();
+        await recoverAfterDrop(e);
         return;
       }
       setLive(null);
@@ -665,7 +682,7 @@ export default function ChatPage() {
       await runTurn((onEvent) => chatResource.accountFormStream(id, form, onEvent), null);
     } catch (e) {
       if (delivered.current) {
-        await recoverAfterDrop();
+        await recoverAfterDrop(e);
         return;
       }
       setLive(null);
@@ -733,7 +750,7 @@ export default function ChatPage() {
       } catch (e) {
         if (delivered.current) {
           // The server already saved the message (and keeps working): wait for its reply, never refill the composer.
-          await recoverAfterDrop();
+          await recoverAfterDrop(e);
           return;
         }
         // Never reached the server: put everything back so the user can retry.

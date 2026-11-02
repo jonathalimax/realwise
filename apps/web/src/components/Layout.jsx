@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import BottomTabBar from './BottomTabBar';
 import AnnouncementBanner from './AnnouncementBanner';
 import ScrollManager from './ScrollManager';
+import PushPermissionSheet from './PushPermissionSheet';
 
 export default function Layout() {
   const { pathname } = useLocation();
@@ -20,6 +21,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <BottomTabBar />
+      <PushPermissionSheet />
     </div>
   );
 }

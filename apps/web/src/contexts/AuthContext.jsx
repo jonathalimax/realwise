@@ -1,9 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { authApi } from '../lib/api/auth';
-import { SUBSCRIPTION_REQUIRED_EVENT } from '../lib/api/client';
+import { SESSION_EXPIRED_EVENT, SUBSCRIPTION_REQUIRED_EVENT } from '../lib/api/client';
 import { bootstrapAuthSession, logoutAuthSession } from './authSession';
+import { clearCache } from '../lib/queryCache';
 
 const AuthContext = createContext(null);
+const REVALIDATE_AFTER_MS = 60 * 1000;
+const STALE_AFTER_MS = 30 * 60 * 1000;
 
 export function AuthProvider({ children, authClient = authApi }) {
   const [status, setStatus] = useState('loading');
@@ -62,6 +65,28 @@ export function AuthProvider({ children, authClient = authApi }) {
     return () => window.removeEventListener(SUBSCRIPTION_REQUIRED_EVENT, onSubscriptionRequired);
   }, [reloadUser]);
 
+  useEffect(() => {
+    const onExpired = () => { clearCache(); setStatus('unauthenticated'); setUser(null); };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, []);
+
+  // Coming back to the app after it slept: re-validate the session (the client refreshes it if needed), and after a
+  // long absence reload so the screens, the data and the app version are all fresh instead of half-stale.
+  useEffect(() => {
+    let hiddenAt = null;
+    const onChange = () => {
+      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+      if (hiddenAt === null) return;
+      const away = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (away > STALE_AFTER_MS) { window.location.reload(); return; }
+      if (away > REVALIDATE_AFTER_MS) reloadUser().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', onChange);
+    return () => document.removeEventListener('visibilitychange', onChange);
+  }, [reloadUser]);
+
   const value = useMemo(() => ({
     status,
     user,
@@ -83,6 +108,7 @@ export function AuthProvider({ children, authClient = authApi }) {
     },
     logout: async () => {
       const next = await logoutAuthSession({ authClient });
+      clearCache();
       setStatus(next.status);
       setUser(next.user);
       setError(null);

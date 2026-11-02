@@ -27,6 +27,34 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Realwise: diga seus objetivos e o Elio cuida do resto" />
     <meta name="twitter:image" content="https://realwise.com.br/landing/og-image.jpg" />
+    <script>
+      // Boot safety net. A phone can wake an installed app on a page whose script files no longer exist (new deploy),
+      // which shows a blank screen. If a module fails to load, or nothing rendered after 8s, drop the old caches and
+      // reload once (the guard stops a loop; main.jsx clears it after a healthy start).
+      (function () {
+        var GUARD = '__rw_boot_guard';
+        function recover() {
+          try { if (sessionStorage.getItem(GUARD) === '1') return; sessionStorage.setItem(GUARD, '1'); } catch (e) {}
+          var done = function () { window.location.reload(); };
+          var clearCaches = function () {
+            if (window.caches) caches.keys().then(function (k) { return Promise.all(k.map(function (x) { return caches.delete(x); })); }).then(done, done);
+            else done();
+          };
+          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+            navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }).then(clearCaches, clearCaches);
+          } else clearCaches();
+        }
+        window.addEventListener('vite:preloadError', function (e) { e.preventDefault(); recover(); });
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (t && t.tagName === 'SCRIPT') recover();
+        }, true);
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && !root.firstChild) recover();
+        }, 8000);
+      })();
+    </script>
     <style>
       /* Prevent flash of white during page load */
       html { background-color: #f9fafb; }

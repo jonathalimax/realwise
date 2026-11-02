@@ -16,6 +16,8 @@ const SENDS = [
   ['Falta categorizar', 'Um lembrete quando há movimentos sem categoria.'],
   ['Conta que se repete', 'Quando o Elio percebe uma conta mensal e sugere salvá-la.'],
   ['Resumo do mês', 'No começo do mês, quando o resumo do mês anterior fica pronto.'],
+  ['Limite do Elio', 'Quando você usa 80% do limite do mês (ou do teste) e quando ele acaba, para você não ser pego de surpresa.'],
+  ['Pedido não concluído', 'Se o Elio não conseguir terminar algo e você já tiver saído do app.'],
   ['Sua semana', 'Domingo às 18h, com quanto você gastou e como foi comparado à semana anterior.'],
 ];
 
