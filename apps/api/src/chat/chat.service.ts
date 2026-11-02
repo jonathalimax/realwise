@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, lt, isNull } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
@@ -16,6 +16,8 @@ import { CATEGORY_CATALOG, defaultRuleMapping } from '../categories/catalog';
 import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, WELCOME_GOALS, welcomeMessage } from './onboarding';
 import { ChatSnippetsService } from './chat-snippets.service';
 import { EngagementRemindersService } from '../engagement-reminders/engagement-reminders.service';
+import { PushService } from '../push/push.service';
+import { USAGE_COPY, turnFailedPush, usagePush } from '../push/push-catalog';
 
 const HISTORY_LIMIT = 16;
 /** Messages older than this are neither shown nor sent to the model (keeps the context, and token cost, small). Rows are kept, not destroyed. */
@@ -43,6 +45,7 @@ export class ChatService {
     private readonly memory: ChatMemoryService,
     private readonly snippets: ChatSnippetsService,
     private readonly engagement: EngagementRemindersService,
+    @Optional() private readonly push?: PushService,
   ) {}
 
   async history(scope: ChatScope, limit = 50): Promise<ChatMessageRow[]> {
@@ -556,6 +559,37 @@ export class ChatService {
     if (!m || (!m.saved && !m.review)) return;
     const groups = (m.review as ReviewPayload | null)?.groups ?? [];
     void this.engagement.sendStatementReady(m.userId, m.id, groups.reduce((acc, g) => acc + g.count, 0));
+  }
+
+  /**
+   * A turn failed after the person's message was saved. Leave Elio's explanation in the conversation so it is there
+   * even if the phone never received the error (app closed, connection dropped), and push it when they already left.
+   */
+  async recordTurnFailure(scope: ChatScope, message: string, notify: boolean): Promise<void> {
+    await this.db.insert(chatMessages).values({ ...scope, role: 'assistant', content: message });
+    if (notify) await this.push?.sendToUser(scope.userId, turnFailedPush(message)).catch(() => 0);
+  }
+
+  /**
+   * After a successful turn: tell the person once per month when they pass 80% of their AI limit, and once more
+   * when they reach it. The notice is a chat message (deduplicated by its text) plus a push.
+   */
+  async checkUsageNotice(scope: ChatScope): Promise<void> {
+    const usage = await this.llm.usageStatus(scope.userId);
+    if (!usage || usage.percent < 80) return;
+    const level = usage.percent >= 100 ? 'limit' : 'warning';
+    const content = USAGE_COPY[`${usage.kind}_${level}`];
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+    const [already] = await this.db
+      .select({ id: chatMessages.id })
+      .from(chatMessages)
+      .where(and(eq(chatMessages.userId, scope.userId), eq(chatMessages.role, 'assistant'), eq(chatMessages.content, content), gte(chatMessages.createdAt, monthStart)))
+      .limit(1);
+    if (already) return;
+    await this.db.insert(chatMessages).values({ ...scope, role: 'assistant', content });
+    await this.push?.sendToUser(scope.userId, usagePush(usage.kind, level)).catch(() => 0);
   }
 
   /** Reverts everything a single AI import saved. */

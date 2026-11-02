@@ -132,6 +132,33 @@ export class LlmService {
     );
   }
 
+  /**
+   * How close the person is to the AI limit that applies to them (trial allowance, or the monthly cap), as a percent
+   * of the point where Elio actually stops. Null when no cap applies. Drives the "you are running low" notices.
+   */
+  async usageStatus(userId: string): Promise<{ kind: 'trial' | 'monthly'; percent: number } | null> {
+    const ai = await this.settings.getAi();
+    const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) return null;
+    const override = user.llmBudgetOverrideUsd != null ? Number(user.llmBudgetOverrideUsd) : null;
+    const userOverride = override !== null && Number.isFinite(override) ? override : null;
+
+    if (computeAccess(user, new Date()).state === 'trial') {
+      const cap = userOverride ?? this.numberSetting(ai.trialBudgetUsd, process.env.LLM_TRIAL_BUDGET_USD, DEFAULT_TRIAL_BUDGET_USD);
+      if (!Number.isFinite(cap) || cap <= 0) return null;
+      const spent = await this.trialChargeableUsd(userId, user.premiumAccessStartedAt ?? user.createdAt);
+      return { kind: 'trial', percent: Math.round((spent / cap) * 100) };
+    }
+
+    const budget = userOverride ?? this.numberSetting(ai.monthlyBudgetUsd, process.env.LLM_MONTHLY_BUDGET_USD, DEFAULT_MONTHLY_BUDGET_USD);
+    if (!Number.isFinite(budget) || budget <= 0) return null;
+    const fallback = (ai.modelFallback?.trim() || process.env.LLM_MODEL_FALLBACK?.trim()) || undefined;
+    const multiplier = this.numberSetting(ai.hardCapMultiplier, process.env.LLM_HARD_CAP_MULTIPLIER, DEFAULT_HARD_CAP_MULTIPLIER);
+    const stop = fallback ? budget * (Number.isFinite(multiplier) && multiplier > 1 ? multiplier : DEFAULT_HARD_CAP_MULTIPLIER) : budget;
+    const spent = await this.monthToDateUsd(userId);
+    return { kind: 'monthly', percent: Math.round((spent / stop) * 100) };
+  }
+
   /** Stored value if it is a number, else the env var (blank = unset), else the default. */
   private numberSetting(stored: number | undefined, envRaw: string | undefined, fallback: number): number {
     if (typeof stored === 'number' && Number.isFinite(stored)) return stored;

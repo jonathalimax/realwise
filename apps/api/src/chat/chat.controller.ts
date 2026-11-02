@@ -162,6 +162,12 @@ function describeChatError(e: unknown): { status: number; code?: string; message
   return { status: status >= 500 ? status : 500, message: 'Tive um tropeço aqui e não consegui terminar. Pode tentar de novo em instantes?' };
 }
 
+/** Limits and server failures happen after the message is saved; request mistakes (4xx) are rejected before it. */
+const isRecordable = (status: number) => status === 402 || status === 429 || status >= 500;
+
+/** Turns longer than this notify the person on finish even if the connection looked alive. */
+const AWAY_AFTER_MS = 45_000;
+
 @Controller('chat')
 export class ChatController {
   constructor(
@@ -216,7 +222,7 @@ export class ChatController {
     @Res() res: Response,
   ) {
     const scope = { clientId: user.clientId, userId: user.sub };
-    return this.respond(res, accept, (emit) => this.service.send(scope, dto.message ?? '', files ?? [], emit));
+    return this.respond(res, accept, scope, (emit) => this.service.send(scope, dto.message ?? '', files ?? [], emit));
   }
 
   @Post('messages/:id/answers')
@@ -228,12 +234,13 @@ export class ChatController {
     @Res() res: Response,
   ) {
     const scope = { clientId: user.clientId, userId: user.sub };
-    return this.respond(res, accept, (emit) => this.service.answerQuestions(scope, id, dto.answers, emit));
+    return this.respond(res, accept, scope, (emit) => this.service.answerQuestions(scope, id, dto.answers, emit));
   }
 
   private async respond(
     res: Response,
     accept: string | undefined,
+    scope: { clientId: string; userId: string },
     run: (emit?: (event: ChatStreamEvent) => void) => Promise<unknown>,
   ) {
     if (!accept?.includes('text/event-stream')) {
@@ -241,6 +248,7 @@ export class ChatController {
         res.json(await run());
       } catch (e) {
         const { status, code, message } = describeChatError(e);
+        if (isRecordable(status)) await this.service.recordTurnFailure(scope, message, false).catch(() => undefined);
         res.status(status).json({ message, code });
       }
       return;
@@ -267,11 +275,17 @@ export class ChatController {
     try {
       const result = await run(write);
       write({ type: 'done', result });
-      if (clientGone) this.service.notifyTurnFinishedAway(result);
+      // A phone that was locked or switched away often leaves the socket half-open, so the server never sees it close.
+      // A turn this long (reading a statement) is treated as "they left" either way; a duplicate notice costs less than none.
+      if (clientGone || Date.now() - startedAt > AWAY_AFTER_MS) this.service.notifyTurnFinishedAway(result);
+      void this.service.checkUsageNotice(scope).catch(() => undefined);
       console.log(`[chat] turn finished in ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone before the end: ${clientGone})`);
     } catch (e) {
       console.error(`[chat] turn failed after ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone: ${clientGone}):`, e);
-      write({ type: 'error', ...describeChatError(e) });
+      const failure = describeChatError(e);
+      // The explanation is saved in the conversation, so the person sees it even if this connection never delivers the event.
+      if (isRecordable(failure.status)) await this.service.recordTurnFailure(scope, failure.message, clientGone || Date.now() - startedAt > AWAY_AFTER_MS).catch(() => undefined);
+      write({ type: 'error', ...failure });
     } finally {
       clearInterval(ping);
       res.end();
@@ -298,7 +312,7 @@ export class ChatController {
     @Res() res: Response,
   ) {
     const scope = { clientId: user.clientId, userId: user.sub };
-    return this.respond(res, accept, (emit) => this.service.submitAccountForm(scope, id, dto, emit));
+    return this.respond(res, accept, scope, (emit) => this.service.submitAccountForm(scope, id, dto, emit));
   }
 
   @Post('messages/:id/categories-form')
@@ -310,7 +324,7 @@ export class ChatController {
     @Res() res: Response,
   ) {
     const scope = { clientId: user.clientId, userId: user.sub };
-    return this.respond(res, accept, (emit) => this.service.submitCategoriesForm(scope, id, dto.names, emit));
+    return this.respond(res, accept, scope, (emit) => this.service.submitCategoriesForm(scope, id, dto.names, emit));
   }
 
   @Post('messages/:id/review')

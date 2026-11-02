@@ -1,4 +1,5 @@
 import { apiClient } from '../client';
+import { dropCache } from '../../queryCache';
 
 const TRANSACTIONS_CHANGED_EVENT = 'rw:transactions:changed';
 
@@ -29,6 +30,7 @@ function buildQuery(params = {}) {
 }
 
 export function notifyTransactionsChanged() {
+  dropCache('tx:'); // screens that are not mounted must not come back to the old list
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(TRANSACTIONS_CHANGED_EVENT));
 }

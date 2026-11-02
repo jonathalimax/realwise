@@ -13,9 +13,10 @@ import { EngagementRemindersModule } from '../engagement-reminders/engagement-re
 import { BillsModule } from '../bills/bills.module';
 import { BillSuggestionsModule } from '../bill-suggestions/bill-suggestions.module';
 import { SummaryModule } from '../summary/summary.module';
+import { PushModule } from '../push/push.module';
 
 @Module({
-  imports: [DrizzleModule, BillsModule, BillSuggestionsModule, SummaryModule, EngagementRemindersModule, ChatSnippetsModule],
+  imports: [DrizzleModule, BillsModule, BillSuggestionsModule, SummaryModule, EngagementRemindersModule, ChatSnippetsModule, PushModule],
   controllers: [ChatController],
   providers: [ChatService, ChatToolsService, ChatEditService, ChatBillsService, ChatCategoriesService, ChatMemoryService, InsightsService],
   exports: [ChatService],

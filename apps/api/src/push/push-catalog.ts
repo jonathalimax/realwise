@@ -11,6 +11,9 @@ export const PUSH_CATALOG = [
   { kind: 'bill_suggestion', when: 'Lembrete das 10h quando o Elio percebe uma conta que se repete', audience: 'Quem tem uma sugestão de conta recorrente aberta' },
   { kind: 'summary_monthly', when: 'No começo do mês, quando o resumo do mês anterior fica pronto', audience: 'Quem teve movimentos no mês' },
   { kind: 'summary_trial_end', when: 'Entre 1 e 2 dias antes do fim do teste', audience: 'Quem está no teste e já registrou movimentos' },
+  { kind: 'usage_warning', when: 'Na hora em que o uso do Elio chega a 80% do limite (do mês ou do teste)', audience: 'Quem está perto do limite' },
+  { kind: 'usage_limit', when: 'Na hora em que o limite de uso do Elio é atingido', audience: 'Quem atingiu o limite' },
+  { kind: 'turn_failed', when: 'Quando o Elio não consegue terminar um pedido e a pessoa já saiu do app', audience: 'Quem enviou o pedido' },
   { kind: 'weekly_recap', when: 'Domingo às 18h (Brasília)', audience: 'Quem teve gastos na semana (novo)' },
 ] as const;
 
@@ -81,4 +84,26 @@ export function weeklyRecapPush(spent: number, previous: number): PushPayload {
     else trend = ' Parecido com a semana passada.';
   }
   return { title: 'Sua semana em números', body: `Você gastou ${brl(spent)}.${trend}`, url: '/transactions', tag: 'weekly_recap' };
+}
+
+/** Chat copy for the AI limits, shared by the in-chat notice and the push so both say the same thing. */
+export const USAGE_COPY = {
+  trial_warning: 'Você já usou 80% do limite do teste grátis com o Elio. Quando acabar, é só assinar um plano para continuar.',
+  trial_limit: 'Você usou todo o limite do teste grátis. Para continuar com o Elio, assine um plano.',
+  monthly_warning: 'Você já usou 80% do limite do Elio neste mês. Se acabar, ele volta no começo do próximo mês.',
+  monthly_limit: 'Você chegou ao limite de uso do Elio neste mês. Ele volta a ficar disponível no começo do próximo mês.',
+} as const;
+
+export function usagePush(kind: 'trial' | 'monthly', level: 'warning' | 'limit'): PushPayload {
+  const isLimit = level === 'limit';
+  return {
+    title: isLimit ? 'Você atingiu o limite do Elio' : 'Seu limite do Elio está acabando',
+    body: USAGE_COPY[`${kind}_${level}`],
+    url: kind === 'trial' && isLimit ? '/settings' : '/chat',
+    tag: isLimit ? 'usage_limit' : 'usage_warning',
+  };
+}
+
+export function turnFailedPush(message: string): PushPayload {
+  return { title: 'O Elio não conseguiu terminar', body: message, url: '/chat', tag: 'turn_failed' };
 }

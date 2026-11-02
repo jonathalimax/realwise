@@ -14,6 +14,9 @@ import App from './App.jsx'
 import BillPaymentPage from './pages/BillPaymentPage.jsx'
 import SummaryPage from './pages/summary/SummaryPage.jsx'
 
+// A healthy start re-arms the boot safety net in index.html.
+setTimeout(() => { try { sessionStorage.removeItem('__rw_boot_guard') } catch { /* ignore */ } }, 4000)
+
 const path = window.location.pathname
 
 if (path.startsWith('/resumo/')) {

@@ -3,6 +3,10 @@ import { useAccess } from '@/contexts/AccessContext';
 import { useMonth } from '@/contexts/MonthContext';
 import { computeTotalIncome } from './rendaCalc.js';
 import { plannerResource } from '@/lib/api/resources/planner';
+import { isFresh, readCache, writeCache } from '@/lib/queryCache';
+
+const PLANNER_CACHE_KEY = 'planner';
+const PLANNER_FRESH_MS = 5 * 60 * 1000;
 
 export function countWeekdays(year, month) {
   let count = 0;
@@ -352,10 +356,15 @@ export const formatBRL = new Intl.NumberFormat('pt-BR', {
 export default function usePlannerState() {
   const { ownerId, loading: accessLoading } = useAccess();
   const { selectedMonth: globalSelectedMonth } = useMonth();
-  const [state, setState] = useState(DEFAULT_STATE);
-  const [isLoading, setIsLoading] = useState(true);
-  const hasLoadedRef = useRef(false);
+  // Every screen that reads the plan mounts its own copy. Start from the last known state so switching tabs does not
+  // flash a skeleton (or a default, empty plan) and only ask the server again when that copy is old.
+  const [cachedAtMount] = useState(() => readCache(PLANNER_CACHE_KEY));
+  const [state, setState] = useState(cachedAtMount?.data ?? DEFAULT_STATE);
+  const [isLoading, setIsLoading] = useState(!cachedAtMount);
+  const hasLoadedRef = useRef(Boolean(cachedAtMount));
   const debounceRef = useRef(null);
+  const editedRef = useRef(false);
+  const baselineRef = useRef(cachedAtMount?.data ?? null); // what the server already has: nothing to save until state differs
 
   const update = (key, value) => setState(prev => ({ ...prev, [key]: value }));
 
@@ -379,13 +388,16 @@ export default function usePlannerState() {
   // ── Load the planner state on mount ───────────────────────────────────────
   useEffect(() => {
     if (!ownerId) return;
+    if (isFresh(cachedAtMount, PLANNER_FRESH_MS)) return;
     plannerResource.get()
       .then((data) => {
         const saved = data?.state || data || {};
-        if (saved && Object.keys(saved).length > 0) {
-          setState(migrateState(saved));
-        } else {
-          setState(migrateState({}));
+        const next = saved && Object.keys(saved).length > 0 ? migrateState(saved) : migrateState({});
+        // Never overwrite something the person changed while this request was in flight.
+        if (!editedRef.current) {
+          baselineRef.current = next;
+          setState(next);
+          writeCache(PLANNER_CACHE_KEY, next);
         }
         hasLoadedRef.current = true;
         setIsLoading(false);
@@ -394,12 +406,15 @@ export default function usePlannerState() {
         hasLoadedRef.current = true;
         setIsLoading(false);
       });
-  }, [ownerId]);
+  }, [ownerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Debounced save to API on every state change ───────────────────────────
   useEffect(() => {
     if (!ownerId || !hasLoadedRef.current) return;
+    if (state === baselineRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    editedRef.current = true;
+    writeCache(PLANNER_CACHE_KEY, state);
     debounceRef.current = setTimeout(() => {
       plannerResource.update({ state }).catch(() => {});
     }, 800);
