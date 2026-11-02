@@ -362,7 +362,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative w-full sm:max-w-lg transform overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--rw-surface)] p-6 shadow-xl transition-all max-h-[92vh] overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+              <Dialog.Panel className="relative w-full sm:max-w-lg transform overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--rw-surface)] p-6 shadow-xl transition-all max-h-[92dvh] overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title className="text-xl font-bold text-[var(--rw-ink)]">
                     {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
