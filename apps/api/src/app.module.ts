@@ -30,6 +30,7 @@ import { ImportsModule } from './imports/imports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { B3SyncModule } from './b3-sync/b3-sync.module';
 import { BillRemindersModule } from './bill-reminders/bill-reminders.module';
+import { PushModule } from './push/push.module';
 import { EngagementRemindersModule } from './engagement-reminders/engagement-reminders.module';
 import { AdminCommonModule } from './admin-common/admin-common.module';
 import { SupportModule } from './support/support.module';
@@ -73,6 +74,7 @@ import { ChatModule } from './chat/chat.module';
     NotificationsModule,
     B3SyncModule,
     BillRemindersModule,
+    PushModule,
     EngagementRemindersModule,
     AdminCommonModule,
     SupportModule,

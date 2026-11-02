@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { and, asc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
@@ -8,6 +8,8 @@ import { accounts, bills, categories, financialSummaries, planner, transactions,
 import { brtNow } from '../bill-suggestions/bill-suggestions.service';
 import { computeAccess } from '../billing/access';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PushService } from '../push/push.service';
+import { summaryMonthlyPush, summaryTrialEndPush } from '../push/push-catalog';
 import { unsubscribeToken } from '../engagement-reminders/unsubscribe-token';
 import { buildSummaryEmail } from './summary-email';
 import { addMonths, computeSummary } from './summary-metrics';
@@ -57,6 +59,7 @@ export class SummaryService {
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly notifications: NotificationsService,
+    @Optional() private readonly push?: PushService,
   ) {}
 
   private pageUrl(token: string): string {
@@ -182,6 +185,10 @@ export class SummaryService {
     const mail = buildSummaryEmail(generated.payload, generated.url, unsubscribeUrl);
     await this.notifications.sendSummaryEmail(opts.toOverride ?? user.email, { ...mail, unsubscribeUrl });
     await this.db.update(financialSummaries).set({ sentAt: new Date() }).where(eq(financialSummaries.id, generated.id));
+    if (!opts.toOverride && (kind === 'monthly' || kind === 'trial_end')) {
+      const payload = kind === 'monthly' ? summaryMonthlyPush(generated.url) : summaryTrialEndPush(generated.url);
+      await this.push?.sendToUser(user.id, payload).catch(() => 0);
+    }
     return true;
   }
 

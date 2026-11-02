@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
@@ -8,6 +8,8 @@ import { chatMessages, reminderEmailsSent, transactions, users } from '../db/sch
 import { computeAccess } from '../billing/access';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PushService } from '../push/push.service';
+import { billSuggestionPush, categorizePendingPush, statementReadyPush } from '../push/push-catalog';
 import { periodKeyFor, pickReminder, type ReminderKind } from './reminder-rules';
 import { WinbackService, type WinbackCode } from '../retention/winback.service';
 import { BillSuggestionsService, type SuggestionRow } from '../bill-suggestions/bill-suggestions.service';
@@ -27,6 +29,7 @@ export class EngagementRemindersService {
     private readonly settings: AppSettingsService,
     private readonly suggestions: BillSuggestionsService,
     private readonly winback: WinbackService,
+    @Optional() private readonly push?: PushService,
   ) {}
 
   async runForAllUsers(now = new Date()): Promise<{ sent: number; skipped: number }> {
@@ -138,6 +141,8 @@ export class EngagementRemindersService {
             : undefined,
         });
         if (suggestion) await this.suggestions.markEmailed(suggestion.id);
+        if (kind === 'categorize_pending' && pending) await this.push?.sendToUser(user.id, categorizePendingPush(pending.count)).catch(() => 0);
+        if (kind === 'bill_suggestion' && suggestion) await this.push?.sendToUser(user.id, billSuggestionPush(suggestion.name)).catch(() => 0);
         sent++;
         if (kind === 'install_app') {
           installSent++;
@@ -225,6 +230,7 @@ export class EngagementRemindersService {
         clientId: user.clientId,
         pendingCount,
       });
+      await this.push?.sendToUser(userId, statementReadyPush(pendingCount)).catch(() => 0);
     } catch (err) {
       this.logger.error(`statement-ready e-mail failed for user ${userId}: ${(err as Error).message}`);
     }
