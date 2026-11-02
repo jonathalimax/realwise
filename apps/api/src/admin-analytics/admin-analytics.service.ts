@@ -151,7 +151,12 @@ export class AdminAnalyticsService {
           select to_char(days.d, 'YYYY-MM-DD') as date, coalesce(agg.cost, 0) as cost
           from days left join agg on agg.d = days.d order by days.d`),
         this.db.execute(sql`
-          select count(*)::int as calls, (count(*) filter (where ${isError}))::int as errors
+          select count(*)::int as calls, (count(*) filter (where ${isError}))::int as errors,
+                 (count(*) filter (where ${llmCallLog.createdAt} >= now() - interval '30 minutes'))::int as calls30,
+                 (count(*) filter (where ${isError} and ${llmCallLog.createdAt} >= now() - interval '30 minutes'))::int as errors30,
+                 (array_agg(${llmCallLog.error} order by ${llmCallLog.createdAt} desc) filter (where ${isError}))[1] as last_error,
+                 max(${llmCallLog.createdAt}) filter (where ${isError}) as last_error_at,
+                 max(${llmCallLog.createdAt}) filter (where not ${isError}) as last_ok_at
           from ${llmCallLog} where ${llmCallLog.createdAt} >= now() - interval '24 hours'`),
       ]);
 
@@ -246,6 +251,11 @@ export class AdminAnalyticsService {
       health: {
         llmErrorRateLast24h: n(h.calls) ? n(h.errors) / n(h.calls) : 0,
         llmCallsLast24h: n(h.calls),
+        // "The AI is down" signal: several recent calls and every one of them failed (or nothing worked since the last failure).
+        llmCallsLast30m: n(h.calls30),
+        llmErrorsLast30m: n(h.errors30),
+        llmDown: n(h.errors30) >= 3 && (!h.last_ok_at || new Date(h.last_ok_at as string) < new Date(h.last_error_at as string)),
+        llmLastError: h.last_error ? { message: String(h.last_error).slice(0, 400), at: new Date(h.last_error_at as string).toISOString() } : null,
       },
     };
   }
