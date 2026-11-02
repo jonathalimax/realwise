@@ -42,7 +42,7 @@ async function postStream(path, body, onEvent) {
     } catch {
       return;
     }
-    if (event.type === 'error') throw new ApiError(event.message || 'O Elio não conseguiu responder.', { status: event.status ?? 503, data: { code: event.code } });
+    if (event.type === 'error') throw new ApiError(event.message || 'O Elio não conseguiu responder.', { status: event.status ?? 503, data: { code: event.code, fromServer: true } });
     if (event.type === 'done') result = event.result;
     onEvent?.(event);
   };
