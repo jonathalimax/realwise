@@ -16,7 +16,8 @@ export default function BillPaymentModal({ isOpen, bill, initialAmount = 0, onCl
     try {
       await onConfirm({
         bill,
-        paidAmount,
+        // The API stores amounts as text; the currency input yields a number once edited.
+        paidAmount: Number(paidAmount || 0).toFixed(2),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mark bill as paid');
