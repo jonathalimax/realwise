@@ -7,7 +7,7 @@ import * as schema from '../db/schema';
 import { chatMessages, reminderEmailsSent, transactions, users } from '../db/schema';
 import { computeAccess } from '../billing/access';
 import { AppSettingsService } from '../app-settings/app-settings.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, priorityOfKind } from '../notifications/notifications.service';
 import { PushService } from '../push/push.service';
 import { billSuggestionPush, categorizePendingPush, statementReadyPush } from '../push/push-catalog';
 import { periodKeyFor, pickReminder, type ReminderKind } from './reminder-rules';
@@ -96,6 +96,8 @@ export class EngagementRemindersService {
           )
           .limit(1);
         if (recent.length) { skipped++; continue; }
+        // Out of mail allowance for now: leave the reminder unclaimed so it is picked up on a later run.
+        if (!(await this.notifications.canSend(priorityOfKind(kind)))) { skipped++; continue; }
 
         const periodKey = periodKeyFor(kind, now, user.premiumAccessEndsAt, suggestion?.id ?? pending?.messageId, access.currentPeriodEnd);
 
@@ -121,6 +123,16 @@ export class EngagementRemindersService {
           .returning({ id: reminderEmailsSent.id });
         if (!claimed.length) { skipped++; continue; }
 
+        // Push first: when it reaches the person's phone the e-mail would only repeat it, so it is not sent (saves the mail allowance).
+        let pushed = 0;
+        if (kind === 'categorize_pending' && pending) pushed = await this.push?.sendToUser(user.id, categorizePendingPush(pending.count)).catch(() => 0) ?? 0;
+        if (kind === 'bill_suggestion' && suggestion) pushed = await this.push?.sendToUser(user.id, billSuggestionPush(suggestion.name)).catch(() => 0) ?? 0;
+        if (pushed > 0) {
+          if (suggestion) await this.suggestions.markEmailed(suggestion.id);
+          sent++;
+          continue;
+        }
+
         await this.notifications.sendEngagementEmail(user.email, kind, {
           name: (user.name ?? '').split(' ')[0] || 'tudo bem',
           trialDaysRemaining: access.trialDaysRemaining,
@@ -141,8 +153,6 @@ export class EngagementRemindersService {
             : undefined,
         });
         if (suggestion) await this.suggestions.markEmailed(suggestion.id);
-        if (kind === 'categorize_pending' && pending) await this.push?.sendToUser(user.id, categorizePendingPush(pending.count)).catch(() => 0);
-        if (kind === 'bill_suggestion' && suggestion) await this.push?.sendToUser(user.id, billSuggestionPush(suggestion.name)).catch(() => 0);
         sent++;
         if (kind === 'install_app') {
           installSent++;
@@ -215,7 +225,10 @@ export class EngagementRemindersService {
       if (!access.allowed) return;
 
       // The push belongs to the device the person turned notifications on for: it does not depend on the e-mail switches.
-      await this.push?.sendToUser(userId, statementReadyPush(pendingCount)).catch((e: Error) => this.logger.warn(`statement-ready push failed: ${e.message}`));
+      const pushed = (await this.push?.sendToUser(userId, statementReadyPush(pendingCount)).catch((e: Error) => { this.logger.warn(`statement-ready push failed: ${e.message}`); return 0; })) ?? 0;
+      // The push already told them: the e-mail would repeat it, so it is skipped to save the mail allowance.
+      if (pushed > 0) return;
+      if (!(await this.notifications.canSend('bulk'))) return;
 
       const { engagement } = await this.settings.getEmails();
       if (!engagement.enabled || !engagement.kinds.statement_ready.enabled || user.reminderEmailsOptOut) return;
