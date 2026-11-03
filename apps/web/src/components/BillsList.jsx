@@ -86,48 +86,45 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
     setPayingBill(bill);
   };
 
+  // Calendar-day comparison (due dates are date-only, stored at UTC midnight), so "today" is exact.
+  const todayKey = (() => {
+    const t = new Date();
+    return Date.UTC(t.getFullYear(), t.getMonth(), t.getDate());
+  })();
+  const daysUntil = (bill) => {
+    const [y, m, d] = String(bill.dueDate).slice(0, 10).split('-').map(Number);
+    return Math.round((Date.UTC(y, m - 1, d) - todayKey) / 86400000);
+  };
+  const billState = (bill) => {
+    if (bill.status === 'paid') return 'paid';
+    const n = daysUntil(bill);
+    if (n < 0) return 'overdue';
+    if (n === 0) return 'today';
+    return n <= 7 ? 'soon' : 'later';
+  };
+
   const getBillStatus = (bill) => {
-    if (bill.status === 'paid') {
-      return {
-        label: language === 'pt' ? 'Pago' : 'Paid',
-        color: 'text-emerald-600 dark:text-emerald-400',
-        bgColor: 'bg-emerald-50 dark:bg-emerald-900/30',
-        icon: CheckCircleIcon
-      };
+    const pt = language === 'pt';
+    const state = billState(bill);
+    const n = daysUntil(bill);
+    if (state === 'paid') return { state, label: pt ? 'Pago' : 'Paid', color: 'text-emerald-600', icon: CheckCircleIcon };
+    if (state === 'overdue') {
+      const late = -n;
+      return { state, label: pt ? `Venceu há ${late} ${late === 1 ? 'dia' : 'dias'}` : `${late}d overdue`, color: 'text-rose-600', icon: XCircleIcon };
     }
-
-    const dueDate = new Date(bill.dueDate);
-    const now = new Date();
-    const daysUntilDue = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
-
-    if (daysUntilDue < 0) {
-      return {
-        label: language === 'pt' ? 'Vencida' : 'Overdue',
-        color: 'text-rose-600 dark:text-rose-400',
-        bgColor: 'bg-rose-50 dark:bg-rose-900/30',
-        icon: XCircleIcon
-      };
-    } else if (daysUntilDue <= 3) {
-      return {
-        label: language === 'pt' ? `Vence em ${daysUntilDue}d` : `Due in ${daysUntilDue}d`,
-        color: 'text-amber-600 dark:text-amber-400',
-        bgColor: 'bg-amber-50 dark:bg-amber-900/30',
-        icon: BellIcon
-      };
-    } else {
-      return {
-        label: language === 'pt' ? `Vence em ${daysUntilDue}d` : `Due in ${daysUntilDue}d`,
-        color: 'text-blue-600 dark:text-blue-400',
-        bgColor: 'bg-blue-50 dark:bg-blue-900/30',
-        icon: ClockIcon
-      };
-    }
+    if (state === 'today') return { state, label: pt ? 'Vence hoje' : 'Due today', color: 'text-violet-600', icon: BellIcon };
+    return {
+      state,
+      label: n === 1 ? (pt ? 'Vence amanhã' : 'Due tomorrow') : (pt ? `Vence em ${n}d` : `Due in ${n}d`),
+      color: n <= 3 ? 'text-amber-600' : 'text-blue-600',
+      icon: n <= 3 ? BellIcon : ClockIcon,
+    };
   };
 
   const formatDueDate = (dateString) => {
     const date = new Date(dateString);
     const locale = language === 'pt' ? 'pt-BR' : 'en-US';
-    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    return date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   };
 
 
@@ -137,26 +134,34 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
     const isPaying = payingBill?.id === bill.id && payingBill?.dueDate === bill.dueDate;
     const paid = bill.status === 'paid';
     const amount = getBillAmount(bill);
-    const tone = paid
-      ? 'bg-[#34d39922] text-[var(--rw-pos)]'
-      : status.label === (language === 'pt' ? 'Vencida' : 'Overdue')
-        ? 'bg-[#fb718522] text-[var(--rw-neg)]'
-        : status.color.includes('amber')
-          ? 'bg-[#fbbf2422] text-[var(--rw-warn)]'
-          : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]';
+    const tone = {
+      paid: 'bg-[#34d39922] text-[var(--rw-pos)]',
+      overdue: 'bg-[#fb718522] text-[var(--rw-neg)]',
+      today: 'bg-[var(--rw-brand)] text-white',
+      soon: status.color.includes('amber') ? 'bg-[#fbbf2422] text-[var(--rw-warn)]' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]',
+      later: 'bg-[var(--rw-raised)] text-[var(--rw-muted)]',
+    }[status.state];
+    // The whole row carries the state, so a long list can be scanned at a glance.
+    const rowStyle = {
+      paid: 'opacity-60',
+      overdue: 'border-l-4 border-[var(--rw-neg)] bg-[#fb718510]',
+      today: 'border-l-4 border-[var(--rw-brand)] bg-[var(--rw-brand-soft)]',
+      soon: '',
+      later: '',
+    }[status.state];
 
     return (
       <div className="relative">
         <div
           onClick={() => canWrite && !isPaying && setEditingBill(bill)}
-          className={`group flex items-center gap-3 rounded-2xl px-1 py-3 transition-colors hover:bg-[var(--rw-raised)] ${canWrite && !isPaying ? 'cursor-pointer' : ''}`}
+          className={`group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors hover:bg-[var(--rw-raised)] ${rowStyle} ${canWrite && !isPaying ? 'cursor-pointer' : ''}`}
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--rw-raised)] text-[15px] font-bold text-[var(--rw-muted)]">
             {(bill.name || '?').trim().charAt(0).toUpperCase()}
           </span>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold text-[var(--rw-ink)]">{bill.name}</p>
+            <p className={`truncate text-[15px] font-semibold text-[var(--rw-ink)] ${paid ? 'line-through decoration-[var(--rw-subtle)]' : ''}`}>{bill.name}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${tone}`}>{status.label}</span>
               <span className="text-[13px] text-[var(--rw-subtle)]">{formatDueDate(bill.dueDate)}</span>
@@ -414,6 +419,24 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
   }
 
   // Full view
+  const seenKeys = new Set();
+  const timeline = [...overdueBills, ...monthlyBills]
+    .filter((b) => {
+      const key = `${b.id}:${b.dueDate}`;
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    })
+    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate) || String(a.name).localeCompare(String(b.name)));
+  const visibleTimeline = timeline.filter((b) => {
+    const state = billState(b);
+    if (statusFilter === 'paid') return state === 'paid';
+    if (statusFilter === 'overdue') return state === 'overdue';
+    if (statusFilter === 'today') return state === 'today';
+    if (statusFilter === 'pending') return state !== 'paid';
+    return true;
+  });
+
   return (
     <div className="bg-[var(--rw-surface)] rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
@@ -454,58 +477,16 @@ export default function BillsList({ compact = false, selectedMonth, statusFilter
         </div>
       </div>
 
-      {/* Bills list */}
-      <div className="space-y-4">
-        {(statusFilter === 'all' || statusFilter === 'overdue') && overdueBills.length > 0 && (
-          <div>
-            <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 mb-2 uppercase tracking-wide">
-              {language === 'pt' ? 'Vencidas' : 'Overdue'}
-            </h3>
-            <div className="space-y-1">
-              {overdueBills.map((bill) => (
-                <BillItem key={bill.id} bill={bill} />
-              ))}
-            </div>
-          </div>
-        )}
+      {/* The month in date order: overdue carried over from earlier months first, then every bill by due date. */}
+      <div className="space-y-1">
+        {visibleTimeline.map((bill) => (
+          <BillItem key={`${bill.id}:${bill.dueDate}`} bill={bill} />
+        ))}
 
-        {(statusFilter === 'all' || statusFilter === 'pending') && upcomingBills.length > 0 && (
-          <div>
-            <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 mb-2 uppercase tracking-wide">
-              {language === 'pt' ? 'Próximas (7 dias)' : 'Upcoming (7 days)'}
-            </h3>
-            <div className="space-y-1">
-              {upcomingBills.map((bill) => (
-                <BillItem key={bill.id} bill={bill} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(statusFilter === 'all' || statusFilter === 'pending') && otherPendingBills.length > 0 && (
-          <div>
-            <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">
-              {language === 'pt' ? 'Pendentes' : 'Pending'}
-            </h3>
-            <div className="space-y-1">
-              {otherPendingBills.map((bill) => (
-                <BillItem key={bill.id} bill={bill} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(statusFilter === 'all' || statusFilter === 'paid') && paidBills.length > 0 && (
-          <div>
-            <h3 className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
-              {language === 'pt' ? 'Pagas recentemente' : 'Recently Paid'}
-            </h3>
-            <div className="space-y-1">
-              {paidBills.slice(0, 5).map((bill) => (
-                <BillItem key={bill.id} bill={bill} />
-              ))}
-            </div>
-          </div>
+        {bills.length > 0 && visibleTimeline.length === 0 && (
+          <p className="py-10 text-center text-sm text-[var(--rw-muted)]">
+            {language === 'pt' ? 'Nenhuma conta neste filtro.' : 'No bills in this filter.'}
+          </p>
         )}
 
         {bills.length === 0 && (

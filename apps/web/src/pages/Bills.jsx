@@ -18,7 +18,7 @@ export default function BillsPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState(() => {
     const s = searchParams.get('status');
-    return ['all', 'pending', 'paid', 'overdue'].includes(s) ? s : 'all';
+    return ['all', 'pending', 'paid', 'overdue', 'today'].includes(s) ? s : 'all';
   });
 
   const pt = language === 'pt';
@@ -70,9 +70,10 @@ export default function BillsPage() {
           <div className="flex flex-wrap gap-2">
             {[
               { value: 'all', label: language === 'pt' ? 'Todas' : 'All' },
+              { value: 'overdue', label: language === 'pt' ? 'Atrasadas' : 'Overdue' },
+              { value: 'today', label: language === 'pt' ? 'Hoje' : 'Today' },
               { value: 'pending', label: language === 'pt' ? 'Pendentes' : 'Pending' },
               { value: 'paid', label: language === 'pt' ? 'Pagas' : 'Paid' },
-              { value: 'overdue', label: language === 'pt' ? 'Atrasadas' : 'Overdue' },
             ].map(option => (
               <button
                 key={option.value}
