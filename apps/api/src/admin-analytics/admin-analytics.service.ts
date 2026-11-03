@@ -305,7 +305,7 @@ export class AdminAnalyticsService {
     const feature = (uid: SQL, at: SQL, from: SQL, extra: SQL = sql`true`) =>
       sql`select ${uid} as uid, (${at} >= ${featSince}) as recent from ${from} where ${extra}`;
 
-    const [series, cohorts, dn, funnel, depth, features, heat] = await Promise.all([
+    const [series, cohorts, dn, funnel, depth, features, heat, geo] = await Promise.all([
       // DAU / WAU / MAU for every day of the window.
       this.db.execute(sql`
         with act as (${activity(sinceTs)}), days as (${dayList})
@@ -392,6 +392,13 @@ export class AdminAnalyticsService {
         from ${chatMessages}
         where ${chatMessages.role} = 'user' and ${chatMessages.createdAt} >= now() - interval '30 days'
         group by 1, 2`),
+      // Where people are (approximate place from the IP) and how many of them were active in the last 30 days.
+      this.db.execute(sql`
+        with act as (${activity(sql`now() - interval '30 days'`)}), recent as (select distinct uid from act)
+        select ${users.geoRegion} as region, ${users.geoCity} as city, count(*)::int as people,
+               (count(*) filter (where ${users.id} in (select uid from recent)))::int as active
+        from ${users} where ${real}
+        group by 1, 2`),
     ]);
 
     const cohortMap = new Map<string, { week: string; size: number; retained: (number | null)[] }>();
@@ -411,7 +418,31 @@ export class AdminAnalyticsService {
       depth: Object.fromEntries(['d1', 'd2_3', 'd4_7', 'd8_14', 'd15', 'at_risk'].map((k) => [k, n(d[k])])),
       features: (features as unknown as { feature: string; recent: number; ever: number; base: number }[]).map((r) => ({ feature: r.feature, recent: n(r.recent), ever: n(r.ever), base: n(r.base) })),
       heat: (heat as unknown as { dow: number; hour: number; n: number }[]).map((r) => ({ dow: n(r.dow), hour: n(r.hour), n: n(r.n) })),
+      geo: this.placeBreakdown(geo as unknown as { region: string | null; city: string | null; people: number; active: number }[]),
     };
+  }
+
+  /** Folds (state, city) rows into totals, states and the biggest cities. People without a known place only count in `total`. */
+  private placeBreakdown(rows: { region: string | null; city: string | null; people: number; active: number }[]) {
+    let total = 0;
+    let located = 0;
+    const regions = new Map<string, { region: string; people: number; active: number }>();
+    const cities: { city: string; region: string | null; people: number; active: number }[] = [];
+    for (const r of rows) {
+      const people = n(r.people);
+      const active = n(r.active);
+      total += people;
+      if (!r.region && !r.city) continue;
+      located += people;
+      const key = r.region ?? 'Sem estado';
+      const cur = regions.get(key) ?? { region: key, people: 0, active: 0 };
+      cur.people += people;
+      cur.active += active;
+      regions.set(key, cur);
+      if (r.city) cities.push({ city: r.city, region: r.region, people, active });
+    }
+    const bySize = <T extends { people: number }>(a: T, b: T) => b.people - a.people;
+    return { total, located, regions: [...regions.values()].sort(bySize).slice(0, 15), cities: cities.sort(bySize).slice(0, 20) };
   }
 
   /** Who is being told to slow down (message limits) or wait (server full), and how often. */

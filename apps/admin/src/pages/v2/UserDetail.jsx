@@ -231,7 +231,7 @@ function Detail({ user: u, reload, notify }) {
             </div>
             <p className="text-sm text-gray-400 truncate">{u.email}</p>
             <p className="text-xs text-gray-500 mt-1">
-              Cadastro em {date(u.createdAt)} · Última atividade {u.lastActiveAt ? dateTime(u.lastActiveAt) : 'sem registro'} · IA no mês {usd(u.aiCostMonthUsd)}
+              Cadastro em {date(u.createdAt)} · Última atividade {u.lastActiveAt ? dateTime(u.lastActiveAt) : 'sem registro'}{u.location ? ` · ${u.location}` : ''} · IA no mês {usd(u.aiCostMonthUsd)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
