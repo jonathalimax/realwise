@@ -6,6 +6,7 @@ import AdminAuth from './AdminAuth';
 import { authApi } from '../../lib/api/auth';
 
 const Overview = lazy(() => import('../v2/Overview'));
+const Engagement = lazy(() => import('../v2/Engagement'));
 const Users = lazy(() => import('../v2/Users'));
 const UserDetail = lazy(() => import('../v2/UserDetail'));
 const LlmLogs = lazy(() => import('../v2/LlmLogs'));
@@ -85,6 +86,7 @@ export default function AdminApp() {
           <Route element={<AdminLayout onLogout={handleLogout} />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<Overview />} />
+            <Route path="engagement" element={<Engagement />} />
             <Route path="users" element={<Users />} />
             <Route path="users/:id" element={<UserDetail />} />
             <Route path="ai-logs" element={<LlmLogs />} />
