@@ -30,6 +30,8 @@ export const users = pgTable(
     reminderEmailsOptOut: boolean('reminder_emails_opt_out').default(false).notNull(),
     marketingEmailsOptOut: boolean('marketing_emails_opt_out').default(false).notNull(),
     lastActiveAt: timestamp('last_active_at', { withTimezone: true }),
+    /** Admin switch: when true the per-minute/hour/day chat message limits do not apply to this user. */
+    chatLimitsDisabled: boolean('chat_limits_disabled').default(false).notNull(),
     /** Last time recurring-bill detection ran for this user (it runs at most weekly). */
     billDetectionAt: timestamp('bill_detection_at', { withTimezone: true }),
     adminNote: text('admin_note'),

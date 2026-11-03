@@ -8,6 +8,7 @@ import {
   bills,
   budgets,
   categorizationRules,
+  chatLimitHits,
   chatMessages,
   financialSummaries,
   imports,
@@ -410,6 +411,44 @@ export class AdminAnalyticsService {
       depth: Object.fromEntries(['d1', 'd2_3', 'd4_7', 'd8_14', 'd15', 'at_risk'].map((k) => [k, n(d[k])])),
       features: (features as unknown as { feature: string; recent: number; ever: number; base: number }[]).map((r) => ({ feature: r.feature, recent: n(r.recent), ever: n(r.ever), base: n(r.base) })),
       heat: (heat as unknown as { dow: number; hour: number; n: number }[]).map((r) => ({ dow: n(r.dow), hour: n(r.hour), n: n(r.n) })),
+    };
+  }
+
+  /** Who is being told to slow down (message limits) or wait (server full), and how often. */
+  async chatLimits(q: RawQuery) {
+    const days = parseInteger(q.days, 7, 1, 90, 'days');
+    const sinceTs = ts(new Date(Date.now() - days * DAY_MS));
+    const [totals, perUser] = await Promise.all([
+      this.db.execute(sql`
+        select ${chatLimitHits.window} as window, count(*)::int as hits, count(distinct ${chatLimitHits.userId})::int as people
+        from ${chatLimitHits} where ${chatLimitHits.createdAt} >= ${sinceTs} group by 1`),
+      this.db.execute(sql`
+        select ${users.id} as id, ${users.email} as email, ${users.name} as name, ${users.chatLimitsDisabled} as disabled,
+               count(*)::int as hits,
+               (count(*) filter (where ${chatLimitHits.window} = 'minute'))::int as minute,
+               (count(*) filter (where ${chatLimitHits.window} = 'hour'))::int as hour,
+               (count(*) filter (where ${chatLimitHits.window} = 'day'))::int as day,
+               (count(*) filter (where ${chatLimitHits.window} = 'busy'))::int as busy,
+               max(${chatLimitHits.createdAt}) as last_at
+        from ${chatLimitHits} join ${users} on ${users.id} = ${chatLimitHits.userId}
+        where ${chatLimitHits.createdAt} >= ${sinceTs}
+        group by ${users.id} order by hits desc, last_at desc limit 20`),
+    ]);
+    return {
+      days,
+      totals: Object.fromEntries((totals as unknown as { window: string; hits: number; people: number }[]).map((r) => [r.window, { hits: n(r.hits), people: n(r.people) }])),
+      users: (perUser as unknown as Record<string, unknown>[]).map((r) => ({
+        id: String(r.id),
+        email: String(r.email),
+        name: (r.name as string | null) ?? null,
+        disabled: Boolean(r.disabled),
+        hits: n(r.hits),
+        minute: n(r.minute),
+        hour: n(r.hour),
+        day: n(r.day),
+        busy: n(r.busy),
+        lastAt: r.last_at ? new Date(r.last_at as string).toISOString() : null,
+      })),
     };
   }
 

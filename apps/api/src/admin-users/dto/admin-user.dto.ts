@@ -24,6 +24,11 @@ export class UpdateAdminUserDto {
   @IsBoolean()
   marketingEmailsOptOut?: boolean;
 
+  /** When true, the per-minute/hour/day chat message limits do not apply to this person. */
+  @IsOptional()
+  @IsBoolean()
+  chatLimitsDisabled?: boolean;
+
   /** Monthly AI budget override in US$; `null` clears it. */
   @IsOptional()
   @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 4 })

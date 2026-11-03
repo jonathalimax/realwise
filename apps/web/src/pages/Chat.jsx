@@ -19,7 +19,7 @@ import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 
 const SUPPORTED = ['pdf', 'csv', 'tsv', 'txt', 'xlsx', 'xls', 'ofx', 'qif', 'png', 'jpg', 'jpeg', 'webp'];
-const MAX_FILE_BYTES = 15 * 1024 * 1024;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_FILES = 6;
 
 /** Which sheet (if any) a message is still waiting on. */
@@ -457,7 +457,7 @@ export default function ChatPage() {
         (f) => SUPPORTED.includes(f.name.split('.').pop()?.toLowerCase() ?? '') && f.size <= MAX_FILE_BYTES,
       );
       if (ok.length < picked.length) {
-        say('Alguns arquivos foram ignorados. Envie PDF, imagem, CSV, XLSX ou OFX de até 15 MB cada.');
+        say('Alguns arquivos foram ignorados. Envie PDF, imagem, CSV, XLSX ou OFX de até 5 MB cada.');
       }
       setFiles((prev) => [...prev, ...ok].slice(0, MAX_FILES));
     },
