@@ -171,7 +171,7 @@ export default function Engagement() {
   const state = useAsync(() => analyticsResource.engagement(days), `engagement-${days}`);
 
   return (
-    <div>
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       <PageHeader
         title="Engajamento e retenção"
         subtitle="Como as pessoas usam o app depois de entrar. Considera mensagens ao Elio, lançamentos feitos por elas ou pelo Elio e contas criadas. Horários de Brasília."
