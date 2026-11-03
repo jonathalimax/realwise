@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, Patch, Param, Query, Res, ParseUUIDPipe, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, HttpCode, Delete, Get, Headers, Patch, Param, Query, Res, ParseUUIDPipe, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
@@ -277,7 +277,7 @@ export class ChatController {
       write({ type: 'done', result });
       // A phone that was locked or switched away often leaves the socket half-open, so the server never sees it close.
       // A turn this long (reading a statement) is treated as "they left" either way; a duplicate notice costs less than none.
-      if (clientGone || Date.now() - startedAt > AWAY_AFTER_MS) this.service.notifyTurnFinishedAway(result);
+      this.service.notifyTurnFinishedAway(result, clientGone || Date.now() - startedAt > AWAY_AFTER_MS);
       void this.service.checkUsageNotice(scope).catch(() => undefined);
       console.log(`[chat] turn finished in ${((Date.now() - startedAt) / 1000).toFixed(1)}s (client gone before the end: ${clientGone})`);
     } catch (e) {
@@ -325,6 +325,13 @@ export class ChatController {
   ) {
     const scope = { clientId: user.clientId, userId: user.sub };
     return this.respond(res, accept, scope, (emit) => this.service.submitCategoriesForm(scope, id, dto.names, emit));
+  }
+
+  /** The app received and showed this reply: cancels the "Elio respondeu" push that was about to go out. */
+  @Post('messages/:id/received')
+  @HttpCode(204)
+  received(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
+    this.service.replyReceived(user.sub, id);
   }
 
   @Post('messages/:id/review')

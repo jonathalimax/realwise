@@ -13,6 +13,7 @@ export const PUSH_CATALOG = [
   { kind: 'summary_trial_end', when: 'Entre 1 e 2 dias antes do fim do teste', audience: 'Quem está no teste e já registrou movimentos' },
   { kind: 'usage_warning', when: 'Na hora em que o uso do Elio chega a 80% do limite (do mês ou do teste)', audience: 'Quem está perto do limite' },
   { kind: 'usage_limit', when: 'Na hora em que o limite de uso do Elio é atingido', audience: 'Quem atingiu o limite' },
+  { kind: 'elio_reply', when: 'Quando o Elio responde e a pessoa já saiu do chat (app fechado, celular bloqueado ou outra tela)', audience: 'Quem enviou a mensagem' },
   { kind: 'turn_failed', when: 'Quando o Elio não consegue terminar um pedido e a pessoa já saiu do app', audience: 'Quem enviou o pedido' },
   { kind: 'weekly_recap', when: 'Domingo às 18h (Brasília)', audience: 'Quem teve gastos na semana (novo)' },
 ] as const;
@@ -106,4 +107,11 @@ export function usagePush(kind: 'trial' | 'monthly', level: 'warning' | 'limit')
 
 export function turnFailedPush(message: string): PushPayload {
   return { title: 'O Elio não conseguiu terminar', body: message, url: '/chat', tag: 'turn_failed' };
+}
+
+/** A reply that finished while the person was away from the chat: the start of what Elio said, without the markdown. */
+export function elioReplyPush(text: string): PushPayload {
+  const plain = text.replace(/[*_`#>]/g, '').replace(/\s+/g, ' ').trim();
+  const body = plain.length > 140 ? `${plain.slice(0, 137).trimEnd()}...` : plain;
+  return { title: 'O Elio respondeu', body: body || 'Abra o chat para ver a resposta.', url: '/chat', tag: 'elio_reply' };
 }
