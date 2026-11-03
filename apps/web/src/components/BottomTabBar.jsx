@@ -12,15 +12,15 @@ const TABS = [
   { to: '/transactions', pt: 'Movimentos', en: 'Activity', icon: <path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4" /> },
   { to: '/chat', pt: 'Elio', en: 'Elio', center: true },
   { to: '/planning', pt: 'Orçamento', en: 'Budget', icon: (<><path d="M21 12A9 9 0 1 1 12 3v9z" /><path d="M15 3.5A9 9 0 0 1 20.5 9H15z" /></>) },
-  { to: '/settings', pt: 'Perfil', en: 'Profile', profile: true },
+  { to: '/settings', pt: 'Conta', en: 'Account', profile: true },
 ];
 
 // Routes that belong to each tab, so a nested screen keeps its tab highlighted.
 const BELONGS = {
   '/dashboard': ['/dashboard'],
   '/transactions': ['/transactions', '/income', '/expenses'],
-  '/planning': ['/planning', '/budget', '/bills'],
-  '/settings': ['/settings', '/subscription', '/help', '/notifications', '/cards', '/banks'],
+  '/planning': ['/planning', '/budget'],
+  '/settings': ['/settings', '/bills', '/subscription', '/help', '/notifications', '/cards', '/banks'],
 };
 
 /** Mobile bottom navigation. Replaces the hamburger menu; the desktop sidebar keeps the same places. */

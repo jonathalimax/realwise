@@ -99,7 +99,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--rw-bg)] text-[var(--rw-ink)]">
-      <PageHeader title={pt ? 'Perfil' : 'Profile'} showMonth={false} />
+      <PageHeader title={pt ? 'Conta' : 'Account'} showMonth={false} />
 
       <div className="mx-auto flex max-w-2xl flex-col gap-5 px-4 pb-24 pt-2 sm:px-6">
         <section className="rw-hero rw-hero-violet flex items-center gap-4 p-5" aria-label={pt ? 'Seu perfil' : 'Your profile'}>
