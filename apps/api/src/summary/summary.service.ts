@@ -180,15 +180,22 @@ export class SummaryService {
     const [row] = await this.db.select({ sentAt: financialSummaries.sentAt }).from(financialSummaries).where(eq(financialSummaries.id, generated.id)).limit(1);
     if (row?.sentAt && !opts.force) return false;
 
+    // Push first: a phone that got the push opens the same summary page, so the e-mail would only repeat it and spend the
+    // mail allowance. A test send to another address always goes by e-mail.
+    if (!opts.toOverride && (kind === 'monthly' || kind === 'trial_end')) {
+      const payload = kind === 'monthly' ? summaryMonthlyPush(generated.url) : summaryTrialEndPush(generated.url);
+      const pushed = (await this.push?.sendToUser(user.id, payload).catch(() => 0)) ?? 0;
+      if (pushed > 0) {
+        await this.db.update(financialSummaries).set({ sentAt: new Date() }).where(eq(financialSummaries.id, generated.id));
+        return true;
+      }
+    }
+
     const api = (process.env.API_BASE_URL ?? 'https://api.realwise.com.br').replace(/\/+$/, '');
     const unsubscribeUrl = `${api}/reminders/unsubscribe?u=${user.id}&t=${unsubscribeToken(user.id)}`;
     const mail = buildSummaryEmail(generated.payload, generated.url, unsubscribeUrl);
     await this.notifications.sendSummaryEmail(opts.toOverride ?? user.email, { ...mail, unsubscribeUrl });
     await this.db.update(financialSummaries).set({ sentAt: new Date() }).where(eq(financialSummaries.id, generated.id));
-    if (!opts.toOverride && (kind === 'monthly' || kind === 'trial_end')) {
-      const payload = kind === 'monthly' ? summaryMonthlyPush(generated.url) : summaryTrialEndPush(generated.url);
-      await this.push?.sendToUser(user.id, payload).catch(() => 0);
-    }
     return true;
   }
 

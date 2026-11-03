@@ -41,7 +41,7 @@ export class PushController {
   /** Sends a test notification to the caller's own devices. */
   @Post('test')
   async test(@CurrentUser() user: JwtPayload) {
-    const sent = await this.push.sendToUser(user.sub, { title: 'Realwise', body: 'Tudo certo! As notificações estão ativas.', url: '/dashboard', tag: 'test' });
+    const sent = await this.push.sendToUser(user.sub, { title: 'Notificações ativadas', body: 'Tudo certo! Você vai receber os avisos do Elio por aqui.', url: '/dashboard', tag: 'test' });
     return { sent };
   }
 }
