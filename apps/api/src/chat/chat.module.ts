@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DrizzleModule } from '../db/drizzle.module';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
+import { ChatLimitsService } from './chat-limits.service';
 import { ChatToolsService } from './chat-tools.service';
 import { InsightsService } from './insights.service';
 import { ChatEditService } from './chat-edit.service';
@@ -18,7 +19,7 @@ import { PushModule } from '../push/push.module';
 @Module({
   imports: [DrizzleModule, BillsModule, BillSuggestionsModule, SummaryModule, EngagementRemindersModule, ChatSnippetsModule, PushModule],
   controllers: [ChatController],
-  providers: [ChatService, ChatToolsService, ChatEditService, ChatBillsService, ChatCategoriesService, ChatMemoryService, InsightsService],
+  providers: [ChatService, ChatToolsService, ChatEditService, ChatBillsService, ChatCategoriesService, ChatMemoryService, ChatLimitsService, InsightsService],
   exports: [ChatService],
 })
 export class ChatModule {}

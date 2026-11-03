@@ -15,6 +15,7 @@ import * as schema from '../db/schema';
 import {
   accounts,
   adminAuditLog,
+  chatLimitHits,
   chatMessages,
   imports,
   llmCallLog,
@@ -56,6 +57,7 @@ export interface AdminUserListItem {
   marketingEmailsOptOut: boolean;
   adminNote: string | null;
   llmBudgetOverrideUsd: number | null;
+  chatLimitsDisabled: boolean;
 }
 
 @Injectable()
@@ -169,6 +171,7 @@ export class AdminUsersService {
       marketingEmailsOptOut: u.marketingEmailsOptOut,
       adminNote: u.adminNote,
       llmBudgetOverrideUsd: u.llmBudgetOverrideUsd === null ? null : Number(u.llmBudgetOverrideUsd),
+      chatLimitsDisabled: Boolean(u.chatLimitsDisabled),
     };
   }
 
@@ -177,12 +180,17 @@ export class AdminUsersService {
   async detail(id: string) {
     const user = await this.requireUser(id);
     const monthStart = startOfUtcMonth(new Date());
-    const [costs, txCounts, accountCount, importCount, chatCount, recentCalls, support, auditRows] = await Promise.all([
+    const [costs, txCounts, accountCount, importCount, chatCount, limitHits, recentCalls, support, auditRows] = await Promise.all([
       this.monthCosts([id], monthStart),
       this.transactionCounts([id]),
       this.db.select({ n: count() }).from(accounts).where(and(eq(accounts.userId, id), isNull(accounts.deletedAt))),
       this.db.select({ n: count() }).from(imports).where(eq(imports.userId, id)),
       this.db.select({ n: count() }).from(chatMessages).where(eq(chatMessages.userId, id)),
+      this.db
+        .select({ window: chatLimitHits.window, n: count(), last: sql<string>`max(${chatLimitHits.createdAt})` })
+        .from(chatLimitHits)
+        .where(and(eq(chatLimitHits.userId, id), sql`${chatLimitHits.createdAt} >= now() - interval '7 days'`))
+        .groupBy(chatLimitHits.window),
       this.db
         .select()
         .from(llmCallLog)
@@ -212,6 +220,7 @@ export class AdminUsersService {
         imports: importCount[0]?.n ?? 0,
         chatMessages: chatCount[0]?.n ?? 0,
       },
+      chatLimitHits7d: limitHits.map((h) => ({ window: h.window, count: h.n, lastAt: h.last ? new Date(h.last).toISOString() : null })),
       premium: {
         status: user.premiumStatus,
         startedAt: user.premiumAccessStartedAt?.toISOString() ?? null,
@@ -295,6 +304,10 @@ export class AdminUsersService {
     if (dto.marketingEmailsOptOut !== undefined) {
       set.marketingEmailsOptOut = dto.marketingEmailsOptOut;
       change('marketingEmailsOptOut', user.marketingEmailsOptOut, dto.marketingEmailsOptOut);
+    }
+    if (dto.chatLimitsDisabled !== undefined) {
+      set.chatLimitsDisabled = dto.chatLimitsDisabled;
+      change('chatLimitsDisabled', Boolean(user.chatLimitsDisabled), dto.chatLimitsDisabled);
     }
     if (dto.llmBudgetOverrideUsd !== undefined) {
       const value = dto.llmBudgetOverrideUsd;

@@ -13,6 +13,16 @@ export class AdminAnalyticsController {
     return this.service.overview(query);
   }
 
+  @Get('analytics/engagement')
+  engagement(@Query() query: RawQuery) {
+    return this.service.engagement(query);
+  }
+
+  @Get('analytics/chat-limits')
+  chatLimits(@Query() query: RawQuery) {
+    return this.service.chatLimits(query);
+  }
+
   @Get('analytics/users-usage')
   usersUsage(@Query() query: RawQuery) {
     return this.service.usersUsage(query);

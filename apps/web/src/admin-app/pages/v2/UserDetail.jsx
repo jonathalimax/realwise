@@ -102,6 +102,13 @@ function SummaryPreview({ userId, notify }) {
   );
 }
 
+const LIMIT_WINDOW = { minute: 'no minuto', hour: 'na hora', day: 'no dia', busy: 'servidor cheio' };
+function limitHitsText(hits) {
+  if (!Array.isArray(hits) || hits.length === 0) return '';
+  const total = hits.reduce((sum, h) => sum + h.count, 0);
+  return ` Bateu no limite ${total} ${total === 1 ? 'vez' : 'vezes'} em 7 dias (${hits.map((h) => `${h.count} ${LIMIT_WINDOW[h.window] ?? h.window}`).join(', ')}).`;
+}
+
 function ProfileForm({ user, onSaved, notify }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -114,6 +121,7 @@ function ProfileForm({ user, onSaved, notify }) {
       adminNote: user.adminNote ?? '',
       reminderEmailsOptOut: Boolean(user.reminderEmailsOptOut),
       marketingEmailsOptOut: Boolean(user.marketingEmailsOptOut),
+      chatLimitsDisabled: Boolean(user.chatLimitsDisabled),
       budget: user.llmBudgetOverrideUsd === null || user.llmBudgetOverrideUsd === undefined ? '' : String(user.llmBudgetOverrideUsd),
     });
   }, [user]);
@@ -133,6 +141,7 @@ function ProfileForm({ user, onSaved, notify }) {
         adminNote: form.adminNote,
         reminderEmailsOptOut: form.reminderEmailsOptOut,
         marketingEmailsOptOut: form.marketingEmailsOptOut,
+        chatLimitsDisabled: form.chatLimitsDisabled,
         llmBudgetOverrideUsd: budgetNum,
       });
       notify('Alterações salvas.');
@@ -174,6 +183,13 @@ function ProfileForm({ user, onSaved, notify }) {
             <p className="text-xs text-gray-500">Fica fora de qualquer campanha.</p>
           </div>
           <Toggle checked={form.marketingEmailsOptOut} onChange={(v) => set({ marketingEmailsOptOut: v })} label="Desativar marketing" />
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-gray-200">Sem limite de mensagens para esta pessoa</p>
+            <p className="text-xs text-gray-500">Padrão: 3 por minuto, 10 por hora e 30 por dia. Ligue para liberar.{limitHitsText(user.chatLimitHits7d)}</p>
+          </div>
+          <Toggle checked={form.chatLimitsDisabled} onChange={(v) => set({ chatLimitsDisabled: v })} label="Sem limite de mensagens" />
         </div>
       </div>
       {budgetInvalid && <div className="mt-3"><InlineMessage tone="warning">O limite precisa ser um número maior ou igual a zero.</InlineMessage></div>}
