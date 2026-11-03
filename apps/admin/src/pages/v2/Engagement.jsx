@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, CalendarCheck, Repeat, UserCheck, UserX } from 'lucide-react';
+import { Activity, CalendarCheck, MapPin, Repeat, UserCheck, UserX } from 'lucide-react';
 import { analyticsResource } from '../../lib/api/resources/analytics';
 import { useAsync } from '../../lib/useAsync';
 import { dateTime, num, pct } from '../../lib/format';
@@ -115,6 +115,56 @@ function Heatmap({ cells }) {
       </div>
       <p className="text-[11px] text-gray-500 mt-2">Horário de Brasília, mensagens enviadas ao Elio nos últimos 30 dias.</p>
     </div>
+  );
+}
+
+function GeoCard({ geo }) {
+  const regionRows = geo.regions.map((r) => ({ label: r.region, value: r.people }));
+  return (
+    <Card title="Onde estão" subtitle="Local aproximado, pelo endereço de internet de quando a pessoa usa o app. Atualiza uma vez por dia">
+      {geo.located === 0 ? (
+        <EmptyState title="Ainda sem locais" description="O local passa a ser guardado a partir de agora, conforme as pessoas usam o app. Não tem bairro: o endereço de internet só dá cidade e estado." />
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-300 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-400" />
+            <span><strong className="text-white">{num(geo.located)}</strong> de {num(geo.total)} pessoas com local conhecido <span className="text-gray-500">({pct(ratio(geo.located, geo.total) ?? 0, 0)})</span></span>
+          </p>
+          <div className="grid lg:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-xs font-semibold text-gray-400 mb-2">Por estado</h3>
+              <HBarChart data={regionRows} color={CHART_COLORS.emerald} valueFormatter={num} />
+            </div>
+            <div>
+              <h3 className="text-xs font-semibold text-gray-400 mb-2">Maiores cidades</h3>
+              <TableWrap>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      <th className={thClass}>Cidade</th>
+                      <th className={`${thClass} text-right`}>Pessoas</th>
+                      <th className={`${thClass} text-right`}>Ativas em 30 dias</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {geo.cities.map((c) => (
+                      <tr key={`${c.city}-${c.region}`}>
+                        <td className={tdClass}>{c.city}{c.region && <span className="text-gray-500"> · {c.region}</span>}</td>
+                        <td className={`${tdClass} text-right font-semibold text-white`}>{num(c.people)}</td>
+                        <td className={`${tdClass} text-right`}>{num(c.active)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-500">
+            Quem usa dados do celular ou VPN pode aparecer em outra cidade. Localização aproximada por IP: <a className="underline hover:text-gray-300" href="https://db-ip.com" target="_blank" rel="noreferrer">IP Geolocation by DB-IP</a>.
+          </p>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -274,9 +324,9 @@ export default function Engagement() {
                 <Heatmap cells={d.heat} />
               </Card>
 
-              <ChatLimitsCard />
+              <GeoCard geo={d.geo} />
 
-              <p className="text-xs text-gray-500">O app ainda não registra estado ou cidade das pessoas, então não há quebra por região. Posso começar a guardar isso se você quiser.</p>
+              <ChatLimitsCard />
             </div>
           );
         }}

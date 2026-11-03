@@ -50,6 +50,8 @@ export interface AdminUserListItem {
   name: string | null;
   createdAt: string;
   lastActiveAt: string | null;
+  /** Approximate place from the IP, "city, state" (whichever parts are known). */
+  location: string | null;
   access: AccessInfo;
   aiCostMonthUsd: number;
   transactionCount: number;
@@ -164,6 +166,7 @@ export class AdminUsersService {
       name: u.name,
       createdAt: u.createdAt.toISOString(),
       lastActiveAt: u.lastActiveAt?.toISOString() ?? null,
+      location: [u.geoCity, u.geoRegion].filter(Boolean).join(', ') || null,
       access: computeAccess(u, now),
       aiCostMonthUsd,
       transactionCount,
