@@ -1,9 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Resend } from 'resend';
 import { escapeHtml, safeHttpUrl, textToParagraphs } from './email-text';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { buildEmail, chat, detailRows, para, rows, sectionLabel } from './email-layout';
 import type { EngagementKind } from '../app-settings/app-settings.types';
+import { EmailBudgetError, EmailBudgetService, type EmailPriority } from './email-budget.service';
+
+/** Mail that must go out even when the daily allowance is nearly used: billing, the welcome, the end of the trial. */
+const ESSENTIAL_KINDS = new Set<EngagementKind>(['welcome', 'payment_failed', 'payment_failed_followup', 'trial_ending']);
+export const priorityOfKind = (kind: EngagementKind): EmailPriority => (ESSENTIAL_KINDS.has(kind) ? 'essential' : 'bulk');
 
 interface BillEntry {
   id: string;
@@ -108,7 +113,7 @@ export class NotificationsService {
   private readonly resend: Resend | null;
   private readonly from = senderWithName(process.env.EMAIL_FROM ?? 'noreply@realwise.com.br');
 
-  constructor() {
+  constructor(@Optional() private readonly budget?: EmailBudgetService) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       this.logger.warn('RESEND_API_KEY not configured — email delivery disabled');
@@ -125,6 +130,8 @@ export class NotificationsService {
     from?: string;
     replyTo?: string;
     headers?: Record<string, string>;
+    /** Defaults to bulk: only mail a person is waiting for (support, billing) is marked essential. */
+    priority?: EmailPriority;
   }): Promise<void> {
     const captured = previewStore.getStore();
     if (captured) {
@@ -134,6 +141,7 @@ export class NotificationsService {
     // Simulator users have undeliverable `.invalid` addresses: never spend a send (or log an error) on them.
     if (/\.invalid$/i.test(params.to)) return;
     if (!this.resend) return;
+    if (this.budget && !(await this.budget.canSend(params.priority ?? 'bulk'))) throw new EmailBudgetError();
     const { error } = await this.resend.emails.send({
       from: params.from ?? this.from,
       to: params.to,
@@ -145,6 +153,17 @@ export class NotificationsService {
     if (error) {
       throw new Error(`Resend send failed: ${error.message}`);
     }
+    await this.budget?.record();
+  }
+
+  /** Whether an e-mail of this kind may go out now (checked before claiming a reminder, so nothing is lost when it may not). */
+  async canSend(priority: EmailPriority): Promise<boolean> {
+    return this.budget ? this.budget.canSend(priority) : true;
+  }
+
+  /** How many bulk e-mails still fit today and this month. */
+  async bulkRemaining(): Promise<number> {
+    return this.budget ? this.budget.bulkRemaining() : Number.MAX_SAFE_INTEGER;
   }
 
   /** Runs `fn` with real sending off and returns the mails it would have sent (real templates, nothing leaves the server). */
@@ -177,6 +196,7 @@ export class NotificationsService {
       html,
       from: `Realwise <${this.supportEmail}>`,
       replyTo: this.supportEmail,
+      priority: 'essential',
     });
   }
 
@@ -478,7 +498,7 @@ export class NotificationsService {
         ? 'Você recebeu este e-mail porque há uma assinatura ativa no Realwise.'
         : `Não quer mais lembretes? <a href="${unsub}">Cancelar inscrição</a>`,
     });
-    await this.sendMail({ to, subject: copy.subject, html });
+    await this.sendMail({ to, subject: copy.subject, html, priority: priorityOfKind(kind) });
   }
 
   async sendBillReminderEmail(to: string, groups: BillGroups, ctaUrl?: string): Promise<void> {
@@ -556,6 +576,7 @@ export class NotificationsService {
       to: params.to,
       replyTo: params.fromEmail,
       subject: `[Suporte] ${subject.replace(/[\r\n]+/g, ' ').slice(0, 150)}`,
+      priority: 'essential',
       html: buildEmail({
         icon: 'check',
         title: escape(subject),
@@ -611,6 +632,7 @@ export class NotificationsService {
       to: this.supportEmail,
       replyTo: params.email,
       subject: `[Cancelamento] ${params.email.replace(/[\r\n]+/g, ' ')}`,
+      priority: 'essential',
       html: buildEmail({
         icon: 'alarm',
         chip: { text: params.kind === 'requested' ? 'Cancelamento' : 'Encerrada', tone: 'warn' },
@@ -650,6 +672,7 @@ export class NotificationsService {
       to,
       subject: selected.subject,
       html: selected.html,
+      priority: 'essential',
     });
   }
 
@@ -732,6 +755,7 @@ export class NotificationsService {
     await this.sendMail({
       to: recipient,
       subject: `Realwise import issue: ${issue.fileName}`,
+      priority: 'essential',
       html: buildEmail({
         icon: 'import',
         chip: { text: 'Importação', tone: 'warn' },

@@ -102,10 +102,17 @@ export class BillRemindersService {
       if (totalActionable === 0) continue;
 
       try {
-        // One big call to action: opens the chat, where Elio walks the user through settling the bills.
-        const frontendBase = (process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br').replace(/\/$/, '');
-        await this.notifications.sendBillReminderEmail(user.email, groups, `${frontendBase}/${user.clientId}/chat?intent=bills`);
         const billIds = [...groups.overdue, ...groups.dueToday, ...groups.dueSoon].map((b) => b.id);
+        // Push first: a phone that got the push does not also need the e-mail, which saves the mail allowance.
+        const pushed = (await this.push?.sendToUser(user.id, billsDailyPush(groups)).catch((e: Error) => {
+          this.logger.warn(`[BillReminders] push failed: ${e.message}`);
+          return 0;
+        })) ?? 0;
+        if (pushed === 0) {
+          // One big call to action: opens the chat, where Elio walks the user through settling the bills.
+          const frontendBase = (process.env.FRONTEND_BASE_URL ?? 'https://realwise.com.br').replace(/\/$/, '');
+          await this.notifications.sendBillReminderEmail(user.email, groups, `${frontendBase}/${user.clientId}/chat?intent=bills`);
+        }
         await this.db.insert(billReminders).values(
           billIds.map((billId) => ({
             clientId: user.clientId,
@@ -113,11 +120,10 @@ export class BillRemindersService {
             billId,
             remindAt: now,
             sent: true,
-            sentVia: 'email',
+            sentVia: pushed > 0 ? 'push' : 'email',
           })),
         );
-        this.logger.log(`[BillReminders] Sent to ${user.email}: ${totalActionable} bill(s)`);
-        await this.push?.sendToUser(user.id, billsDailyPush(groups)).catch((e: Error) => this.logger.warn(`[BillReminders] push failed: ${e.message}`));
+        this.logger.log(`[BillReminders] Sent to ${user.email} by ${pushed > 0 ? 'push' : 'e-mail'}: ${totalActionable} bill(s)`);
       } catch (err) {
         this.logger.error(`[BillReminders] Failed for ${user.email}: ${(err as Error).message}`);
       }

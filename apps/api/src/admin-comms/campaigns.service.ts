@@ -307,12 +307,22 @@ export class CampaignsService {
       const doneIds = new Set(done.map((d) => (d.userId ? `user:${d.userId}` : `lead:${d.leadId}`)));
       const todo = audience.filter((u) => !doneIds.has(`${u.kind}:${u.id}`));
 
-      for (let i = 0; i < todo.length; i += BATCH_SIZE) {
+      let i = 0;
+      while (i < todo.length) {
+        // Stop while the mail allowance is used up: the campaign stays 'sending' and resumes when it renews.
+        const room = await this.notifications.bulkRemaining();
+        if (room <= 0) {
+          this.logger.warn(`[Campaign ${id}] paused: e-mail allowance used up, ${todo.length - i} left`);
+          await this.refreshCounters(id);
+          return;
+        }
+        const size = Math.min(BATCH_SIZE, room);
         const started = Date.now();
-        await Promise.all(todo.slice(i, i + BATCH_SIZE).map((u) => this.sendOne(c, u)));
+        await Promise.all(todo.slice(i, i + size).map((u) => this.sendOne(c, u)));
+        i += size;
         await this.refreshCounters(id);
         const wait = BATCH_INTERVAL_MS - (Date.now() - started);
-        if (wait > 0 && i + BATCH_SIZE < todo.length) await sleep(wait);
+        if (wait > 0 && i < todo.length) await sleep(wait);
       }
       await this.refreshCounters(id);
       await this.db
