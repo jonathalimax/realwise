@@ -1,4 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
+import { Transform } from 'class-transformer';
 import { IsString, IsOptional, IsIn, IsDateString, IsUUID, IsBoolean, IsInt, Min } from 'class-validator';
 
 export class CreateBillDto {
@@ -93,7 +94,9 @@ export class MarkBillPaidDto {
   @IsDateString()
   virtualDueDate?: string;
 
+  // Currency inputs hand back a number; the column is numeric text.
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'number' ? value.toFixed(2) : value))
   @IsString()
   paidAmount?: string;
 }
