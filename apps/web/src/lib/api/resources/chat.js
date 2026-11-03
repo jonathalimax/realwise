@@ -43,7 +43,14 @@ async function postStream(path, body, onEvent) {
       return;
     }
     if (event.type === 'error') throw new ApiError(event.message || 'O Elio não conseguiu responder.', { status: event.status ?? 503, data: { code: event.code, fromServer: true } });
-    if (event.type === 'done') result = event.result;
+    if (event.type === 'done') {
+      result = event.result;
+      // Tell the server the reply reached a visible screen, so it does not also push it. A locked phone never gets here.
+      const id = event.result?.assistantMessage?.id;
+      if (id && typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        apiClient.post(`/chat/messages/${id}/received`).catch(() => undefined);
+      }
+    }
     onEvent?.(event);
   };
 

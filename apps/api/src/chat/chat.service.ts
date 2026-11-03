@@ -35,8 +35,13 @@ export interface ChatScope {
   userId: string;
 }
 
+/** How long a finished reply waits for the app to confirm it before it is pushed instead. */
+const REPLY_PUSH_GRACE_MS = 6000;
+
 @Injectable()
 export class ChatService {
+  private readonly pendingReplyPushes = new Map<string, NodeJS.Timeout>();
+
   constructor(
     @Inject(DRIZZLE) private readonly db: PostgresJsDatabase<typeof schema>,
     private readonly llm: LlmService,
@@ -569,16 +574,32 @@ export class ChatService {
    * Called when a streamed turn ends. If the person had already left (closed the app while a statement was being read),
    * the reply is waiting for them: send the "your statement is ready" e-mail, with how many rows need a category.
    */
-  notifyTurnFinishedAway(result: unknown): void {
+  notifyTurnFinishedAway(result: unknown, away: boolean): void {
     const m = (result as { assistantMessage?: ChatMessageRow } | null)?.assistantMessage;
     if (!m) return;
-    // An ordinary answer: no statement to report, but the person still should know Elio replied.
+    // An ordinary answer: no statement to report, but the person still should know Elio replied. We cannot tell a
+    // locked phone from an open chat, so the push waits a few seconds and is dropped if the app confirms it got the reply.
     if (!m.saved && !m.review) {
-      void this.push?.sendToUser(m.userId, elioReplyPush(m.content ?? '')).catch(() => 0);
+      const key = `${m.userId}:${m.id}`;
+      const send = () => {
+        this.pendingReplyPushes.delete(key);
+        void this.push?.sendToUser(m.userId, elioReplyPush(m.content ?? '')).catch(() => 0);
+      };
+      if (away) send();
+      else this.pendingReplyPushes.set(key, setTimeout(send, REPLY_PUSH_GRACE_MS));
       return;
     }
+    if (!away) return;
     const groups = (m.review as ReviewPayload | null)?.groups ?? [];
     void this.engagement.sendStatementReady(m.userId, m.id, groups.reduce((acc, g) => acc + g.count, 0));
+  }
+
+  /** The app showed this reply on a visible screen: no push needed. */
+  replyReceived(userId: string, messageId: string): void {
+    const key = `${userId}:${messageId}`;
+    const timer = this.pendingReplyPushes.get(key);
+    if (timer) clearTimeout(timer);
+    this.pendingReplyPushes.delete(key);
   }
 
   /**
