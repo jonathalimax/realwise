@@ -17,7 +17,7 @@ import { ACCOUNT_TYPES, BANKS, DEFAULT_CATEGORIES, WELCOME_GOALS, welcomeMessage
 import { ChatSnippetsService } from './chat-snippets.service';
 import { EngagementRemindersService } from '../engagement-reminders/engagement-reminders.service';
 import { PushService } from '../push/push.service';
-import { USAGE_COPY, turnFailedPush, usagePush } from '../push/push-catalog';
+import { USAGE_COPY, elioReplyPush, turnFailedPush, usagePush } from '../push/push-catalog';
 
 const HISTORY_LIMIT = 16;
 /** Messages older than this are neither shown nor sent to the model (keeps the context, and token cost, small). Rows are kept, not destroyed. */
@@ -571,7 +571,12 @@ export class ChatService {
    */
   notifyTurnFinishedAway(result: unknown): void {
     const m = (result as { assistantMessage?: ChatMessageRow } | null)?.assistantMessage;
-    if (!m || (!m.saved && !m.review)) return;
+    if (!m) return;
+    // An ordinary answer: no statement to report, but the person still should know Elio replied.
+    if (!m.saved && !m.review) {
+      void this.push?.sendToUser(m.userId, elioReplyPush(m.content ?? '')).catch(() => 0);
+      return;
+    }
     const groups = (m.review as ReviewPayload | null)?.groups ?? [];
     void this.engagement.sendStatementReady(m.userId, m.id, groups.reduce((acc, g) => acc + g.count, 0));
   }
