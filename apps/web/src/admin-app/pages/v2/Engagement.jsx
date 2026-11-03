@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Activity, CalendarCheck, Repeat, UserCheck, UserX } from 'lucide-react';
 import { analyticsResource } from '../../lib/api/resources/analytics';
 import { useAsync } from '../../lib/useAsync';
-import { num, pct } from '../../lib/format';
-import { AsyncView, Card, EmptyState, PageHeader, Stat } from '../../components/ui';
+import { dateTime, num, pct } from '../../lib/format';
+import { AsyncView, Badge, Card, EmptyState, PageHeader, Stat, TableWrap, tdClass, thClass } from '../../components/ui';
 import { CHART_COLORS, HBarChart, TrendChart } from '../../components/charts';
 
 const RANGES = [30, 90];
@@ -117,6 +118,53 @@ function Heatmap({ cells }) {
   );
 }
 
+function ChatLimitsCard() {
+  const state = useAsync(() => analyticsResource.chatLimits(7), 'chat-limits');
+  return (
+    <Card title="Quem bate no limite de mensagens" subtitle="Últimos 7 dias. Limite padrão: 3 por minuto, 10 por hora, 30 por dia" padded={false}>
+      <AsyncView
+        state={state}
+        isEmpty={(d) => !d?.users?.length}
+        empty={<EmptyState title="Ninguém bateu no limite" description="Quando alguém for barrado por mandar mensagens demais, aparece aqui." />}
+      >
+        {(d) => (
+          <TableWrap>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className={thClass}>Pessoa</th>
+                  <th className={`${thClass} text-right`}>Vezes</th>
+                  <th className={`${thClass} text-right`}>Minuto</th>
+                  <th className={`${thClass} text-right`}>Hora</th>
+                  <th className={`${thClass} text-right`}>Dia</th>
+                  <th className={`${thClass} text-right`}>Servidor cheio</th>
+                  <th className={thClass}>Última vez</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800">
+                {d.users.map((u) => (
+                  <tr key={u.id}>
+                    <td className={tdClass}>
+                      <Link className="text-emerald-400 hover:underline" to={`/users/${u.id}`}>{u.email}</Link>
+                      {u.disabled && <Badge tone="gray" className="ml-2">sem limite</Badge>}
+                    </td>
+                    <td className={`${tdClass} text-right font-semibold text-white`}>{num(u.hits)}</td>
+                    <td className={`${tdClass} text-right`}>{num(u.minute)}</td>
+                    <td className={`${tdClass} text-right`}>{num(u.hour)}</td>
+                    <td className={`${tdClass} text-right`}>{num(u.day)}</td>
+                    <td className={`${tdClass} text-right`}>{num(u.busy)}</td>
+                    <td className={tdClass}>{dateTime(u.lastAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
+        )}
+      </AsyncView>
+    </Card>
+  );
+}
+
 export default function Engagement() {
   const [days, setDays] = useState(30);
   const [metric, setMetric] = useState('dau');
@@ -225,6 +273,8 @@ export default function Engagement() {
               <Card title="Quando conversam com o Elio" subtitle="Dia da semana e hora">
                 <Heatmap cells={d.heat} />
               </Card>
+
+              <ChatLimitsCard />
 
               <p className="text-xs text-gray-500">O app ainda não registra estado ou cidade das pessoas, então não há quebra por região. Posso começar a guardar isso se você quiser.</p>
             </div>

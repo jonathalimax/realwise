@@ -8,6 +8,9 @@ export const analyticsResource = {
   engagement(days = 30) {
     return apiClient.get(`/admin/analytics/engagement${qs({ days })}`);
   },
+  chatLimits(days = 7) {
+    return apiClient.get(`/admin/analytics/chat-limits${qs({ days })}`);
+  },
   usersUsage({ sort = 'cost', limit = 10 } = {}) {
     return apiClient.get(`/admin/analytics/users-usage${qs({ sort, limit })}`);
   },

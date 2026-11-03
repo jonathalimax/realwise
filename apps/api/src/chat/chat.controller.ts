@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Delete, Get, Headers, Patch, Param, Query, Res, ParseUUIDPipe, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, HttpCode, PayloadTooLargeException, Delete, Get, Headers, Patch, Param, Query, Res, ParseUUIDPipe, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
@@ -7,6 +7,7 @@ import { ACCOUNT_TYPES, BANK_IDS } from './onboarding';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ChatService, MAX_FILES_PER_MESSAGE } from './chat.service';
+import { ChatLimitsService } from './chat-limits.service';
 import type { ChatStreamEvent } from './chat.types';
 import { InsightsService } from './insights.service';
 import { ChatBillsService, type BillDecision } from './chat-bills.service';
@@ -157,13 +158,17 @@ function describeChatError(e: unknown): { status: number; code?: string; message
   if (own) return { status, code, message: own };
   if (status === 402) return { status, code: 'SUBSCRIPTION_REQUIRED', message: 'Seu teste terminou. Assine um plano para continuar conversando com o Elio.' };
   if (status === 429) return { status, message: 'Estou recebendo muitos pedidos agora. Espere um pouquinho e tente de novo.' };
-  if (status === 413) return { status, message: 'Esse arquivo é grande demais. Envie arquivos de até 15 MB.' };
+  if (status === 413) return { status, message: 'Esse arquivo é grande demais. Envie arquivos de até 5 MB.' };
   if (status >= 400 && status < 500) return { status, message: 'Não consegui entender esse pedido. Pode tentar de novo?' };
   return { status: status >= 500 ? status : 500, message: 'Tive um tropeço aqui e não consegui terminar. Pode tentar de novo em instantes?' };
 }
 
 /** Limits and server failures happen after the message is saved; request mistakes (4xx) are rejected before it. */
 const isRecordable = (status: number) => status === 402 || status === 422 || status === 429 || status >= 500;
+
+/** Per file and per message: statements are small, and these buffers sit in memory while the turn runs. */
+const MAX_FILE_BYTES = Number(process.env.CHAT_MAX_FILE_MB ?? 5) * 1024 * 1024;
+const MAX_TOTAL_BYTES = Number(process.env.CHAT_MAX_TOTAL_MB ?? 15) * 1024 * 1024;
 
 /** Turns longer than this notify the person on finish even if the connection looked alive. */
 const AWAY_AFTER_MS = 45_000;
@@ -175,6 +180,7 @@ export class ChatController {
     private readonly insights: InsightsService,
     private readonly bills: ChatBillsService,
     private readonly memory: ChatMemoryService,
+    private readonly limits: ChatLimitsService,
   ) {}
 
   @Get('messages')
@@ -213,8 +219,8 @@ export class ChatController {
    * (`user`, `delta`, `reset`, `status`, `done`, `error`); otherwise it returns the final JSON.
    */
   @Post('messages')
-  @UseInterceptors(FilesInterceptor('files', MAX_FILES_PER_MESSAGE, { limits: { fileSize: 15 * 1024 * 1024 } }))
-  send(
+  @UseInterceptors(FilesInterceptor('files', MAX_FILES_PER_MESSAGE, { limits: { fileSize: MAX_FILE_BYTES } }))
+  async send(
     @Body() dto: SendMessageDto,
     @UploadedFiles() files: Express.Multer.File[] = [],
     @CurrentUser() user: JwtPayload,
@@ -222,6 +228,11 @@ export class ChatController {
     @Res() res: Response,
   ) {
     const scope = { clientId: user.clientId, userId: user.sub };
+    // Refused before anything is saved or any AI money is spent.
+    await this.limits.checkMessageRate(scope);
+    if ((files ?? []).reduce((sum, f) => sum + f.size, 0) > MAX_TOTAL_BYTES) {
+      throw new PayloadTooLargeException(`Os arquivos juntos passam de ${MAX_TOTAL_BYTES / 1024 / 1024} MB. Envie menos arquivos por vez.`);
+    }
     return this.respond(res, accept, scope, (emit) => this.service.send(scope, dto.message ?? '', files ?? [], emit));
   }
 
@@ -237,7 +248,22 @@ export class ChatController {
     return this.respond(res, accept, scope, (emit) => this.service.answerQuestions(scope, id, dto.answers, emit));
   }
 
+  /** Runs a chat turn while holding one of the limited "simultaneous turn" slots. */
   private async respond(
+    res: Response,
+    accept: string | undefined,
+    scope: { clientId: string; userId: string },
+    run: (emit?: (event: ChatStreamEvent) => void) => Promise<unknown>,
+  ) {
+    const release = await this.limits.acquire(scope);
+    try {
+      await this.stream(res, accept, scope, run);
+    } finally {
+      release();
+    }
+  }
+
+  private async stream(
     res: Response,
     accept: string | undefined,
     scope: { clientId: string; userId: string },

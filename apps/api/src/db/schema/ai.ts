@@ -47,6 +47,19 @@ export const chatMessages = pgTable(
   (t) => ({ byUser: index('chat_messages_user_created_idx').on(t.userId, t.createdAt) }),
 );
 
+/** Every time a chat message was refused for being too frequent (window) or because the server was full ('busy'). */
+export const chatLimitHits = pgTable(
+  'chat_limit_hits',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clientId: varchar('client_id').notNull(),
+    userId: uuid('user_id').notNull().references(() => users.id),
+    window: varchar('window').notNull(), // 'minute' | 'hour' | 'day' | 'busy'
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({ byCreated: index('chat_limit_hits_created_idx').on(t.createdAt), byUser: index('chat_limit_hits_user_idx').on(t.userId, t.createdAt) }),
+);
+
 /** Insight cards for the home screen, generated at most once per user+month (unless refreshed). */
 export const aiInsights = pgTable(
   'ai_insights',
