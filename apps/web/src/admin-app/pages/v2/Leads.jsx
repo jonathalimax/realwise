@@ -4,9 +4,24 @@ import { landingResource } from '../../lib/api/resources/landing';
 import { useAsync } from '../../lib/useAsync';
 import { date, num, pct } from '../../lib/format';
 import { AsyncView, Badge, Button, Card, EmptyState, PageHeader, Stat, TableWrap, inputClass, tdClass, thClass } from '../../components/ui';
-import { CHART_COLORS, TrendChart } from '../../components/charts';
+import { CHART_COLORS, HBarChart, TrendChart } from '../../components/charts';
 
 const RANGES = [7, 30, 90];
+
+/** Landing sections in page order, with the names used in the `data-section` attributes. */
+const SECTIONS = [
+  ['hero', 'Topo'],
+  ['how-it-works', 'Como funciona'],
+  ['summary', 'Resumo mensal'],
+  ['ai-features', 'Elio (IA)'],
+  ['pricing', 'Preços'],
+  ['faq', 'Perguntas'],
+  ['lead-capture', 'Novidades'],
+  ['final-cta', 'Chamada final'],
+];
+
+/** Share of all visitors (0-100) so a bar reads as "x% of the people who came". */
+const share = (visitors, total) => (total > 0 ? Math.min(100, Math.round((visitors / total) * 100)) : 0);
 
 function csv(rows) {
   const cell = (v) => {
@@ -119,6 +134,28 @@ export default function Leads() {
               </Card>
               <Card title="Cliques nos botões por dia">
                 <TrendChart data={s.perDay} valueKey="clicks" color={CHART_COLORS.violet} name="cliques" valueFormatter={(v) => num(v)} />
+              </Card>
+              <Card title="Até onde rolam a página" subtitle="% dos visitantes que chegaram a cada ponto">
+                {s.scrollDepth?.length ? (
+                  <HBarChart
+                    data={s.scrollDepth.map((d) => ({ label: `${d.depth}% da página`, value: share(d.visitors, s.visitors) }))}
+                    color={CHART_COLORS.sky}
+                    valueFormatter={(v) => `${v}%`}
+                  />
+                ) : (
+                  <EmptyState title="Sem dados ainda" description="Aparece conforme novas pessoas rolam a página." />
+                )}
+              </Card>
+              <Card title="Seções vistas" subtitle="% dos visitantes que viram cada seção">
+                {s.sections?.length ? (
+                  <HBarChart
+                    data={SECTIONS.map(([key, label]) => ({ label, value: share(s.sections.find((x) => x.section === key)?.visitors ?? 0, s.visitors) }))}
+                    color={CHART_COLORS.violet}
+                    valueFormatter={(v) => `${v}%`}
+                  />
+                ) : (
+                  <EmptyState title="Sem dados ainda" description="Aparece conforme novas pessoas visitam a página." />
+                )}
               </Card>
               <Card title="Botões mais clicados" padded={false}>
                 {s.topCtas.length === 0 ? (
