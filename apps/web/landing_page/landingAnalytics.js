@@ -30,6 +30,7 @@ function attachScrollListener() {
       if (pct >= m && !seenScrollDepths.has(m)) {
         seenScrollDepths.add(m);
         gtag('event', 'scroll_depth', { depth: m, ...utmParams });
+        trackLandingEvent('scroll', String(m));
       }
     }
   }
@@ -45,6 +46,7 @@ function attachSectionObserver() {
         if (!name || seenSections.has(name)) continue;
         seenSections.add(name);
         gtag('event', 'section_viewed', { section_name: name, ...utmParams });
+        trackLandingEvent('section', name);
       }
     },
     { threshold: 0.5 }
@@ -52,10 +54,30 @@ function attachSectionObserver() {
   document.querySelectorAll('[data-section]').forEach((el) => observer.observe(el));
 }
 
+let interactionStarted = false;
+
+/** Scroll depth and section views for the admin funnel. First-party and anonymous, so it runs whether or not Google Analytics was accepted. */
+function startInteractionTracking() {
+  if (typeof window === 'undefined' || interactionStarted) return;
+  interactionStarted = true;
+  utmParams = readUtmParams();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      attachScrollListener();
+      attachSectionObserver();
+    });
+  } else {
+    attachScrollListener();
+    attachSectionObserver();
+  }
+}
+
 export const landingAnalytics = {
+  startInteractionTracking,
+
   init(measurementId) {
     if (typeof window === 'undefined') return;
-    utmParams = readUtmParams();
+    startInteractionTracking();
 
     window.dataLayer = window.dataLayer || [];
     if (typeof window.gtag !== 'function') {
@@ -63,16 +85,6 @@ export const landingAnalytics = {
     }
     window.gtag('js', new Date());
     window.gtag('config', measurementId, { send_page_view: true, ...internalTrafficParams() });
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        attachScrollListener();
-        attachSectionObserver();
-      });
-    } else {
-      attachScrollListener();
-      attachSectionObserver();
-    }
   },
 
   trackCtaClicked(label, section) {
