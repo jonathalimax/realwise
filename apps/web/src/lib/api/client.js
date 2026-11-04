@@ -46,12 +46,28 @@ export const SESSION_EXPIRED_EVENT = 'rw:session-expired';
 // refreshes the session once (shared by every request that fails at the same time) and replays the request.
 const NO_REFRESH_PATHS = ['/auth/refresh', '/auth/logout'];
 let refreshInFlight = null;
+
+// The API rotates the refresh token on every refresh, so two refreshes sent at the same moment make the slower one
+// fail. Another tab or window of the app (a notification tap can leave two alive) can refresh at the same time as
+// this one: the lock makes the second start after the first, with the cookie the first one just set.
+const withRefreshLock = (run) => (typeof navigator !== 'undefined' && navigator.locks?.request ? navigator.locks.request('rw-session-refresh', run) : run());
+
 function refreshSessionOnce(baseUrl) {
-  refreshInFlight ??= fetch(joinUrl(baseUrl, '/auth/refresh'), { method: 'POST', credentials: 'include' })
+  refreshInFlight ??= withRefreshLock(() => fetch(joinUrl(baseUrl, '/auth/refresh'), { method: 'POST', credentials: 'include' }))
     .then((r) => (r.ok ? 'ok' : r.status === 401 || r.status === 403 ? 'denied' : 'error'))
     .catch(() => 'error')
     .finally(() => { refreshInFlight = null; });
   return refreshInFlight;
+}
+
+/** true / false when the server answered, null when it could not be reached (that says nothing about the session). */
+async function sessionStillValid(baseUrl) {
+  try {
+    const r = await fetch(joinUrl(baseUrl, '/auth/me'), { credentials: 'include' });
+    return r.ok;
+  } catch {
+    return null;
+  }
 }
 
 export class ApiError extends Error {
@@ -101,7 +117,13 @@ export function createApiClient({ baseUrl, defaultHeaders = {} } = {}) {
     if (response.status === 401 && !retried && !NO_REFRESH_PATHS.some((p) => path.startsWith(p))) {
       const outcome = await refreshSessionOnce(resolvedBaseUrl);
       if (outcome === 'ok') return request(path, { method, headers, body }, true);
-      if (outcome === 'denied' && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      if (outcome === 'denied') {
+        // A rejected refresh does not always mean signed out: another window may have just rotated the tokens and set
+        // new cookies. Only sign the person out when the session really does not answer; otherwise replay the request.
+        const valid = await sessionStillValid(resolvedBaseUrl);
+        if (valid) return request(path, { method, headers, body }, true);
+        if (valid === false && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      }
     }
 
     if (!response.ok) {
