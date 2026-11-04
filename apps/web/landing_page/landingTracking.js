@@ -1,4 +1,5 @@
 import { resolveApiBaseUrl } from '../src/lib/api/client';
+import { isInternalTraffic } from '../src/lib/internalTraffic';
 
 /** First-party funnel numbers (visits, CTA taps, leads) for the admin. Independent of Google Analytics; never throws. */
 const KEY = '__rw_visitor';
@@ -22,6 +23,7 @@ const url = (path) => `${resolveApiBaseUrl().replace(/\/$/, '')}/public/landing/
 
 export function trackLandingEvent(event, cta) {
   try {
+    if (isInternalTraffic()) return; // our own visits must not inflate the admin funnel either
     fetch(url('event'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

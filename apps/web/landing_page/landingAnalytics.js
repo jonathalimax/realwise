@@ -1,3 +1,4 @@
+import { internalTrafficParams } from '../src/lib/internalTraffic';
 import { trackLandingEvent } from './landingTracking';
 
 let utmParams = {};
@@ -61,7 +62,7 @@ export const landingAnalytics = {
       window.gtag = function () { window.dataLayer.push(arguments); };
     }
     window.gtag('js', new Date());
-    window.gtag('config', measurementId, { send_page_view: true });
+    window.gtag('config', measurementId, { send_page_view: true, ...internalTrafficParams() });
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {

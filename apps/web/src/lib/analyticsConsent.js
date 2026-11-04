@@ -1,3 +1,5 @@
+import { internalTrafficParams, isInternalTraffic } from './internalTraffic';
+
 const STORAGE_KEY = 'rw_analytics_consent';
 const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-4S1ME4WCMY';
 
@@ -29,7 +31,7 @@ function loadGoogleAnalytics() {
       window.dataLayer = window.dataLayer || [];
       window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments); };
       window.gtag('js', new Date());
-      window.gtag('config', GA_ID);
+      window.gtag('config', GA_ID, internalTrafficParams());
     }
   };
   document.head.appendChild(script);
@@ -37,6 +39,7 @@ function loadGoogleAnalytics() {
 
 /** Call once at startup: honours a previous "Aceitar" and does nothing otherwise. */
 export function initAnalytics() {
+  isInternalTraffic(); // reads ?internal=1|0 now, so the browser is flagged even before consent is answered
   if (getAnalyticsConsent() === 'granted') loadGoogleAnalytics();
 }
 
