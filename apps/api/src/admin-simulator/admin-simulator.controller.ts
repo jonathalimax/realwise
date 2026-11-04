@@ -54,6 +54,14 @@ export class AdminSimulatorController {
     return this.chat.submitAccountForm(await this.sim.sandbox(admin.sub), id, body);
   }
 
+  /** The interview's category step: the categories the admin turned on become the sandbox user's list. */
+  @Post('messages/:id/categories-form')
+  @HttpCode(200)
+  async categoriesForm(@CurrentUser() admin: JwtPayload, @Param('id', ParseUUIDPipe) id: string, @Body() body: { names?: unknown }) {
+    const names = Array.isArray(body?.names) ? body.names.filter((n): n is string => typeof n === 'string').slice(0, 100) : [];
+    return this.chat.submitCategoriesForm(await this.sim.sandbox(admin.sub), id, names);
+  }
+
   /** Business analyst: stateless, the page sends the conversation so far. */
   @Post('ops')
   @HttpCode(200)
