@@ -16,6 +16,9 @@ export const simulatorResource = {
   accountForm(messageId, form) {
     return apiClient.post(`/admin/simulator/messages/${messageId}/account-form`, form);
   },
+  categoriesForm(messageId, form) {
+    return apiClient.post(`/admin/simulator/messages/${messageId}/categories-form`, form);
+  },
   ops(messages) {
     return apiClient.post('/admin/simulator/ops', { messages });
   },

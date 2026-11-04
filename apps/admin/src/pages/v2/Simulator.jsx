@@ -56,7 +56,7 @@ const Chips = ({ options, onPick, disabled }) => (
 
 /** Option buttons for the sheet-style questions (which account, payment method, confirmations). */
 function QuestionBlock({ message, onSubmit, disabled }) {
-  const pending = (message.questions ?? []).filter((q) => !q.answer && q.kind !== 'quick' && q.kind !== 'account_form');
+  const pending = (message.questions ?? []).filter((q) => !q.answer && q.kind !== 'quick' && q.kind !== 'account_form' && q.kind !== 'categories_form');
   const [picks, setPicks] = useState({});
   if (pending.length === 0) return null;
   const done = pending.every((q) => picks[q.id]);
@@ -82,6 +82,66 @@ function QuestionBlock({ message, onSubmit, disabled }) {
         </div>
       ))}
       <Button size="sm" variant="primary" disabled={!done || disabled} onClick={() => onSubmit(Object.values(picks))}>Enviar respostas</Button>
+    </div>
+  );
+}
+
+const CATEGORY_GROUPS = [
+  ['needs', 'Necessidades'],
+  ['wants', 'Desejos'],
+  ['savings', 'Poupança'],
+  ['income', 'Entradas'],
+];
+
+/**
+ * The interview's category step, as in the app: several categories can be on at once and the basics start on.
+ * Options carry `hint` = "<group>" or "<group>:basic". Income and expense can share a name, so picks are keyed by type + name.
+ */
+function CategoriesFormBlock({ message, onSubmit, disabled }) {
+  const q = (message.questions ?? []).find((x) => x.kind === 'categories_form' && !x.answer);
+  const items = (q?.options ?? []).map((o) => {
+    const [group, basic] = String(o.hint ?? '').split(':');
+    return { name: o.value, group, basic: basic === 'basic' };
+  });
+  const keyOf = (i) => `${i.group === 'income' ? 'in' : 'out'}:${i.name}`;
+  const [picked, setPicked] = useState(() => new Set(items.filter((i) => i.basic).map(keyOf)));
+  if (!q) return null;
+  const toggle = (i) => setPicked((prev) => {
+    const next = new Set(prev);
+    const k = keyOf(i);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    return next;
+  });
+  const names = [...new Set(items.filter((i) => picked.has(keyOf(i))).map((i) => i.name))];
+  return (
+    <div className="mt-2 space-y-3 rounded-xl border border-gray-700 p-3">
+      <div>
+        <p className="text-xs font-semibold text-gray-200">{q.title}</p>
+        {q.subtitle && <p className="text-[11px] text-gray-500">{q.subtitle}</p>}
+      </div>
+      {CATEGORY_GROUPS.map(([group, label]) => {
+        const list = items.filter((i) => i.group === group);
+        if (!list.length) return null;
+        return (
+          <div key={group}>
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-500">{label}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {list.map((i) => (
+                <button
+                  key={keyOf(i)}
+                  type="button"
+                  aria-pressed={picked.has(keyOf(i))}
+                  onClick={() => toggle(i)}
+                  className={`rounded-lg border px-2.5 py-1 text-xs ${picked.has(keyOf(i)) ? 'border-emerald-500 bg-emerald-900/40 text-emerald-200' : 'border-gray-700 text-gray-300 hover:bg-gray-800'}`}
+                >
+                  {i.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      <Button size="sm" variant="primary" disabled={disabled} onClick={() => onSubmit({ names })}>Confirmar ({picked.size})</Button>
     </div>
   );
 }
@@ -214,6 +274,7 @@ function UserSimulator() {
                       <>
                         <QuestionBlock key={m.id} message={m} disabled={busy} onSubmit={async (answers) => { const t = await run(() => simulatorResource.answer(m.id, answers)); if (t) applyTurn(t); }} />
                         <AccountFormBlock key={`${m.id}-f`} message={m} disabled={busy} onSubmit={async (form) => { const t = await run(() => simulatorResource.accountForm(m.id, form)); if (t) applyTurn(t); }} />
+                        <CategoriesFormBlock key={`${m.id}-c`} message={m} disabled={busy} onSubmit={async (form) => { const t = await run(() => simulatorResource.categoriesForm(m.id, form)); if (t) applyTurn(t); }} />
                       </>
                     )}
                   </Bubble>
