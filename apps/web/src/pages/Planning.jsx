@@ -227,7 +227,7 @@ export default function PlanningPage() {
             <section className="rw-hero rw-hero-violet flex flex-col gap-3 p-5" aria-label="Quanto ainda posso gastar">
               <span className="rw-eyebrow text-violet-300">QUANTO AINDA POSSO GASTAR</span>
               <div className="flex flex-col">
-                <span className="rw-num text-5xl font-extrabold leading-[50px]">{spendable < 0 ? '-' : ''}{money(spendable)}</span>
+                <span className={`rw-num whitespace-nowrap font-extrabold ${`${spendable < 0 ? '-' : ''}${money(spendable)}`.length > 12 ? 'text-[40px] leading-[46px]' : 'text-5xl leading-[50px]'}`}>{spendable < 0 ? '-' : ''}{money(spendable)}</span>
                 <span className="text-[15px] text-violet-100">{spendable >= 0 ? 'e você está dentro do plano' : 'acima do que o plano permite'}</span>
               </div>
               {isCurrent && perDay > 0 && <p className="text-[15px] text-violet-50">Faltam {daysLeft} dias para o mês acabar. Dá para gastar cerca de {money(perDay)} por dia.</p>}
