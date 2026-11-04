@@ -8,6 +8,7 @@ import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
 import LeadCapture from '../components/landing/LeadCapture';
+import { landingAnalytics } from '../landingAnalytics';
 import { trackLandingView } from '../landingTracking';
 import FooterSection from '../components/landing/FooterSection';
 import WhatsAppFloatingButton from '../components/landing/WhatsAppFloatingButton';
@@ -15,6 +16,7 @@ import WhatsAppFloatingButton from '../components/landing/WhatsAppFloatingButton
 export default function Home() {
   useEffect(() => {
     trackLandingView();
+    landingAnalytics.startInteractionTracking();
   }, []);
 
   return (

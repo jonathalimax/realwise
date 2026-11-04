@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, Inject, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, gte, sql } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { Request } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
@@ -11,7 +11,8 @@ import { landingEvents, leads, users } from '../db/schema';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VISITOR_RE = /^[A-Za-z0-9-]{8,64}$/;
-const EVENTS = ['view', 'cta_click'] as const;
+/** `scroll` carries the depth reached (25/50/75/100) and `section` the section name, both in `cta`. */
+const EVENTS = ['view', 'cta_click', 'scroll', 'section'] as const;
 const str = (v: unknown, max: number): string | null => {
   const s = typeof v === 'string' ? v.trim().slice(0, max) : '';
   return s || null;
@@ -39,7 +40,7 @@ export class PublicLandingController {
   @Post('event')
   @HttpCode(204)
   async event(@Body() body: Record<string, unknown>, @Req() req: Request): Promise<void> {
-    if (limited(`e:${ipOf(req)}`, 40, 60_000)) return;
+    if (limited(`e:${ipOf(req)}`, 120, 60_000)) return; // one page load can send ~15 events (scroll depths and sections), and mobile carriers share IPs
     const visitorId = str(body?.visitorId, 64);
     const event = str(body?.event, 20);
     if (!visitorId || !VISITOR_RE.test(visitorId) || !event || !(EVENTS as readonly string[]).includes(event)) return;
@@ -112,6 +113,12 @@ export class AdminLandingController {
       .groupBy(sql`1`)
       .orderBy(desc(countDistinct(landingEvents.visitorId)))
       .limit(8);
+    // Distinct visitors that reached each scroll depth / saw each section (a visitor counts once per key).
+    const reach = await this.db
+      .select({ event: landingEvents.event, key: landingEvents.cta, visitors: countDistinct(landingEvents.visitorId) })
+      .from(landingEvents)
+      .where(and(inArray(landingEvents.event, ['scroll', 'section']), gte(landingEvents.createdAt, since)))
+      .groupBy(landingEvents.event, landingEvents.cta);
     const perDay = await this.db
       .select({
         date: sql<string>`to_char(${landingEvents.createdAt} at time zone 'America/Sao_Paulo', 'YYYY-MM-DD')`,
@@ -135,6 +142,8 @@ export class AdminLandingController {
       signups: Number(signupRow?.n ?? 0),
       topCtas: topCtas.map((r) => ({ cta: r.cta, count: Number(r.n) })),
       topSources: topSources.map((r) => ({ source: r.source, visitors: Number(r.visitors) })),
+      scrollDepth: reach.filter((r) => r.event === 'scroll' && r.key).map((r) => ({ depth: Number(r.key), visitors: Number(r.visitors) })).sort((a, b) => a.depth - b.depth),
+      sections: reach.filter((r) => r.event === 'section' && r.key).map((r) => ({ section: r.key as string, visitors: Number(r.visitors) })),
       perDay: perDay.map((r) => ({ date: r.date, visitors: Number(r.visitors), clicks: Number(r.clicks) })),
     };
   }
