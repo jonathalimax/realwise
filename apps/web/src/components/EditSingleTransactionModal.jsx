@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
@@ -62,6 +62,15 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank } = useCards();
   const { addInvestment, updateInvestment, investments } = useInvestments();
 
+  // Latest context values for the populate effect, which must run only when the transaction changes
+  // (CardsContext recreates findUserBank on every render and would otherwise wipe what the person is typing).
+  const findUserBankRef = useRef(findUserBank);
+  const investmentsRef = useRef(investments);
+  useEffect(() => {
+    findUserBankRef.current = findUserBank;
+    investmentsRef.current = investments;
+  });
+
   const availableGoals = goals.filter(g => !g.completed);
   const plannerGoals = usePlannerGoals();
   const isDraftMode = Boolean(onSaveDraft);
@@ -77,14 +86,18 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       setType(transaction.type || 'expense');
       setDescription(transaction.description || '');
       setAmount(transaction.amount || 0);
-      setCategory(transaction.category || '');
+      // Both "no category" spellings mean the same thing: show the one from the current language so the select can match it.
+      const uncatNames = Object.values(UNCATEGORIZED_CATEGORY);
+      setCategory(!transaction.category || uncatNames.includes(transaction.category)
+        ? (UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt)
+        : transaction.category);
       setTransactionDate(transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0]);
       setSelectedGoalId(transaction.goalId || '');
       setSelectedPlannerGoalId(transaction.plannerGoalId || '');
       // Handle both old (bank type) and new (document ID) formats
       // Convert old format to new format by finding the user bank
       const storedAccount = transaction.accountId || transaction.bankId;
-      const userBank = storedAccount ? findUserBank(storedAccount) : null;
+      const userBank = storedAccount ? findUserBankRef.current(storedAccount) : null;
       setSelectedBankId(userBank ? userBank.id : null);
       setIsIgnored(transaction.ignored || false);
       setIsTransfer(Boolean(transaction.isTransfer));
@@ -97,7 +110,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
       // Load investment data if transaction is linked to an investment
       if (transaction.investmentId) {
-        const linkedInvestment = investments.find(inv => inv.id === transaction.investmentId);
+        const linkedInvestment = investmentsRef.current.find(inv => inv.id === transaction.investmentId);
         if (linkedInvestment) {
           setExpectedReturn((linkedInvestment.expectedReturn || 0) * 100); // Convert to percentage
           setMaturityDate(linkedInvestment.maturityDate || '');
@@ -116,7 +129,16 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         setFundName('');
       }
     }
-  }, [transaction, investments, findUserBank]);
+  }, [transaction, linkedInvestment?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cards can finish loading after the sheet opened: resolve the account then, but never over a choice the person made.
+  useEffect(() => {
+    if (!transaction || selectedBankId) return;
+    const stored = transaction.accountId || transaction.bankId;
+    const found = stored ? findUserBank(stored) : null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (found) setSelectedBankId(found.id);
+  }, [userBanks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Keep a payment method that is valid for the (new) kind of entry; otherwise fall back to the first valid one. */
   const validMethod = (current, nextType, nextTransfer) => {
@@ -493,9 +515,13 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                           const all = categories[type] || [];
                           const uncatEntry = all.find(c => c === uncatName);
                           const rest = all.filter(c => c !== uncatName).sort((a, b) => a.localeCompare(b));
+                          // A category that is not in the list (disabled, renamed, other language) must still show as itself;
+                          // otherwise the select falls back to its first option and displays a category the row never had.
+                          const orphan = category && category !== uncatName && !all.includes(category) ? category : null;
                           return (<>
+                            {orphan && <option value={orphan}>{orphan}</option>}
                             {uncatEntry && <option value={uncatEntry}>{uncatEntry}</option>}
-                            {uncatEntry && <optgroup label="──────────────" />}
+                            {(uncatEntry || orphan) && <optgroup label="──────────────" />}
                             {rest.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                           </>);
                         })()}

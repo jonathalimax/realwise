@@ -174,8 +174,12 @@ export default function PlanningPage() {
     return { count: open.length, total: open.reduce((sum, b) => sum + Number(b.amount || 0), 0) };
   }, [bills, selectedMonth]);
 
+  // Income actually received beats the configured salary: otherwise a month with extra
+  // income (bonus, side job) is budgeted against the smaller plan while its spending is all counted.
+  const planBase = Math.max(liquidezFinal, flow.income);
+
   const rows = BUCKETS.map((b) => {
-    const planned = (liquidezFinal * (monthAllocation[b.field] ?? 0)) / 100;
+    const planned = (planBase * (monthAllocation[b.field] ?? 0)) / 100;
     const used = spent[b.key]?.spent ?? 0;
     const usedPct = planned > 0 ? (used / planned) * 100 : 0;
     const left = planned - used;
