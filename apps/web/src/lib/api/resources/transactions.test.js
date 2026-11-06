@@ -10,9 +10,15 @@ describe('normalizeTransaction', () => {
       category: null,
     })).toEqual({
       id: 'tx-1',
+      bankId: null,
       amount: 1443,
       category: 'Sem categoria',
     });
+  });
+
+  it('mirrors accountId into bankId so rows from the chat show their account', () => {
+    expect(normalizeTransaction({ id: 'tx-2', amount: 1, accountId: 'acc-1' })).toMatchObject({ bankId: 'acc-1', accountId: 'acc-1' });
+    expect(normalizeTransaction({ id: 'tx-3', amount: 1, bankId: 'nubank', accountId: 'acc-1' })).toMatchObject({ bankId: 'nubank' });
   });
 });
 

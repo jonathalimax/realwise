@@ -12,6 +12,8 @@ function toNumber(value, fallback = 0) {
 export function normalizeTransaction(data) {
   return {
     ...data,
+    // Rows from the chat and transfers only carry accountId; every screen reads bankId, so mirror it.
+    bankId: data?.bankId ?? data?.accountId ?? null,
     amount: toNumber(data?.amount),
     category: data?.category ?? 'Sem categoria',
   };

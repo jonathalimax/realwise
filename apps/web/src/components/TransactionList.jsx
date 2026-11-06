@@ -68,9 +68,9 @@ export default function TransactionList({
     } else if (sortBy === 'amount') {
       compare = a.amount - b.amount;
     } else if (sortBy === 'createdAt') {
-      const dateA = a.createdAt?.toDate?.() || new Date(0);
-      const dateB = b.createdAt?.toDate?.() || new Date(0);
-      compare = dateA - dateB;
+      // The API sends ISO strings; older rows may carry a Firestore-style timestamp.
+      const toTime = (v) => (v?.toDate ? v.toDate().getTime() : v ? new Date(v).getTime() || 0 : 0);
+      compare = toTime(a.createdAt) - toTime(b.createdAt);
     }
     return sortOrder === 'asc' ? compare : -compare;
   });
@@ -107,15 +107,16 @@ export default function TransactionList({
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredTransactions.length) setSelectedIds(new Set());
+    if (filteredTransactions.length > 0 && selectedTransactions.length === filteredTransactions.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(filteredTransactions.map(t => t.id)));
   };
 
   const clearSelection = () => setSelectedIds(new Set());
 
   const selectedTransactions = filteredTransactions.filter(t => selectedIds.has(t.id));
-  const isAllSelected = filteredTransactions.length > 0 && selectedIds.size === filteredTransactions.length;
-  const hasSelection = selectedIds.size > 0;
+  // Count only rows still on screen: ids left over from a filter, search or month change must not count.
+  const isAllSelected = filteredTransactions.length > 0 && selectedTransactions.length === filteredTransactions.length;
+  const hasSelection = selectedTransactions.length > 0;
 
   const renderTransaction = (transaction) => {
     const userBank = findUserBank(transaction.bankId);
@@ -271,7 +272,7 @@ export default function TransactionList({
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    {language === 'pt' ? `Editar (${selectedIds.size})` : `Edit (${selectedIds.size})`}
+                    {language === 'pt' ? `Editar (${selectedTransactions.length})` : `Edit (${selectedTransactions.length})`}
                   </button>
                 )}
               </div>
