@@ -215,7 +215,8 @@ export default function CardsModal({ isOpen, onClose }) {
   const dayOptions = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    // z-[60]: above the bottom tab bar (z-50), otherwise the bar covers the end of the form and its Save button.
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="bg-[var(--rw-bg)] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90dvh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 bg-[var(--rw-surface)] border-b border-[var(--rw-border)]">
