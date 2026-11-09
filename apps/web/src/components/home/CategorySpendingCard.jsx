@@ -93,12 +93,11 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
 
   if (rows.length === 0) return null;
 
+  // Opens the movements already narrowed to this category. The URL carries the whole filter, and the movements screen
+  // clears every other filter before applying it, so what shows is exactly the category that was tapped.
   const goTo = (category) => {
-    sessionStorage.setItem('expenses_categoryFilter', category);
-    sessionStorage.removeItem('expenses_bankFilter');
-    sessionStorage.removeItem('expenses_paymentMethodFilter');
-    sessionStorage.setItem('expenses_viewMode', 'payment');
-    navigate('/expenses');
+    const query = new URLSearchParams({ category, type: 'expense', month: selectedMonth });
+    navigate(`/transactions?${query.toString()}`);
   };
 
   const askElioToClassify = () => {

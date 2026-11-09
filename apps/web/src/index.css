@@ -8,6 +8,10 @@
 }
 
 /* Skeleton with a light band sweeping across it (loading placeholders that must not block the page). */
+@keyframes drawerIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
 @keyframes shimmerSweep {
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
