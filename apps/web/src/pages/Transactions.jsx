@@ -10,12 +10,23 @@ import TransactionList from '../components/TransactionList';
 import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Shimmer } from '../components/ui/shimmer';
 import PageHeader from '../components/PageHeader';
+import { isUncategorized } from '../components/home/uncategorized';
 import AddTransactionSheet from '../components/AddTransactionSheet';
 import { lazy, Suspense } from 'react';
 const ExpensesChartsView = lazy(() => import('../components/expenses/ExpensesChartsView'));
 
+/**
+ * A category link (the home's category list, the charts) must open the movements with EVERY other filter cleared and only
+ * that category applied. Keying the view by the link's category remounts it with fresh state read from the URL, whether
+ * the user arrives from another screen or taps a second category while already here.
+ */
 export default function TransactionsPage() {
-  const { t, language, categories, formatCurrency } = useSettings();
+  const [searchParams] = useSearchParams();
+  return <TransactionsView key={searchParams.get('category') ?? ''} />;
+}
+
+function TransactionsView() {
+  const { t, language, formatCurrency } = useSettings();
   const { ownerId } = useAccess();
   const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
   const { selectedMonth, setSelectedMonth } = useMonth();
@@ -28,98 +39,93 @@ export default function TransactionsPage() {
   // Coming from an import summary: show only that import's rows (any month) so each one can be left out of the totals.
   const importFilter = searchParams.get('import');
 
-  // Handle month and category params from URL (for deep linking)
-  useEffect(() => {
-    const monthParam = searchParams.get('month');
-    if (monthParam && monthParam !== selectedMonth) {
-      setSelectedMonth(monthParam);
-    }
-    const categoryParam = searchParams.get('category');
-    if (categoryParam) {
-      setSelectedCategoryFilter(categoryParam);
-      setShowFilters(true); // Show filters panel when category is pre-selected
-    }
-  }, [searchParams]);
+  // Filters start from the URL: a category link means "that category, nothing else".
+  const categoryParam = searchParams.get('category');
+  const typeParam = searchParams.get('type');
   const [viewMode, setViewMode] = useState('payment');
   const [selectedBankFilter, setSelectedBankFilter] = useState('all');
   const [selectedPaymentMethodFilter, setSelectedPaymentMethodFilter] = useState('all');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(() => (categoryParam && !isUncategorized(categoryParam) ? categoryParam : 'all'));
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [showFilters, setShowFilters] = useState(false);
-  const [showUncategorized, setShowUncategorized] = useState(false);
-  const [typeFilter, setTypeFilter] = useState(() => (['income', 'expense'].includes(searchParams.get('type')) ? searchParams.get('type') : 'all'));
+  const [showFilters, setShowFilters] = useState(Boolean(categoryParam));
+  const [showUncategorized, setShowUncategorized] = useState(Boolean(categoryParam) && isUncategorized(categoryParam));
+  const [typeFilter, setTypeFilter] = useState(['income', 'expense'].includes(typeParam) ? typeParam : 'all');
   const [showAdd, setShowAdd] = useState(false);
   const [displayMode, setDisplayMode] = useState('list');
 
+  // The month is shared app-wide (MonthContext), so a deep link only has to select it.
+  const monthParam = searchParams.get('month');
+  useEffect(() => {
+    if (monthParam) setSelectedMonth(monthParam);
+  }, [monthParam, setSelectedMonth]);
+
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
+  const pt = language === 'pt';
 
-  const monthlyTransactions = useMemo(() => {
-    if (!selectedMonth) return transactions;
+  const isUncat = (t) => !t.ignored && isUncategorized(t.category);
+  const bankMatch = (t, id) => {
+    if (id === 'all') return true;
+    if (id === 'cash') return !t.bankId;
+    return t.bankId === id || findUserBank(t.bankId)?.id === id;
+  };
+  const paymentMatch = (t, method) => {
+    if (method === 'all') return true;
+    if (method === 'cash') return !t.bankId;
+    return (t.paymentMethod || 'credit') === method && Boolean(t.bankId);
+  };
 
-    return transactions.filter(t => {
-      if (selectedBankFilter !== 'all') {
-        if (selectedBankFilter === 'cash') {
-          if (t.bankId) return false;
-        } else {
-          const matchesDirectly = t.bankId === selectedBankFilter;
-          const transactionUserBank = findUserBank(t.bankId);
-          const matchesViaLookup = transactionUserBank && transactionUserBank.id === selectedBankFilter;
-
-          if (!matchesDirectly && !matchesViaLookup) return false;
-        }
-      }
-
-      if (selectedPaymentMethodFilter !== 'all') {
-        if (selectedPaymentMethodFilter === 'cash') {
-          if (t.bankId) return false;
-        } else {
-          const method = t.paymentMethod || 'credit';
-          if (method !== selectedPaymentMethodFilter) return false;
-          if (!t.bankId) return false;
-        }
-      }
-
+  // One place decides what each filter lets through. `scope(skip)` is "everything the user picked EXCEPT these
+  // filters", which gives the list itself (skip nothing) and the per-option counts (skip the filter being counted).
+  const scope = useMemo(() => {
+    const inMonth = (t) => {
       const date = new Date(t.date);
-      const transactionMonthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (viewMode === 'purchase') return key === selectedMonth;
+      if (t.type === 'income' || t.investmentId) return key === selectedMonth;
+      return getPaymentMonthKey(t.date, t.bankId, t.paymentMethod) === selectedMonth;
+    };
+    const tests = {
+      bank: (t) => bankMatch(t, selectedBankFilter),
+      payment: (t) => paymentMatch(t, selectedPaymentMethodFilter),
+      category: (t) => (showUncategorized ? isUncat(t) : selectedCategoryFilter === 'all' || t.category === selectedCategoryFilter),
+      type: (t) => typeFilter === 'all' || t.type === typeFilter,
+    };
+    return (skip = []) => {
+      // Coming from an import summary: that import's rows only (any month), so each can be left out of the totals.
+      if (importFilter) return transactions.filter((t) => t.importId === importFilter && (skip.includes('type') || tests.type(t)));
+      return transactions.filter((t) => (!selectedMonth || inMonth(t)) && Object.keys(tests).every((k) => skip.includes(k) || tests[k](t)));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions, importFilter, selectedMonth, viewMode, selectedBankFilter, selectedPaymentMethodFilter, selectedCategoryFilter, showUncategorized, typeFilter, findUserBank, getPaymentMonthKey]);
 
-      if (viewMode === 'purchase') {
-        return transactionMonthKey === selectedMonth;
-      } else {
-        if (t.type === 'income') {
-          return transactionMonthKey === selectedMonth;
-        }
-        if (t.investmentId) {
-          return transactionMonthKey === selectedMonth;
-        }
-        const paymentKey = getPaymentMonthKey(t.date, t.bankId, t.paymentMethod);
-        return paymentKey === selectedMonth;
-      }
-    });
-  }, [transactions, selectedMonth, viewMode, selectedBankFilter, selectedPaymentMethodFilter, findUserBank, getPaymentMonthKey]);
+  const filteredTransactions = useMemo(() => scope(), [scope]);
+  const typeScope = useMemo(() => scope(['type']), [scope]);
+  const categoryScope = useMemo(() => scope(['category']), [scope]);
+  const bankScope = useMemo(() => scope(['bank']), [scope]);
+  const paymentScope = useMemo(() => scope(['payment']), [scope]);
 
-  const filteredTransactions = useMemo(() => {
-    if (importFilter) {
-      return transactions.filter(t => t.importId === importFilter && (typeFilter === 'all' || t.type === typeFilter));
-    }
-    let result = typeFilter === 'all' ? monthlyTransactions : monthlyTransactions.filter(t => t.type === typeFilter);
-    if (showUncategorized) {
-      result = result.filter(t => t.category === 'Sem categoria');
-    } else if (selectedCategoryFilter !== 'all') {
-      result = result.filter(t => t.category === selectedCategoryFilter);
-    }
-    return result;
-  }, [monthlyTransactions, transactions, importFilter, selectedCategoryFilter, showUncategorized, typeFilter]);
-
-  const totals = useMemo(() => {
+  const sumOf = (list) => {
     let income = 0;
     let expense = 0;
-    for (const t of monthlyTransactions) {
+    let incomeCount = 0;
+    let expenseCount = 0;
+    for (const t of list) {
+      if (t.type === 'income') incomeCount += 1; else if (t.type === 'expense') expenseCount += 1;
       if (t.ignored) continue;
       if (t.type === 'income') income += t.amount; else if (t.type === 'expense') expense += t.amount;
     }
-    return { income, expense, net: income - expense };
-  }, [monthlyTransactions]);
+    return { income, expense, net: income - expense, incomeCount, expenseCount };
+  };
+  // The summary follows the filtered list: with nothing picked it is the whole month, with a category/bank/type it is
+  // only those items.
+  const totals = useMemo(() => sumOf(filteredTransactions), [filteredTransactions]);
+  const typeCounts = useMemo(() => ({ all: typeScope.length, income: typeScope.filter((t) => t.type === 'income').length, expense: typeScope.filter((t) => t.type === 'expense').length }), [typeScope]);
+  const categoryCounts = useMemo(() => {
+    const m = new Map();
+    for (const t of categoryScope) m.set(t.category, (m.get(t.category) || 0) + 1);
+    return m;
+  }, [categoryScope]);
 
   const availableCategories = useMemo(() => {
     const cats = new Set();
@@ -149,9 +155,7 @@ export default function TransactionsPage() {
     return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   };
 
-  const uncategorizedCount = useMemo(() => {
-    return monthlyTransactions.filter(t => t.category === 'Sem categoria').length;
-  }, [monthlyTransactions]);
+  const uncategorizedCount = useMemo(() => categoryScope.filter(isUncat).length, [categoryScope]);
 
   const activeFiltersCount = [
     viewMode !== 'payment',
@@ -160,6 +164,24 @@ export default function TransactionsPage() {
     selectedCategoryFilter !== 'all',
     showUncategorized
   ].filter(Boolean).length;
+
+  const PAYMENT_LABELS = { credit: pt ? 'Crédito' : 'Credit', debit: pt ? 'Débito' : 'Debit', pix: 'PIX', transfer: pt ? 'Transferência' : 'Transfer', cash: pt ? 'Dinheiro' : 'Cash' };
+  const filterLabels = [];
+  if (importFilter) filterLabels.push(pt ? 'Importação' : 'Import');
+  if (showUncategorized) filterLabels.push(pt ? 'Sem categoria' : 'Uncategorized');
+  else if (selectedCategoryFilter !== 'all') filterLabels.push(selectedCategoryFilter);
+  if (selectedBankFilter !== 'all') filterLabels.push(selectedBankFilter === 'cash' ? (pt ? 'Dinheiro' : 'Cash') : availableBanks.find((b) => b.id === selectedBankFilter)?.name ?? '');
+  if (selectedPaymentMethodFilter !== 'all') filterLabels.push(PAYMENT_LABELS[selectedPaymentMethodFilter] ?? selectedPaymentMethodFilter);
+  if (typeFilter !== 'all') filterLabels.push(typeFilter === 'income' ? (pt ? 'Entradas' : 'In') : (pt ? 'Saídas' : 'Out'));
+  const money = (v) => formatCurrency(v).replace(/,00(?=\D*$)/, '');
+  const headline = typeFilter === 'income' ? money(totals.income) : typeFilter === 'expense' ? money(totals.expense) : `${totals.net >= 0 ? '+ ' : '- '}${money(Math.abs(totals.net))}`;
+  const headlineNote = typeFilter === 'income'
+    ? (pt ? 'recebidos' : 'received')
+    : typeFilter === 'expense'
+      ? (pt ? 'gastos' : 'spent')
+      : totals.net >= 0
+        ? (pt ? 'entrou mais do que saiu' : 'more came in than went out')
+        : (pt ? 'saiu mais do que entrou' : 'more went out than came in');
 
   const triggerRefresh = () => {};
 
@@ -196,21 +218,35 @@ export default function TransactionsPage() {
             </button>
           </div>
         )}
-        <section className="rw-hero rw-hero-violet flex flex-col gap-1 p-5 mb-3" aria-label={language === 'pt' ? 'Total do mês' : 'Month total'}>
-          <span className="rw-eyebrow text-violet-300">{getMonthLabel(selectedMonth).toUpperCase()}</span>
-          <span className="rw-num text-[44px] font-extrabold leading-[48px]">{totals.net >= 0 ? '+ ' : '- '}{formatCurrency(Math.abs(totals.net)).replace(/,00(?=\D*$)/, '')}</span>
-          <span className="text-[15px] text-violet-100">
-            {totals.net >= 0
-              ? (language === 'pt' ? 'entrou mais do que saiu neste mês' : 'more came in than went out this month')
-              : (language === 'pt' ? 'saiu mais do que entrou neste mês' : 'more went out than came in this month')}
+        <section className="rw-hero rw-hero-violet flex flex-col gap-1 p-5 mb-3" aria-label={pt ? 'Resumo' : 'Summary'}>
+          <span className="rw-eyebrow text-violet-300">
+            {getMonthLabel(selectedMonth).toUpperCase()}
+            {filterLabels.length > 0 && ` · ${pt ? 'FILTRADO' : 'FILTERED'}`}
           </span>
+          {filterLabels.length > 0 && <span className="text-[13px] font-semibold text-violet-100">{filterLabels.join(' · ')}</span>}
+          <span className="rw-num text-[44px] font-extrabold leading-[48px]">{headline}</span>
+          <span className="text-[15px] text-violet-100">
+            {headlineNote} · {filteredTransactions.length} {pt ? (filteredTransactions.length === 1 ? 'movimento' : 'movimentos') : (filteredTransactions.length === 1 ? 'entry' : 'entries')}
+          </span>
+          {typeFilter === 'all' && (
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-white/10 pt-3">
+              <div>
+                <span className="block text-xs font-semibold text-violet-200">{pt ? 'Entradas' : 'In'} · {totals.incomeCount}</span>
+                <span className="rw-num text-lg font-bold text-emerald-300">{money(totals.income)}</span>
+              </div>
+              <div>
+                <span className="block text-xs font-semibold text-violet-200">{pt ? 'Saídas' : 'Out'} · {totals.expenseCount}</span>
+                <span className="rw-num text-lg font-bold text-rose-300">{money(totals.expense)}</span>
+              </div>
+            </div>
+          )}
         </section>
 
-        <div className="flex p-[3px] gap-0.5 rounded-[14px] bg-[var(--rw-raised)] mb-3" role="tablist" aria-label={language === 'pt' ? 'Filtrar por tipo' : 'Filter by type'}>
-          {[['all', language === 'pt' ? 'Tudo' : 'All'], ['income', language === 'pt' ? 'Entradas' : 'In'], ['expense', language === 'pt' ? 'Saídas' : 'Out']].map(([key, label]) => (
+        <div className="flex p-[3px] gap-0.5 rounded-[14px] bg-[var(--rw-raised)] mb-3" role="tablist" aria-label={pt ? 'Filtrar por tipo' : 'Filter by type'}>
+          {[['all', pt ? 'Tudo' : 'All'], ['income', pt ? 'Entradas' : 'In'], ['expense', pt ? 'Saídas' : 'Out']].map(([key, label]) => (
             <button key={key} role="tab" aria-selected={typeFilter === key} onClick={() => setTypeFilter(key)}
               className={`flex-1 h-[38px] rounded-[11px] text-sm font-semibold ${typeFilter === key ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>
-              {label}
+              {label} <span className="tabular-nums opacity-70">· {typeCounts[key]}</span>
             </button>
           ))}
         </div>
@@ -317,11 +353,11 @@ export default function TransactionsPage() {
                   onChange={(e) => setSelectedBankFilter(e.target.value)}
                   className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
-                  <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'}</option>
-                  <option value="cash">{language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'}</option>
+                  <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'} ({bankScope.length})</option>
+                  <option value="cash">{language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'} ({bankScope.filter((t) => bankMatch(t, 'cash')).length})</option>
                   {availableBanks.map(bank => (
                     <option key={bank.id} value={bank.id}>
-                      {bank.icon} {bank.name}
+                      {bank.icon} {bank.name} ({bankScope.filter((t) => bankMatch(t, bank.id)).length})
                     </option>
                   ))}
                 </select>
@@ -337,12 +373,10 @@ export default function TransactionsPage() {
                   onChange={(e) => setSelectedPaymentMethodFilter(e.target.value)}
                   className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
-                  <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
-                  <option value="credit">{language === 'pt' ? '💳 Crédito' : '💳 Credit'}</option>
-                  <option value="debit">{language === 'pt' ? '🏦 Débito' : '🏦 Debit'}</option>
-                  <option value="pix">⚡ PIX</option>
-                  <option value="transfer">{language === 'pt' ? '↔️ Transferência' : '↔️ Transfer'}</option>
-                  <option value="cash">{language === 'pt' ? '💵 Dinheiro' : '💵 Cash'}</option>
+                  <option value="all">{language === 'pt' ? 'Todos' : 'All'} ({paymentScope.length})</option>
+                  {[['credit', '💳 ' + PAYMENT_LABELS.credit], ['debit', '🏦 ' + PAYMENT_LABELS.debit], ['pix', '⚡ PIX'], ['transfer', '↔️ ' + PAYMENT_LABELS.transfer], ['cash', '💵 ' + PAYMENT_LABELS.cash]].map(([value, label]) => (
+                    <option key={value} value={value}>{label} ({paymentScope.filter((t) => paymentMatch(t, value)).length})</option>
+                  ))}
                 </select>
               </div>
 
@@ -361,9 +395,9 @@ export default function TransactionsPage() {
                         : 'bg-[var(--rw-raised)] border-[var(--rw-border)] text-[var(--rw-ink)]'
                     }`}
                   >
-                    <option value="all">{language === 'pt' ? 'Todas' : 'All'}</option>
+                    <option value="all">{language === 'pt' ? 'Todas' : 'All'} ({categoryScope.length})</option>
                     {availableCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat} value={cat}>{cat} ({categoryCounts.get(cat) || 0})</option>
                     ))}
                   </select>
                   {selectedCategoryFilter !== 'all' && (
@@ -453,7 +487,7 @@ export default function TransactionsPage() {
         type="button"
         onClick={() => setShowAdd(true)}
         aria-label={language === 'pt' ? 'Adicionar movimento' : 'Add entry'}
-        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--rw-brand)] text-white shadow-lg shadow-black/30 active:scale-95 bottom-[calc(88px+env(safe-area-inset-bottom))] lg:bottom-6"
+        className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--rw-brand)] text-white shadow-lg shadow-black/30 active:scale-95 bottom-[calc(24px+env(safe-area-inset-bottom))]"
       >
         <PlusIcon className="h-7 w-7" />
       </button>

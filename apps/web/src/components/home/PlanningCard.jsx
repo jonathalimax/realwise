@@ -65,11 +65,7 @@ export default function PlanningCard({ transactions, selectedMonth }) {
   }
 
   const goUncategorized = () => {
-    sessionStorage.setItem('expenses_categoryFilter', pt ? 'Sem categoria' : 'Uncategorized');
-    sessionStorage.removeItem('expenses_bankFilter');
-    sessionStorage.removeItem('expenses_paymentMethodFilter');
-    sessionStorage.setItem('expenses_viewMode', 'payment');
-    navigate('/expenses');
+    navigate(`/transactions?${new URLSearchParams({ category: pt ? 'Sem categoria' : 'Uncategorized', type: 'expense', month: selectedMonth })}`);
   };
 
   const rows = model.groups.map((g) => {

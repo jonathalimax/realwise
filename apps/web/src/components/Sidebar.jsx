@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { PlanBadge } from './billing/PlanBadge';
 import { logoutAndRedirect } from '../lib/auth/logout';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useFeature } from '../contexts/ClientConfigContext';
+import { useNavDrawer } from '../contexts/NavDrawerContext';
 import {
   HomeIcon,
   BanknotesIcon,
@@ -155,24 +156,27 @@ export default function Sidebar() {
   const { currentUser } = useAccess();
   const hasInvestments = useFeature('investments');
 
+  // The chat is the home: it comes first and opens by default. Then what to look at, then what to set up.
   const navigationGroups = useMemo(() => [
     {
-      label: 'Follow',
-      labelPt: 'Acompanhar',
+      items: [{ name: 'Chat with Elio', namePt: 'Conversar com o Elio', href: '/chat', icon: SparklesIcon }],
+    },
+    {
+      label: 'View',
+      labelPt: 'Visualizar',
       items: [
-        { name: 'Home', namePt: 'Início', href: '/dashboard', icon: HomeIcon },
-        { name: 'Activity', namePt: 'Movimentos', href: '/transactions', icon: ArrowTrendingUpIcon },
-        { name: 'Elio', namePt: 'Elio', href: '/chat', icon: SparklesIcon },
-        { name: 'Bills', namePt: 'Contas', href: '/bills', icon: BellIcon }
+        { name: 'Dashboard', namePt: 'Painel', href: '/dashboard', icon: HomeIcon },
+        { name: 'Transactions', namePt: 'Movimentos', href: '/transactions', icon: ArrowTrendingUpIcon },
       ],
     },
     {
-      label: 'Plan',
-      labelPt: 'Planejar',
+      label: 'Set up',
+      labelPt: 'Configurar',
       items: [
-        { name: 'Budget', namePt: 'Orçamento', href: '/planning', icon: ChartPieIcon },
+        { name: 'Planning', namePt: 'Planejamento', href: '/planning', icon: ChartPieIcon },
+        { name: 'Bills', namePt: 'Contas a pagar', href: '/bills', icon: BellIcon },
+        { name: 'Accounts', namePt: 'Contas bancárias', href: '/banks', icon: BuildingLibraryIcon },
         ...(hasInvestments ? [{ name: 'Investments', namePt: 'Investimentos', href: '/investments', icon: CalendarDaysIcon }] : []),
-        { name: 'Banks', namePt: 'Bancos', href: '/banks', icon: BuildingLibraryIcon },
       ],
     },
   ], [hasInvestments]);
@@ -188,12 +192,48 @@ export default function Sidebar() {
     currentUser,
   };
 
+  const { open, closeDrawer } = useNavDrawer();
+  const { pathname } = useLocation();
+
+  // Mobile drawer: closes on Escape and whenever the route changes, and freezes the page behind it while open.
+  useEffect(() => {
+    closeDrawer();
+  }, [pathname, closeDrawer]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') closeDrawer(); };
+    document.addEventListener('keydown', onKey);
+    const root = document.documentElement.style;
+    const body = document.body.style;
+    const previous = { root: root.overflow, body: body.overflow };
+    root.overflow = 'hidden';
+    body.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      root.overflow = previous.root;
+      body.overflow = previous.body;
+    };
+  }, [open, closeDrawer]);
+
   return (
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-40 w-64 bg-[var(--rw-surface)] border-r border-gray-100 dark:border-gray-800">
         <SidebarContent {...sharedProps} mobileClose={null} />
       </aside>
+
+      {/* Mobile drawer (hamburger) */}
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label={language === 'pt' ? 'Menu' : 'Menu'}>
+          <div className="absolute inset-0 bg-black/50 animate-[fadeIn_200ms_ease-out]" onClick={closeDrawer} />
+          <aside
+            className="absolute inset-y-0 left-0 w-[84%] max-w-[320px] bg-[var(--rw-surface)] shadow-2xl animate-[drawerIn_220ms_ease-out]"
+            style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+          >
+            <SidebarContent {...sharedProps} mobileClose={closeDrawer} />
+          </aside>
+        </div>
+      )}
     </>
   );
 }

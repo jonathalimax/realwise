@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMonth } from '../contexts/MonthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { useNavDrawer } from '../contexts/NavDrawerContext';
+import { ArrowLeftIcon, Bars3Icon } from '@heroicons/react/24/outline';
 
 const getNow = () => new Date();
 const getCurrentMonthKey = () => {
@@ -69,6 +70,7 @@ function CompactMonthNav({ selectedMonth, onMonthChange, locale }) {
 export default function PageHeader({ title, showMonth = true, right, backTo }) {
   const { selectedMonth, setSelectedMonth } = useMonth();
   const { language, t } = useSettings();
+  const { openDrawer } = useNavDrawer();
   const location = useLocation();
   const navigate = useNavigate();
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -77,13 +79,10 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
   const pathParts = location.pathname.split('/').filter(Boolean);
   
   // Logic to determine if we should show a back button instead of hamburger
-  // The chat hides the tab bar (it has its own composer), so it always gets a way back.
-  const isChat = pathParts[pathParts.length - 1] === 'chat';
-  const isNestedRoute = isChat || pathParts.length > 1 && !['dashboard', 'income', 'expenses', 'bills', 'cards', 'planning', 'budget', 'goals', 'import', 'help', 'settings'].includes(pathParts[pathParts.length - 1]);
+  const isNestedRoute = pathParts.length > 1 && !['dashboard', 'income', 'expenses', 'bills', 'cards', 'planning', 'budget', 'goals', 'import', 'help', 'settings'].includes(pathParts[pathParts.length - 1]);
 
   const handleBack = () => {
     if (backTo) navigate(backTo);
-    else if (isChat) navigate('/dashboard');
     else navigate(-1);
   };
 
@@ -109,7 +108,7 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
               </button>
             </div>
           ) : (
-            /* Mobile: history back on nested screens. Main places live in the bottom tab bar. */
+            /* Mobile: history back on nested screens; on main screens the hamburger opens the navigation drawer. */
             isNestedRoute ? (
               <div className="lg:hidden flex-shrink-0 z-10">
                 <button
@@ -121,7 +120,18 @@ export default function PageHeader({ title, showMonth = true, right, backTo }) {
                   <ArrowLeftIcon className="w-6 h-6" />
                 </button>
               </div>
-            ) : null
+            ) : (
+              <div className="lg:hidden flex-shrink-0 z-10">
+                <button
+                  type="button"
+                  onClick={openDrawer}
+                  className="p-2 -ml-2 text-[var(--rw-ink)] hover:bg-[var(--rw-raised)] rounded-xl transition-colors"
+                  aria-label={language === 'pt' ? 'Abrir menu' : 'Open menu'}
+                >
+                  <Bars3Icon className="w-6 h-6" />
+                </button>
+              </div>
+            )
           )}
 
           <h1 className="flex-1 min-w-0 ml-2 sm:ml-3 truncate text-left sm:flex-1 text-2xl font-bold tracking-tight text-[var(--rw-ink)]">

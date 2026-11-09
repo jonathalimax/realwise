@@ -28,6 +28,11 @@
     <meta name="twitter:title" content="Realwise: diga seus objetivos e o Elio cuida do resto" />
     <meta name="twitter:image" content="https://realwise.com.br/landing/og-image.jpg" />
     <script>
+      // Apply the saved theme before anything paints, so screens that render ahead of the settings (the welcome loader)
+      // follow dark mode instead of flashing light. Same key SettingsContext writes.
+      try { if (localStorage.getItem('realwise:darkMode') === 'true') document.documentElement.classList.add('dark'); } catch (e) {}
+    </script>
+    <script>
       // Boot safety net. A phone can wake an installed app on a page whose script files no longer exist (new deploy),
       // which shows a blank screen. If a module fails to load, or nothing rendered after 8s, drop the old caches and
       // reload once (the guard stops a loop; main.jsx clears it after a healthy start).

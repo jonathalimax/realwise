@@ -825,7 +825,7 @@ export default function ChatPage() {
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
     >
-      <PageHeader title={pt ? 'Assistente IA' : 'AI Assistant'} />
+      <PageHeader title={pt ? 'Assistente IA' : 'AI Assistant'} showMonth={false} />
 
       {previewFile && <FilePreview file={previewFile} language={language} onClose={() => setPreviewFile(null)} />}
 

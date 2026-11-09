@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Lottie from 'lottie-react';
 import { pickMessageIndex } from './LoginLoader.timing';
 import animationData from '../assets/login-loader.json';
@@ -10,13 +10,17 @@ const MESSAGES = [
   'Quase lá...',
 ];
 const ROTATE_INTERVAL_MS = 2200;
-const MIN_DISPLAY_MS = 800;
-const FALLBACK_EXTRA_MS = 1500;
+// The "welcome" animation is 493 frames at 60fps; played at ANIMATION_SPEED it lasts ~4.1s. It plays once, start to
+// finish, and the screen only moves on after it ended (it used to leave after ~2.3s, cutting it in half).
+const ANIMATION_SPEED = 2;
+const ANIMATION_MS = Math.round((493 / 60 / ANIMATION_SPEED) * 1000);
+const ANIMATION_FALLBACK_MS = ANIMATION_MS + 500;
 const MAX_DISPLAY_MS = 8000;
 
 export default function LoginLoader({ isReady, onFinished, onTimeout }) {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [timedOut, setTimedOut] = useState(false);
+  const [animationDone, setAnimationDone] = useState(false);
   const startRef = useRef(null);
   const firedRef = useRef(false);
 
@@ -34,22 +38,24 @@ export default function LoginLoader({ isReady, onFinished, onTimeout }) {
     };
   }, [onTimeout]);
 
-  // Deterministic fallback: once isReady flips true, guarantee onFinished
-  // fires even if Lottie's onLoopComplete never does (backgrounded tab, etc.).
-  // Waits for the 800ms minimum hold to elapse, plus a 1500ms buffer to give
-  // a loop boundary a chance to land naturally.
+  const finish = useCallback(() => {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    onFinished?.();
+  }, [onFinished]);
+
+  // Leave once the data is ready AND the animation reached its end.
+  useEffect(() => {
+    if (isReady && animationDone) finish();
+  }, [isReady, animationDone, finish]);
+
+  // Deterministic fallback in case Lottie's onComplete never fires (backgrounded tab, etc.).
   useEffect(() => {
     if (!isReady) return undefined;
-    const now = performance.now();
-    const elapsed = startRef.current != null ? now - startRef.current : 0;
-    const delay = Math.max(MIN_DISPLAY_MS - elapsed, 0) + FALLBACK_EXTRA_MS;
-    const id = setTimeout(() => {
-      if (firedRef.current) return;
-      firedRef.current = true;
-      onFinished?.();
-    }, delay);
+    const elapsed = startRef.current != null ? performance.now() - startRef.current : 0;
+    const id = setTimeout(finish, Math.max(ANIMATION_FALLBACK_MS - elapsed, 0));
     return () => clearTimeout(id);
-  }, [isReady, onFinished]);
+  }, [isReady, finish]);
 
   const messageIndex = pickMessageIndex({
     elapsedMs,
@@ -65,14 +71,9 @@ export default function LoginLoader({ isReady, onFinished, onTimeout }) {
         <div className="w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center">
           <Lottie
             animationData={animationData}
-            loop={true}
-            speed={2}
-            onLoopComplete={() => {
-              if (isReady && elapsedMs >= MIN_DISPLAY_MS && !firedRef.current) {
-                firedRef.current = true;
-                onFinished?.();
-              }
-            }}
+            loop={false}
+            speed={ANIMATION_SPEED}
+            onComplete={() => setAnimationDone(true)}
           />
         </div>
         <p

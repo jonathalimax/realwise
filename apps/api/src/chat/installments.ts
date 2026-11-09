@@ -62,6 +62,52 @@ export function installmentGroupId(userId: string, accountId: string, descriptio
   return createHash('sha1').update(key).digest('hex').slice(0, 32);
 }
 
+const monthIndex = (iso: string) => {
+  const [y, m] = iso.split('-').map(Number);
+  return y * 12 + (m - 1);
+};
+
+/** Same merchant even when the model wrote the name a little differently ("MULTI" vs "MULTI SERVICOS"). */
+const samePattern = (a: string, b: string) => a === b || (a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a)));
+
+export interface ExistingInstallment {
+  groupId: string | null;
+  description: string;
+  amount: string | number;
+  current: number | null;
+  total: number | null;
+  date: string;
+  auto: boolean;
+}
+
+/**
+ * Finds the plan an incoming installment line already belongs to, so a re-sent or re-read statement never starts a
+ * second copy of it. installmentGroupId() alone is exact: if the model reports a different statement month (closing vs
+ * due month) or the invoice date lands one month off, it computes a different "first month" and the same parcel is
+ * created again. So before trusting it, look for a saved plan with the same merchant, total and amount:
+ *   1. the same first month, or
+ *   2. the same installment number already saved as a real (not projected) row within one month of this charge.
+ */
+export function findExistingPlanGroup(
+  existing: ExistingInstallment[],
+  info: InstallmentInfo,
+  description: string,
+  amount: number,
+  chargeDate: string,
+): string | null {
+  const pattern = extractPattern(cleanInstallmentDescription(description));
+  const first = monthIndex(chargeDate) - (info.current - 1);
+  let near: string | null = null;
+  for (const e of existing) {
+    if (!e.groupId || e.current == null || e.total !== info.total) continue;
+    if (Math.abs(Number(e.amount) - amount) > 0.05) continue;
+    if (!samePattern(extractPattern(cleanInstallmentDescription(e.description)), pattern)) continue;
+    if (monthIndex(e.date) - (e.current - 1) === first) return e.groupId;
+    if (!near && !e.auto && e.current === info.current && Math.abs(monthIndex(e.date) - monthIndex(chargeDate)) <= 1) near = e.groupId;
+  }
+  return near;
+}
+
 export const installmentHash = (groupId: string, current: number) => `inst:${groupId}:${current}`;
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
