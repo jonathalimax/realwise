@@ -103,7 +103,7 @@ function AuthenticatedApp() {
                           <PostLoginRedirect>
                           <Routes>
                             <Route element={<Layout />}>
-                              <Route index element={<Navigate to="/dashboard" replace />} />
+                              <Route index element={<Navigate to="/chat" replace />} />
                               <Route path="dashboard" element={<DashboardPage />} />
                               <Route path="planner" element={<Navigate to="../planning" replace />} />
                               <Route path="planning" element={<PlanningPage />} />
@@ -133,7 +133,7 @@ function AuthenticatedApp() {
                               <Route path="investments/:id/edit" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
                               <Route path="investments/:id/withdraw" element={hasInvestments ? <InvestmentForm /> : <Navigate to="/dashboard" replace />} />
                             </Route>
-                            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                            <Route path="*" element={<Navigate to="/chat" replace />} />
                           </Routes>
                           </PostLoginRedirect>
                         </Suspense>

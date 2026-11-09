@@ -28,7 +28,7 @@ export default function LoadingPage() {
     <LoginLoader
       isReady={isReady}
       onFinished={() => {
-        navigate('/dashboard', { replace: true });
+        navigate('/chat', { replace: true });
       }}
     />
   );

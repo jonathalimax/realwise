@@ -98,7 +98,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-[var(--rw-bg)]">
-      <PageHeader title="Assinatura" />
+      <PageHeader title="Assinatura" showMonth={false} />
       <main className="mx-auto max-w-xl space-y-4 px-4 py-6">
         <section className="rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-600 p-6 text-white shadow-xl shadow-violet-600/20">
           <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-200">

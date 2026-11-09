@@ -18,11 +18,7 @@ export default function RastreamentoTab({ selectedMonth }) {
   }), [allTx, selectedMonth, getPaymentMonthKey]);
 
   const handleCategoryClick = (category) => {
-    sessionStorage.setItem('expenses_categoryFilter', category);
-    sessionStorage.removeItem('expenses_bankFilter');
-    sessionStorage.removeItem('expenses_paymentMethodFilter');
-    sessionStorage.setItem('expenses_viewMode', 'payment');
-    navigate('/expenses');
+    navigate(`/transactions?${new URLSearchParams({ category, type: 'expense' })}`);
   };
 
   if (loading) {

@@ -1,6 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 
+// On iOS, index.css makes <body> the scroll container (window.scrollY stays 0), elsewhere the window scrolls. Read and
+// write every candidate so "scroll to top" works on both; scrolling only `window` left iOS screens halfway down.
+const scrollers = () => [document.scrollingElement, document.documentElement, document.body].filter(Boolean);
+const currentTop = () => Math.max(window.scrollY, ...scrollers().map((el) => el.scrollTop));
+const scrollRoom = () => Math.max(...scrollers().map((el) => el.scrollHeight - el.clientHeight));
+const scrollToY = (y) => {
+  window.scrollTo(0, y);
+  scrollers().forEach((el) => { el.scrollTop = y; });
+};
+
 // Where each history entry was scrolled to. Keyed by location.key so the same page opened twice keeps separate spots.
 const positions = new Map();
 
@@ -21,10 +31,11 @@ export default function ScrollManager() {
     let frame = 0;
     const onScroll = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => positions.set(keyRef.current, window.scrollY));
+      frame = requestAnimationFrame(() => positions.set(keyRef.current, currentTop()));
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame); };
+    // Capture phase: a scroll on <body> does not bubble to window.
+    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () => { document.removeEventListener('scroll', onScroll, { capture: true }); cancelAnimationFrame(frame); };
   }, []);
 
   useEffect(() => {
@@ -34,14 +45,19 @@ export default function ScrollManager() {
     if (samePath && type !== 'POP') return undefined;
 
     const target = type === 'POP' ? positions.get(key) ?? 0 : 0;
-    if (target === 0) { window.scrollTo(0, 0); return undefined; }
+    if (target === 0) {
+      scrollToY(0);
+      // A lazy screen mounts a frame later; make sure nothing it renders (or iOS) left the page offset.
+      const frame0 = requestAnimationFrame(() => { if (currentTop() !== 0) scrollToY(0); });
+      return () => cancelAnimationFrame(frame0);
+    }
 
     // Pages fill in after their data loads, so wait (briefly) until the document is tall enough to scroll there.
     const start = performance.now();
     let frame = 0;
     const tryRestore = () => {
-      const tall = document.documentElement.scrollHeight - window.innerHeight >= target;
-      if (tall || performance.now() - start > 800) { window.scrollTo(0, target); return; }
+      const tall = scrollRoom() >= target;
+      if (tall || performance.now() - start > 800) { scrollToY(target); return; }
       frame = requestAnimationFrame(tryRestore);
     };
     tryRestore();

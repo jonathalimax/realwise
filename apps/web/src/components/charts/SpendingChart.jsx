@@ -55,8 +55,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
       onCategoryClick(category);
       return;
     }
-    sessionStorage.setItem('expenses_categoryFilter', category);
-    navigate('/expenses');
+    navigate(`/transactions?${new URLSearchParams({ category, type, month })}`);
   };
 
   const templateBudget = getTemplateBudget();
