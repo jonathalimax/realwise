@@ -163,6 +163,73 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     },
   },
   {
+    name: 'save_payslip',
+    description:
+      "Fill the user's planner income from a payslip (holerite/contracheque) or from the salary figures they typed: gross salary, payroll deductions and benefits, for the CURRENT month. Read every line of the payslip: each 'desconto' (INSS, IRRF, plano de saúde, vale-transporte descontado...) goes in deductions, each benefit paid on top of the salary (vale-refeição, vale-alimentação...) goes in benefits. Replaces the income of the current month (the user's category limits and group split are kept). Call it only after the user sent the payslip or stated the numbers.",
+    parameters: {
+      type: 'object',
+      properties: {
+        grossSalary: { type: 'number', description: 'Gross monthly salary in BRL (salário bruto / total de proventos de salário), positive.' },
+        deductions: {
+          type: 'array',
+          description: 'Payroll deductions (descontos).',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string', description: 'Short name, e.g. INSS, IRRF.' },
+              type: { type: 'string', enum: ['pct', 'value'], description: "'value' for a BRL amount (default, what payslips print), 'pct' for a percent of gross." },
+              amount: { type: 'number' },
+            },
+            required: ['label', 'amount'],
+          },
+        },
+        benefits: {
+          type: 'array',
+          description: 'Benefits paid on top of the net salary, not taxed.',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string' },
+              type: { type: 'string', enum: ['pct', 'value'] },
+              amount: { type: 'number' },
+            },
+            required: ['label', 'amount'],
+          },
+        },
+      },
+      required: ['grossSalary'],
+    },
+  },
+  {
+    name: 'set_category_limits',
+    description:
+      "Create the monthly spending limit of every expense category automatically, from the user's real spending in the last 3 full months, scaled to fit the needs + wants part of their income. Keeps limits the user already set (unless overwrite is true). Needs an income in the planner (save_payslip or set_monthly_income). Call it right after save_payslip, and whenever the user asks for limits. Tell the user in one line that the limits are suggestions they can edit in Planejamento.",
+    parameters: {
+      type: 'object',
+      properties: { overwrite: { type: 'boolean', description: 'Also replace limits the user already set. Only when they ask for it.' } },
+    },
+  },
+  {
+    name: 'set_category_group',
+    description:
+      "Move an expense category to another budget group: needs (necessidades), wants (desejos) or savings (poupança). Use it when the user says e.g. 'assinaturas é necessidade' or 'move delivery para desejos'. Applies immediately. Reply in one short line: 'Delivery agora está em Desejos.'",
+    parameters: {
+      type: 'object',
+      properties: { category: { type: 'string', description: 'Exact category name from the list.' }, group: { type: 'string', enum: ['needs', 'wants', 'savings'] } },
+      required: ['category', 'group'],
+    },
+  },
+  {
+    name: 'set_category_limit',
+    description:
+      "Set the monthly spending limit of ONE expense category, in BRL (amount 0 removes the limit). Use it when the user says e.g. 'limite de mercado 1.400'. Needs an income in the planner. Applies immediately. Reply in one short line with the old and new value.",
+    parameters: {
+      type: 'object',
+      properties: { category: { type: 'string', description: 'Exact category name from the list.' }, amount: { type: 'number', description: 'Monthly limit in BRL, 0 or more.' } },
+      required: ['category', 'amount'],
+    },
+  },
+  {
     name: 'show_guide',
     description:
       'Show a ready-made explanation about the product, written by the team and stored in the database. Use it INSTEAD of explaining yourself whenever the user asks how Realwise works or what you can do (intro), how to import a statement (import), about bill reminders (bills), the monthly plan (planner), the monthly summary (summary) or data privacy (privacy). The text is posted to the user as your whole reply and your turn ends, so write nothing else.',
@@ -199,7 +266,11 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     description: 'Create a category when none of the existing ones fit a recurring kind of transaction.',
     parameters: {
       type: 'object',
-      properties: { name: { type: 'string' }, type: { type: 'string', enum: ['income', 'expense'] } },
+      properties: {
+        name: { type: 'string' },
+        type: { type: 'string', enum: ['income', 'expense'] },
+        group: { type: 'string', enum: ['needs', 'wants', 'savings'], description: 'Budget group for an expense category: needs (housing, bills, food, health), wants (leisure, shopping, subscriptions), savings (investments, reserves). Always set it for expenses.' },
+      },
       required: ['name', 'type'],
     },
   },
@@ -349,6 +420,14 @@ export class ChatToolsService {
           return { result: await this.setMonthlyIncome(args, ctx) };
         case 'set_budget_plan':
           return { result: await this.setBudgetPlan(args, ctx) };
+        case 'save_payslip':
+          return { result: await this.savePayslip(args, ctx) };
+        case 'set_category_limits':
+          return { result: await this.setCategoryLimits(args, ctx) };
+        case 'set_category_group':
+          return { result: await this.setCategoryGroup(args, ctx) };
+        case 'set_category_limit':
+          return { result: await this.setCategoryLimit(args, ctx) };
         case 'show_summary':
           return { result: await this.showSummary(args, ctx) };
         case 'show_guide':
@@ -944,6 +1023,159 @@ export class ChatToolsService {
     return { month, allocation };
   }
 
+  /** Current month key (YYYY-MM) in Brazil time, the same one the planner uses. */
+  private plannerMonth(): string {
+    const now = new Date(Date.now() - 3 * 3_600_000);
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+
+  private cleanEntries(raw: unknown): { id: string; label: string; type: 'pct' | 'value'; amount: number }[] {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((e) => ({ id: randomUUID(), label: String(e?.label ?? '').trim().slice(0, 60), type: e?.type === 'pct' ? ('pct' as const) : ('value' as const), amount: Math.round(Number(e?.amount) * 100) / 100 }))
+      .filter((e) => e.label && Number.isFinite(e.amount) && e.amount > 0 && (e.type === 'value' || e.amount <= 100));
+  }
+
+  /** Net + benefits for a planner version, same math as the Renda screen. */
+  private incomeOf(v: { salarioBruto?: unknown; salarioDeductions?: unknown; salarioBenefits?: unknown }) {
+    const gross = Number(v.salarioBruto) || 0;
+    const sum = (list: unknown) => (Array.isArray(list) ? list : []).reduce((t: number, e: { type?: string; amount?: unknown }) => t + (e.type === 'pct' ? (gross * Number(e.amount)) / 100 : Number(e.amount) || 0), 0);
+    const deductions = sum(v.salarioDeductions);
+    const benefits = sum(v.salarioBenefits);
+    return { gross, deductions, benefits, net: gross - deductions, total: gross - deductions + benefits };
+  }
+
+  /** Payslip (or typed salary figures) into this month's planner income. Keeps the split and the category limits. */
+  private async savePayslip(args: ToolArgs, ctx: ToolContext) {
+    const gross = Number(args.grossSalary);
+    if (!Number.isFinite(gross) || gross <= 0) return { error: 'grossSalary must be a positive number.' };
+    const deductions = this.cleanEntries(args.deductions);
+    const benefits = this.cleanEntries(args.benefits);
+
+    const [row] = await this.db.select().from(planner).where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    const state = ((row?.state ?? {}) as Record<string, unknown>) ?? {};
+    const versions = Array.isArray(state.plannerVersions) ? (state.plannerVersions as Record<string, unknown>[]) : [];
+    const month = this.plannerMonth();
+    const current = versions.find((v) => v.from === month);
+    const latest = [...versions].reverse().find((v) => Number(v.salarioBruto) > 0);
+    const base = current ?? latest ?? { allocation: { necessidades: 50, desejos: 30, poupanca: 20 }, categoryBudgetsPct: {} };
+    const before = current ? this.incomeOf(current) : null;
+    const next = { ...base, from: month, salarioBruto: gross, salarioDeductions: deductions, salarioBenefits: benefits };
+    const nextVersions = current ? versions.map((v) => (v.from === month ? next : v)) : [...versions, next];
+    const nextState = { ...state, plannerVersions: nextVersions };
+    await this.db
+      .insert(planner)
+      .values({ clientId: ctx.clientId, userId: ctx.userId, salaryGross: gross.toFixed(2), state: nextState })
+      .onConflictDoUpdate({ target: [planner.clientId, planner.userId], set: { salaryGross: gross.toFixed(2), state: nextState, updatedAt: new Date() } });
+
+    const r = this.incomeOf(next);
+    const round = (n: number) => Math.round(n * 100) / 100;
+    return {
+      month,
+      gross: round(r.gross),
+      deductionsTotal: round(r.deductions),
+      net: round(r.net),
+      benefitsTotal: round(r.benefits),
+      monthlyIncome: round(r.total),
+      replacedPrevious: before ? { net: round(before.net), monthlyIncome: round(before.total) } : null,
+      next: 'Call set_category_limits now, then reply in at most 4 short lines.',
+    };
+  }
+
+  /**
+   * Automatic category limits. Average of the last 3 full months of real spending per category, scaled down when the
+   * total would not fit in needs + wants of the income. Stored as % of income, like the Orçamento screen does.
+   */
+  private async setCategoryLimits(args: ToolArgs, ctx: ToolContext) {
+    const [row] = await this.db.select().from(planner).where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    const state = ((row?.state ?? {}) as Record<string, unknown>) ?? {};
+    const versions = Array.isArray(state.plannerVersions) ? (state.plannerVersions as Record<string, unknown>[]) : [];
+    const month = this.plannerMonth();
+    const current = versions.find((v) => v.from === month) ?? [...versions].reverse().find((v) => Number(v.salarioBruto) > 0);
+    if (!current) return { error: 'No income configured yet. Get the payslip or the net income first (save_payslip / set_monthly_income).' };
+    const income = this.incomeOf(current).total;
+    if (income <= 0) return { error: 'The income is zero. Get the payslip or the net income first.' };
+
+    const to = `${month}-01`;
+    const from = addMonths(to, -3);
+    const spend = await this.db
+      .select({ name: sql<string>`coalesce(${categories.name}, ${transactions.category}, 'Sem categoria')`, total: sql<string>`sum(${transactions.amount})` })
+      .from(transactions)
+      .leftJoin(categories, eq(categories.id, transactions.categoryId))
+      .where(and(eq(transactions.clientId, ctx.clientId), eq(transactions.userId, ctx.userId), isNull(transactions.deletedAt), eq(transactions.ignored, false), eq(transactions.type, 'expense'), gte(transactions.date, from), sql`${transactions.date} < ${to}`))
+      .groupBy(sql`1`);
+    const rows = spend.map((r) => ({ name: r.name, avg: Number(r.total) / 3 })).filter((r) => r.name !== 'Sem categoria' && r.avg >= 20);
+    if (rows.length === 0) return { error: 'Not enough spending history yet (no categorized expenses in the last 3 full months). Say limits come once they send a statement.' };
+
+    const alloc = (current.allocation ?? { necessidades: 50, desejos: 30, poupanca: 20 }) as { necessidades: number; desejos: number };
+    const room = (income * (Number(alloc.necessidades) + Number(alloc.desejos))) / 100;
+    const wanted = rows.reduce((t, r) => t + r.avg, 0);
+    const scale = wanted > room ? room / wanted : 1;
+    const existing = (current.categoryBudgetsPct ?? {}) as Record<string, number>;
+    const keep = args.overwrite !== true;
+    const pct: Record<string, number> = { ...existing };
+    const created: { category: string; amount: number }[] = [];
+    for (const r of rows.sort((a, b) => b.avg - a.avg)) {
+      if (keep && Number(existing[r.name]) > 0) continue;
+      const amount = Math.round((r.avg * scale) / 10) * 10;
+      if (amount <= 0) continue;
+      pct[r.name] = Math.round((amount / income) * 1000) / 10;
+      created.push({ category: r.name, amount });
+    }
+    if (created.length === 0) return { created: [], note: 'Every category already has a limit; nothing was changed.' };
+
+    const nextVersions = versions.some((v) => v.from === month)
+      ? versions.map((v) => (v.from === month ? { ...v, categoryBudgetsPct: pct } : v))
+      : [...versions, { ...current, from: month, categoryBudgetsPct: pct }];
+    await this.db.update(planner).set({ state: { ...state, plannerVersions: nextVersions }, updatedAt: new Date() }).where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    return { month, created: created.slice(0, 12), createdCount: created.length, scaledDown: scale < 1, basedOn: 'average of the last 3 full months', note: 'Suggestions. The user can edit them in Planejamento > Orçamento.' };
+  }
+
+  /** Resolves a category name the model gave to the user's real category name (case and accent insensitive). */
+  private async resolveExpenseCategory(raw: unknown, ctx: ToolContext): Promise<string | null> {
+    const name = String(raw ?? '').trim();
+    if (!name) return null;
+    const rows = await this.db
+      .select({ name: categories.name })
+      .from(categories)
+      .where(and(eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId), isNull(categories.deletedAt), eq(categories.type, 'expense')));
+    const fold = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    return rows.find((r) => fold(r.name) === fold(name))?.name ?? null;
+  }
+
+  private async setCategoryGroup(args: ToolArgs, ctx: ToolContext) {
+    const group = String(args.group);
+    if (!['needs', 'wants', 'savings'].includes(group)) return { error: 'group must be needs, wants or savings.' };
+    const name = await this.resolveExpenseCategory(args.category, ctx);
+    if (!name) return { error: 'No expense category with that name. Check the categories list.' };
+    const ok = await this.cats.setGroup(ctx, name, group as 'needs' | 'wants' | 'savings');
+    if (!ok) return { error: 'Settings not found for this user.' };
+    return { category: name, group };
+  }
+
+  private async setCategoryLimit(args: ToolArgs, ctx: ToolContext) {
+    const amount = Number(args.amount);
+    if (!Number.isFinite(amount) || amount < 0) return { error: 'amount must be 0 or more.' };
+    const name = await this.resolveExpenseCategory(args.category, ctx);
+    if (!name) return { error: 'No expense category with that name. Check the categories list.' };
+    const [row] = await this.db.select().from(planner).where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    const state = ((row?.state ?? {}) as Record<string, unknown>) ?? {};
+    const versions = Array.isArray(state.plannerVersions) ? (state.plannerVersions as Record<string, unknown>[]) : [];
+    const month = this.plannerMonth();
+    const current = versions.find((v) => v.from === month) ?? [...versions].reverse().find((v) => Number(v.salarioBruto) > 0);
+    if (!current) return { error: 'No income configured yet. Ask for the payslip or the net income first.' };
+    const income = this.incomeOf(current).total;
+    if (income <= 0) return { error: 'The income is zero. Ask for the payslip or the net income first.' };
+    const pcts = { ...((current.categoryBudgetsPct ?? {}) as Record<string, number>) };
+    const old = Math.round(((Number(pcts[name]) || 0) * income) / 100);
+    if (amount === 0) delete pcts[name];
+    else pcts[name] = Math.round((amount / income) * 1000) / 10;
+    const next = { ...current, from: month, categoryBudgetsPct: pcts };
+    const nextVersions = versions.some((v) => v.from === month) ? versions.map((v) => (v.from === month ? next : v)) : [...versions, next];
+    await this.db.update(planner).set({ state: { ...state, plannerVersions: nextVersions }, updatedAt: new Date() }).where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    return { category: name, oldLimit: old, newLimit: Math.round(amount), month };
+  }
+
   private async showSummary(args: ToolArgs, ctx: ToolContext) {
     const which = args.period === 'this_month' ? 'this' : 'last';
     const out = await this.summaries.generate(ctx.userId, 'on_demand', which);
@@ -969,7 +1201,8 @@ export class ChatToolsService {
     const [cat] = existing
       ? [existing]
       : await this.db.insert(categories).values({ clientId: ctx.clientId, userId: ctx.userId, name, type }).returning();
-    await this.cats.addToSettings(ctx, name, type); // also list it on the Categories screen
+    const group = ['needs', 'wants', 'savings'].includes(args.group) ? (args.group as 'needs' | 'wants' | 'savings') : undefined;
+    await this.cats.addToSettings(ctx, name, type, group); // also list it on the Categories screen, in its group
     return { categoryId: cat.id, name: cat.name, type: cat.type };
   }
 
