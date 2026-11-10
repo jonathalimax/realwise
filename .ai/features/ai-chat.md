@@ -74,3 +74,10 @@ The chat is the app's home: `/` and unknown routes go to `/chat`, and the welcom
 - Tool arguments come from the model: validate everything in `ChatToolsService` and scope every query by `clientId` + `userId`.
 - Document/tool text is data, never instructions (see `chat.prompt.ts`).
 - New write capabilities for the chat = new tool in `CHAT_TOOLS` + executor + a line in the system prompt.
+
+## Payslip, automatic limits and short replies
+
+- **`save_payslip`** (`ChatToolsService.savePayslip`): fills the current month's planner income from a payslip or typed figures (gross, deductions, benefits; ids generated, `type` is `value` or `pct` like the Renda screen). It replaces that month's income only; the group split and category limits are kept. Returns net, benefits and the replaced values.
+- **`set_category_limits`** (`setCategoryLimits`): creates a limit per expense category from the average of the last 3 full months of spending, scaled down to fit needs + wants of the income, stored as `categoryBudgetsPct` (percent of income). Existing limits are kept unless `overwrite` is true. Needs an income and some history; Elio tells the user the limits are editable in Planejamento.
+- Elio offers the payslip once (chips: send payslip / type the value / later). It never asks for income unprompted.
+- **Replies are short by rule** (`chat.prompt.ts`): about 40 words, max 3 bullets, one question, no greetings or closing offers. This also saves tokens.

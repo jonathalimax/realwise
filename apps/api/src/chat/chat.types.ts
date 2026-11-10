@@ -89,6 +89,8 @@ export const TOOL_STATUS: Record<string, string> = {
   forget_fact: 'Esquecendo isso…',
   set_monthly_income: 'Anotando sua renda…',
   set_budget_plan: 'Montando seu plano…',
+  save_payslip: 'Lendo seu holerite…',
+  set_category_limits: 'Calculando seus limites…',
   show_summary: 'Montando seu resumo…',
   show_guide: 'Buscando a explicação…',
 };
