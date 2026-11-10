@@ -91,6 +91,8 @@ export const TOOL_STATUS: Record<string, string> = {
   set_budget_plan: 'Montando seu plano…',
   save_payslip: 'Lendo seu holerite…',
   set_category_limits: 'Calculando seus limites…',
+  set_category_group: 'Mudando o grupo…',
+  set_category_limit: 'Ajustando o limite…',
   show_summary: 'Montando seu resumo…',
   show_guide: 'Buscando a explicação…',
 };

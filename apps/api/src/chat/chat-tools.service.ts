@@ -210,6 +210,26 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     },
   },
   {
+    name: 'set_category_group',
+    description:
+      "Move an expense category to another budget group: needs (necessidades), wants (desejos) or savings (poupança). Use it when the user says e.g. 'assinaturas é necessidade' or 'move delivery para desejos'. Applies immediately. Reply in one short line: 'Delivery agora está em Desejos.'",
+    parameters: {
+      type: 'object',
+      properties: { category: { type: 'string', description: 'Exact category name from the list.' }, group: { type: 'string', enum: ['needs', 'wants', 'savings'] } },
+      required: ['category', 'group'],
+    },
+  },
+  {
+    name: 'set_category_limit',
+    description:
+      "Set the monthly spending limit of ONE expense category, in BRL (amount 0 removes the limit). Use it when the user says e.g. 'limite de mercado 1.400'. Needs an income in the planner. Applies immediately. Reply in one short line with the old and new value.",
+    parameters: {
+      type: 'object',
+      properties: { category: { type: 'string', description: 'Exact category name from the list.' }, amount: { type: 'number', description: 'Monthly limit in BRL, 0 or more.' } },
+      required: ['category', 'amount'],
+    },
+  },
+  {
     name: 'show_guide',
     description:
       'Show a ready-made explanation about the product, written by the team and stored in the database. Use it INSTEAD of explaining yourself whenever the user asks how Realwise works or what you can do (intro), how to import a statement (import), about bill reminders (bills), the monthly plan (planner), the monthly summary (summary) or data privacy (privacy). The text is posted to the user as your whole reply and your turn ends, so write nothing else.',
@@ -246,7 +266,11 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
     description: 'Create a category when none of the existing ones fit a recurring kind of transaction.',
     parameters: {
       type: 'object',
-      properties: { name: { type: 'string' }, type: { type: 'string', enum: ['income', 'expense'] } },
+      properties: {
+        name: { type: 'string' },
+        type: { type: 'string', enum: ['income', 'expense'] },
+        group: { type: 'string', enum: ['needs', 'wants', 'savings'], description: 'Budget group for an expense category: needs (housing, bills, food, health), wants (leisure, shopping, subscriptions), savings (investments, reserves). Always set it for expenses.' },
+      },
       required: ['name', 'type'],
     },
   },
@@ -400,6 +424,10 @@ export class ChatToolsService {
           return { result: await this.savePayslip(args, ctx) };
         case 'set_category_limits':
           return { result: await this.setCategoryLimits(args, ctx) };
+        case 'set_category_group':
+          return { result: await this.setCategoryGroup(args, ctx) };
+        case 'set_category_limit':
+          return { result: await this.setCategoryLimit(args, ctx) };
         case 'show_summary':
           return { result: await this.showSummary(args, ctx) };
         case 'show_guide':
@@ -1103,6 +1131,51 @@ export class ChatToolsService {
     return { month, created: created.slice(0, 12), createdCount: created.length, scaledDown: scale < 1, basedOn: 'average of the last 3 full months', note: 'Suggestions. The user can edit them in Planejamento > Orçamento.' };
   }
 
+  /** Resolves a category name the model gave to the user's real category name (case and accent insensitive). */
+  private async resolveExpenseCategory(raw: unknown, ctx: ToolContext): Promise<string | null> {
+    const name = String(raw ?? '').trim();
+    if (!name) return null;
+    const rows = await this.db
+      .select({ name: categories.name })
+      .from(categories)
+      .where(and(eq(categories.clientId, ctx.clientId), eq(categories.userId, ctx.userId), isNull(categories.deletedAt), eq(categories.type, 'expense')));
+    const fold = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    return rows.find((r) => fold(r.name) === fold(name))?.name ?? null;
+  }
+
+  private async setCategoryGroup(args: ToolArgs, ctx: ToolContext) {
+    const group = String(args.group);
+    if (!['needs', 'wants', 'savings'].includes(group)) return { error: 'group must be needs, wants or savings.' };
+    const name = await this.resolveExpenseCategory(args.category, ctx);
+    if (!name) return { error: 'No expense category with that name. Check the categories list.' };
+    const ok = await this.cats.setGroup(ctx, name, group as 'needs' | 'wants' | 'savings');
+    if (!ok) return { error: 'Settings not found for this user.' };
+    return { category: name, group };
+  }
+
+  private async setCategoryLimit(args: ToolArgs, ctx: ToolContext) {
+    const amount = Number(args.amount);
+    if (!Number.isFinite(amount) || amount < 0) return { error: 'amount must be 0 or more.' };
+    const name = await this.resolveExpenseCategory(args.category, ctx);
+    if (!name) return { error: 'No expense category with that name. Check the categories list.' };
+    const [row] = await this.db.select().from(planner).where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    const state = ((row?.state ?? {}) as Record<string, unknown>) ?? {};
+    const versions = Array.isArray(state.plannerVersions) ? (state.plannerVersions as Record<string, unknown>[]) : [];
+    const month = this.plannerMonth();
+    const current = versions.find((v) => v.from === month) ?? [...versions].reverse().find((v) => Number(v.salarioBruto) > 0);
+    if (!current) return { error: 'No income configured yet. Ask for the payslip or the net income first.' };
+    const income = this.incomeOf(current).total;
+    if (income <= 0) return { error: 'The income is zero. Ask for the payslip or the net income first.' };
+    const pcts = { ...((current.categoryBudgetsPct ?? {}) as Record<string, number>) };
+    const old = Math.round(((Number(pcts[name]) || 0) * income) / 100);
+    if (amount === 0) delete pcts[name];
+    else pcts[name] = Math.round((amount / income) * 1000) / 10;
+    const next = { ...current, from: month, categoryBudgetsPct: pcts };
+    const nextVersions = versions.some((v) => v.from === month) ? versions.map((v) => (v.from === month ? next : v)) : [...versions, next];
+    await this.db.update(planner).set({ state: { ...state, plannerVersions: nextVersions }, updatedAt: new Date() }).where(and(eq(planner.clientId, ctx.clientId), eq(planner.userId, ctx.userId)));
+    return { category: name, oldLimit: old, newLimit: Math.round(amount), month };
+  }
+
   private async showSummary(args: ToolArgs, ctx: ToolContext) {
     const which = args.period === 'this_month' ? 'this' : 'last';
     const out = await this.summaries.generate(ctx.userId, 'on_demand', which);
@@ -1128,7 +1201,8 @@ export class ChatToolsService {
     const [cat] = existing
       ? [existing]
       : await this.db.insert(categories).values({ clientId: ctx.clientId, userId: ctx.userId, name, type }).returning();
-    await this.cats.addToSettings(ctx, name, type); // also list it on the Categories screen
+    const group = ['needs', 'wants', 'savings'].includes(args.group) ? (args.group as 'needs' | 'wants' | 'savings') : undefined;
+    await this.cats.addToSettings(ctx, name, type, group); // also list it on the Categories screen, in its group
     return { categoryId: cat.id, name: cat.name, type: cat.type };
   }
 
