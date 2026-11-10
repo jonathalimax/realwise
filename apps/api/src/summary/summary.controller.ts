@@ -54,7 +54,10 @@ export class SummaryController {
     const { payload } = await this.summaries.compute(row, 'on_demand', 'this');
     const fixes = payload.fixes.map((i) => ({ ...i, kind: i.urgent ? 'urgent' : 'fix' }));
     const wins = payload.wins.map((i) => ({ ...i, kind: 'win' }));
-    return { tone: payload.tone, items: [...fixes, ...wins].slice(0, 6) };
+    // An incomplete month (no income yet, no card statement, few entries) has no wins or fixes by design.
+    // Show what is missing instead, so the card is never empty for someone who has data.
+    const missing = (payload.missing ?? []).map((m) => ({ title: m.title, detail: m.detail, href: m.ctaPath, kind: 'fix' }));
+    return { tone: payload.tone, items: [...fixes, ...wins, ...missing].slice(0, 6) };
   }
 }
 

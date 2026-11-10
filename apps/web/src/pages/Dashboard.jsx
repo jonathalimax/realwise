@@ -92,7 +92,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
-        {/* One column on a phone, in reading order: balance, late-bill alert, budget, where the money went, panorama.
+        {/* One column on a phone, in reading order: balance, late-bill alert and bills, Elio's insights, budget, where the money went, panorama.
             On a phone the two column wrappers disappear (display: contents) and `order` gives that order; on a wide
             screen the left column carries balance, alert and panorama, the right one budget and spending. */}
         <div className="flex flex-col gap-4 md:gap-6 lg:grid lg:grid-cols-3">
@@ -111,6 +111,7 @@ export default function DashboardPage() {
                 <span className="flex-1 text-[15px] font-semibold text-[var(--rw-ink)]">{language === 'pt' ? 'Contas a pagar' : 'Bills to pay'}</span>
                 <span className="text-sm font-semibold text-[var(--rw-brand-ink)]">{language === 'pt' ? 'Ver contas' : 'See bills'}</span>
               </button>
+              <InsightsCard />
             </div>
             <div className="order-6">
               <TrendChart
@@ -126,7 +127,6 @@ export default function DashboardPage() {
           <div className="contents lg:flex lg:flex-col lg:gap-6">
             <div className="order-3"><PlanningCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
             <div className="order-4"><CategorySpendingCard transactions={monthlyTransactions} selectedMonth={selectedMonth} /></div>
-            <div className="order-5"><InsightsCard /></div>
             <div className="order-6 empty:hidden"><PushPrompt pt={language === 'pt'} /></div>
           </div>
         </div>
