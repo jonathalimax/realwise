@@ -7,7 +7,7 @@ import { useCards, BANKS } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
-import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon, ListBulletIcon, ChartPieIcon } from '@heroicons/react/24/outline';
 import { Shimmer } from '../components/ui/shimmer';
 import PageHeader from '../components/PageHeader';
 import { isUncategorized } from '../components/home/uncategorized';
@@ -52,7 +52,9 @@ function TransactionsView() {
   const [showUncategorized, setShowUncategorized] = useState(Boolean(categoryParam) && isUncategorized(categoryParam));
   const [typeFilter, setTypeFilter] = useState(['income', 'expense'].includes(typeParam) ? typeParam : 'all');
   const [showAdd, setShowAdd] = useState(false);
-  const [displayMode, setDisplayMode] = useState('list');
+  // The chart is the landing view. Anything that points at specific rows (a category, an import, a highlighted entry)
+  // opens the list instead, with that filter already applied.
+  const [displayMode, setDisplayMode] = useState(() => (categoryParam || importFilter || highlightId ? 'list' : 'charts'));
 
   // The month is shared app-wide (MonthContext), so a deep link only has to select it.
   const monthParam = searchParams.get('month');
@@ -242,43 +244,35 @@ function TransactionsView() {
           )}
         </section>
 
-        <div className="flex p-[3px] gap-0.5 rounded-[14px] bg-[var(--rw-raised)] mb-3" role="tablist" aria-label={pt ? 'Filtrar por tipo' : 'Filter by type'}>
+        <div className="mb-3 flex items-center gap-1.5 overflow-x-auto sm:gap-2 [scrollbar-width:none]" role="tablist" aria-label={pt ? 'Filtrar por tipo' : 'Filter by type'}>
           {[['all', pt ? 'Tudo' : 'All'], ['income', pt ? 'Entradas' : 'In'], ['expense', pt ? 'Saídas' : 'Out']].map(([key, label]) => (
             <button key={key} role="tab" aria-selected={typeFilter === key} onClick={() => setTypeFilter(key)}
-              className={`flex-1 h-[38px] rounded-[11px] text-sm font-semibold ${typeFilter === key ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>
-              {label} <span className="tabular-nums opacity-70">· {typeCounts[key]}</span>
+              className={`h-8 shrink-0 rounded-full border px-3 text-[13px] font-semibold sm:px-3.5 sm:text-sm ${typeFilter === key ? 'border-transparent bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'border-[var(--rw-border)] text-[var(--rw-muted)]'} ${typeCounts[key] === 0 && typeFilter !== key ? 'opacity-40' : ''}`}>
+              {label} <span className="ml-0.5 text-[13px] font-normal tabular-nums opacity-70">{typeCounts[key]}</span>
             </button>
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 mb-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-[var(--rw-subtle)]">{filteredTransactions.length} {language === 'pt' ? 'itens' : 'items'}</span>
-              <div className="flex gap-0.5 rounded-full bg-[var(--rw-raised)] p-0.5" role="group" aria-label={language === 'pt' ? 'Modo de exibição' : 'Display mode'}>
-                {[['list', language === 'pt' ? 'Lista' : 'List'], ['charts', language === 'pt' ? 'Gráfico' : 'Chart']].map(([k, label]) => (
-                  <button key={k} type="button" aria-pressed={displayMode === k} onClick={() => setDisplayMode(k)}
-                    className={`h-8 rounded-full px-3 text-xs font-bold ${displayMode === k ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>{label}</button>
-                ))}
-              </div>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <span className="text-sm text-[var(--rw-subtle)]">{filteredTransactions.length} {pt ? 'itens' : 'items'}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5 rounded-[10px] bg-[var(--rw-raised)] p-0.5" role="group" aria-label={pt ? 'Modo de exibição' : 'Display mode'}>
+              {[['list', pt ? 'Lista' : 'List', ListBulletIcon], ['charts', pt ? 'Gráfico' : 'Chart', ChartPieIcon]].map(([k, label, Icon]) => (
+                <button key={k} type="button" aria-label={label} aria-pressed={displayMode === k} onClick={() => setDisplayMode(k)}
+                  className={`flex h-8 w-[34px] items-center justify-center rounded-[8px] ${displayMode === k ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>
+                  <Icon className="h-5 w-5" />
+                </button>
+              ))}
             </div>
-            {/* Filters Button */}
             <button
+              type="button"
+              aria-label={pt ? 'Filtros' : 'Filters'}
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl shadow-sm transition-all flex-shrink-0 ${
-                showFilters || activeFiltersCount > 0
-                  ? 'bg-[var(--rw-brand)] text-white'
-                  : 'bg-[var(--rw-surface)] text-[var(--rw-ink)] hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+              className={`relative flex h-9 w-9 items-center justify-center rounded-[10px] ${showFilters || activeFiltersCount > 0 ? 'bg-[var(--rw-brand)] text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}
             >
-              <AdjustmentsHorizontalIcon className="w-5 h-5" />
-              <span className="font-medium text-sm hidden sm:inline">{language === 'pt' ? 'Filtros' : 'Filters'}</span>
+              <AdjustmentsHorizontalIcon className="h-5 w-5" />
               {activeFiltersCount > 0 && (
-                <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                  showFilters ? 'bg-white/20' : 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
-                }`}>
-                  {activeFiltersCount}
-                </span>
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--rw-brand-ink)] px-1 text-[10px] font-bold text-white">{activeFiltersCount}</span>
               )}
             </button>
           </div>
@@ -479,6 +473,7 @@ function TransactionsView() {
             sortOrder={sortOrder}
             onSuccess={triggerRefresh}
             highlightId={highlightId}
+            hideBulkEdit
           />
           )}
         </div>

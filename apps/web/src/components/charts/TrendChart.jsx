@@ -23,7 +23,7 @@ const compact = (value) => {
  * One chart used by both the compact card and the full-year sheet: grouped income/expense bars with the running
  * balance as a line. Touch is tap-only (no drag handling), so the page's own vertical scroll is never captured.
  */
-function TrendBars({ data, selectedKey, onSelect, height, showAxis, darkMode, formatCurrency, labels }) {
+function TrendBars({ data, selectedKey, onSelect, height, showAxis, showBalance = true, darkMode, formatCurrency, labels }) {
   const grid = darkMode ? '#334155' : '#e2e8f0';
   const text = darkMode ? '#94a3b8' : '#64748b';
   const hasSelection = data.some((d) => d.key === selectedKey);
@@ -75,19 +75,21 @@ function TrendBars({ data, selectedKey, onSelect, height, showAxis, darkMode, fo
               <Cell key={d.key} fillOpacity={!hasSelection || d.key === selectedKey ? 1 : 0.45} />
             ))}
           </Bar>
-          <Line
-            type="monotone"
-            dataKey="balance"
-            yAxisId="balance"
-            name={labels.balance}
-            stroke={BALANCE}
-            strokeWidth={2.5}
-            dot={false}
-            activeDot={{ r: 4 }}
-            connectNulls={false}
-            isAnimationActive
-            animationDuration={800}
-          />
+          {showBalance && (
+            <Line
+              type="monotone"
+              dataKey="balance"
+              yAxisId="balance"
+              name={labels.balance}
+              stroke={BALANCE}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 4 }}
+              connectNulls={false}
+              isAnimationActive
+              animationDuration={800}
+            />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
       <span className="sr-only">{data.map((d) => `${d.label}: ${formatCurrency(d.income)} / ${formatCurrency(d.expense)}`).join('; ')}</span>
@@ -264,35 +266,58 @@ export default function TrendChart({ transactions, selectedMonth, viewMode, cumu
             </button>
           </div>
 
+          {sheetRow && (
+            <div className="flex gap-2">
+              <Stat label={labels.income} value={short(sheetRow.income)} tone="text-emerald-600 dark:text-emerald-400" />
+              <Stat label={labels.expense} value={short(sheetRow.expense)} tone="text-rose-600 dark:text-rose-400" />
+              <Stat label={labels.balance} value={sheetRow.balance === null ? '—' : short(sheetRow.balance)} tone={balanceTone(sheetRow.balance)} />
+            </div>
+          )}
+
           <TrendBars
             data={yearRows}
             selectedKey={sheetKey}
             onSelect={setSheetKey}
-            height={230}
+            height={200}
             showAxis
+            showBalance={false}
             darkMode={darkMode}
             formatCurrency={formatCurrency}
             labels={labels}
           />
 
-          <ul className="divide-y divide-slate-100 rounded-2xl bg-slate-50 dark:divide-slate-800 dark:bg-slate-800/50">
-            {yearRows.map((r) => (
-              <li key={r.key}>
-                <button
-                  onClick={() => setSheetKey(r.key)}
-                  className={`grid w-full grid-cols-[3rem_1fr_1fr_1fr] items-center gap-2 px-3 py-2 text-left text-xs tabular-nums ${r.key === sheetKey ? 'bg-[var(--rw-brand-soft)]' : ''}`}
-                >
-                  <span className="font-bold capitalize text-slate-700 dark:text-slate-200">{r.label}</span>
-                  <span className="text-right text-emerald-600 dark:text-emerald-400">{formatCurrency(r.income)}</span>
-                  <span className="text-right text-rose-600 dark:text-rose-400">{formatCurrency(r.expense)}</span>
-                  <span className={`text-right font-semibold ${balanceTone(r.balance)}`}>{r.balance === null ? '—' : formatCurrency(r.balance)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="text-center text-[11px] text-slate-400">
-            {labels.income} · {labels.expense} · {labels.balance}
-          </p>
+          <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+            <div className="grid grid-cols-[2.5rem_repeat(3,minmax(0,1fr))] gap-1 px-2 pb-1 sm:grid-cols-[3rem_repeat(3,minmax(0,1fr))] sm:gap-2 sm:px-3 pt-2.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              <span />
+              <span className="text-right">{labels.income}</span>
+              <span className="text-right">{labels.expense}</span>
+              <span className="text-right">{labels.balance}</span>
+            </div>
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {yearRows.map((r) => {
+                const empty = r.income === 0 && r.expense === 0;
+                return (
+                  <li key={r.key}>
+                    <button
+                      onClick={() => setSheetKey(r.key)}
+                      className={`grid w-full grid-cols-[2.5rem_repeat(3,minmax(0,1fr))] items-center gap-1 px-2 py-2.5 text-left text-[11px] tabular-nums sm:grid-cols-[3rem_repeat(3,minmax(0,1fr))] sm:gap-2 sm:px-3 sm:text-xs ${r.key === sheetKey ? 'bg-[var(--rw-brand-soft)]' : ''} ${empty ? 'opacity-40' : ''}`}
+                    >
+                      <span className="font-bold capitalize text-slate-700 dark:text-slate-200">{r.label}</span>
+                      {empty ? (
+                        <span className="col-span-3 text-right text-slate-400">{pt ? 'Sem movimento' : 'No activity'}</span>
+                      ) : (
+                        <>
+                          <span className="text-right text-slate-700 dark:text-slate-200">{short(r.income)}</span>
+                          <span className="text-right text-slate-700 dark:text-slate-200">{short(r.expense)}</span>
+                          <span className={`text-right font-semibold ${balanceTone(r.balance)}`}>{r.balance === null ? '—' : short(r.balance)}</span>
+                        </>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
 
           {sheetRow && (
             <button
