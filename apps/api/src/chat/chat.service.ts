@@ -323,7 +323,7 @@ export class ChatService {
     return { needsSetup: true, message };
   }
 
-  /** Saves the onboarding account form, then lets Elio continue the conversation (next: more accounts, income, first statement). */
+  /** Saves the account form (opened when a first transaction or statement arrives, or for a new account), then lets Elio continue, e.g. the import that was waiting. */
   async submitAccountForm(
     scope: ChatScope,
     messageId: string,

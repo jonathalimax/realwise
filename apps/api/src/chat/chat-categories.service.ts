@@ -4,6 +4,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DRIZZLE } from '../db/drizzle.module';
 import * as schema from '../db/schema';
 import { categories, settings } from '../db/schema';
+import { CATEGORY_CATALOG, type BudgetGroup } from '../categories/catalog';
 
 export interface CategoryScope {
   clientId: string;
@@ -61,6 +62,20 @@ const STYLE: Record<string, { color: string; icon: string }> = {
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 const asNames = (v: unknown): string[] | null =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '').map((x) => x.trim()) : null;
+
+const GROUP_KEYWORDS: { group: BudgetGroup; words: string[] }[] = [
+  { group: 'savings', words: ['invest', 'reserva', 'poupan', 'aposent', 'previd', 'meta', 'sonho', 'tesouro'] },
+  { group: 'needs', words: ['alug', 'condom', 'luz', 'energia', 'água', 'agua', 'gás', 'gas', 'internet', 'telefone', 'celular', 'mercado', 'feira', 'farm', 'saúde', 'saude', 'médic', 'medic', 'plano de', 'escola', 'mensalidade', 'combust', 'gasolina', 'transporte', 'ônibus', 'onibus', 'seguro', 'imposto', 'iptu', 'ipva', 'dívida', 'divida', 'empréstimo', 'emprestimo', 'financi', 'creche', 'filho', 'pet', 'veterin'] },
+];
+
+/** Default budget group for a category name: the catalog's group, else a keyword guess, else wants. */
+export function defaultGroupOf(name: string): BudgetGroup {
+  const key = norm(name);
+  const hit = CATEGORY_CATALOG.find((c) => c.type === 'expense' && (norm(c.pt) === key || norm(c.en) === key));
+  if (hit?.bucket) return hit.bucket;
+  const guess = GROUP_KEYWORDS.find((g) => g.words.some((w) => key.includes(norm(w))));
+  return guess?.group ?? 'wants';
+}
 
 @Injectable()
 export class ChatCategoriesService {
@@ -131,7 +146,16 @@ export class ChatCategoriesService {
   }
 
   /** A category created in the chat also shows up in the Categories screen and dashboards. */
-  async addToSettings(scope: CategoryScope, name: string, type: CategoryType): Promise<void> {
+  /** Saves the budget group of an expense category in the settings mapping (merged, never replaces other entries). */
+  async setGroup(scope: CategoryScope, name: string, group: BudgetGroup): Promise<boolean> {
+    const [s] = await this.db.select().from(settings).where(and(eq(settings.userId, scope.userId), eq(settings.clientId, scope.clientId)));
+    if (!s) return false;
+    const mapping = { ...((s.categoryRuleMapping ?? {}) as Record<string, string>), [name]: group };
+    await this.db.update(settings).set({ categoryRuleMapping: mapping, updatedAt: new Date() }).where(eq(settings.id, s.id));
+    return true;
+  }
+
+  async addToSettings(scope: CategoryScope, name: string, type: CategoryType, group?: BudgetGroup): Promise<void> {
     const [s] = await this.db
       .select()
       .from(settings)
@@ -145,5 +169,7 @@ export class ChatCategoriesService {
       .update(settings)
       .set({ [column]: [...current, name], updatedAt: new Date() })
       .where(eq(settings.id, s.id));
+    // A new expense category starts in a sensible group, so the person only has to think about the value.
+    if (type === 'expense') await this.setGroup(scope, name, group ?? defaultGroupOf(name));
   }
 }
