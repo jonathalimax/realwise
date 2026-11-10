@@ -52,9 +52,16 @@ export class SummaryController {
   async insights(@CurrentUser() user: JwtPayload) {
     const row = await this.summaries.userRow(user.sub);
     const { payload } = await this.summaries.compute(row, 'on_demand', 'this');
-    const fixes = payload.fixes.map((i) => ({ ...i, kind: i.urgent ? 'urgent' : 'fix' }));
-    const wins = payload.wins.map((i) => ({ ...i, kind: 'win' }));
-    return { tone: payload.tone, items: [...fixes, ...wins].slice(0, 6) };
+    // Use the insights computed for any month with data; an 'incomplete' summary has empty wins/fixes on purpose.
+    const src = payload.insights ?? { wins: payload.wins, fixes: payload.fixes };
+    const fixes = src.fixes.map((i) => ({ ...i, kind: i.urgent ? 'urgent' : 'fix' }));
+    const wins = src.wins.map((i) => ({ ...i, kind: 'win' }));
+    const items = [...fixes, ...wins];
+    // Nothing to say yet (no data at all): point at what is missing so the card is never a dead end.
+    if (items.length === 0) {
+      for (const m of payload.missing ?? []) items.push({ title: m.title, detail: m.detail, href: m.ctaPath, kind: 'fix' } as (typeof items)[number]);
+    }
+    return { tone: payload.tone, items: items.slice(0, 6) };
   }
 }
 

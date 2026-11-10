@@ -131,6 +131,8 @@ export interface SummaryPayload {
   streak: { monthsInBlue: number; months: { month: string; label: string; blue: boolean }[] };
   wins: Insight[];
   fixes: Insight[];
+  /** Wins and fixes computed even when the tone is 'incomplete' (where wins/fixes stay empty). Used by the Home insights card. */
+  insights?: { wins: Insight[]; fixes: Insight[] };
   nextStep: { eyebrow: string; text: string; ctaLabel: string; ctaPath: string; secondary?: { label: string; path: string } };
   share: { value: string; caption: string; footer: string | null } | null;
   quality: { categorizedPct: number; transactionCount: number; uncategorizedAmount: number };

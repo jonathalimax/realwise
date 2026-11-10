@@ -358,6 +358,10 @@ export function computeSummary(input: SummaryInput & { plannerPrev?: PlannerMont
   }
   const incomplete = missing.length > 0 || cur.count < MIN_TRANSACTIONS;
 
+  // Insights do not wait for the "complete month" gate: any transaction or bill is enough to say something useful.
+  const goalPct = planner?.allocation.poupanca ?? 15;
+  const found = insightsOf({ cur, prev, month, today, bills, income, spent, left, streak: monthsInBlue, spentChangePct, savingRate, goalPct, compare });
+
   const base = {
     version: 1 as const,
     kind: input.kind,
@@ -371,6 +375,7 @@ export function computeSummary(input: SummaryInput & { plannerPrev?: PlannerMont
     streak: { monthsInBlue, months: streakMonths },
     quality: { categorizedPct, transactionCount: cur.count, uncategorizedAmount: round2(cur.uncategorized) },
     trial: null,
+    insights: found,
   };
 
   const name = firstName ? `, ${firstName}` : '';
@@ -400,8 +405,7 @@ export function computeSummary(input: SummaryInput & { plannerPrev?: PlannerMont
   const prevScored = compare ? scoreMonth(prevMonth, months, bills, input.plannerPrev ?? null, today, false) : null;
   const scoreDelta = prevScored ? score - prevScored.score : null;
   const tone = toneForScore(score);
-  const goalPct = planner?.allocation.poupanca ?? 15;
-  const { wins, fixes } = insightsOf({ cur, prev, month, today, bills, income, spent, left, streak: monthsInBlue, spentChangePct, savingRate, goalPct, compare });
+  const { wins, fixes } = found;
 
   const prevName = monthName(prevMonth);
   const lessThanPrev = spentChangePct !== null && spentChangePct <= -3;
