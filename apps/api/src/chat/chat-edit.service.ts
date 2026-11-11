@@ -502,8 +502,9 @@ export class ChatEditService {
     }
 
     const now = new Date();
+    // Same values for every row: one UPDATE for all of them, then one audit entry each.
+    await this.q.update(def.table).set({ deletedAt: now, updatedAt: now }).where(and(inArray(def.table.id, rows.map((r) => r.id)), eq(def.table.userId, ctx.userId), eq(def.table.clientId, ctx.clientId)));
     for (const row of rows) {
-      await this.q.update(def.table).set({ deletedAt: now, updatedAt: now }).where(and(eq(def.table.id, row.id), eq(def.table.userId, ctx.userId), eq(def.table.clientId, ctx.clientId)));
       await this.log(ctx, def.key, row.id, 'delete', this.pick(row, ['deletedAt']), { deletedAt: now.toISOString() });
     }
     return { result: { softDeleted: rows.length, records: rows.map((r) => def.describe(r)), restorable: true } };
@@ -516,8 +517,8 @@ export class ChatEditService {
     if (!Array.isArray(parsed)) return { result: parsed };
     const rows = await this.rows(def, parsed, ctx, 'deleted');
     if (rows.length === 0) return { result: { error: 'No deleted records match those ids.' } };
+    await this.q.update(def.table).set({ deletedAt: null, updatedAt: new Date() }).where(and(inArray(def.table.id, rows.map((r) => r.id)), eq(def.table.userId, ctx.userId), eq(def.table.clientId, ctx.clientId)));
     for (const row of rows) {
-      await this.q.update(def.table).set({ deletedAt: null, updatedAt: new Date() }).where(and(eq(def.table.id, row.id), eq(def.table.userId, ctx.userId), eq(def.table.clientId, ctx.clientId)));
       await this.log(ctx, def.key, row.id, 'restore', { deletedAt: row.deletedAt }, { deletedAt: null });
     }
     return { result: { restored: rows.length, records: rows.map((r) => def.describe(r)) } };

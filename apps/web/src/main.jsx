@@ -9,6 +9,7 @@ initAnalytics()
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import '@fontsource-variable/plus-jakarta-sans' // self-hosted variable font: one small file, every weight, no third-party request
 import './index.css'
 import App from './App.jsx'
 import BillPaymentPage from './pages/BillPaymentPage.jsx'
