@@ -7,6 +7,7 @@ import { useCards, BANKS } from '../contexts/CardsContext';
 import { useMonth } from '../contexts/MonthContext';
 import useTransactions from '../hooks/useTransactions';
 import TransactionList from '../components/TransactionList';
+import BottomSheet from '../components/chat/BottomSheet';
 import { XMarkIcon, AdjustmentsHorizontalIcon, PlusIcon, ListBulletIcon, ChartPieIcon } from '@heroicons/react/24/outline';
 import { Shimmer } from '../components/ui/shimmer';
 import PageHeader from '../components/PageHeader';
@@ -48,7 +49,7 @@ function TransactionsView() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(() => (categoryParam && !isUncategorized(categoryParam) ? categoryParam : 'all'));
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [showFilters, setShowFilters] = useState(Boolean(categoryParam));
+  const [showFilters, setShowFilters] = useState(false);
   const [showUncategorized, setShowUncategorized] = useState(Boolean(categoryParam) && isUncategorized(categoryParam));
   const [typeFilter, setTypeFilter] = useState(['income', 'expense'].includes(typeParam) ? typeParam : 'all');
   const [showAdd, setShowAdd] = useState(false);
@@ -264,8 +265,8 @@ function TransactionsView() {
             <button
               type="button"
               aria-label={pt ? 'Filtros' : 'Filters'}
-              onClick={() => setShowFilters(!showFilters)}
-              className={`relative flex h-9 w-9 items-center justify-center rounded-[10px] ${showFilters || activeFiltersCount > 0 ? 'bg-[var(--rw-brand)] text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}
+              onClick={() => setShowFilters(true)}
+              className={`relative flex h-9 w-9 items-center justify-center rounded-[10px] ${activeFiltersCount > 0 ? 'bg-[var(--rw-brand)] text-white' : 'bg-[var(--rw-raised)] text-[var(--rw-muted)]'}`}
             >
               <AdjustmentsHorizontalIcon className="h-5 w-5" />
               {activeFiltersCount > 0 && (
@@ -277,8 +278,27 @@ function TransactionsView() {
 
         {/* Filters Panel: only what people actually reach for. Sorting is one choice; view-by and payment method stay at their defaults. */}
         {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-[var(--rw-surface)] rounded-xl shadow-sm space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <BottomSheet
+            title={pt ? 'Filtros' : 'Filters'}
+            onClose={() => setShowFilters(false)}
+            footer={
+              <div className="flex gap-2">
+                {activeFiltersCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedBankFilter('all'); setSelectedCategoryFilter('all'); setShowUncategorized(false); }}
+                    className="h-12 rounded-xl px-4 text-sm font-bold text-[var(--rw-brand-ink)]"
+                  >
+                    {pt ? 'Limpar' : 'Clear'}
+                  </button>
+                )}
+                <button type="button" onClick={() => setShowFilters(false)} className="h-12 flex-1 rounded-xl bg-[var(--rw-brand)] text-sm font-bold text-white">
+                  {pt ? `Ver ${filteredTransactions.length} movimentos` : `Show ${filteredTransactions.length} entries`}
+                </button>
+              </div>
+            }
+          >
+            <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="block text-xs font-medium text-[var(--rw-muted)] mb-1.5 uppercase tracking-wide">{t('charts.category')}</label>
                 <select
@@ -322,19 +342,7 @@ function TransactionsView() {
               </div>
             </div>
 
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={() => {
-                  setSelectedBankFilter('all');
-                  setSelectedCategoryFilter('all');
-                  setShowUncategorized(false);
-                }}
-                className="w-full py-2 text-sm font-medium text-[var(--rw-brand-ink)] hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
-              >
-                {pt ? 'Limpar filtros' : 'Clear filters'}
-              </button>
-            )}
-          </div>
+          </BottomSheet>
         )}
 
         {/* Transactions List */}
@@ -344,7 +352,7 @@ function TransactionsView() {
               <ExpensesChartsView
                 transactions={filteredTransactions}
                 language={language}
-                onCategoryClick={(cat) => { setSelectedCategoryFilter(cat); setShowFilters(true); setDisplayMode('list'); }}
+                onCategoryClick={(cat) => { setSelectedCategoryFilter(cat); setDisplayMode('list'); }}
               />
             </Suspense>
           ) : (
