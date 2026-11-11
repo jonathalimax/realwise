@@ -226,7 +226,7 @@ export default function FilePreview({ file, onClose, language }) {
         {state.status === 'ready' && isPicture && (
           <div className="mx-auto space-y-3" style={{ width: `${scale * 100}%` }}>
             {state.images.map((src, i) => (
-              <img key={src} src={src} alt={`${file.name} ${i + 1}`} draggable={false} className="block w-full select-none rounded bg-white" />
+              <img key={src} src={src} loading="lazy" decoding="async" alt={`${file.name} ${i + 1}`} draggable={false} className="block w-full select-none rounded bg-white" />
             ))}
             {state.truncated && <p className="pb-2 text-center text-xs text-white/60">{text.truncated(state.pages)}</p>}
           </div>
