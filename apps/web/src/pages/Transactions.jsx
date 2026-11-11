@@ -352,6 +352,7 @@ function TransactionsView() {
               <ExpensesChartsView
                 transactions={filteredTransactions}
                 language={language}
+                onlyWithItems
                 onCategoryClick={(cat) => { setSelectedCategoryFilter(cat); setDisplayMode('list'); }}
               />
             </Suspense>

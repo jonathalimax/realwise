@@ -41,7 +41,8 @@ const CATEGORY_ICONS = {
   'Other': '📦', 'Diversos': '📦',
 };
 
-export default function SpendingChart({ transactions, onCategoryClick, selectedMonth, type = 'expense' }) {
+// onlyWithItems: list just the categories that have entries in `transactions` (Movimentos), instead of every category with its limit.
+export default function SpendingChart({ transactions, onCategoryClick, selectedMonth, type = 'expense', onlyWithItems = false }) {
   const { formatCurrency, t, categories, language } = useSettings();
   const { getTemplateBudget } = useBudget();
   const { state: plannerStateData } = usePlannerState();
@@ -95,7 +96,7 @@ export default function SpendingChart({ transactions, onCategoryClick, selectedM
 
   // All categories: union of enabled list + any from actual spending
   const allCats = Array.from(new Set([
-    ...(categories?.[type] ?? []),
+    ...(onlyWithItems ? [] : (categories?.[type] ?? [])),
     ...Object.keys(categoryTotals),
   ]));
 
