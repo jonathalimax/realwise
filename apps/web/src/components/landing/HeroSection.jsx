@@ -116,6 +116,7 @@ export default function HeroSection() {
                 <AnimatePresence mode="wait">
                   <img
                     key={currentIndex}
+                    decoding="async"
                     src={screenshots[currentIndex].src}
                     alt={screenshots[currentIndex].alt}
                     className="w-full h-full object-cover object-top"

@@ -65,6 +65,7 @@ function SidebarContent({ navigationGroups, language, onSignOut, mobileClose, cu
             alt={currentUser.displayName ?? 'User profile'}
             className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-violet-600/20"
             referrerPolicy="no-referrer"
+            decoding="async"
           />
         ) : userInitials ? (
           <div className="w-10 h-10 bg-[var(--rw-brand)] rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/20">

@@ -12,7 +12,7 @@ export default function Avatar({ size = 36, className = '', ring = false }) {
       role="img"
       aria-label={name}
     >
-      {photoUrl ? <img src={photoUrl} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : initial}
+      {photoUrl ? <img src={photoUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : initial}
     </span>
   );
 }

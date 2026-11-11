@@ -8,6 +8,7 @@ import postgres from 'postgres';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { AppLogger } from './error-log/app-logger';
 dotenv.config();
 
@@ -21,6 +22,8 @@ async function bootstrap() {
   if (!allowedOrigin) throw new Error('FRONTEND_BASE_URL must be set');
 
   const app = await NestFactory.create(AppModule, { rawBody: true, logger: new AppLogger() });
+  // gzip every text response, but never the chat's event stream: buffering it would hold tokens back.
+  app.use(compression({ filter: (req, res) => !String(res.getHeader('Content-Type') ?? '').includes('text/event-stream') && compression.filter(req, res) }));
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }));
   app.enableCors({
