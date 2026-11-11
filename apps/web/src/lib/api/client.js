@@ -143,9 +143,23 @@ export function createApiClient({ baseUrl, defaultHeaders = {} } = {}) {
     return data;
   }
 
+  // Two components asking for the same GET at the same moment (a screen and its header, a refocus) share one network
+  // call. Only while it is in flight, so nothing is ever served stale. Calls with an abort signal stay separate.
+  const inFlightGets = new Map();
+  const get = (path, options) => {
+    if (options?.signal) return request(path, { ...options, method: 'GET' });
+    let shared = inFlightGets.get(path);
+    if (!shared) {
+      shared = request(path, { ...options, method: 'GET' }).finally(() => inFlightGets.delete(path));
+      inFlightGets.set(path, shared);
+    }
+    // Each caller gets its own copy, so one cannot change the data another one is reading.
+    return shared.then((data) => (data && typeof data === 'object' && typeof structuredClone === 'function' ? structuredClone(data) : data));
+  };
+
   return {
     request,
-    get: (path, options) => request(path, { ...options, method: 'GET' }),
+    get,
     post: (path, body, options) => request(path, { ...options, method: 'POST', body }),
     patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
     delete: (path, options) => request(path, { ...options, method: 'DELETE' }),

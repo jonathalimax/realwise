@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, date, timestamp, boolean, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, numeric, date, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { transactionTypeEnum } from './enums';
 import { users } from './users';
 import { categories } from './categories';
@@ -45,4 +45,8 @@ export const transactions = pgTable('transactions', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  // Every screen reads "this user's rows, newest first"; without these each read scans the whole table.
+  index('transactions_user_date_idx').on(t.userId, t.date),
+  index('transactions_installment_group_idx').on(t.installmentGroupId),
+]);
