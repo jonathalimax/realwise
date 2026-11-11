@@ -48,6 +48,8 @@ export default defineConfig(() => {
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         injectManifest: {
           maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+          // Big marketing images are never needed offline: keep them out of the first-visit download.
+          globIgnores: ['**/founder.jpg', '**/screenshot-*.png', '**/demo.mp4'],
         },
         manifest: {
           name: 'Realwise',

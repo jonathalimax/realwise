@@ -15,7 +15,13 @@ export default function TransactionList({
   hideBulkEdit = false,
   filterButton = null
 }) {
+  const [searchInput, setSearchInput] = useState('');
+  // The list filters on the debounced value, so typing never re-filters hundreds of rows per keystroke.
   const [searchTerm, setSearchTerm] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setSearchTerm(searchInput), 250);
+    return () => clearTimeout(id);
+  }, [searchInput]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -234,8 +240,8 @@ export default function TransactionList({
             <input
               type="text"
               placeholder={t('transactionList.searchPlaceholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 text-sm bg-[var(--rw-raised)]/50 text-[var(--rw-ink)] border-0 rounded-2xl
                 placeholder-slate-400 dark:placeholder-slate-500
                 focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-[var(--rw-brand)] transition-all"
