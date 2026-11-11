@@ -59,8 +59,7 @@ describe('BillsService', () => {
 
   it('markPaid updates the target occurrence with paid amount and timestamp', async () => {
     mockDb.where
-      .mockResolvedValueOnce([mockRow]) // findOne
-      .mockResolvedValueOnce([mockRow]) // findAll for target lookup
+      .mockResolvedValueOnce([mockRow]) // findAll: source bill and target lookup in one read
       .mockReturnValueOnce(mockDb)      // update chain where returns this
       .mockResolvedValueOnce([]);       // next occurrence lookup
     mockDb.returning.mockResolvedValueOnce([{ ...mockRow, status: 'paid' }]);
@@ -79,8 +78,7 @@ describe('BillsService', () => {
 
   it('creates the next recurring occurrence only when it does not already exist', async () => {
     mockDb.where
-      .mockResolvedValueOnce([mockRow]) // findOne
-      .mockResolvedValueOnce([mockRow]) // findAll for target lookup
+      .mockResolvedValueOnce([mockRow]) // findAll: source bill and target lookup in one read
       .mockReturnValueOnce(mockDb)      // update chain where returns this
       .mockResolvedValueOnce([]);       // next occurrence lookup
     mockDb.returning.mockResolvedValueOnce([{ ...mockRow, status: 'paid' }]);

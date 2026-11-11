@@ -249,11 +249,13 @@ export class BillsService {
   }
 
   async markPaid(id: string, dto: MarkBillPaidDto, clientId: string, userId: string): Promise<Bill> {
-    const sourceBill = await this.findOne(id, clientId, userId);
+    // One read of the user's bills: the source bill comes out of the same list the series match needs.
+    const allBills = await this.findAll(clientId, userId);
+    const sourceBill = allBills.find((bill) => bill.id === id);
+    if (!sourceBill) throw new NotFoundException();
     const paidDate = this.normalizePaidDate(dto) ?? new Date();
     const targetDueDate = this.normalizeDateOnly(dto?.targetDueDate ?? dto?.virtualDueDate ?? sourceBill.dueDate);
     const paidAmount = this.normalizeAmount(dto?.paidAmount) ?? sourceBill.amount;
-    const allBills = await this.findAll(clientId, userId);
     const matchingOccurrence = allBills.find((bill) => this.sameRecurringSeries(bill, sourceBill) && this.normalizeDateOnly(bill.dueDate) === targetDueDate);
     const paidBill = matchingOccurrence ?? sourceBill;
 
