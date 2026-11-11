@@ -42,9 +42,9 @@ function TransactionsView() {
   // Filters start from the URL: a category link means "that category, nothing else".
   const categoryParam = searchParams.get('category');
   const typeParam = searchParams.get('type');
-  const [viewMode, setViewMode] = useState('payment');
+  const [viewMode] = useState('payment');
   const [selectedBankFilter, setSelectedBankFilter] = useState('all');
-  const [selectedPaymentMethodFilter, setSelectedPaymentMethodFilter] = useState('all');
+  const [selectedPaymentMethodFilter] = useState('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(() => (categoryParam && !isUncategorized(categoryParam) ? categoryParam : 'all'));
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -105,7 +105,6 @@ function TransactionsView() {
   const typeScope = useMemo(() => scope(['type']), [scope]);
   const categoryScope = useMemo(() => scope(['category']), [scope]);
   const bankScope = useMemo(() => scope(['bank']), [scope]);
-  const paymentScope = useMemo(() => scope(['payment']), [scope]);
 
   const sumOf = (list) => {
     let income = 0;
@@ -160,9 +159,7 @@ function TransactionsView() {
   const uncategorizedCount = useMemo(() => categoryScope.filter(isUncat).length, [categoryScope]);
 
   const activeFiltersCount = [
-    viewMode !== 'payment',
     selectedBankFilter !== 'all',
-    selectedPaymentMethodFilter !== 'all',
     selectedCategoryFilter !== 'all',
     showUncategorized
   ].filter(Boolean).length;
@@ -257,10 +254,10 @@ function TransactionsView() {
           <span className="text-sm text-[var(--rw-subtle)]">{filteredTransactions.length} {pt ? 'itens' : 'items'}</span>
           <div className="flex items-center gap-2">
             <div className="flex gap-0.5 rounded-[10px] bg-[var(--rw-raised)] p-0.5" role="group" aria-label={pt ? 'Modo de exibição' : 'Display mode'}>
-              {[['list', pt ? 'Lista' : 'List', ListBulletIcon], ['charts', pt ? 'Gráfico' : 'Chart', ChartPieIcon]].map(([k, label, Icon]) => (
+              {[['list', pt ? 'Lista' : 'List', <ListBulletIcon key="l" className="h-5 w-5" />], ['charts', pt ? 'Gráfico' : 'Chart', <ChartPieIcon key="c" className="h-5 w-5" />]].map(([k, label, icon]) => (
                 <button key={k} type="button" aria-label={label} aria-pressed={displayMode === k} onClick={() => setDisplayMode(k)}
                   className={`flex h-8 w-[34px] items-center justify-center rounded-[8px] ${displayMode === k ? 'bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]' : 'text-[var(--rw-muted)]'}`}>
-                  <Icon className="h-5 w-5" />
+                  {icon}
                 </button>
               ))}
             </div>
@@ -278,162 +275,49 @@ function TransactionsView() {
           </div>
         </div>
 
-        {/* Filters Panel */}
+        {/* Filters Panel: only what people actually reach for. Sorting is one choice; view-by and payment method stay at their defaults. */}
         {showFilters && (
-          <div className="mb-4 p-3 sm:p-4 bg-[var(--rw-surface)] rounded-xl shadow-sm space-y-3 sm:space-y-4">
-            {/* View Mode Toggle */}
-            <div>
-              <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
-                {language === 'pt' ? 'Visualizar por' : 'View by'}
-              </label>
-              <div className="flex p-1 bg-[var(--rw-raised)] rounded-lg">
-                <button
-                  onClick={() => setViewMode('purchase')}
-                  className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                    viewMode === 'purchase'
-                      ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
-                      : 'text-[var(--rw-muted)]'
-                  }`}
-                >
-                  {t('cards.viewByPurchase')}
-                </button>
-                <button
-                  onClick={() => setViewMode('payment')}
-                  className={`flex-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                    viewMode === 'payment'
-                      ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
-                      : 'text-[var(--rw-muted)]'
-                  }`}
-                >
-                  {t('cards.viewByPayment')}
-                </button>
-              </div>
-            </div>
-
-            {/* To Review Toggle */}
-            <button
-              onClick={() => {
-                const turningOn = !showUncategorized;
-                setShowUncategorized(turningOn);
-                if (turningOn) setSelectedCategoryFilter('all');
-              }}
-              className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                showUncategorized
-                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
-                  : 'bg-[var(--rw-raised)] text-[var(--rw-ink)] border border-[var(--rw-border)] hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-700 dark:hover:text-amber-400'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-              {language === 'pt' ? 'Sem categoria' : 'Uncategorized'}
-              {uncategorizedCount > 0 && (
-                <span className={`ml-auto px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                  showUncategorized
-                    ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200'
-                    : 'bg-[var(--rw-track)] text-[var(--rw-ink)]'
-                }`}>
-                  {uncategorizedCount}
-                </span>
-              )}
-            </button>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-              {/* Bank Filter */}
+          <div className="mb-4 p-3 sm:p-4 bg-[var(--rw-surface)] rounded-xl shadow-sm space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Banco' : 'Bank'}
-                </label>
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-1.5 uppercase tracking-wide">{t('charts.category')}</label>
                 <select
-                  value={selectedBankFilter}
-                  onChange={(e) => setSelectedBankFilter(e.target.value)}
+                  value={showUncategorized ? '__none' : selectedCategoryFilter}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setShowUncategorized(v === '__none');
+                    setSelectedCategoryFilter(v === '__none' ? 'all' : v);
+                  }}
                   className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
-                  <option value="all">{language === 'pt' ? 'Todos os bancos' : 'All banks'} ({bankScope.length})</option>
-                  <option value="cash">{language === 'pt' ? 'Dinheiro (sem banco)' : 'Cash (no bank)'} ({bankScope.filter((t) => bankMatch(t, 'cash')).length})</option>
-                  {availableBanks.map(bank => (
-                    <option key={bank.id} value={bank.id}>
-                      {bank.icon} {bank.name} ({bankScope.filter((t) => bankMatch(t, bank.id)).length})
-                    </option>
+                  <option value="all">{pt ? 'Todas' : 'All'} ({categoryScope.length})</option>
+                  {uncategorizedCount > 0 && <option value="__none">{pt ? 'Sem categoria' : 'Uncategorized'} ({uncategorizedCount})</option>}
+                  {availableCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat} ({categoryCounts.get(cat) || 0})</option>
                   ))}
                 </select>
               </div>
-
-              {/* Payment Method Filter */}
               <div>
-                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Forma de Pagamento' : 'Payment Method'}
-                </label>
-                <select
-                  value={selectedPaymentMethodFilter}
-                  onChange={(e) => setSelectedPaymentMethodFilter(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
-                >
-                  <option value="all">{language === 'pt' ? 'Todos' : 'All'} ({paymentScope.length})</option>
-                  {[['credit', '💳 ' + PAYMENT_LABELS.credit], ['debit', '🏦 ' + PAYMENT_LABELS.debit], ['pix', '⚡ PIX'], ['transfer', '↔️ ' + PAYMENT_LABELS.transfer], ['cash', '💵 ' + PAYMENT_LABELS.cash]].map(([value, label]) => (
-                    <option key={value} value={value}>{label} ({paymentScope.filter((t) => paymentMatch(t, value)).length})</option>
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-1.5 uppercase tracking-wide">{pt ? 'Banco' : 'Bank'}</label>
+                <select value={selectedBankFilter} onChange={(e) => setSelectedBankFilter(e.target.value)} className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent">
+                  <option value="all">{pt ? 'Todos os bancos' : 'All banks'} ({bankScope.length})</option>
+                  <option value="cash">{pt ? 'Dinheiro (sem banco)' : 'Cash (no bank)'} ({bankScope.filter((t) => bankMatch(t, 'cash')).length})</option>
+                  {availableBanks.map((bank) => (
+                    <option key={bank.id} value={bank.id}>{bank.icon} {bank.name} ({bankScope.filter((t) => bankMatch(t, bank.id)).length})</option>
                   ))}
                 </select>
               </div>
-
-              {/* Category Filter */}
               <div>
-                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
-                  {t('charts.category')}
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    value={selectedCategoryFilter}
-                    onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                    className={`flex-1 pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent ${
-                      selectedCategoryFilter !== 'all'
-                        ? 'bg-[var(--rw-brand-soft)] border-violet-200 dark:border-violet-800 text-[var(--rw-brand-ink)]'
-                        : 'bg-[var(--rw-raised)] border-[var(--rw-border)] text-[var(--rw-ink)]'
-                    }`}
-                  >
-                    <option value="all">{language === 'pt' ? 'Todas' : 'All'} ({categoryScope.length})</option>
-                    {availableCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat} ({categoryCounts.get(cat) || 0})</option>
-                    ))}
-                  </select>
-                  {selectedCategoryFilter !== 'all' && (
-                    <button
-                      onClick={() => setSelectedCategoryFilter('all')}
-                      className="p-2.5 text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg"
-                    >
-                      <XMarkIcon className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Sort By */}
-              <div>
-                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Ordenar por' : 'Sort by'}
-                </label>
+                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-1.5 uppercase tracking-wide">{pt ? 'Ordenar' : 'Sort'}</label>
                 <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  value={`${sortBy}:${sortOrder}`}
+                  onChange={(e) => { const [by, order] = e.target.value.split(':'); setSortBy(by); setSortOrder(order); }}
                   className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
                 >
-                  <option value="date">{language === 'pt' ? 'Data' : 'Date'}</option>
-                  <option value="description">{language === 'pt' ? 'Descrição' : 'Description'}</option>
-                  <option value="amount">{language === 'pt' ? 'Valor' : 'Amount'}</option>
-                  <option value="createdAt">{language === 'pt' ? 'Data de Inserção' : 'Date of Insertion'}</option>
-                </select>
-              </div>
-
-              {/* Sort Order */}
-              <div>
-                <label className="block text-xs font-medium text-[var(--rw-muted)] mb-2 uppercase tracking-wide">
-                  {language === 'pt' ? 'Ordem' : 'Order'}
-                </label>
-                <select
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-lg text-sm text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
-                >
-                  <option value="desc">{language === 'pt' ? 'Mais recente' : 'Newest first'}</option>
-                  <option value="asc">{language === 'pt' ? 'Mais antigo' : 'Oldest first'}</option>
+                  <option value="date:desc">{pt ? 'Mais recentes' : 'Newest first'}</option>
+                  <option value="date:asc">{pt ? 'Mais antigos' : 'Oldest first'}</option>
+                  <option value="amount:desc">{pt ? 'Maior valor' : 'Highest amount'}</option>
+                  <option value="amount:asc">{pt ? 'Menor valor' : 'Lowest amount'}</option>
                 </select>
               </div>
             </div>
@@ -441,22 +325,20 @@ function TransactionsView() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={() => {
-                  setViewMode('payment');
                   setSelectedBankFilter('all');
-                  setSelectedPaymentMethodFilter('all');
                   setSelectedCategoryFilter('all');
                   setShowUncategorized(false);
                 }}
                 className="w-full py-2 text-sm font-medium text-[var(--rw-brand-ink)] hover:bg-violet-50 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
               >
-                {language === 'pt' ? 'Limpar todos os filtros' : 'Clear all filters'}
+                {pt ? 'Limpar filtros' : 'Clear filters'}
               </button>
             )}
           </div>
         )}
 
         {/* Transactions List */}
-        <div className="rw-card p-3 sm:p-5">
+        <div className={displayMode === 'charts' ? '' : 'rw-card p-3 sm:p-5'}>
 {displayMode === 'charts' ? (
             <Suspense fallback={<div className="flex justify-center py-12"><div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--rw-brand)] border-t-transparent" /></div>}>
               <ExpensesChartsView
