@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
+
+const PAGE_SIZE = 60;
 
 export default function TransactionList({
   transactions = [],
@@ -22,6 +24,8 @@ export default function TransactionList({
     const id = setTimeout(() => setSearchTerm(searchInput), 250);
     return () => clearTimeout(id);
   }, [searchInput]);
+  // Long months render in blocks: 300 rows at once is slow to paint on a phone, and nobody reads them all.
+  const [paging, setPaging] = useState({ key: '', limit: PAGE_SIZE });
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -65,43 +69,48 @@ export default function TransactionList({
     return iconMap[category] || (type === 'income' ? '💵' : '💳');
   };
 
-  const sortedTransactions = [...transactions].sort((a, b) => {
-    let compare = 0;
-    if (sortBy === 'date') {
-      compare = new Date(a.date) - new Date(b.date);
-    } else if (sortBy === 'description') {
-      compare = a.description?.localeCompare(b.description || '') || 0;
-    } else if (sortBy === 'amount') {
-      compare = a.amount - b.amount;
-    } else if (sortBy === 'createdAt') {
-      // The API sends ISO strings; older rows may carry a Firestore-style timestamp.
-      const toTime = (v) => (v?.toDate ? v.toDate().getTime() : v ? new Date(v).getTime() || 0 : 0);
-      compare = toTime(a.createdAt) - toTime(b.createdAt);
-    }
-    return sortOrder === 'asc' ? compare : -compare;
-  });
-
-  const filteredTransactions = sortedTransactions.filter((trans) =>
-    trans.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trans.category?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const groupedByDate = filteredTransactions.reduce((groups, transaction) => {
-    const raw = new Date(transaction.date);
-    const dateKey = `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}-${String(raw.getDate()).padStart(2, '0')}`;
-    if (!groups[dateKey]) groups[dateKey] = [];
-    groups[dateKey].push(transaction);
-    return groups;
-  }, {});
-
-  const dateGroups = Object.entries(groupedByDate)
-    .sort(([a], [b]) => sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a))
-    .map(([dateKey, items]) => {
-      const [year, month, day] = dateKey.split('-').map(Number);
-      const dateObj = new Date(year, month - 1, day);
-      const dateLabel = dateObj.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
-      return { dateKey, dateLabel, items };
+  // Sorting, searching and grouping only re-run when their inputs change, not on every keystroke elsewhere or selection toggle.
+  const filteredTransactions = useMemo(() => {
+    const needle = searchTerm.toLowerCase();
+    const toTime = (v) => (v?.toDate ? v.toDate().getTime() : v ? new Date(v).getTime() || 0 : 0);
+    const sorted = [...transactions].sort((a, b) => {
+      let compare = 0;
+      if (sortBy === 'date') compare = new Date(a.date) - new Date(b.date);
+      else if (sortBy === 'description') compare = a.description?.localeCompare(b.description || '') || 0;
+      else if (sortBy === 'amount') compare = a.amount - b.amount;
+      else if (sortBy === 'createdAt') compare = toTime(a.createdAt) - toTime(b.createdAt); // older rows may carry a Firestore-style timestamp
+      return sortOrder === 'asc' ? compare : -compare;
     });
+    if (!needle) return sorted;
+    return sorted.filter((trans) => trans.description?.toLowerCase().includes(needle) || trans.category?.toLowerCase().includes(needle));
+  }, [transactions, searchTerm, sortBy, sortOrder]);
+
+  // A new search, sort or data set starts again from the first block (derived, so no effect is needed).
+  const resetKey = `${searchTerm}|${sortBy}|${sortOrder}|${transactions.length}`;
+  const limit = paging.key === resetKey ? paging.limit : PAGE_SIZE;
+
+  // A highlighted row (deep link) must always be on screen, so then everything renders.
+  const visibleTransactions = useMemo(
+    () => (highlightId ? filteredTransactions : filteredTransactions.slice(0, limit)),
+    [filteredTransactions, limit, highlightId],
+  );
+  const hiddenCount = filteredTransactions.length - visibleTransactions.length;
+
+  const dateGroups = useMemo(() => {
+    const groups = {};
+    for (const transaction of visibleTransactions) {
+      const raw = new Date(transaction.date);
+      const dateKey = `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}-${String(raw.getDate()).padStart(2, '0')}`;
+      (groups[dateKey] ||= []).push(transaction);
+    }
+    return Object.entries(groups)
+      .sort(([a], [b]) => (sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a)))
+      .map(([dateKey, items]) => {
+        const [year, month, day] = dateKey.split('-').map(Number);
+        const dateLabel = new Date(year, month - 1, day).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+        return { dateKey, dateLabel, items };
+      });
+  }, [visibleTransactions, sortOrder, locale]);
 
   const toggleSelection = (id) => {
     setSelectedIds(prev => {
@@ -314,7 +323,12 @@ export default function TransactionList({
           ))
         ) : (
           // Flat list — preserves sort-by-amount / sort-by-description order
-          filteredTransactions.map((transaction) => renderTransaction(transaction))
+          visibleTransactions.map((transaction) => renderTransaction(transaction))
+        )}
+        {hiddenCount > 0 && (
+          <button type="button" onClick={() => setPaging({ key: resetKey, limit: limit + PAGE_SIZE })} className="mt-2 h-11 w-full rounded-xl bg-[var(--rw-raised)] text-sm font-bold text-[var(--rw-brand-ink)]">
+            {language === 'pt' ? `Mostrar mais ${Math.min(hiddenCount, PAGE_SIZE)} (${hiddenCount} restantes)` : `Show ${Math.min(hiddenCount, PAGE_SIZE)} more (${hiddenCount} left)`}
+          </button>
         )}
       </div>
 

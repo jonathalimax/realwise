@@ -16,7 +16,7 @@ export async function shareSummaryCard({ value, caption, footer }) {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  const font = (weight, size) => `${weight} ${size}px "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif`;
+  const font = (weight, size) => `${weight} ${size}px "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif`;
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.font = font(800, 34);
   ctx.textBaseline = 'alphabetic';
