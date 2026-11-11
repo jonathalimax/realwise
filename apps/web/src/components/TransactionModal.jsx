@@ -10,6 +10,7 @@ import { transactionsResource } from '../lib/api/resources/transactions';
 import CurrencyInput from './ui/CurrencyInput';
 import { generateTransactionHash, generateInstallmentGroupId } from '../services/installments';
 import PlannerGoalSelect from './PlannerGoalSelect';
+import DateInput from '@/components/ui/DateInput';
 
 export default function TransactionModal({ isOpen, onClose }) {
   const [type, setType] = useState('expense');
@@ -404,8 +405,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                     <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('transactionForm.date')}
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                       value={transactionDate}
                       onChange={(e) => setTransactionDate(e.target.value)}
@@ -523,8 +523,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                             <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                               {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
                             </label>
-                            <input
-                              type="date"
+                            <DateInput
                               value={maturityDate}
                               onChange={(e) => setMaturityDate(e.target.value)}
                               className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
@@ -954,8 +953,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                           <label className="block text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
                             {language === 'pt' ? 'Data Final (Opcional)' : 'End Date (Optional)'}
                           </label>
-                          <input
-                            type="date"
+                          <DateInput
                             value={recurrenceEndDate}
                             onChange={(e) => setRecurrenceEndDate(e.target.value)}
                             className="w-full px-3 py-2 bg-[var(--rw-raised)] border border-purple-200 dark:border-purple-700 rounded-lg text-[var(--rw-ink)]
