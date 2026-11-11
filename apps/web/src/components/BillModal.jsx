@@ -3,6 +3,7 @@ import { useBills } from '../contexts/BillsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import CurrencyInput from './ui/CurrencyInput';
 import { serializeBillPayload } from '../lib/bills/serializeBillPayload';
+import DateInput from '@/components/ui/DateInput';
 
 export default function BillModal({ isOpen, onClose, bill = null }) {
   const { addBill, updateBill, deleteBill } = useBills();
@@ -229,8 +230,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Data de Vencimento' : 'Due Date'} *
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={formData.dueDate}
                   onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]
@@ -263,8 +263,7 @@ export default function BillModal({ isOpen, onClose, bill = null }) {
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Repetir até (opcional)' : 'Repeat until (optional)'}
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={formData.recurrenceEndDate}
                   onChange={(e) => setFormData({ ...formData, recurrenceEndDate: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent bg-[var(--rw-raised)] text-[var(--rw-ink)]

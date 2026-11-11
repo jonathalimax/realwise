@@ -13,6 +13,7 @@ import { deleteTransactionWithLinks } from '../services/linkedRecordDeletion';
 import CurrencyInput from './ui/CurrencyInput';
 import PercentInput from './ui/PercentInput';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
+import DateInput from '@/components/ui/DateInput';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -457,8 +458,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                       <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                         {t('transactionForm.date')}
                       </label>
-                      <input
-                        type="date"
+                      <DateInput
                         lang={language === 'pt' ? 'pt-BR' : 'en-US'}
                         value={transactionDate}
                         onChange={(e) => setTransactionDate(e.target.value)}
@@ -574,8 +574,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
                               <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                                 {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
                               </label>
-                              <input
-                                type="date"
+                              <DateInput
                                 value={maturityDate}
                                 onChange={(e) => setMaturityDate(e.target.value)}
                                 className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
 import { useCards } from '../contexts/CardsContext';
 import { transactionsResource } from '../lib/api/resources/transactions';
+import DateInput from '@/components/ui/DateInput';
 
 const PAYMENT_METHODS = [
   { id: 'credit', pt: 'Crédito', en: 'Credit' },
@@ -135,7 +136,7 @@ export default function AddTransactionSheet({ onClose }) {
             <Chip on={dayChoice === 'yesterday'} onClick={() => setDayChoice('yesterday')}>{pt ? 'Ontem' : 'Yesterday'}</Chip>
             <Chip on={dayChoice === 'other'} onClick={() => setDayChoice('other')}>{pt ? 'Outra data' : 'Other date'}</Chip>
             {dayChoice === 'other' && (
-              <input type="date" value={customDay} max={isoDay(today)} onChange={(e) => setCustomDay(e.target.value)} aria-label={pt ? 'Data' : 'Date'}
+              <DateInput  value={customDay} max={isoDay(today)} onChange={(e) => setCustomDay(e.target.value)} aria-label={pt ? 'Data' : 'Date'}
                 className="h-10 rounded-[12px] border border-[var(--rw-border)] bg-[var(--rw-raised)] px-3 text-sm outline-none" />
             )}
           </div>

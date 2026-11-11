@@ -1,6 +1,7 @@
 import { UNCATEGORIZED_CATEGORY } from '../../contexts/SettingsContext';
 import CurrencyInput from '../ui/CurrencyInput';
 import { INVESTMENT_TYPES } from '../../contexts/InvestmentContext';
+import DateInput from '@/components/ui/DateInput';
 
 /**
  * Shared transaction field body used by both the import swipe sheet and the
@@ -122,8 +123,7 @@ export default function TransactionFields({
       {/* Date */}
       <div>
         {fieldLabel(label('Data', 'Date'))}
-        <input
-          type="date"
+        <DateInput
           value={trans.date ? trans.date.split('T')[0] : ''}
           onChange={(e) => patch('date', e.target.value)}
           className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
@@ -202,8 +202,7 @@ export default function TransactionFields({
               </div>
               <div className="flex-1">
                 {fieldLabel(label('Vencimento', 'Maturity'))}
-                <input
-                  type="date"
+                <DateInput
                   value={trans.maturityDate || ''}
                   onChange={(e) => patch('maturityDate', e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-sm font-medium text-[var(--rw-ink)] focus:ring-2 focus:ring-[var(--rw-brand)] focus:border-transparent"
