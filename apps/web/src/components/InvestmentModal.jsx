@@ -5,6 +5,7 @@ import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
 import CurrencyInput from './ui/CurrencyInput';
 import PercentInput from './ui/PercentInput';
 import PlannerGoalSelect from './PlannerGoalSelect';
+import DateInput from '@/components/ui/DateInput';
 
 export default function InvestmentModal({ isOpen, onClose, initialView = 'form', editingInvestment: externalEditingInvestment = null }) {
   const {
@@ -312,8 +313,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.purchaseDate')}
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={formData.purchaseDate}
                   onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
                   className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
@@ -366,8 +366,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.maturityDate')}
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={formData.maturityDate}
                   onChange={(e) => setFormData({ ...formData, maturityDate: e.target.value })}
                   className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
@@ -626,8 +625,7 @@ export default function InvestmentModal({ isOpen, onClose, initialView = 'form',
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Data do Resgate' : 'Withdrawal Date'}
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={withdrawDate}
                   onChange={(e) => setWithdrawDate(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}

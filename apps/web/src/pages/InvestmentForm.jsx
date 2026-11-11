@@ -9,6 +9,7 @@ import CurrencyInput from '../components/ui/CurrencyInput';
 import PercentInput from '../components/ui/PercentInput';
 import PageHeader from '../components/PageHeader';
 import usePlannerGoals from './planner/usePlannerGoals';
+import DateInput from '@/components/ui/DateInput';
 
 /** Native select chevron — matches TransactionModal / transaction forms */
 const SELECT_CHEVRON_STYLE = {
@@ -320,8 +321,7 @@ export default function InvestmentForm() {
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Data do Resgate' : 'Withdrawal Date'}
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={withdrawDate}
                   onChange={(e) => setWithdrawDate(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
@@ -513,8 +513,7 @@ export default function InvestmentForm() {
                     <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                       {t('investments.maturityDate')}
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={formData.maturityDate}
                       onChange={(e) => setFormData((prev) => ({ ...prev, maturityDate: e.target.value }))}
                       className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl
@@ -545,8 +544,7 @@ export default function InvestmentForm() {
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {t('investments.purchaseDate')}
                 </label>
-                <input
-                  type="date"
+                <DateInput
                   value={formData.purchaseDate}
                   onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
                   className="w-full px-4 py-3 bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl

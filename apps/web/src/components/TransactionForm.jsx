@@ -8,6 +8,7 @@ import { transactionsResource } from '../lib/api/resources/transactions';
 import CurrencyInput from './ui/CurrencyInput';
 import { generateTransactionHash, generateInstallmentGroupId } from '../services/installments';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
+import DateInput from '@/components/ui/DateInput';
 
 export default function TransactionForm() {
   const { ownerId } = useAccess();
@@ -269,8 +270,7 @@ export default function TransactionForm() {
           <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
             {t('transactionForm.date')}
           </label>
-          <input
-            type="date"
+          <DateInput
             lang={language === 'pt' ? 'pt-BR' : 'en-US'}
             value={transactionDate}
             onChange={(e) => setTransactionDate(e.target.value)}
