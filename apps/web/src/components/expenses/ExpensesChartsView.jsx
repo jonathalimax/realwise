@@ -1,6 +1,6 @@
 import SpendingChart from '@/components/charts/SpendingChart';
 
-export default function ExpensesChartsView({ transactions, language, onCategoryClick }) {
+export default function ExpensesChartsView({ transactions, language, onCategoryClick, onlyWithItems = false }) {
   if (transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-[var(--rw-subtle)]">
@@ -15,7 +15,7 @@ export default function ExpensesChartsView({ transactions, language, onCategoryC
   return (
     <div className="space-y-4">
       <div className="bg-[var(--rw-surface)] rounded-2xl p-4 shadow-sm border border-[var(--rw-border)]">
-        <SpendingChart transactions={transactions} onCategoryClick={onCategoryClick} />
+        <SpendingChart transactions={transactions} onCategoryClick={onCategoryClick} onlyWithItems={onlyWithItems} />
       </div>
     </div>
   );
