@@ -1,8 +1,6 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect, useRef } from 'react';
 import { useSettings, UNCATEGORIZED_CATEGORY } from '../contexts/SettingsContext';
-import { useGoals, GOAL_ICONS } from '../contexts/GoalsContext';
+import { useGoals } from '../contexts/GoalsContext';
 import { useCards } from '../contexts/CardsContext';
 import { useInvestments, INVESTMENT_TYPES } from '../contexts/InvestmentContext';
 import { useAccess } from '../contexts/AccessContext';
@@ -14,6 +12,7 @@ import CurrencyInput from './ui/CurrencyInput';
 import PercentInput from './ui/PercentInput';
 import usePlannerGoals from '../pages/planner/usePlannerGoals';
 import DateInput from '@/components/ui/DateInput';
+import BottomSheet from './chat/BottomSheet';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -29,10 +28,74 @@ const METHOD_LABEL = {
 };
 const methodsFor = (type, transfer) => (transfer ? ['pix', 'transfer', 'other'] : type === 'income' ? ['pix', 'transfer', 'cash', 'other'] : ['credit', 'debit', 'pix', 'boleto', 'transfer', 'cash']);
 
+const isInvestmentName = (c) => c === 'Investments' || c === 'Investimentos';
+
+const FIELD = 'w-full min-h-[48px] px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-base text-[var(--rw-ink)] placeholder-gray-400 focus:border-[var(--rw-brand)] focus:ring-0 focus:outline-none transition-colors';
+const SELECT = `${FIELD} appearance-none cursor-pointer pr-10 truncate`;
+const SELECT_STYLE = {
+  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+  backgroundPosition: 'right 12px center',
+  backgroundRepeat: 'no-repeat',
+  backgroundSize: '20px',
+};
+
+function Field({ label, children }) {
+  return (
+    <div className="min-w-0">
+      <label className="block text-xs font-bold uppercase tracking-wider text-[var(--rw-muted)] mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function ToggleRow({ checked, onChange, disabled, title, hint }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`flex w-full min-h-[56px] items-center justify-between gap-3 rounded-xl border p-3 text-left transition-colors disabled:opacity-60 ${
+        checked ? 'border-[var(--rw-brand)] bg-[var(--rw-brand-soft)]' : 'border-[var(--rw-border)]'
+      }`}
+    >
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-[var(--rw-ink)]">{title}</span>
+        {hint && <span className="block text-xs text-[var(--rw-muted)]">{hint}</span>}
+      </span>
+      <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-1.5 transition-colors ${checked ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-track)]'}`}>
+        <span className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+      </span>
+    </button>
+  );
+}
+
+/** One radio row of a scope choice ("Só esta parcela", ...). */
+function RadioRow({ checked, onSelect, title, danger }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      onClick={onSelect}
+      className={`flex w-full min-h-[56px] items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
+        checked ? (danger ? 'border-red-500 bg-red-500/10' : 'border-[var(--rw-brand)] bg-[var(--rw-brand-soft)]') : 'border-[var(--rw-border)]'
+      }`}
+    >
+      <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${checked ? (danger ? 'border-red-500' : 'border-[var(--rw-brand)]') : 'border-[var(--rw-muted)]'}`}>
+        {checked && <span className={`h-2.5 w-2.5 rounded-full ${danger ? 'bg-red-500' : 'bg-[var(--rw-brand)]'}`} />}
+      </span>
+      <span className="min-w-0 text-sm font-semibold text-[var(--rw-ink)]">{title}</span>
+    </button>
+  );
+}
+
 export default function EditSingleTransactionModal({ isOpen, onClose, transaction, onSuccess, onSaveDraft = null }) {
-  const { ownerId } = useAccess();
+  const { ownerId, canWrite } = useAccess();
   const [type, setType] = useState('expense');
   const [description, setDescription] = useState('');
+  const [notes, setNotes] = useState('');
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState('');
   const [transactionDate, setTransactionDate] = useState('');
@@ -43,10 +106,10 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [paymentMethod, setPaymentMethod] = useState('credit');
   const [isTransfer, setIsTransfer] = useState(false); // money moving between the user's own accounts
   const [loading, setLoading] = useState(false);
-  const [updateAllInstallments, setUpdateAllInstallments] = useState(true);
-  const [showInstallmentConfirm, setShowInstallmentConfirm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteInstallmentScope, setDeleteInstallmentScope] = useState('single');
+  const [moreOpen, setMoreOpen] = useState(false);
+  // One confirmation sheet for both "save to which installments" and "delete which installments".
+  const [confirm, setConfirm] = useState(null); // null | 'save' | 'delete'
+  const [scope, setScope] = useState('single'); // 'single' | 'following' | 'group'
   const [deleteLinkedInvestment, setDeleteLinkedInvestment] = useState(false);
   const [investmentType, setInvestmentType] = useState('fixed_income');
 
@@ -59,8 +122,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const [fundName, setFundName] = useState('');
 
   const { categories, t, language } = useSettings();
+  const pt = language === 'pt';
   const { goals } = useGoals();
-  const { userBanks, getBankDisplayName, findUserBank } = useCards();
+  const { userBanks, getBankInfo, getBankDisplayName, findUserBank } = useCards();
   const { addInvestment, updateInvestment, investments } = useInvestments();
 
   // Latest context values for the populate effect, which must run only when the transaction changes
@@ -80,12 +144,15 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
     : investments.find((item) => item.transactionId === transaction?.id) ?? null;
   const hasLinkedInvestment = Boolean(transaction?.investmentId || linkedInvestment);
   const isInstallmentTransaction = Boolean(transaction?.isInstallment && transaction?.installmentGroupId);
+  const showInvestmentFields = !isTransfer && isInvestmentName(category);
+  const showPlannerGoal = !isTransfer && type === 'expense' && isInvestmentName(category);
 
   // Populate form when transaction changes
   useEffect(() => {
     if (transaction) {
       setType(transaction.type || 'expense');
       setDescription(transaction.description || '');
+      setNotes(transaction.notes || '');
       setAmount(transaction.amount || 0);
       // Both "no category" spellings mean the same thing: show the one from the current language so the select can match it.
       const uncatNames = Object.values(UNCATEGORIZED_CATEGORY);
@@ -103,22 +170,23 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       setIsIgnored(transaction.ignored || false);
       setIsTransfer(Boolean(transaction.isTransfer));
       setPaymentMethod(transaction.paymentMethod || (userBank ? (userBank.hasCredit ? 'credit' : 'debit') : 'cash'));
-      setUpdateAllInstallments(transaction.isInstallment || false);
-      setShowDeleteConfirm(false);
-      setDeleteInstallmentScope('single');
+      setScope('single');
+      setConfirm(null);
       setDeleteLinkedInvestment(false);
       setInvestmentType(transaction.investmentType || 'fixed_income');
+      // Open the extra options straight away when something in them is already set.
+      setMoreOpen(Boolean(transaction.notes || transaction.ignored || transaction.isTransfer || transaction.goalId || transaction.plannerGoalId));
 
       // Load investment data if transaction is linked to an investment
       if (transaction.investmentId) {
-        const linkedInvestment = investmentsRef.current.find(inv => inv.id === transaction.investmentId);
-        if (linkedInvestment) {
-          setExpectedReturn((linkedInvestment.expectedReturn || 0) * 100); // Convert to percentage
-          setMaturityDate(linkedInvestment.maturityDate || '');
-          setTicker(linkedInvestment.ticker || '');
-          setPlatform(linkedInvestment.platform || '');
-          setCoinName(linkedInvestment.coinName || '');
-          setFundName(linkedInvestment.fundName || '');
+        const linked = investmentsRef.current.find(inv => inv.id === transaction.investmentId);
+        if (linked) {
+          setExpectedReturn((linked.expectedReturn || 0) * 100); // Convert to percentage
+          setMaturityDate(linked.maturityDate || '');
+          setTicker(linked.ticker || '');
+          setPlatform(linked.platform || '');
+          setCoinName(linked.coinName || '');
+          setFundName(linked.fundName || '');
         }
       } else {
         // Reset investment fields
@@ -174,35 +242,42 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
     }
   };
 
+  const changeBank = (value) => {
+    const newBankId = value === 'cash' ? null : value;
+    setSelectedBankId(newBankId);
+    if (newBankId) {
+      const bank = findUserBank(newBankId);
+      const preferred = type === 'income' || isTransfer ? 'pix' : bank?.hasCredit ? 'credit' : 'debit';
+      setPaymentMethod((prev) => (methodsFor(type, isTransfer).includes(prev) && prev !== 'cash' ? prev : preferred));
+    } else {
+      setPaymentMethod('cash');
+    }
+  };
+
   const handleDelete = async () => {
-    if (!transaction?.id) return;
+    if (!transaction?.id || !canWrite) return;
 
     setLoading(true);
     try {
       await deleteTransactionWithLinks({
         transaction,
-        deleteScope: isInstallmentTransaction ? deleteInstallmentScope : 'single',
+        deleteScope: isInstallmentTransaction ? scope : 'single',
         deleteLinkedInvestment,
       });
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error('Error deleting transaction:', error);
-      alert(language === 'pt' ? 'Falha ao excluir a transacao. Tente novamente.' : 'Failed to delete transaction. Please try again.');
+      alert(pt ? 'Falha ao excluir a transação. Tente novamente.' : 'Failed to delete transaction. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!amount || amount <= 0 || !transaction) return;
-
-    if (!isDraftMode && transaction.isInstallment && !showInstallmentConfirm) {
-      setShowInstallmentConfirm(true);
-      return;
-    }
-    setShowInstallmentConfirm(false);
+  /** `appliedScope` is the choice from the confirmation sheet for installments ('single' | 'following' | 'group'). */
+  const submit = async (appliedScope = 'single') => {
+    if (!amount || amount <= 0 || !transaction || !canWrite) return;
+    setConfirm(null);
     setLoading(true);
 
     try {
@@ -213,7 +288,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
 
       const finalCategory = isTransfer ? null : category; // a transfer has no category; otherwise as chosen (may be empty)
 
-      const isInvestmentCategory = !isTransfer && (finalCategory === 'Investments' || finalCategory === 'Investimentos');
+      const isInvestmentCategory = !isTransfer && isInvestmentName(finalCategory);
 
       const updatedMetadata = buildUpdatedMetadata(transaction.metadata, finalCategory, transaction.category);
 
@@ -240,7 +315,9 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       const updates = {
         userId,
         type,
-        description,
+        description: description.trim(),
+        // An emptied description clears the notes (null), never leaves the old text behind.
+        notes: notes.trim() || null,
         amount: parseFloat(amount),
         category: finalCategory,
         date: baseDate.toISOString(),
@@ -259,9 +336,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       };
 
       if (isDraftMode) {
-        const extraFields = (category === 'Investments' || category === 'Investimentos')
-          ? buildInvestmentExtraFields()
-          : {};
+        const extraFields = isInvestmentName(category) ? buildInvestmentExtraFields() : {};
 
         onSaveDraft?.({
           ...transaction,
@@ -306,42 +381,39 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
         }
       }
 
-      // If this is an installment and user wants to update all
-      if (transaction.isInstallment && transaction.installmentGroupId && updateAllInstallments) {
+      if (isInstallmentTransaction && appliedScope !== 'single') {
         const rows = await transactionsResource.list();
-
-        const baseDescription = description.replace(/\s\(\d+\/\d+\)$/, '');
-
+        const baseDescription = description.trim().replace(/\s\(\d+\/\d+\)$/, '');
         const editedTransactionDate = new Date(transactionDate + 'T12:00:00');
         const installmentRows = rows.filter((item) =>
           item.installmentGroupId === transaction.installmentGroupId && item.userId === userId
         );
 
         await Promise.all(
-          installmentRows.map((installmentData) => {
-            const currentInstallmentDate = new Date(installmentData.date);
-            if (currentInstallmentDate < editedTransactionDate && installmentData.id !== transaction.id) {
+          installmentRows.map((row) => {
+            const isEdited = row.id === transaction.id;
+            // "Esta e as próximas": installments before this one stay as they are.
+            if (!isEdited && appliedScope === 'following' && Number(row.installmentCurrent) < Number(transaction.installmentCurrent)) {
               return Promise.resolve();
             }
+            if (isEdited) return transactionsResource.update(row.id, updates);
 
-            const newDescription = `${baseDescription} (${installmentData.installmentCurrent}/${installmentData.installmentTotal})`;
-            const nextDate = installmentData.autoGenerated
-              ? new Date(
-                new Date(editedTransactionDate).setMonth(
-                  new Date(editedTransactionDate).getMonth()
-                  + (installmentData.installmentCurrent - transaction.installmentCurrent)
-                )
-              ).toISOString()
-              : updates.date;
-
-            return transactionsResource.update(installmentData.id, {
-              ...updates,
-              description: newDescription,
-              installmentCurrent: installmentData.installmentCurrent,
-              installmentTotal: installmentData.installmentTotal,
-              autoGenerated: installmentData.autoGenerated,
-              date: nextDate,
-            });
+            // The other installments follow the edited one (same fields) but keep their own number, metadata and,
+            // unless the app generated them, their own date.
+            const { metadata: _metadata, date: _date, ...shared } = updates;
+            const patch = {
+              ...shared,
+              description: `${baseDescription} (${row.installmentCurrent}/${row.installmentTotal})`,
+              installmentCurrent: row.installmentCurrent,
+              installmentTotal: row.installmentTotal,
+              autoGenerated: row.autoGenerated,
+            };
+            if (row.autoGenerated) {
+              const shifted = new Date(editedTransactionDate);
+              shifted.setMonth(shifted.getMonth() + (row.installmentCurrent - transaction.installmentCurrent));
+              patch.date = shifted.toISOString();
+            }
+            return transactionsResource.update(row.id, patch);
           })
         );
       } else {
@@ -353,751 +425,352 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
       onClose();
     } catch (error) {
       console.error('Error updating transaction:', error);
-      alert('Failed to update transaction. Please try again.');
+      alert(pt ? 'Não foi possível salvar. Tente novamente.' : 'Failed to update transaction. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+  const handleSubmit = (e) => {
+    e?.preventDefault();
+    if (loading || !amount || amount <= 0 || !description.trim()) return;
+    if (!isDraftMode && isInstallmentTransaction) {
+      setConfirm('save');
+      return;
+    }
+    submit('single');
+  };
+
+  if (!isOpen || !transaction) return null;
+
+  const canSave = canWrite && !loading && amount > 0 && description.trim().length > 0;
+  const showDelete = canWrite && !isDraftMode;
+  const typeLabel = (kind) => (isTransfer
+    ? kind === 'expense' ? (pt ? 'Saída' : 'Outgoing') : (pt ? 'Entrada' : 'Incoming')
+    : kind === 'expense' ? (pt ? 'Saída' : 'Expense') : (pt ? 'Entrada' : 'Income'));
+  const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
+  const allCategories = categories[type] || [];
+  const orphanCategory = category && category !== uncatName && !allCategories.includes(category) ? category : null;
+  const uncatEntry = allCategories.find(c => c === uncatName);
+  const restCategories = allCategories.filter(c => c !== uncatName).sort((a, b) => a.localeCompare(b));
+  const seriesLabel = isInstallmentTransaction ? `${transaction.installmentCurrent}/${transaction.installmentTotal}` : null;
+
+  const textInput = (value, setValue, props = {}) => (
+    <input type="text" value={value} onChange={(e) => setValue(e.target.value)} className={FIELD} {...props} />
+  );
+
+  const footer = (
+    <div className="flex flex-col gap-1">
+      <button
+        type="submit"
+        form="edit-transaction-form"
+        disabled={!canSave}
+        className="w-full min-h-[48px] rounded-xl bg-[var(--rw-brand)] text-base font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading ? (pt ? 'Salvando…' : 'Saving…') : (pt ? 'Salvar' : 'Save')}
+      </button>
+      {showDelete && (
+        <button
+          type="button"
+          onClick={() => { setScope('single'); setDeleteLinkedInvestment(false); setConfirm('delete'); }}
+          disabled={loading}
+          className="w-full min-h-[44px] rounded-xl text-sm font-semibold text-red-500 disabled:opacity-50"
         >
-          <div className="fixed inset-0 bg-black/25 dark:bg-black/50" />
-        </Transition.Child>
+          {pt ? 'Excluir' : 'Delete'}
+        </button>
+      )}
+    </div>
+  );
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-end sm:items-center justify-center sm:p-4">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+  return (
+    <>
+      <BottomSheet
+        title={pt ? 'Editar transação' : 'Edit transaction'}
+        subtitle={seriesLabel ? (pt ? `Parcela ${seriesLabel}` : `Installment ${seriesLabel}`) : undefined}
+        onClose={() => (confirm ? setConfirm(null) : onClose())}
+        footer={footer}
+      >
+        <form id="edit-transaction-form" onSubmit={handleSubmit} className="space-y-4 pb-2">
+          {/* Entrada / Saída */}
+          <div className="flex gap-1 p-1 bg-[var(--rw-raised)] rounded-xl" role="radiogroup" aria-label={pt ? 'Tipo' : 'Type'}>
+            {['expense', 'income'].map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                role="radio"
+                aria-checked={type === kind}
+                onClick={() => changeType(kind)}
+                className={`flex-1 min-h-[44px] rounded-lg text-sm font-bold transition-colors ${
+                  type === kind
+                    ? kind === 'income' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                    : 'text-[var(--rw-muted)]'
+                }`}
+              >
+                {typeLabel(kind)}
+              </button>
+            ))}
+          </div>
+
+          {/* Valor */}
+          <Field label={pt ? 'Valor' : 'Amount'}>
+            <CurrencyInput
+              value={amount}
+              onChange={setAmount}
+              className="!text-3xl !font-extrabold !text-center !py-4 tabular-nums"
+              aria-label={pt ? 'Valor' : 'Amount'}
+            />
+          </Field>
+
+          {/* Título */}
+          <Field label={pt ? 'Título' : 'Title'}>
+            {textInput(description, setDescription, { required: true, placeholder: t('transactionForm.descriptionPlaceholder') })}
+          </Field>
+
+          {/* Categoria (a transfer has none) */}
+          {!isTransfer && (
+            <Field label={t('transactionForm.category')}>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className={SELECT} style={SELECT_STYLE}>
+                {/* A category that is not in the list (disabled, renamed, other language) must still show as itself. */}
+                {orphanCategory && <option value={orphanCategory}>{orphanCategory}</option>}
+                {uncatEntry && <option value={uncatEntry}>{uncatEntry}</option>}
+                {(uncatEntry || orphanCategory) && <optgroup label="──────────────" />}
+                {restCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </Field>
+          )}
+
+          {/* Investment details (only when the category is Investments) */}
+          {showInvestmentFields && (
+            <div className="space-y-3 p-3 bg-[var(--rw-raised)] rounded-xl">
+              <Field label={t('investments.type')}>
+                <select value={investmentType} onChange={(e) => setInvestmentType(e.target.value)} className={SELECT} style={SELECT_STYLE}>
+                  {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
+                    <option key={key} value={key}>{info.icon} {t(`investments.types.${key}`)}</option>
+                  ))}
+                </select>
+              </Field>
+              {investmentType === 'fixed_income' && (
+                <>
+                  <Field label={pt ? 'Rendimento esperado' : 'Expected return'}>
+                    <PercentInput value={expectedReturn ?? 0} onChange={setExpectedReturn} className="w-full min-h-[48px] !text-base" />
+                  </Field>
+                  <Field label={pt ? 'Vencimento (opcional)' : 'Maturity date (optional)'}>
+                    <DateInput value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} className={FIELD} />
+                  </Field>
+                </>
+              )}
+              {(investmentType === 'stocks' || investmentType === 'fii') && (
+                <>
+                  <Field label={`Ticker ${investmentType === 'fii' ? '(HGLG11, XPML11)' : '(PETR4, AAPL)'}`}>
+                    {textInput(ticker, (v) => setTicker(v.toUpperCase()), { placeholder: investmentType === 'fii' ? 'HGLG11' : 'PETR4' })}
+                  </Field>
+                  <Field label={pt ? 'Corretora' : 'Broker'}>
+                    {textInput(platform, setPlatform, { placeholder: 'XP, Clear, Rico' })}
+                  </Field>
+                </>
+              )}
+              {investmentType === 'crypto' && (
+                <>
+                  <Field label={pt ? 'Criptomoeda' : 'Cryptocurrency'}>
+                    {textInput(coinName, setCoinName, { list: 'crypto-list-edit', placeholder: 'Bitcoin (BTC)' })}
+                    <datalist id="crypto-list-edit">
+                      {['Bitcoin (BTC)', 'Ethereum (ETH)', 'BNB', 'Solana (SOL)', 'Cardano (ADA)', 'XRP', 'Dogecoin (DOGE)', 'Polygon (MATIC)', 'Avalanche (AVAX)', 'Chainlink (LINK)'].map((c) => <option key={c} value={c} />)}
+                    </datalist>
+                  </Field>
+                  <Field label="Exchange">
+                    {textInput(platform, setPlatform, { placeholder: 'Binance, Coinbase' })}
+                  </Field>
+                </>
+              )}
+              {investmentType === 'funds' && (
+                <>
+                  <Field label={pt ? 'Nome do fundo' : 'Fund name'}>
+                    {textInput(fundName, setFundName, { placeholder: pt ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund' })}
+                  </Field>
+                  <Field label={pt ? 'Plataforma' : 'Platform'}>
+                    {textInput(platform, setPlatform, { placeholder: 'XP, Rico' })}
+                  </Field>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Data */}
+          <Field label={t('transactionForm.date')}>
+            <DateInput
+              lang={pt ? 'pt-BR' : 'en-US'}
+              value={transactionDate}
+              onChange={(e) => setTransactionDate(e.target.value)}
+              className={FIELD}
+            />
+          </Field>
+
+          {/* Conta / Cartão */}
+          <Field label={pt ? 'Conta ou cartão' : 'Account or card'}>
+            <select value={selectedBankId || 'cash'} onChange={(e) => changeBank(e.target.value)} className={SELECT} style={SELECT_STYLE}>
+              <option value="cash">{pt ? '💵 Sem conta (dinheiro)' : '💵 No account (cash)'}</option>
+              {userBanks.map((userBank) => (
+                <option key={userBank.id} value={userBank.id}>
+                  {getBankInfo(userBank.bankId).icon} {getBankDisplayName(userBank)}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          {/* Forma de pagamento: the options depend on the kind of entry */}
+          <Field label={pt ? 'Forma de pagamento' : 'Payment method'}>
+            <div className="flex flex-wrap gap-2" role="radiogroup">
+              {methodsFor(type, isTransfer).map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  role="radio"
+                  aria-checked={paymentMethod === method}
+                  onClick={() => setPaymentMethod(method)}
+                  className={`min-h-[44px] min-w-[5.5rem] flex-1 rounded-xl border px-3 text-sm font-semibold transition-colors ${
+                    paymentMethod === method
+                      ? 'border-[var(--rw-brand)] bg-[var(--rw-brand-soft)] text-[var(--rw-brand-ink)]'
+                      : 'border-[var(--rw-border)] text-[var(--rw-muted)]'
+                  }`}
+                >
+                  {METHOD_LABEL[method][pt ? 'pt' : 'en']}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          {/* Mais opções */}
+          <div className="rounded-xl border border-[var(--rw-border)]">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+              className="flex w-full min-h-[48px] items-center justify-between px-4 text-left text-sm font-bold text-[var(--rw-ink)]"
             >
-              <Dialog.Panel className="relative w-full sm:max-w-lg transform overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--rw-surface)] p-6 shadow-xl transition-all max-h-[92dvh] overflow-y-auto" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-                <div className="flex items-center justify-between mb-4">
-                  <Dialog.Title className="text-xl font-bold text-[var(--rw-ink)]">
-                    {language === 'pt' ? 'Editar Transação' : 'Edit Transaction'}
-                  </Dialog.Title>
-                  <button
-                    onClick={onClose}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <XMarkIcon className="w-5 h-5 text-[var(--rw-muted)]" />
-                  </button>
-                </div>
+              {pt ? 'Mais opções' : 'More options'}
+              <span className={`text-[var(--rw-muted)] transition-transform ${moreOpen ? 'rotate-180' : ''}`} aria-hidden="true">▾</span>
+            </button>
+            {moreOpen && (
+              <div className="space-y-4 px-4 pb-4">
+                <Field label={pt ? 'Descrição (opcional)' : 'Description (optional)'}>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    maxLength={1000}
+                    className={`${FIELD} min-h-[88px] resize-none`}
+                    placeholder={pt ? 'Detalhes que ajudem a lembrar desta transação' : 'Details to help you remember this transaction'}
+                  />
+                </Field>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Type toggle: the labels become direction labels for a transfer */}
-                  <div className="flex p-1 bg-[var(--rw-raised)] rounded-xl">
-                    {['expense', 'income'].map((kind) => (
-                      <button
-                        key={kind}
-                        type="button"
-                        onClick={() => changeType(kind)}
-                        className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                          type === kind
-                            ? 'bg-[var(--rw-raised)] text-[var(--rw-ink)] shadow-sm'
-                            : 'text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
-                      >
-                        {isTransfer
-                          ? kind === 'expense' ? (language === 'pt' ? 'Saída' : 'Outgoing') : (language === 'pt' ? 'Entrada' : 'Incoming')
-                          : kind === 'expense' ? t('transactionForm.expense') : t('transactionForm.income')}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Transfer between the user's own accounts */}
-                  <button
-                    type="button"
-                    onClick={() => toggleTransfer(!isTransfer)}
-                    aria-pressed={isTransfer}
-                    className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-all ${
-                      isTransfer ? 'border-violet-500 bg-[var(--rw-brand-soft)]' : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className={`block text-sm font-medium ${isTransfer ? 'text-[var(--rw-brand-ink)]' : 'text-[var(--rw-ink)]'}`}>
-                        🔁 {language === 'pt' ? 'Transferência entre minhas contas' : 'Transfer between my accounts'}
-                      </span>
-                      <span className="block text-xs text-[var(--rw-muted)]">
-                        {language === 'pt'
-                          ? 'Fica fora das receitas e despesas e é ligada ao outro lado, se já estiver registrado.'
-                          : 'Left out of income and expenses and linked to the other side, if already recorded.'}
-                      </span>
-                    </span>
-                    <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-1.5 transition-colors ${isTransfer ? 'bg-[var(--rw-brand)]' : 'bg-[var(--rw-track)]'}`}>
-                      <span className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${isTransfer ? 'translate-x-5' : 'translate-x-0'}`} />
-                    </span>
-                  </button>
-
-                  {/* Row 1: Amount + Date */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Amount */}
-                    <div className="min-w-0">
-                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                        {t('transactionForm.amount')}
-                      </label>
-                      <CurrencyInput value={amount} onChange={setAmount} />
-                    </div>
-
-                    {/* Date */}
-                    <div className="min-w-0">
-                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                        {t('transactionForm.date')}
-                      </label>
-                      <DateInput
-                        lang={language === 'pt' ? 'pt-BR' : 'en-US'}
-                        value={transactionDate}
-                        onChange={(e) => setTransactionDate(e.target.value)}
-                        className="w-full px-3 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                          text-[var(--rw-ink)] text-sm
-                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                          transition-all duration-200"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 2: Description + Category */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Description */}
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                        {t('transactionForm.description')}
-                      </label>
-                      <input
-                        type="text"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        required
-                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                          text-[var(--rw-ink)] placeholder-gray-400
-                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                          transition-all duration-200"
-                        placeholder={t('transactionForm.descriptionPlaceholder')}
-                      />
-                    </div>
-
-                    {/* Category (not for transfers) */}
-                    {!isTransfer && (
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                        {t('transactionForm.category')}
-                      </label>
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                          text-[var(--rw-ink)]
-                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                          transition-all duration-200 appearance-none cursor-pointer pr-10"
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                          backgroundPosition: 'right 12px center',
-                          backgroundRepeat: 'no-repeat',
-                          backgroundSize: '20px'
-                        }}
-                      >
-                        {(() => {
-                          const uncatName = UNCATEGORIZED_CATEGORY[language] || UNCATEGORIZED_CATEGORY.pt;
-                          const all = categories[type] || [];
-                          const uncatEntry = all.find(c => c === uncatName);
-                          const rest = all.filter(c => c !== uncatName).sort((a, b) => a.localeCompare(b));
-                          // A category that is not in the list (disabled, renamed, other language) must still show as itself;
-                          // otherwise the select falls back to its first option and displays a category the row never had.
-                          const orphan = category && category !== uncatName && !all.includes(category) ? category : null;
-                          return (<>
-                            {orphan && <option value={orphan}>{orphan}</option>}
-                            {uncatEntry && <option value={uncatEntry}>{uncatEntry}</option>}
-                            {(uncatEntry || orphan) && <optgroup label="──────────────" />}
-                            {rest.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                          </>);
-                        })()}
-                      </select>
-                    </div>
+                {(isInstallmentTransaction || transaction.isRecurring) && (
+                  <div className="space-y-1 rounded-xl bg-[var(--rw-raised)] p-3 text-sm text-[var(--rw-muted)]">
+                    {isInstallmentTransaction && (
+                      <p>{pt ? `Parcela ${seriesLabel}. Ao salvar ou excluir você escolhe se vale só para esta, para as próximas ou para todas.` : `Installment ${seriesLabel}. When saving or deleting you choose which ones it applies to.`}</p>
                     )}
-                  </div>
-
-                  {/* Investment Type (only shown when category is Investments) */}
-                  {!isTransfer && (category === 'Investments' || category === 'Investimentos') && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                          {t('investments.type')}
-                        </label>
-                        <select
-                          value={investmentType}
-                          onChange={(e) => setInvestmentType(e.target.value)}
-                          className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer pr-10"
-                          style={{
-                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                            backgroundPosition: 'right 12px center',
-                            backgroundRepeat: 'no-repeat',
-                            backgroundSize: '20px'
-                          }}
-                        >
-                          {Object.entries(INVESTMENT_TYPES).map(([key, info]) => (
-                            <option key={key} value={key}>
-                              {info.icon} {t(`investments.types.${key}`)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Dynamic fields by investment type */}
-                      <div className="space-y-3 p-3 bg-[var(--rw-raised)] rounded-xl">
-                        {/* fixed_income fields */}
-                        {investmentType === 'fixed_income' && (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Rendimento Esperado' : 'Expected Return'}
-                              </label>
-                              <PercentInput
-                                value={expectedReturn ?? 0}
-                                onChange={(val) => setExpectedReturn(val)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Data de Vencimento (opcional)' : 'Maturity Date (optional)'}
-                              </label>
-                              <DateInput
-                                value={maturityDate}
-                                onChange={(e) => setMaturityDate(e.target.value)}
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)]
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                          </>
-                        )}
-
-                        {/* stocks fields */}
-                        {investmentType === 'stocks' && (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                Ticker {language === 'pt' ? '(ex: PETR4, AAPL)' : '(e.g. PETR4, AAPL)'}
-                              </label>
-                              <input
-                                type="text"
-                                value={ticker}
-                                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                                placeholder="PETR4"
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Corretora (ex: XP, Clear, Rico)' : 'Broker (e.g. XP, Clear, Rico)'}
-                              </label>
-                              <input
-                                type="text"
-                                value={platform}
-                                onChange={(e) => setPlatform(e.target.value)}
-                                placeholder={language === 'pt' ? 'XP Investimentos' : 'XP Investments'}
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                          </>
-                        )}
-
-                        {/* crypto fields */}
-                        {investmentType === 'crypto' && (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Criptomoeda' : 'Cryptocurrency'}
-                              </label>
-                              <input
-                                type="text"
-                                list="crypto-list-edit"
-                                value={coinName}
-                                onChange={(e) => setCoinName(e.target.value)}
-                                placeholder="Bitcoin (BTC)"
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                              <datalist id="crypto-list-edit">
-                                <option value="Bitcoin (BTC)" />
-                                <option value="Ethereum (ETH)" />
-                                <option value="BNB" />
-                                <option value="Solana (SOL)" />
-                                <option value="Cardano (ADA)" />
-                                <option value="XRP" />
-                                <option value="Dogecoin (DOGE)" />
-                                <option value="Polygon (MATIC)" />
-                                <option value="Avalanche (AVAX)" />
-                                <option value="Chainlink (LINK)" />
-                              </datalist>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Exchange (ex: Binance, Coinbase)' : 'Exchange (e.g. Binance, Coinbase)'}
-                              </label>
-                              <input
-                                type="text"
-                                value={platform}
-                                onChange={(e) => setPlatform(e.target.value)}
-                                placeholder="Binance"
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                          </>
-                        )}
-
-                        {/* funds fields */}
-                        {investmentType === 'funds' && (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Nome do Fundo' : 'Fund Name'}
-                              </label>
-                              <input
-                                type="text"
-                                value={fundName}
-                                onChange={(e) => setFundName(e.target.value)}
-                                placeholder={language === 'pt' ? 'Ex: Fundo XP Ibovespa' : 'e.g. XP Ibovespa Fund'}
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Plataforma' : 'Platform'}
-                              </label>
-                              <input
-                                type="text"
-                                value={platform}
-                                onChange={(e) => setPlatform(e.target.value)}
-                                placeholder={language === 'pt' ? 'Ex: XP, Rico' : 'e.g. XP, Rico'}
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                          </>
-                        )}
-
-                        {/* fii fields */}
-                        {investmentType === 'fii' && (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                Ticker {language === 'pt' ? '(ex: HGLG11, XPML11)' : '(e.g. HGLG11, XPML11)'}
-                              </label>
-                              <input
-                                type="text"
-                                value={ticker}
-                                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                                placeholder="HGLG11"
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                                {language === 'pt' ? 'Corretora' : 'Broker'}
-                              </label>
-                              <input
-                                type="text"
-                                value={platform}
-                                onChange={(e) => setPlatform(e.target.value)}
-                                placeholder={language === 'pt' ? 'Ex: XP, Clear' : 'e.g. XP, Clear'}
-                                className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                                  text-[var(--rw-ink)] placeholder-gray-400
-                                  focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                                  transition-all duration-200"
-                              />
-                            </div>
-                          </>
-                        )}
-
-                      </div>
-                    </>
-                  )}
-
-                  {/* Row 3: Bank + Ignore */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Bank Selector */}
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                        {language === 'pt' ? 'Banco' : 'Bank'}
-                      </label>
-                      <select
-                        value={selectedBankId || 'cash'}
-                        onChange={(e) => {
-                          const newBankId = e.target.value === 'cash' ? null : e.target.value;
-                          setSelectedBankId(newBankId);
-                          if (newBankId) {
-                            const bank = findUserBank(newBankId);
-                            const preferred = type === 'income' || isTransfer ? 'pix' : bank?.hasCredit ? 'credit' : 'debit';
-                            setPaymentMethod((prev) => (methodsFor(type, isTransfer).includes(prev) && prev !== 'cash' ? prev : preferred));
-                          } else {
-                            setPaymentMethod('cash');
-                          }
-                        }}
-                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                          text-[var(--rw-ink)]
-                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                          transition-all duration-200 appearance-none cursor-pointer pr-10"
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                          backgroundPosition: 'right 12px center',
-                          backgroundRepeat: 'no-repeat',
-                          backgroundSize: '20px'
-                        }}
-                      >
-                        <option value="cash">{language === 'pt' ? '💵 Sem conta (dinheiro)' : '💵 No account (cash)'}</option>
-                        {userBanks.map((userBank) => {
-                          const displayName = getBankDisplayName(userBank);
-                          return (
-                            <option key={userBank.id} value={userBank.id}>
-                              {displayName}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-
-                    {/* Ignore Toggle */}
-                    <div className="flex flex-col justify-end">
-                      <button
-                        type="button"
-                        onClick={() => !isTransfer && setIsIgnored(!isIgnored)}
-                        disabled={isTransfer}
-                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                          (isIgnored || isTransfer)
-                            ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
-                            : 'border-[var(--rw-border)] hover:border-gray-300 dark:hover:border-gray-500'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">🚫</span>
-                          <div className="text-left">
-                            <span className={`text-sm font-medium ${isIgnored ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--rw-ink)]'}`}>
-                              {t('transactionForm.ignoreTransaction')}
-                            </span>
-                          </div>
-                        </div>
-                        <div className={`w-12 h-7 rounded-full transition-colors flex items-center px-1.5 ${
-                          isIgnored ? 'bg-amber-500' : 'bg-[var(--rw-track)]'
-                        }`}>
-                          <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                            isIgnored ? 'translate-x-5' : 'translate-x-0'
-                          }`} />
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Payment method: the options depend on the kind of entry */}
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                      {language === 'pt' ? 'Forma de pagamento' : 'Payment method'}
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {methodsFor(type, isTransfer).map((method) => (
-                        <button
-                          key={method}
-                          type="button"
-                          onClick={() => setPaymentMethod(method)}
-                          className={`min-w-[5.5rem] flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${
-                            paymentMethod === method
-                              ? 'border-gray-900 dark:border-gray-300 bg-gray-900 dark:bg-gray-300 text-white dark:text-gray-900'
-                              : 'border-[var(--rw-border)] text-[var(--rw-muted)] hover:border-gray-400 dark:hover:border-gray-400'
-                          }`}
-                        >
-                          {METHOD_LABEL[method][language === 'pt' ? 'pt' : 'en']}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Link to Goal */}
-                  {!isTransfer && availableGoals.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                        {t('goals.linkToGoal')}
-                      </label>
-                      <select
-                        value={selectedGoalId}
-                        onChange={(e) => setSelectedGoalId(e.target.value)}
-                        className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
-                          text-[var(--rw-ink)]
-                          focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none
-                          transition-all duration-200 appearance-none cursor-pointer pr-10"
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                          backgroundPosition: 'right 12px center',
-                          backgroundRepeat: 'no-repeat',
-                          backgroundSize: '20px'
-                        }}
-                      >
-                        <option value="">{t('goals.noGoalSelected')}</option>
-                        {availableGoals.map((goal) => (
-                          <option key={goal.id} value={goal.id}>{goal.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Planner goal link (only shown when category is Investments and type is expense) */}
-                  {(!isTransfer && type === 'expense' && (category === 'Investments' || category === 'Investimentos')) && (
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
-                        {language === 'pt' ? 'Objetivo do planner' : 'Planner objective'}
-                      </label>
-                      {plannerGoals.length > 0 ? (
-                        <select
-                          value={selectedPlannerGoalId}
-                          onChange={e => setSelectedPlannerGoalId(e.target.value)}
-                          className="w-full px-4 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl text-[var(--rw-ink)] focus:bg-white dark:focus:bg-gray-600 focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition-all duration-200 appearance-none cursor-pointer"
-                        >
-                          <option value="">{language === 'pt' ? 'Nenhum' : 'None'}</option>
-                          {plannerGoals.map(g => (
-                            <option key={g.id} value={g.id}>
-                              {g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                          <p className="text-sm text-amber-700 dark:text-amber-300">
-                            {language === 'pt'
-                              ? 'Nenhum objetivo de investimento configurado no planner. Acesse o planejador para criar objetivos de investimento nas camadas de wallet.'
-                              : 'No investment objectives configured in planner. Access the planner to create investment objectives in wallet layers.'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-
-                  {!isDraftMode && showDeleteConfirm && (
-                    <div className="space-y-4 p-4 rounded-xl border-2 border-red-100 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30">
-                      <div>
-                        <p className="text-sm font-semibold text-red-800 dark:text-red-200">
-                          {language === 'pt' ? 'Confirmar exclusao' : 'Confirm deletion'}
-                        </p>
-                        <p className="text-xs text-red-600 dark:text-red-300 mt-1">
-                          {language === 'pt'
-                            ? 'Essa acao nao pode ser desfeita.'
-                            : 'This action cannot be undone.'}
-                        </p>
-                      </div>
-
-                      {isInstallmentTransaction && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-bold uppercase tracking-wide text-red-700 dark:text-red-300">
-                            {language === 'pt' ? 'Parcelas' : 'Installments'}
-                          </p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setDeleteInstallmentScope('single')}
-                              className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                                deleteInstallmentScope === 'single'
-                                  ? 'border-red-500 bg-red-500 text-white'
-                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
-                              }`}
-                            >
-                              {language === 'pt' ? 'Apenas esta' : 'Only this one'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeleteInstallmentScope('group')}
-                              className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                                deleteInstallmentScope === 'group'
-                                  ? 'border-red-500 bg-red-500 text-white'
-                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
-                              }`}
-                            >
-                              {language === 'pt' ? 'Todas as parcelas' : 'All installments'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {hasLinkedInvestment && (
-                        <div className="space-y-2">
-                          <p className="text-xs font-bold uppercase tracking-wide text-red-700 dark:text-red-300">
-                            {language === 'pt' ? 'Investimento vinculado' : 'Linked investment'}
-                          </p>
-                          <div className="grid grid-cols-1 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setDeleteLinkedInvestment(false)}
-                              className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
-                                !deleteLinkedInvestment
-                                  ? 'border-red-500 bg-red-500 text-white'
-                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
-                              }`}
-                            >
-                              {language === 'pt' ? 'Excluir so a transacao' : 'Delete transaction only'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeleteLinkedInvestment(true)}
-                              className={`rounded-lg border px-3 py-2 text-sm font-medium text-left transition-colors ${
-                                deleteLinkedInvestment
-                                  ? 'border-red-500 bg-red-500 text-white'
-                                  : 'border-red-200 bg-white text-red-700 dark:border-red-800 dark:bg-gray-900 dark:text-red-300'
-                              }`}
-                            >
-                              {language === 'pt'
-                                ? 'Excluir transacao e investimento'
-                                : 'Delete transaction and investment'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={handleDelete}
-                          disabled={loading}
-                          className="flex-1 rounded-lg bg-red-500 px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50 whitespace-nowrap"
-                        >
-                          {loading
-                            ? (language === 'pt' ? 'Excluindo...' : 'Deleting...')
-                            : (language === 'pt' ? 'Confirmar exclusao' : 'Confirm delete')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowDeleteConfirm(false)}
-                          className="flex-1 rounded-lg bg-white px-3 py-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-gray-800 whitespace-nowrap"
-                        >
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="flex-1 py-3 bg-[var(--rw-raised)] text-[var(--rw-ink)] rounded-xl font-medium
-                        hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      {t('common.cancel')}
-                    </button>
-                    {!isDraftMode && (
-                      <button
-                        type="button"
-                        onClick={() => setShowDeleteConfirm(true)}
-                        disabled={loading}
-                        className="flex-1 rounded-xl border-2 border-red-200 bg-red-50 py-3 font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
-                      >
-                        {t('common.delete')}
-                      </button>
+                    {transaction.isRecurring && (
+                      <p>
+                        {pt ? 'Recorrente' : 'Recurring'}
+                        {transaction.recurrenceFrequency ? `: ${{ monthly: pt ? 'mensal' : 'monthly', weekly: pt ? 'semanal' : 'weekly', yearly: pt ? 'anual' : 'yearly' }[transaction.recurrenceFrequency] || transaction.recurrenceFrequency}` : ''}
+                      </p>
                     )}
-                    <button
-                      type="submit"
-                      disabled={loading || !amount || amount <= 0}
-                      className={`flex-1 py-3 rounded-xl font-medium text-white transition-all duration-200
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                        ${type === 'expense'
-                          ? 'bg-rose-500 hover:bg-rose-600 active:bg-rose-700'
-                          : 'bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700'
-                        }`}
-                    >
-                      {loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                          {language === 'pt' ? 'Salvando...' : 'Saving...'}
-                        </span>
-                      ) : (
-                        t('common.save')
-                      )}
-                    </button>
-                  </div>
-                </form>
-
-                {/* Installment confirmation overlay */}
-                {showInstallmentConfirm && (
-                  <div className="absolute inset-0 bg-white/95 dark:bg-gray-800/95 rounded-2xl flex flex-col items-center justify-center p-6 gap-5">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div className="text-center">
-                      <p className="font-bold text-[var(--rw-ink)] text-base mb-1">
-                        {language === 'pt' ? 'Editar parcelas' : 'Edit installments'}
-                      </p>
-                      <p className="text-sm text-[var(--rw-muted)]">
-                        {language === 'pt'
-                          ? `Esta é a parcela ${transaction?.installmentCurrent}/${transaction?.installmentTotal}. O que deseja atualizar?`
-                          : `This is installment ${transaction?.installmentCurrent}/${transaction?.installmentTotal}. What would you like to update?`}
-                      </p>
-                    </div>
-                    <div className="flex flex-col w-full gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { setUpdateAllInstallments(true); setShowInstallmentConfirm(false); handleSubmit({ preventDefault: () => {} }); }}
-                        className="w-full py-3 rounded-xl font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors"
-                      >
-                        {language === 'pt' ? 'Atualizar todas as parcelas' : 'Update all installments'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setUpdateAllInstallments(false); setShowInstallmentConfirm(false); handleSubmit({ preventDefault: () => {} }); }}
-                        className="w-full py-3 rounded-xl font-medium text-[var(--rw-ink)] bg-[var(--rw-raised)] hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        {language === 'pt' ? 'Atualizar apenas esta' : 'Update only this one'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowInstallmentConfirm(false)}
-                        className="w-full py-2 text-sm text-[var(--rw-muted)] hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                      >
-                        {language === 'pt' ? 'Cancelar' : 'Cancel'}
-                      </button>
-                    </div>
                   </div>
                 )}
-              </Dialog.Panel>
-            </Transition.Child>
+
+                <ToggleRow
+                  checked={isTransfer}
+                  onChange={toggleTransfer}
+                  title={`🔁 ${pt ? 'Transferência entre minhas contas' : 'Transfer between my accounts'}`}
+                  hint={pt ? 'Fica fora das receitas e despesas e é ligada ao outro lado, se já estiver registrado.' : 'Left out of income and expenses and linked to the other side, if already recorded.'}
+                />
+                <ToggleRow
+                  checked={isIgnored || isTransfer}
+                  onChange={setIsIgnored}
+                  disabled={isTransfer}
+                  title={`🚫 ${t('transactionForm.ignoreTransaction')}`}
+                />
+
+                {!isTransfer && availableGoals.length > 0 && (
+                  <Field label={t('goals.linkToGoal')}>
+                    <select value={selectedGoalId} onChange={(e) => setSelectedGoalId(e.target.value)} className={SELECT} style={SELECT_STYLE}>
+                      <option value="">{t('goals.noGoalSelected')}</option>
+                      {availableGoals.map((goal) => <option key={goal.id} value={goal.id}>{goal.name}</option>)}
+                    </select>
+                  </Field>
+                )}
+
+                {showPlannerGoal && (
+                  <Field label={pt ? 'Objetivo do planner' : 'Planner objective'}>
+                    {plannerGoals.length > 0 ? (
+                      <select value={selectedPlannerGoalId} onChange={(e) => setSelectedPlannerGoalId(e.target.value)} className={SELECT} style={SELECT_STYLE}>
+                        <option value="">{pt ? 'Nenhum' : 'None'}</option>
+                        {plannerGoals.map(g => (
+                          <option key={g.id} value={g.id}>{g.layerLabel ? `${g.layerLabel} › ${g.label}` : g.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="p-3 text-sm rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                        {pt
+                          ? 'Nenhum objetivo de investimento configurado no planner.'
+                          : 'No investment objectives configured in the planner.'}
+                      </p>
+                    )}
+                  </Field>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      </Dialog>
-    </Transition>
+        </form>
+      </BottomSheet>
+
+      {/* One confirmation sheet: which installments to save to, or which to delete */}
+      {confirm && (
+        <BottomSheet
+          title={confirm === 'delete' ? (pt ? 'Excluir transação' : 'Delete transaction') : (pt ? 'Salvar alterações' : 'Save changes')}
+          subtitle={isInstallmentTransaction ? (pt ? `Esta é a parcela ${seriesLabel}.` : `This is installment ${seriesLabel}.`) : undefined}
+          onClose={() => setConfirm(null)}
+          footer={
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => (confirm === 'delete' ? handleDelete() : submit(scope))}
+                className={`w-full min-h-[48px] rounded-xl text-base font-bold text-white disabled:opacity-50 ${confirm === 'delete' ? 'bg-red-500' : 'bg-[var(--rw-brand)]'}`}
+              >
+                {confirm === 'delete'
+                  ? (loading ? (pt ? 'Excluindo…' : 'Deleting…') : (pt ? 'Excluir' : 'Delete'))
+                  : (loading ? (pt ? 'Salvando…' : 'Saving…') : (pt ? 'Salvar' : 'Save'))}
+              </button>
+              <button type="button" onClick={() => setConfirm(null)} className="w-full min-h-[44px] text-sm font-semibold text-[var(--rw-muted)]">
+                {t('common.cancel')}
+              </button>
+            </div>
+          }
+        >
+          {isInstallmentTransaction ? (
+            <div className="space-y-2" role="radiogroup" aria-label={pt ? 'Parcelas' : 'Installments'}>
+              <RadioRow danger={confirm === 'delete'} checked={scope === 'single'} onSelect={() => setScope('single')} title={pt ? 'Só esta parcela' : 'Only this installment'} />
+              <RadioRow danger={confirm === 'delete'} checked={scope === 'following'} onSelect={() => setScope('following')} title={pt ? 'Esta e as próximas' : 'This and the next ones'} />
+              <RadioRow danger={confirm === 'delete'} checked={scope === 'group'} onSelect={() => setScope('group')} title={pt ? 'Todas as parcelas' : 'All installments'} />
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--rw-muted)]">
+              {pt ? 'Tem certeza que quer excluir esta transação?' : 'Are you sure you want to delete this transaction?'}
+            </p>
+          )}
+
+          {confirm === 'delete' && hasLinkedInvestment && (
+            <div className="space-y-2 pt-2" role="radiogroup" aria-label={pt ? 'Investimento vinculado' : 'Linked investment'}>
+              <p className="text-xs font-bold uppercase tracking-wider text-[var(--rw-muted)]">{pt ? 'Investimento vinculado' : 'Linked investment'}</p>
+              <RadioRow danger checked={!deleteLinkedInvestment} onSelect={() => setDeleteLinkedInvestment(false)} title={pt ? 'Manter o investimento' : 'Keep the investment'} />
+              <RadioRow danger checked={deleteLinkedInvestment} onSelect={() => setDeleteLinkedInvestment(true)} title={pt ? 'Excluir também o investimento' : 'Delete the investment too'} />
+            </div>
+          )}
+          {confirm === 'delete' && (
+            <p className="text-xs text-[var(--rw-muted)]">{pt ? 'Esta ação não pode ser desfeita.' : 'This cannot be undone.'}</p>
+          )}
+        </BottomSheet>
+      )}
+    </>
   );
 }

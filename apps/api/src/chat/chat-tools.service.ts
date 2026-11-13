@@ -79,7 +79,8 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
               date: ISO_DATE,
               amount: { type: 'number', description: 'Always positive. Direction is given by type.' },
               type: { type: 'string', enum: ['income', 'expense'] },
-              description: { type: 'string', description: 'Merchant/description as printed, cleaned of noise.' },
+              description: { type: 'string', description: 'Merchant/title as printed, cleaned of noise.' },
+              notes: { type: 'string', description: 'Optional longer details the user gave about this transaction. Omit unless the user asked to note something.' },
               categoryId: { type: ['string', 'null'], description: 'Your best-guess existing category UUID, or null if you have no idea.' },
               confidence: { type: 'string', enum: ['high', 'low'], description: '"low" when the category is a guess the user should confirm.' },
               suggestedCategoryIds: { type: 'array', items: { type: 'string' }, description: 'Up to 3 plausible category UUIDs, best first (for low confidence).' },
@@ -112,6 +113,9 @@ export const CHAT_TOOLS: LlmToolDefinition[] = [
               subtitle: { type: 'string', description: 'What you saw that makes you unsure, e.g. "Final 4821, vence dia 10".' },
               fileName: { type: 'string', description: 'Exact filename this question is about, if any.' },
               options: { type: 'array', items: { type: 'string' }, description: 'Only for kind "choice".' },
+              bankId: { type: 'string', description: 'Only for kind "account_form": the bank id to preselect (e.g. nubank).' },
+              accountType: { type: 'string', enum: ['checking', 'credit', 'wallet', 'savings'], description: 'Only for kind "account_form": the account kind to preselect, i.e. the kind the document needs and the user does not have yet.' },
+              existingAccountId: { type: 'string', description: 'Only for kind "account_form": id of an existing account of the same bank but another kind; the sheet then also offers "import there instead".' },
             },
             required: ['kind', 'title'],
           },
@@ -561,6 +565,7 @@ export class ChatToolsService {
         type: r.type,
         date,
         description: inst ? installmentLabel(description, inst.current, inst.total) : description,
+        notes: typeof r.notes === 'string' && r.notes.trim() ? r.notes.trim().slice(0, 1000) : null,
         accountId: account.id,
         isInstallment: Boolean(inst),
         installmentCurrent: inst?.current ?? null,
@@ -811,7 +816,15 @@ export class ChatToolsService {
         return { ...base, allowNew: true, options: accs.map((a) => ({ value: a.id, label: a.name, hint: a.type ?? undefined })) };
       }
       if (kind === 'account_form') {
-        return { ...base, options: BANKS.map((b) => ({ value: b.id, label: b.name })) };
+        const bankId = BANKS.some((b) => b.id === q.bankId) ? String(q.bankId) : undefined;
+        const type = ['checking', 'credit', 'wallet', 'savings'].includes(q.accountType) ? String(q.accountType) : undefined;
+        const ex = accs.find((a) => a.id === q.existingAccountId);
+        return {
+          ...base,
+          options: BANKS.map((b) => ({ value: b.id, label: b.name })),
+          ...(bankId || type ? { prefill: { bankId, type } } : {}),
+          ...(ex ? { existing: { value: ex.id, label: ex.name } } : {}),
+        };
       }
       if (kind === 'categories_form') {
         // Every catalog category; `hint` carries the default budget group and the basics start selected on the client.
@@ -940,6 +953,25 @@ export class ChatToolsService {
       })
       .returning();
     return acc;
+  }
+
+  /**
+   * A card needs a checking account behind it: when the user has no non-card account for this bank yet, creates it
+   * (lazy creation) so registering a card alone never fails or loops. Returns the created account, or null.
+   */
+  async ensureParentChecking(
+    ctx: ToolContext,
+    data: { bankId?: string; customBankName?: string | null; holderName?: string | null },
+  ) {
+    if (!data.bankId) return null;
+    const rows = await this.db
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.clientId, ctx.clientId), eq(accounts.userId, ctx.userId), eq(accounts.bankId, data.bankId), isNull(accounts.deletedAt)));
+    const custom = (data.customBankName ?? '').trim().toLowerCase();
+    const same = rows.filter((a) => data.bankId !== 'other' || (a.customBankName ?? '').trim().toLowerCase() === custom);
+    if (same.some((a) => a.type !== 'credit')) return null;
+    return this.createAccountFull(ctx, { bankId: data.bankId, customBankName: data.customBankName, type: 'checking', holderName: data.holderName });
   }
 
   private async createAccount(args: ToolArgs, ctx: ToolContext) {

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, numeric, date, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, numeric, date, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { transactionTypeEnum } from './enums';
 import { users } from './users';
 import { categories } from './categories';
@@ -12,6 +12,8 @@ export const transactions = pgTable('transactions', {
   amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
   type: transactionTypeEnum('type').notNull(),
   description: varchar('description'),
+  // Optional longer details; `description` stays the short title shown in every list.
+  notes: text('notes'),
   date: date('date').notNull(),
   category: varchar('category'),
   categoryId: uuid('category_id').references(() => categories.id),
