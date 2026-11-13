@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
+import BankLogo from './ui/BankLogo';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 
@@ -195,8 +196,8 @@ export default function TransactionList({
             <div className="flex items-center justify-between mt-1 gap-2">
               <div className="flex items-center gap-1.5">
                 {transaction.bankId && (
-                  <span className="text-xs" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
-                    {bankInfo?.icon || '🏦'}
+                  <span className="inline-flex" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
+                    <BankLogo bankId={userBank?.bankId ?? transaction.bankId} name={userBank?.customBankName || userBank?.cardName} size={18} />
                   </span>
                 )}
                 {transaction.isInstallment && (

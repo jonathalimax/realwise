@@ -203,7 +203,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
   const [b3PlannerGoalId, setB3PlannerGoalId] = useState('');
 
   const { formatCurrency, categories, t, language, geminiApiKey } = useSettings();
-  const { userBanks, getBankInfo, getBankDisplayName } = useCards();
+  const { userBanks, getBankDisplayName } = useCards();
   const { goals } = useGoals();
   const { addInvestment } = useInvestments();
   const { ownerId } = useAccess();
@@ -516,7 +516,7 @@ export default function ImportModal({ isOpen = true, onClose, embedded = false }
               <label className="block text-xs font-black text-[var(--rw-muted)] mb-2 uppercase tracking-widest">{language === 'pt' ? 'Banco de Destino' : 'Target Bank'}</label>
               <select value={selectedBankId || ''} onChange={handleBankSelect} className="w-full px-4 py-3 bg-[var(--rw-surface)] text-[var(--rw-ink)] border border-[var(--rw-border)] rounded-2xl text-sm focus:ring-2 focus:ring-[var(--rw-brand)] appearance-none shadow-sm">
                 <option value="">💵 {language === 'pt' ? 'Dinheiro / Sem banco' : 'Cash / No bank'}</option>
-                {userBanks.map((ub) => <option key={ub.id} value={ub.id}>{getBankInfo(ub.bankId).icon} {getBankDisplayName(ub)}</option>)}
+                {userBanks.map((ub) => <option key={ub.id} value={ub.id}>{getBankDisplayName(ub)}</option>)}
               </select>
               {selectedBankId && userBanks.find(b => b.id === selectedBankId)?.hasCredit && (
                 <div className="mt-3 flex p-1 bg-[var(--rw-raised)] rounded-xl shadow-inner">

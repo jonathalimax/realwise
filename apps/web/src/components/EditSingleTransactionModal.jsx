@@ -124,7 +124,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
   const { categories, t, language } = useSettings();
   const pt = language === 'pt';
   const { goals } = useGoals();
-  const { userBanks, getBankInfo, getBankDisplayName, findUserBank } = useCards();
+  const { userBanks, getBankDisplayName, findUserBank } = useCards();
   const { addInvestment, updateInvestment, investments } = useInvestments();
 
   // Latest context values for the populate effect, which must run only when the transaction changes
@@ -611,7 +611,7 @@ export default function EditSingleTransactionModal({ isOpen, onClose, transactio
               <option value="cash">{pt ? '💵 Sem conta (dinheiro)' : '💵 No account (cash)'}</option>
               {userBanks.map((userBank) => (
                 <option key={userBank.id} value={userBank.id}>
-                  {getBankInfo(userBank.bankId).icon} {getBankDisplayName(userBank)}
+                  {getBankDisplayName(userBank)}
                 </option>
               ))}
             </select>

@@ -747,7 +747,7 @@ export default function TransactionModal({ isOpen, onClose }) {
                         const displayName = userBank.cardName || (userBank.bankId === 'other' && userBank.customBankName) || bankInfo.name;
                         return (
                           <option key={userBank.id} value={userBank.id}>
-                            {bankInfo.icon} {displayName}
+                            {displayName}
                           </option>
                         );
                       })}

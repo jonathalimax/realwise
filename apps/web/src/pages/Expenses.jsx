@@ -14,7 +14,7 @@ const ExpensesChartsView = lazy(() => import('../components/expenses/ExpensesCha
 export default function ExpensesPage() {
   const { t, language } = useSettings();
   const { ownerId, canWrite } = useAccess();
-  const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
+  const { userBanks, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
   const { selectedMonth } = useMonth();
   const { transactions } = useTransactions({ type: 'expense' }, { enabled: Boolean(ownerId) });
 
@@ -102,15 +102,13 @@ export default function ExpensesPage() {
 
   const availableBanks = useMemo(() => {
     return userBanks.map(ub => {
-      const bankInfo = getBankInfo(ub.bankId);
       return {
         id: ub.id,
         bankId: ub.bankId,
-        name: getBankDisplayName(ub),
-        icon: bankInfo.icon
+        name: getBankDisplayName(ub)
       };
     });
-  }, [userBanks, getBankInfo, getBankDisplayName]);
+  }, [userBanks, getBankDisplayName]);
 
   const getMonthLabel = (monthKey) => {
     const [year, month] = monthKey.split('-');
@@ -247,7 +245,7 @@ export default function ExpensesPage() {
                   >
                     <option value="all">{language === 'pt' ? 'Todos' : 'All'}</option>
                     <option value="cash">{language === 'pt' ? 'Dinheiro' : 'Cash'}</option>
-                    {availableBanks.map(bank => <option key={bank.id} value={bank.id}>{bank.icon} {bank.name}</option>)}
+                    {availableBanks.map(bank => <option key={bank.id} value={bank.id}>{bank.name}</option>)}
                   </select>
                 </div>
 
