@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SparklesIcon } from '@heroicons/react/24/outline';
+import { SparklesIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { useSettings } from '../../contexts/SettingsContext';
 import BottomSheet from '../chat/BottomSheet';
 import HomeCard from './HomeCard';
@@ -34,8 +34,9 @@ function CategoryRow({ row, color, formatCurrency: formatFull, pt, onClick }) {
 
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`block w-full rounded-2xl p-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-700/40 dark:active:bg-slate-700/60 ${!row.hasSpending && !row.hasLimit ? 'opacity-50' : ''}`}
+      className={`block min-h-[44px] w-full rounded-2xl p-2.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-700/40 dark:active:bg-slate-700/60 ${!row.hasSpending && !row.hasLimit ? 'opacity-50' : ''}`}
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[var(--rw-ink)]">
@@ -95,10 +96,7 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
 
   // Opens the movements already narrowed to this category. The URL carries the whole filter, and the movements screen
   // clears every other filter before applying it, so what shows is exactly the category that was tapped.
-  const goTo = (category) => {
-    const query = new URLSearchParams({ category, type: 'expense', month: selectedMonth });
-    navigate(`/transactions?${query.toString()}`);
-  };
+  const goTo = (category) => navigate(`/budget/category/${encodeURIComponent(category)}`);
 
   const askElioToClassify = () => {
     const [y, m] = selectedMonth.split('-').map(Number);
@@ -130,15 +128,18 @@ export default function CategorySpendingCard({ transactions, selectedMonth }) {
               ))}
             </div>
 
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-3 space-y-1">
               {top.map((row) => (
                 <li key={row.category}>
-                  <button onClick={() => goTo(row.category)} className="flex w-full items-baseline justify-between gap-3 text-left">
+                  <button type="button" onClick={() => goTo(row.category)} className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl text-left active:bg-[var(--rw-raised)]">
                     <span className="flex min-w-0 items-center gap-3 text-base text-[var(--rw-ink)]">
                       <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: colorOf(row.category) }} />
                       <span className="truncate">{row.category}</span>
                     </span>
-                    <span className="shrink-0 text-base font-semibold tabular-nums text-[var(--rw-ink)]">{money(row.amount)}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-base font-semibold tabular-nums text-[var(--rw-ink)]">
+                      {money(row.amount)}
+                      <ChevronRightIcon className="h-4 w-4 text-[var(--rw-subtle)]" aria-hidden />
+                    </span>
                   </button>
                 </li>
               ))}

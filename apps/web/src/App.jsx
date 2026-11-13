@@ -30,6 +30,7 @@ const BanksSettingsPage = lazy(() => import('./pages/BanksSettings'));
 const MemorySettingsPage = lazy(() => import('./pages/MemorySettings'));
 const CardsPage = lazy(() => import('./pages/Cards'));
 const BudgetPage = lazy(() => import('./pages/Budget'));
+const BudgetDetailPage = lazy(() => import('./pages/BudgetDetail'));
 const TransactionsPage = lazy(() => import('./pages/Transactions'));
 const BillsPage = lazy(() => import('./pages/Bills'));
 const HelpPage = lazy(() => import('./pages/Help'));
@@ -120,6 +121,8 @@ function AuthenticatedApp() {
                               <Route path="settings/banks" element={<BanksSettingsPage />} />
                               <Route path="settings/memory" element={<MemorySettingsPage />} />
                               <Route path="budget" element={<BudgetPage />} />
+                              <Route path="budget/category/:name" element={<BudgetDetailPage kind="category" />} />
+                              <Route path="budget/group/:key" element={<BudgetDetailPage kind="group" />} />
                               <Route path="help" element={<HelpPage />} />
                               <Route path="notifications" element={<NotificationsPage />} />
                               <Route path="chat" element={<ChatPage />} />
