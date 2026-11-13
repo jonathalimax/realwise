@@ -6,6 +6,7 @@
 | Customer finance core | `features/customer-finance.md` | web, api | Active domain |
 | Planner | `features/planner.md` | web, api | Active domain |
 | AI chat assistant (only entry for new data + Q&A + insights) | `features/ai-chat.md` | web, api | Active domain |
+| Banks and bank logos | `features/banks.md` | web | Active |
 | Imports and categorization | `features/imports.md` | web, admin, api | Legacy UI hidden; superseded by AI chat |
 | Investments and B3 sync | `features/investments.md` | web, api | Disabled (flags off) |
 | Payments and premium | `features/payments.md` | web, admin, api | Active domain |

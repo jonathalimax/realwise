@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { compactMoney } from './format';
+import { ArrowDownLeftIcon, ArrowUpRightIcon } from '@heroicons/react/24/outline';
+import { compactMoney, trimCents } from './format';
 
 const totalsOf = (transactions) => {
   let income = 0;
@@ -62,7 +63,7 @@ export default function HomeSummaryCard({ transactions, previousTransactions, ca
         <h2 className="text-[32px] font-extrabold leading-[34px] tracking-tight">{headline}</h2>
       </div>
       <div className="flex flex-col">
-        <span className="rw-num text-5xl font-extrabold leading-[50px]">{positive ? '' : '-'}{money(balance)}</span>
+        <span className="rw-num whitespace-nowrap text-[clamp(1.5rem,8.5vw,3rem)] font-extrabold leading-tight">{positive ? '' : '\u2212\u00A0'}{money(balance)}</span>
         <span className="text-[15px] text-emerald-200">
           {justStarted
             ? (pt ? `ainda sem entradas em ${monthName}` : `no income yet in ${monthName}`)
@@ -77,12 +78,24 @@ export default function HomeSummaryCard({ transactions, previousTransactions, ca
           {pt ? 'inclui saldo anterior de' : 'includes previous balance of'} {compactMoney(formatCurrency, Math.abs(carryoverSaldo), pt)}
         </p>
       )}
-      <div className="flex flex-wrap gap-2">
-        <button onClick={onIncomeClick} className="rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-emerald-50">
-          + {compactMoney(formatCurrency, now.income, pt)} {pt ? 'entraram' : 'in'}
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={onIncomeClick} className="flex min-h-[72px] min-w-0 flex-col items-start gap-1 rounded-2xl bg-black/25 p-3 text-left active:bg-black/40">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-300">
+            <ArrowDownLeftIcon className="h-4 w-4 shrink-0" aria-hidden />
+            {pt ? 'Entrou' : 'In'}
+          </span>
+          <span className="rw-num whitespace-nowrap text-[clamp(0.875rem,4.4vw,1.25rem)] font-extrabold leading-tight text-emerald-200">
+            {trimCents(formatCurrency(now.income))}
+          </span>
         </button>
-        <button onClick={onExpensesClick} className="rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-semibold tabular-nums text-emerald-50">
-          {compactMoney(formatCurrency, now.expense, pt)} {pt ? 'saíram' : 'out'}
+        <button type="button" onClick={onExpensesClick} className="flex min-h-[72px] min-w-0 flex-col items-start gap-1 rounded-2xl bg-black/25 p-3 text-left active:bg-black/40">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-rose-300">
+            <ArrowUpRightIcon className="h-4 w-4 shrink-0" aria-hidden />
+            {pt ? 'Saiu' : 'Out'}
+          </span>
+          <span className="rw-num whitespace-nowrap text-[clamp(0.875rem,4.4vw,1.25rem)] font-extrabold leading-tight text-rose-200">
+            {trimCents(formatCurrency(now.expense))}
+          </span>
         </button>
       </div>
     </section>

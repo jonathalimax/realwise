@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 import { useCards } from '../contexts/CardsContext';
+import BankLogo from './ui/BankLogo';
 import EditTransactionsModal from './EditTransactionsModal';
 import EditSingleTransactionModal from './EditSingleTransactionModal';
 
@@ -82,7 +83,7 @@ export default function TransactionList({
       return sortOrder === 'asc' ? compare : -compare;
     });
     if (!needle) return sorted;
-    return sorted.filter((trans) => trans.description?.toLowerCase().includes(needle) || trans.category?.toLowerCase().includes(needle));
+    return sorted.filter((trans) => trans.description?.toLowerCase().includes(needle) || trans.notes?.toLowerCase().includes(needle) || trans.category?.toLowerCase().includes(needle));
   }, [transactions, searchTerm, sortBy, sortOrder]);
 
   // A new search, sort or data set starts again from the first block (derived, so no effect is needed).
@@ -181,6 +182,9 @@ export default function TransactionList({
               <p className="font-semibold text-[var(--rw-ink)] text-[15px] line-clamp-2 leading-snug">
                 {transaction.description?.replace(/\s*\(\d+\/\d+\)\s*$/, '')}
               </p>
+              {transaction.notes && (
+                <p className="mt-0.5 text-xs text-[var(--rw-muted)] truncate">{transaction.notes}</p>
+              )}
               <div className="text-right flex-shrink-0">
                 <p className={`font-bold text-sm ${transaction.type === 'income' ? 'text-[var(--rw-pos)]' : 'text-[var(--rw-ink)]'} tabular-nums ${transaction.ignored ? 'line-through' : ''}`}>
                   {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
@@ -192,8 +196,8 @@ export default function TransactionList({
             <div className="flex items-center justify-between mt-1 gap-2">
               <div className="flex items-center gap-1.5">
                 {transaction.bankId && (
-                  <span className="text-xs" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
-                    {bankInfo?.icon || '🏦'}
+                  <span className="inline-flex" title={userBank ? getBankDisplayName(userBank) : (bankInfo?.name || '')}>
+                    <BankLogo bankId={userBank?.bankId ?? transaction.bankId} name={userBank?.customBankName || userBank?.cardName} size={18} />
                   </span>
                 )}
                 {transaction.isInstallment && (

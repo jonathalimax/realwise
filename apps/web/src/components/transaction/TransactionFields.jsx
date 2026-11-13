@@ -45,7 +45,7 @@ export default function TransactionFields({
 
       {/* Description */}
       <div>
-        {fieldLabel(label('Descrição', 'Description'))}
+        {fieldLabel(label('Título', 'Title'))}
         <input
           type="text"
           value={trans.description}

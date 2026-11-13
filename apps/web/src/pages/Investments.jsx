@@ -11,6 +11,7 @@ import { AdjustmentsHorizontalIcon, MagnifyingGlassIcon, XMarkIcon, PlusIcon } f
 import PageHeader from '../components/PageHeader';
 import CarteiraTab from './planner/carteira';
 import usePlannerState from './planner/usePlannerState';
+import BankLogo from '../components/ui/BankLogo';
 import { getActiveVersion } from './planner/carteira/walletVersion';
 
 function SubTabs({ active, onChange }) {
@@ -60,7 +61,6 @@ function InvestmentItem({
   const knownBankInfo = investment.bank ? getBankInfo(investment.bank) : null;
   const isKnownBank = knownBankInfo && knownBankInfo.id !== 'other';
   const bankDisplayName = isKnownBank ? knownBankInfo.name : investment.bank;
-  const bankIcon = isKnownBank ? knownBankInfo.icon : '🏦';
 
   const purchaseDate = investment.purchaseDate
     ? new Date(investment.purchaseDate).toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -102,7 +102,7 @@ function InvestmentItem({
             <div className="flex items-center gap-2 min-w-0 overflow-hidden">
               {investment.bank && (
                 <div className="flex items-center gap-1 min-w-0 max-w-[100px]">
-                  <span className="text-xs flex-shrink-0">{bankIcon}</span>
+                  <BankLogo bankId={investment.bank} name={investment.bank} size={16} />
                   <span className="text-xs text-[var(--rw-muted)] truncate">{bankDisplayName}</span>
                 </div>
               )}

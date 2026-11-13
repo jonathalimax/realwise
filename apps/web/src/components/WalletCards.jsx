@@ -1,4 +1,5 @@
 import { useCards, BANK_COLORS } from '../contexts/CardsContext';
+import BankLogo from './ui/BankLogo';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAccess } from '../contexts/AccessContext';
 
@@ -76,7 +77,7 @@ export default function WalletCards({ onManageCards }) {
               {/* Content */}
               <div className="relative z-10">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{bankInfo.icon}</span>
+                  <BankLogo bankId={userBank.bankId} name={userBank.customBankName || userBank.cardName} size={24} />
                   <span className="text-white font-bold text-sm truncate">
                     {userBank.cardName || bankInfo.name}
                   </span>

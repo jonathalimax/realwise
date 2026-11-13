@@ -2,42 +2,12 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useAccess } from './AccessContext';
 import { billsResource, notifyBillsChanged } from '../lib/api/resources/bills';
 import { accountsResource } from '../lib/api/resources/accounts';
+import { BANKS, BANK_COLORS, resolveBank } from '../lib/banks';
 
 const CardsContext = createContext();
 
-// Brazilian banks list
-export const BANKS = [
-  { id: 'nubank', name: 'Nubank', icon: '💜', color: 'purple' },
-  { id: 'itau', name: 'Itaú', icon: '🧡', color: 'orange' },
-  { id: 'bradesco', name: 'Bradesco', icon: '❤️', color: 'rose' },
-  { id: 'santander', name: 'Santander', icon: '❤️', color: 'rose' },
-  { id: 'bb', name: 'Banco do Brasil', icon: '💛', color: 'amber' },
-  { id: 'caixa', name: 'Caixa', icon: '💙', color: 'blue' },
-  { id: 'inter', name: 'Inter', icon: '🧡', color: 'orange' },
-  { id: 'c6', name: 'C6 Bank', icon: '⬛', color: 'slate' },
-  { id: 'btg', name: 'BTG Pactual', icon: '💙', color: 'blue' },
-  { id: 'xp', name: 'XP', icon: '🖤', color: 'slate' },
-  { id: 'picpay', name: 'PicPay', icon: '💚', color: 'emerald' },
-  { id: 'mercadopago', name: 'Mercado Pago', icon: '💙', color: 'cyan' },
-  { id: 'neon', name: 'Neon', icon: '💙', color: 'cyan' },
-  { id: 'next', name: 'Next', icon: '💚', color: 'emerald' },
-  { id: 'original', name: 'Banco Original', icon: '💚', color: 'emerald' },
-  { id: 'pan', name: 'Banco Pan', icon: '💙', color: 'blue' },
-  { id: 'astropay', name: 'AstroPay', icon: '💜', color: 'purple' },
-  { id: 'other', name: 'Outro', icon: '🏦', color: 'slate' },
-];
-
-// Color classes for banks
-export const BANK_COLORS = {
-  purple: { bg: 'bg-purple-600', light: 'bg-purple-100', text: 'text-purple-600' },
-  orange: { bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-600' },
-  rose: { bg: 'bg-rose-500', light: 'bg-rose-100', text: 'text-rose-600' },
-  amber: { bg: 'bg-amber-500', light: 'bg-amber-100', text: 'text-amber-600' },
-  blue: { bg: 'bg-blue-600', light: 'bg-blue-100', text: 'text-blue-600' },
-  slate: { bg: 'bg-slate-700', light: 'bg-slate-100', text: 'text-slate-700' },
-  emerald: { bg: 'bg-emerald-600', light: 'bg-emerald-100', text: 'text-emerald-600' },
-  cyan: { bg: 'bg-cyan-500', light: 'bg-cyan-100', text: 'text-cyan-600' },
-};
+// Banks list, aliases and logos live in lib/banks.js (single source of truth).
+export { BANKS, BANK_COLORS };
 
 export function CardsProvider({ children }) {
   const [userBanks, setUserBanks] = useState([]);
@@ -255,7 +225,8 @@ export function CardsProvider({ children }) {
   };
 
   const getBankInfo = (bankId) => {
-    return BANKS.find(b => b.id === bankId) || BANKS.find(b => b.id === 'other');
+    // Matches saved ids/names (any case, with or without accents) against the alias list.
+    return resolveBank(bankId);
   };
 
   // Get display name for a user bank (considers custom bank name and auto-numbers duplicates)

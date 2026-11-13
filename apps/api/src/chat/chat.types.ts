@@ -18,6 +18,10 @@ export interface ChatQuestion {
    * stored message when answered, so neither the model nor the client can alter it after the user saw the preview.
    */
   action?: { tool: 'update_records' | 'delete_records'; args: Record<string, unknown> };
+  /** For `account_form`: bank/type the sheet opens with (the missing account kind of a statement). */
+  prefill?: { bankId?: string; type?: string };
+  /** For `account_form`: an existing account the user may import into instead of registering a new one. */
+  existing?: { value: string; label: string };
   /** Set once the user has answered. */
   answer?: { value: string; label: string };
 }

@@ -29,7 +29,7 @@ export default function TransactionsPage() {
 function TransactionsView() {
   const { t, language, formatCurrency } = useSettings();
   const { ownerId } = useAccess();
-  const { userBanks, getBankInfo, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
+  const { userBanks, getBankDisplayName, findUserBank, getPaymentMonthKey } = useCards();
   const { selectedMonth, setSelectedMonth } = useMonth();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -141,15 +141,13 @@ function TransactionsView() {
   // Each item includes the unique document ID for filtering
   const availableBanks = useMemo(() => {
     return userBanks.map(ub => {
-      const bankInfo = getBankInfo(ub.bankId);
       return {
         id: ub.id, // Unique document ID for filtering
         bankId: ub.bankId, // Bank type ID for icon lookup
         name: getBankDisplayName(ub), // Display name (custom name or default)
-        icon: bankInfo.icon
       };
     });
-  }, [userBanks, getBankInfo, getBankDisplayName]);
+  }, [userBanks, getBankDisplayName]);
 
   const getMonthLabel = (monthKey) => {
     const [year, month] = monthKey.split('-');
@@ -323,7 +321,7 @@ function TransactionsView() {
                   <option value="all">{pt ? 'Todos os bancos' : 'All banks'} ({bankScope.length})</option>
                   <option value="cash">{pt ? 'Dinheiro (sem banco)' : 'Cash (no bank)'} ({bankScope.filter((t) => bankMatch(t, 'cash')).length})</option>
                   {availableBanks.map((bank) => (
-                    <option key={bank.id} value={bank.id}>{bank.icon} {bank.name} ({bankScope.filter((t) => bankMatch(t, bank.id)).length})</option>
+                    <option key={bank.id} value={bank.id}>{bank.name} ({bankScope.filter((t) => bankMatch(t, bank.id)).length})</option>
                   ))}
                 </select>
               </div>
