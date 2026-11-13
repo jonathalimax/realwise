@@ -2,7 +2,7 @@ import { Body, Controller, HttpCode, PayloadTooLargeException, Delete, Get, Head
 import { FilesInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { ACCOUNT_TYPES, BANK_IDS } from './onboarding';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -92,6 +92,10 @@ class AccountFormDto {
   @Min(1)
   @Max(31)
   paymentDay?: number;
+
+  @IsOptional()
+  @IsObject()
+  alsoCard?: { cardName?: string; closingDay: number; paymentDay: number };
 }
 
 class ReviewDecisionDto {

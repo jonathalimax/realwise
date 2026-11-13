@@ -1006,7 +1006,7 @@ export default function ChatPage() {
         <QuestionSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAnswers} onClose={closeSheet} />
       )}
       {sheetMessage && sheet.type === 'account_form' && (
-        <AccountFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAccountForm} onClose={closeSheet} />
+        <AccountFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitAccountForm} onUseExisting={(a) => submitAnswers([a])} onClose={closeSheet} />
       )}
       {sheetMessage && sheet.type === 'categories_form' && (
         <CategoriesFormSheet key={sheetMessage.id} message={sheetMessage} language={language} busy={sheetBusy} onSubmit={submitCategoriesForm} onClose={closeSheet} />
