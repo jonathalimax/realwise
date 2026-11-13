@@ -10,10 +10,14 @@ export function buildTransactionDeletionPlan({
   deleteScope = 'single',
   deleteLinkedInvestment = false,
 }) {
+  // 'group' = every installment, 'following' = this one and the ones after it, anything else = only this one.
+  const fromCurrent = (item) => Number(item.installmentCurrent) >= Number(transaction?.installmentCurrent);
   const transactionIdsToDelete = uniqueIds(
     deleteScope === 'group'
       ? installmentTransactions.map((item) => item.id)
-      : [transaction?.id]
+      : deleteScope === 'following'
+        ? [transaction?.id, ...installmentTransactions.filter(fromCurrent).map((item) => item.id)]
+        : [transaction?.id]
   );
 
   return {
@@ -111,7 +115,7 @@ export async function deleteTransactionWithLinks({
 }) {
   const linkedInvestment = await findLinkedInvestmentForTransaction(transaction);
   const installmentTransactions =
-    deleteScope === 'group' ? await getInstallmentTransactions(transaction) : [transaction];
+    deleteScope === 'group' || deleteScope === 'following' ? await getInstallmentTransactions(transaction) : [transaction];
 
   const plan = buildTransactionDeletionPlan({
     transaction,

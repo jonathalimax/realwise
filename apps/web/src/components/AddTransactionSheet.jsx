@@ -39,6 +39,7 @@ export default function AddTransactionSheet({ onClose }) {
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [notes, setNotes] = useState('');
   const [category, setCategory] = useState('');
   const [dayChoice, setDayChoice] = useState('today');
   const [customDay, setCustomDay] = useState(isoDay(today));
@@ -68,6 +69,7 @@ export default function AddTransactionSheet({ onClose }) {
         type,
         amount: value.toFixed(2),
         description: description.trim(),
+        ...(notes.trim() ? { notes: notes.trim() } : {}),
         date: day,
         category: category || uncategorized,
         ...(bankId ? { bankId } : {}),
@@ -117,7 +119,7 @@ export default function AddTransactionSheet({ onClose }) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={pt ? 'O que foi?' : 'What was it?'}
-          aria-label={pt ? 'Descrição' : 'Description'}
+          aria-label={pt ? 'Título' : 'Title'}
           className="h-[52px] rounded-[14px] border border-[var(--rw-border)] bg-[var(--rw-raised)] px-3.5 text-[15px] outline-none"
         />
 
@@ -145,12 +147,15 @@ export default function AddTransactionSheet({ onClose }) {
         <button type="button" onClick={() => setMore((v) => !v)} aria-expanded={more} className="flex items-center justify-between text-left">
           <span>
             <span className="block text-[15px] font-semibold">{pt ? 'Mais detalhes' : 'More details'}</span>
-            <span className="block text-[13px] text-[var(--rw-subtle)]">{pt ? 'Banco, forma de pagamento, não contar nos totais' : 'Bank, payment method, leave out of totals'}</span>
+            <span className="block text-[13px] text-[var(--rw-subtle)]">{pt ? 'Descrição, banco, forma de pagamento, não contar nos totais' : 'Bank, payment method, leave out of totals'}</span>
           </span>
           <span className={`text-[var(--rw-muted)] transition-transform ${more ? 'rotate-180' : ''}`}>▾</span>
         </button>
         {more && (
           <div className="flex flex-col gap-3">
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={1000} aria-label={pt ? 'Descrição (opcional)' : 'Description (optional)'}
+              placeholder={pt ? 'Descrição (opcional)' : 'Description (optional)'}
+              className="min-h-[88px] resize-none rounded-[14px] border border-[var(--rw-border)] bg-[var(--rw-raised)] px-3.5 py-3 text-[15px] outline-none" />
             <select value={bankId} onChange={(e) => setBankId(e.target.value)} aria-label={pt ? 'Banco' : 'Bank'}
               className="h-[52px] rounded-[14px] border border-[var(--rw-border)] bg-[var(--rw-raised)] px-3 text-[15px]">
               <option value="">{pt ? 'Sem banco (dinheiro)' : 'No bank (cash)'}</option>
