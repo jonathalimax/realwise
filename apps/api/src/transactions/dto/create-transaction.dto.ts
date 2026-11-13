@@ -49,6 +49,11 @@ export class CreateTransactionDto {
   @IsString()
   description?: string;
 
+  /** Optional longer free-text details; `description` is the title. */
+  @IsOptional()
+  @IsString()
+  notes?: string | null;
+
   @IsOptional()
   @IsString()
   category?: string;
