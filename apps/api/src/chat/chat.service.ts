@@ -335,6 +335,8 @@ export class ChatService {
       holderName: string;
       closingDay?: number;
       paymentDay?: number;
+      /** Optional card created right after a checking account, in the same submit. */
+      alsoCard?: { cardName?: string; closingDay: number; paymentDay: number };
     },
     onEvent?: (event: ChatStreamEvent) => void,
   ) {
@@ -349,6 +351,11 @@ export class ChatService {
     if (!form.holderName?.trim()) throw new BadRequestException('Enter the account holder name.');
     if (form.type === 'credit' && (!form.closingDay || !form.paymentDay)) throw new BadRequestException('Enter the closing and due day of the card.');
 
+    // A card never exists without its bank account: create the checking account first when the bank has none yet.
+    const parent =
+      form.type === 'credit'
+        ? await this.tools.ensureParentChecking(scope, { bankId: form.bankId, customBankName: form.customBankName, holderName: form.holderName })
+        : null;
     const acc = await this.tools.createAccountFull(scope, {
       bankId: form.bankId,
       customBankName: form.customBankName,
@@ -358,13 +365,29 @@ export class ChatService {
       closingDay: form.closingDay ?? null,
       paymentDay: form.paymentDay ?? null,
     });
+    const day = (n: unknown) => (Number.isInteger(Number(n)) && Number(n) >= 1 && Number(n) <= 31 ? Number(n) : 0);
+    const card =
+      form.type === 'checking' && day(form.alsoCard?.closingDay) && day(form.alsoCard?.paymentDay)
+        ? await this.tools.createAccountFull(scope, {
+            bankId: form.bankId,
+            customBankName: form.customBankName,
+            cardName: form.alsoCard?.cardName ? String(form.alsoCard.cardName).slice(0, 80) : undefined,
+            type: 'credit',
+            holderName: form.holderName,
+            closingDay: day(form.alsoCard?.closingDay),
+            paymentDay: day(form.alsoCard?.paymentDay),
+          })
+        : null;
 
     const updated = questions.map((q) => (q === target ? { ...q, answer: { value: acc.id, label: acc.name } } : q));
     await this.db.update(chatMessages).set({ questions: updated }).where(eq(chatMessages.id, msg.id));
 
     const bank = BANKS.find((b) => b.id === form.bankId)?.name ?? form.customBankName;
     const kind = form.type === 'credit' ? 'cartão de crédito' : form.type === 'wallet' ? 'carteira' : form.type === 'savings' ? 'poupança' : 'conta corrente';
-    const text = `Cadastrei a conta "${acc.name}" (${bank}, ${kind}, titular ${form.holderName.trim()}).`;
+    const extra = [parent && `conta corrente "${parent.name}" (id ${parent.id}, criada junto)`, card && `cartão de crédito "${card.name}" (id ${card.id})`].filter(Boolean);
+    const text =
+      `Cadastrei a conta "${acc.name}" (id ${acc.id}, ${bank}, ${kind}, titular ${form.holderName.trim()})${extra.length ? ` e também ${extra.join(' e ')}` : ''}. ` +
+      `Continue a importação que estava pendente usando o id certo para cada documento (extrato de conta = conta corrente; fatura = cartão), sem pedir mais nada.`;
     const turn = await this.send(scope, text, [], onEvent);
     return { ...turn, questionsMessage: { ...msg, questions: updated } };
   }
@@ -468,9 +491,9 @@ export class ChatService {
         continue;
       }
       const isNew = a.value.startsWith('new:');
-      const valid = isNew || q.options.some((o) => o.value === a.value);
+      const valid = isNew || q.options.some((o) => o.value === a.value) || q.existing?.value === a.value;
       if (!valid) throw new BadRequestException('Invalid answer.');
-      const label = isNew ? a.value.slice(4).trim().slice(0, 80) : (q.options.find((o) => o.value === a.value)?.label ?? a.label);
+      const label = isNew ? a.value.slice(4).trim().slice(0, 80) : (q.options.find((o) => o.value === a.value)?.label ?? (q.existing?.value === a.value ? q.existing.label : a.label));
       if (!label) throw new BadRequestException('Invalid answer.');
       const where = `${q.title}${q.fileName ? ` (${q.fileName})` : ''}`;
 
@@ -488,8 +511,8 @@ export class ChatService {
       } else if (isNew) {
         lines.push(`${where}: é uma conta NOVA chamada "${label}" (crie-a e use-a).`);
         shown.push(`Conta nova: ${label}`);
-      } else if (q.kind === 'account') {
-        lines.push(`${where}: ${label} (accountId ${a.value}).`);
+      } else if (q.kind === 'account' || q.kind === 'account_form') {
+        lines.push(`${where}: ${label} (accountId ${a.value}).${q.kind === 'account_form' ? ' O usuário escolheu importar nesta conta existente; use-a e conclua a importação.' : ''}`);
         shown.push(label);
       } else {
         lines.push(`${where}: ${label}${q.kind === 'payment_method' ? ` (paymentMethod ${a.value})` : ''}.`);
