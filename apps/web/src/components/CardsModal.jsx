@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import BankLogo from './ui/BankLogo';
 
 export default function CardsModal({ isOpen, onClose }) {
-  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, createBillsForExistingCreditCards } = useCards();
+  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, createBillsForExistingCreditCards } = useCards();
   const { t, language } = useSettings();
 
   const [view, setView] = useState('list'); // 'list', 'form'
@@ -131,7 +132,6 @@ export default function CardsModal({ isOpen, onClose }) {
 
   const BankItem = ({ userBank }) => {
     const bankInfo = getBankInfo(userBank.bankId);
-    const color = getBankColor(userBank.bankId);
     // Display name with auto-numbering for duplicates
     const displayName = getDisplayNameWithNumber(userBank);
     const subtitleName = userBank.bankId === 'other' && userBank.customBankName ? userBank.customBankName : bankInfo.name;
@@ -139,9 +139,7 @@ export default function CardsModal({ isOpen, onClose }) {
     return (
       <div className="bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl p-4 hover:shadow-md transition-shadow">
         <div className="flex items-start gap-3">
-          <div className={`w-12 h-12 ${color.light} dark:bg-opacity-30 rounded-xl flex items-center justify-center text-2xl flex-shrink-0`}>
-            {bankInfo.icon}
-          </div>
+          <BankLogo bankId={userBank.bankId} name={userBank.customBankName || userBank.cardName} size={48} />
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-[var(--rw-ink)]">{displayName}</h3>
             <p className="text-sm text-[var(--rw-muted)]">{subtitleName}</p>
@@ -298,20 +296,23 @@ export default function CardsModal({ isOpen, onClose }) {
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Banco' : 'Bank'}
                 </label>
-                <select
+                <div className="flex items-center gap-3">
+<BankLogo bankId={formData.bankId} name={formData.customBankName} size={36} />
+<select
                   value={formData.bankId}
                   onChange={(e) => setFormData({ ...formData, bankId: e.target.value, customBankName: '' })}
                   disabled={!!editingBank}
-                  className="w-full pl-4 pr-10 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                  className="min-w-0 flex-1 pl-4 pr-10 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
                     text-[var(--rw-ink)] focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition
                     disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {availableBanks.map(bank => (
                     <option key={bank.id} value={bank.id}>
-                      {bank.icon} {bank.name}
+                      {bank.name}
                     </option>
                   ))}
                 </select>
+</div>
               </div>
 
               {/* Custom Bank Name - shown when "Outro" is selected */}

@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useCards, BANKS } from '../contexts/CardsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import PageHeader from '../components/PageHeader';
+import BankLogo from '../components/ui/BankLogo';
 
 export function BanksTabContent() {
-  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankColor, getBankDisplayName } = useCards();
+  const { userBanks, loading, addBank, updateBank, deleteBank, getBankInfo, getBankDisplayName } = useCards();
   const { t, language } = useSettings();
 
   const [view, setView] = useState('list'); // 'list', 'form'
@@ -97,7 +98,6 @@ export function BanksTabContent() {
 
   const BankItem = ({ userBank }) => {
     const bankInfo = getBankInfo(userBank.bankId);
-    const color = getBankColor(userBank.bankId);
     const displayName = getBankDisplayName(userBank);
     const subtitleName = userBank.bankId === 'other' && userBank.customBankName ? userBank.customBankName : bankInfo.name;
 
@@ -107,9 +107,7 @@ export function BanksTabContent() {
         className="bg-[var(--rw-surface)] border border-[var(--rw-border)] rounded-xl p-3 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 ${color.light} dark:bg-opacity-30 rounded-lg flex items-center justify-center text-xl flex-shrink-0`}>
-            {bankInfo.icon}
-          </div>
+          <BankLogo bankId={userBank.bankId} name={userBank.customBankName || userBank.cardName} size={40} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-[var(--rw-ink)] text-sm">{displayName}</h3>
@@ -196,18 +194,21 @@ export function BanksTabContent() {
                 <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                   {language === 'pt' ? 'Banco' : 'Bank'}
                 </label>
-                <select
+                <div className="flex items-center gap-3">
+<BankLogo bankId={formData.bankId} name={formData.customBankName} size={36} />
+<select
                   value={formData.bankId}
                   disabled={true}
-                  className="w-full pl-4 pr-10 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                  className="min-w-0 flex-1 pl-4 pr-10 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
                     text-[var(--rw-ink)] opacity-50 cursor-not-allowed"
                 >
                   {BANKS.map(bank => (
                     <option key={bank.id} value={bank.id}>
-                      {bank.icon} {bank.name}
+                      {bank.name}
                     </option>
                   ))}
                 </select>
+</div>
               </div>
 
               {/* Custom Bank Name - shown when "Outro" is selected */}
@@ -466,20 +467,23 @@ export function BanksTabContent() {
               <label className="block text-sm font-medium text-[var(--rw-ink)] mb-2">
                 {language === 'pt' ? 'Banco' : 'Bank'}
               </label>
-              <select
+              <div className="flex items-center gap-3">
+<BankLogo bankId={formData.bankId} name={formData.customBankName} size={36} />
+<select
                 value={formData.bankId}
                 onChange={(e) => setFormData({ ...formData, bankId: e.target.value, customBankName: '' })}
                 disabled={!!editingBank}
-                className="w-full pl-4 pr-10 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
+                className="min-w-0 flex-1 pl-4 pr-10 py-3 bg-[var(--rw-raised)] border border-[var(--rw-border)] rounded-xl
                   text-[var(--rw-ink)] focus:border-gray-900 dark:focus:border-gray-500 focus:ring-0 focus:outline-none transition
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {BANKS.map(bank => (
                   <option key={bank.id} value={bank.id}>
-                    {bank.icon} {bank.name}
+                    {bank.name}
                   </option>
                 ))}
               </select>
+</div>
             </div>
 
             {/* Custom Bank Name - shown when "Outro" is selected */}

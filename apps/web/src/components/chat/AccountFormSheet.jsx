@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BottomSheet from './BottomSheet';
+import BankLogo from '../ui/BankLogo';
 
 const TYPES = [
   { value: 'checking', pt: 'Conta corrente', en: 'Checking' },
@@ -75,13 +76,16 @@ export default function AccountFormSheet({ message, language, busy, error, onSub
       }
     >
       <Field label={pt ? 'Banco' : 'Bank'}>
-        <select value={bankId} onChange={(e) => setBankId(e.target.value)} className={FIELD}>
+        <div className="flex items-center gap-3">
+        <BankLogo bankId={bankId} name={customBankName} size={36} />
+        <select value={bankId} onChange={(e) => setBankId(e.target.value)} className={`${FIELD} min-w-0 flex-1`}>
           {banks.map((b) => (
             <option key={b.value} value={b.value}>
               {b.label}
             </option>
           ))}
         </select>
+        </div>
       </Field>
 
       {bankId === 'other' && (
